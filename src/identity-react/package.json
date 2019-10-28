@@ -28,7 +28,7 @@
     "eject": "react-scripts eject",
     "dev": "npm-run-all --parallel start server",
     "server": "node server.js",
-    "deploy":"amplify publish"
+    "deploy": "aws s3 sync ./build s3://id.langaugetechnology.org"
   },
   "eslintConfig": {
     "extends": "react-app"
