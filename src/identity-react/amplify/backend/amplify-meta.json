@@ -1,0 +1,32 @@
+{
+	"providers": {
+		"awscloudformation": {
+			"AuthRoleName": "identity-react-dev-20191024152121-authRole",
+			"UnauthRoleArn": "arn:aws:iam::928745222303:role/identity-react-dev-20191024152121-unauthRole",
+			"AuthRoleArn": "arn:aws:iam::928745222303:role/identity-react-dev-20191024152121-authRole",
+			"Region": "us-east-1",
+			"DeploymentBucketName": "identity-react-dev-20191024152121-deployment",
+			"UnauthRoleName": "identity-react-dev-20191024152121-unauthRole",
+			"StackName": "identity-react-dev-20191024152121",
+			"StackId": "arn:aws:cloudformation:us-east-1:928745222303:stack/identity-react-dev-20191024152121/d80300b0-f69b-11e9-ba16-0ee5b554e1bc"
+		}
+	},
+	"hosting": {
+		"S3AndCloudFront": {
+			"service": "S3AndCloudFront",
+			"providerPlugin": "awscloudformation",
+			"providerMetadata": {
+				"s3TemplateURL": "https://s3.amazonaws.com/identity-react-dev-20191024152121-deployment/amplify-cfn-templates/hosting/template.json",
+				"logicalId": "hostingS3AndCloudFront"
+			},
+			"lastPushTimeStamp": "2019-10-24T20:24:18.931Z",
+			"output": {
+				"S3BucketSecureURL": "https://id.languagetechnology.org.s3.amazonaws.com",
+				"WebsiteURL": "http://id.languagetechnology.org.s3-website-us-east-1.amazonaws.com",
+				"Region": "us-east-1",
+				"HostingBucketName": "id.languagetechnology.org"
+			},
+			"lastPushDirHash": "5OPlvCSUT+F+YP7UikkvtsK2+pY="
+		}
+	}
+}
