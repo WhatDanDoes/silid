@@ -2,19 +2,28 @@
 const fixtures = require('sequelize-fixtures');
 
 describe('Organization', () => {
-  const db = require('../../models');
-  const Organization = db.Organization;
+  const models = require('../../models');
+  const Organization = models.Organization;
 
   let organization;
 
   const _valid = {};
   beforeEach(done => {
-    db.sequelize.sync({force: true}).then(() => {
-      _valid.name = 'Chill Bill International';
+    models.sequelize.sync({force: true}).then(() => {
+      fixtures.loadFile(`${__dirname}/../fixtures/agents.json`, models).then(() => {
+        models.Agent.findAll().then(result => {
+          _valid.name = 'Chill Bill International';
+          _valid.creatorId = result[0].id;
 
-      organization = new Organization(_valid);
+          organization = new Organization(_valid);
 
-      done();
+          done();
+        }).catch(err => {
+          done.fail(err);
+        });
+      }).catch(err => {
+        done.fail(err);
+      });
     }).catch(err => {
       done.fail(err);
     });
@@ -30,6 +39,47 @@ describe('Organization', () => {
         done();
       }).catch(err => {
         done.fail(err);
+      });
+    });
+
+    describe('creator', () => {
+      it('requires a creator agent', done => {
+        delete _valid.creatorId;
+        organization = new Organization(_valid);
+        organization.save().then(obj => {
+          done.fail('This shouldn\'t haved saved');
+        }).catch(err => {
+          expect(err.errors.length).toEqual(1);
+          expect(err.errors[0].message).toEqual('Organization.creatorId cannot be null');
+          done();
+        });
+      });
+
+      /**
+       * 2019-10-20 https://github.com/sequelize/sequelize/issues/7826
+       *
+       * Foreign key constraints have wonky errors (cf., Validation Errors)
+       */
+      it('blank agent not allowed', done => {
+        _valid.creatorId = '   ';
+        organization = new Organization(_valid);
+        organization.save().then(obj => {
+          done.fail('This shouldn\'t haved saved');
+        }).catch(err => {
+          expect(err instanceof models.Sequelize.DatabaseError).toBe(true);
+          done();
+        });
+      });
+
+      it('unknown agent not allowed', done => {
+        _valid.creatorId = 111;
+        organization = new Organization(_valid);
+        organization.save().then(obj => {
+          done.fail('This shouldn\'t haved saved');
+        }).catch(err => {
+          expect(err instanceof models.Sequelize.ForeignKeyConstraintError).toBe(true);
+          done();
+        });
       });
     });
 
@@ -82,8 +132,8 @@ describe('Organization', () => {
       beforeEach(done => {
         organization.save().then(obj => {
           org = obj;
-          fixtures.loadFile(`${__dirname}/../fixtures/agents.json`, db).then(() => {
-            db.Agent.findAll().then(results => {
+          fixtures.loadFile(`${__dirname}/../fixtures/agents.json`, models).then(() => {
+            models.Agent.findAll().then(results => {
               agent = results[0];
               done();
             });
@@ -138,8 +188,8 @@ describe('Organization', () => {
       beforeEach(done => {
         organization.save().then(result => {
           org = result;
-          fixtures.loadFile(`${__dirname}/../fixtures/projects.json`, db).then(() => {
-            db.Project.findAll().then(results => {
+          fixtures.loadFile(`${__dirname}/../fixtures/projects.json`, models).then(() => {
+            models.Project.findAll().then(results => {
               project = results[0];
               done();
             });

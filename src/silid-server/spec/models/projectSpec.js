@@ -137,10 +137,14 @@ describe('Project', () => {
       let org;
       beforeEach(done => {
         project.save().then(obj => {
-          fixtures.loadFile(`${__dirname}/../fixtures/organizations.json`, db).then(() => {
-            db.Organization.findAll().then(results => {
-              org = results[0];
-              done();
+          fixtures.loadFile(`${__dirname}/../fixtures/agents.json`, db).then(() => {
+            fixtures.loadFile(`${__dirname}/../fixtures/organizations.json`, db).then(() => {
+              db.Organization.findAll().then(results => {
+                org = results[0];
+                done();
+              });
+            }).catch(err => {
+              done.fail(err);
             });
           }).catch(err => {
             done.fail(err);

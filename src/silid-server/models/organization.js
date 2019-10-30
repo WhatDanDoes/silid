@@ -22,6 +22,14 @@ module.exports = (sequelize, DataTypes) => {
   }, {});
 
   Organization.associate = function(models) {
+    Organization.belongsTo(models.Agent, {
+      as: 'creator',
+      foreignKey: {
+        allowNull: false,
+      },
+      onDelete: 'CASCADE'
+    });
+
     Organization.belongsToMany(models.Agent, {
       through: 'agent_organization'
     });
