@@ -1,5 +1,5 @@
 {
-  "projectPath": "/var/lib/teamcity-agent/work/1604f40d2bdec61e/src/identity-react",
-  "defaultEditor": "code",
-  "envName": "dev"
+    "projectPath": "/var/lib/teamcity-agent/work/1604f40d2bdec61e/src/identity-react",
+    "defaultEditor": "vscode",
+    "envName": "production"
 }
