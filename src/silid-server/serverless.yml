@@ -1,0 +1,113 @@
+# Welcome to Serverless!
+#
+# This file is the main config file for your service.
+# It's very minimal at this point and uses default values.
+# You can always add more config options for more control.
+# We've included some commented out config examples here.
+# Just uncomment any of them to get that config option.
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+#
+# Happy Coding!
+
+service: transcriber-auth # NOTE: update this with your service name
+
+# You can pin your service to only deploy with a specific Serverless version
+# Check out our docs for more details
+# frameworkVersion: "=X.X.X"
+plugins:
+  # - serverless-offline
+  
+provider:
+  name: aws
+  runtime: nodejs10.x
+  stage: production
+  profile: transcriber
+  region: us-east-1
+      
+functions:
+  app:
+    handler: app.handler
+    events:
+      - http: ANY /
+      - http: 'ANY {proxy+}'
+  
+# you can add CloudFormation resource templates here
+resources:
+  Resources:
+   lambdavpc:
+      Type: AWS::EC2::VPC
+      Properties:
+        CidrBlock: "10.0.0.0/16"
+
+   lambdasubnetA:
+      DependsOn: lambdavpc
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId:
+          Ref: lambdavpc
+        AvailabilityZone: ${self:provider.region}a
+        CidrBlock: "10.0.0.0/24"
+
+   lambdasubnetB:
+      DependsOn: lambdavpc
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId:
+          Ref: lambdavpc
+        AvailabilityZone: ${self:provider.region}b
+        CidrBlock: "10.0.1.0/24"
+
+   transcriberauthasg:
+      DependsOn: lambdavpc
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: SecurityGroup for Serverless Functions
+        VpcId:
+          Ref: lambdavpc
+
+   transcriberauthdatasg:
+      DependsOn: lambdavpc
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: SecurityGroup for RDS Instance
+        VpcId:
+          Ref: lambdavpc
+        SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '5432'
+          ToPort: '5432'
+          SourceSecurityGroupId:
+            Ref: transcriberauthasg
+        - IpProtocol: tcp
+          FromPort: '11211'
+          ToPort: '11211'
+          SourceSecurityGroupId:
+            Ref: transcriberauthasg
+        - IpProtocol: tcp
+          FromPort: '5432'
+          ToPort: '5432'
+          CidrIp: 0.0.0.0/0
+          
+   transcriberauthdatasubnet:
+      Type: AWS::RDS::DBSubnetGroup
+      Properties:
+        DBSubnetGroupDescription: "RDS Subnet Group"
+        SubnetIds:
+        - Ref: lambdasubnetA
+        - Ref: lambdasubnetB
+
+   transcriberauthrdscluster:
+      Type: AWS::RDS::DBInstance
+      Properties:
+        Engine: Postgres
+        DBName: transcriberauthdb
+        MasterUsername: ${file(./serverless.env.yaml):production.MasterUsername}
+        MasterUserPassword: ${file(./serverless.env.yaml):production.MasterUserPassword}
+        DBInstanceClass: db.t3.micro
+        AllocatedStorage: 10
+        VPCSecurityGroups:
+        - "Fn::GetAtt": transcriberauthdatasg.GroupId
+        DBSubnetGroupName:
+          Ref: transcriberauthdatasubnet
