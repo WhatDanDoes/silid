@@ -11,28 +11,27 @@
 #
 # Happy Coding!
 
-service: transcriber-auth # NOTE: update this with your service name
+service: silid-server # NOTE: update this with your service name
 
 # You can pin your service to only deploy with a specific Serverless version
 # Check out our docs for more details
 # frameworkVersion: "=X.X.X"
 plugins:
   # - serverless-offline
-  
+
 provider:
   name: aws
   runtime: nodejs10.x
   stage: production
-  profile: transcriber
   region: us-east-1
-      
+
 functions:
   app:
     handler: app.handler
     events:
       - http: ANY /
       - http: 'ANY {proxy+}'
-  
+
 # you can add CloudFormation resource templates here
 resources:
   Resources:
@@ -59,7 +58,7 @@ resources:
         AvailabilityZone: ${self:provider.region}b
         CidrBlock: "10.0.1.0/24"
 
-   transcriberauthasg:
+   silidserverasg:
       DependsOn: lambdavpc
       Type: AWS::EC2::SecurityGroup
       Properties:
@@ -67,7 +66,7 @@ resources:
         VpcId:
           Ref: lambdavpc
 
-   transcriberauthdatasg:
+   silidserverdatasg:
       DependsOn: lambdavpc
       Type: AWS::EC2::SecurityGroup
       Properties:
@@ -79,18 +78,18 @@ resources:
           FromPort: '5432'
           ToPort: '5432'
           SourceSecurityGroupId:
-            Ref: transcriberauthasg
+            Ref: silidserverasg
         - IpProtocol: tcp
           FromPort: '11211'
           ToPort: '11211'
           SourceSecurityGroupId:
-            Ref: transcriberauthasg
+            Ref: silidserverasg
         - IpProtocol: tcp
           FromPort: '5432'
           ToPort: '5432'
           CidrIp: 0.0.0.0/0
-          
-   transcriberauthdatasubnet:
+
+   silidserverdatasubnet:
       Type: AWS::RDS::DBSubnetGroup
       Properties:
         DBSubnetGroupDescription: "RDS Subnet Group"
@@ -98,16 +97,16 @@ resources:
         - Ref: lambdasubnetA
         - Ref: lambdasubnetB
 
-   transcriberauthrdscluster:
+   silidserverrdscluster:
       Type: AWS::RDS::DBInstance
       Properties:
         Engine: Postgres
-        DBName: transcriberauthdb
+        DBName: silidserverdb
         MasterUsername: ${file(./serverless.env.yaml):production.MasterUsername}
         MasterUserPassword: ${file(./serverless.env.yaml):production.MasterUserPassword}
         DBInstanceClass: db.t3.micro
         AllocatedStorage: 10
         VPCSecurityGroups:
-        - "Fn::GetAtt": transcriberauthdatasg.GroupId
+        - "Fn::GetAtt": silidserverdatasg.GroupId
         DBSubnetGroupName:
-          Ref: transcriberauthdatasubnet
+          Ref: silidserverdatasubnet
