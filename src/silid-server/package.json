@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/www",
+    "deploy": "serverless deploy -v",
     "dev": "nodemon ./bin/www",
     "test": "NODE_ENV=test npx jasmine"
   },
