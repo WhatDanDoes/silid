@@ -1,5 +1,6 @@
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
+const models = require('../models');
 const jwtAuth = function(req, res, next) {
   const token =
     req.body.token ||
@@ -13,8 +14,15 @@ const jwtAuth = function(req, res, next) {
       if (err) {
         res.status(401).json({ message: 'Unauthorized: Invalid token' });
       } else {
-        req.user = decoded;
-        next();
+        models.Agent.findOne({ where: { email: decoded.email } }).then(agent => {
+          req.user = agent;
+          if (!req.user) {
+            req.user = decoded;
+          }
+          next();
+        }).catch(err => {
+          res.status(500).json(err);
+        });
       }
     });
   }

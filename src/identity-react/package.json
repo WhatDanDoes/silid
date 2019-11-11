@@ -6,10 +6,12 @@
     "@auth0/auth0-spa-js": "^1.2.4",
     "@material-ui/core": "^4.5.0",
     "@material-ui/icons": "^4.4.3",
+    "@types/auth0-js": "^9.10.6",
     "@types/jest": "24.0.18",
     "@types/node": "12.7.12",
     "@types/react": "16.9.5",
     "@types/react-dom": "16.9.1",
+    "auth0-js": "^9.11.3",
     "express": "^4.17.1",
     "express-jwt": "^5.3.1",
     "jwks-rsa": "^1.6.0",
@@ -25,6 +27,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:headless": "docker run --rm -it -v $PWD:/e2e -w /e2e --network host cypress/included:3.3.1",
     "eject": "react-scripts eject",
     "dev": "npm-run-all --parallel start server",
     "server": "node server.js",
@@ -49,7 +52,9 @@
     "trailingComma": "es5"
   },
   "devDependencies": {
-    "@types/react-router-dom": "^5.1.0"
+    "@bahmutov/add-typescript-to-cypress": "^2.1.2",
+    "@types/react-router-dom": "^5.1.0",
+    "cypress": "^3.6.0"
   },
   "proxy": "http://localhost:3001"
 }

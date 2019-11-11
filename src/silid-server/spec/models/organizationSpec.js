@@ -183,14 +183,14 @@ describe('Organization', () => {
       });
     });
 
-    describe('projects', () => {
-      let project, org;
+    describe('teams', () => {
+      let team, org;
       beforeEach(done => {
         organization.save().then(result => {
           org = result;
-          fixtures.loadFile(`${__dirname}/../fixtures/projects.json`, models).then(() => {
-            models.Project.findAll().then(results => {
-              project = results[0];
+          fixtures.loadFile(`${__dirname}/../fixtures/teams.json`, models).then(() => {
+            models.Team.findAll().then(results => {
+              team = results[0];
               done();
             });
           }).catch(err => {
@@ -202,10 +202,10 @@ describe('Organization', () => {
       });
 
       it('has many', done => {
-        org.addProject(project.id).then(result => {
-          org.getProjects().then(result => {
+        org.addTeam(team.id).then(result => {
+          org.getTeams().then(result => {
             expect(result.length).toEqual(1);
-            expect(result[0].name).toEqual(project.name);
+            expect(result[0].name).toEqual(team.name);
             done();
           }).catch(err => {
             done.fail(err);
@@ -215,13 +215,13 @@ describe('Organization', () => {
         });
       });
 
-      it('removes project if deleted', done => {
-        org.addProject(project.id).then(result => {
-          org.getProjects().then(result => {
+      it('removes team if deleted', done => {
+        org.addTeam(team.id).then(result => {
+          org.getTeams().then(result => {
             expect(result.length).toEqual(1);
-            expect(result[0].name).toEqual(project.name);
-            project.destroy().then(result => {
-              org.getProjects().then(result => {
+            expect(result[0].name).toEqual(team.name);
+            team.destroy().then(result => {
+              org.getTeams().then(result => {
                 expect(result.length).toEqual(0);
                 done();
               }).catch(err => {

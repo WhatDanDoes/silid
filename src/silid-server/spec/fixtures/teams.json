@@ -1,0 +1,11 @@
+[
+  {
+    "model": "Team",
+    "data": {
+      "name": "Codename: Mario",
+      "organization": {
+        "name": "Chill Bill International"
+      }
+    }
+  }
+]

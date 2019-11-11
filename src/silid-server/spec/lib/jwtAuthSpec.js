@@ -18,8 +18,16 @@ describe('jwtAuth', function() {
     });
 
     models.sequelize.sync({force: true}).then(() => {
-      agent = new Agent({ email: 'someguy@example.com', password: 'secret' });
-      done();
+      fixtures.loadFile(`${__dirname}/../fixtures/agents.json`, models).then(() => {
+        models.Agent.findAll().then(results => {
+          agent = results[0];
+          done();
+        }).catch(err => {
+          done.fail(err);
+        });
+      }).catch(err => {
+        done.fail(err);
+      });
     }).catch(err => {
       done.fail(err);
     });
@@ -47,7 +55,7 @@ describe('jwtAuth', function() {
   it('returns 401 and message if token is invalid', done => {
     request = httpMocks.createRequest({
       method: 'POST',
-      url: '/image',
+      url: '/agent',
       body: {
         token: 'invalidtoken'
       }
@@ -66,19 +74,38 @@ describe('jwtAuth', function() {
     });
   });
 
-  it('attaches agent email to request object', done => {
+  it('attaches agent to request object', done => {
     const token = jwt.sign({ email: agent.email }, process.env.SECRET, { expiresIn: '1h' });
 
     request = httpMocks.createRequest({
       method: 'POST',
-      url: '/image',
+      url: '/agent',
       body: {
         token: token
       }
     });
 
     jwtAuth(request, response, function(err) {
-      expect(request.user.email).toEqual(agent.email);
+      if (err) return done.fail(err);
+      expect(request.user).toEqual(agent);
+      done();
+    });
+  });
+
+  it('attaches the decoded token if agent isn\'t in the database', done => {
+    const token = jwt.sign({ email: 'newagent@example.com' }, process.env.SECRET, { expiresIn: '1h' });
+
+    request = httpMocks.createRequest({
+      method: 'POST',
+      url: '/agent',
+      body: {
+        token: token
+      }
+    });
+
+    jwtAuth(request, response, function(err) {
+      if (err) return done.fail(err);
+      expect(request.user.email).toEqual('newagent@example.com');
       expect(request.user.iat).toBeDefined();
       expect(request.user.exp).toBeDefined();
       done();

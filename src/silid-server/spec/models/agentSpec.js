@@ -162,14 +162,18 @@ describe('Agent', () => {
       });
     });
 
-    describe('projects', () => {
-      let project;
+    describe('teams', () => {
+      let team;
       beforeEach(done => {
         agent.save().then(result => {
-          fixtures.loadFile(`${__dirname}/../fixtures/projects.json`, db).then(() => {
-            db.Project.findAll().then(results => {
-              project = results[0];
-              done();
+          fixtures.loadFile(`${__dirname}/../fixtures/organizations.json`, db).then(() => {
+            fixtures.loadFile(`${__dirname}/../fixtures/teams.json`, db).then(() => {
+              db.Team.findAll().then(results => {
+                team = results[0];
+                done();
+              });
+            }).catch(err => {
+              done.fail(err);
             });
           }).catch(err => {
             done.fail(err);
@@ -180,10 +184,10 @@ describe('Agent', () => {
       });
 
       it('has many', done => {
-        agent.addProject(project.id).then(result => {
-          agent.getProjects().then(result => {
+        agent.addTeam(team.id).then(result => {
+          agent.getTeams().then(result => {
             expect(result.length).toEqual(1);
-            expect(result[0].name).toEqual(project.name);
+            expect(result[0].name).toEqual(team.name);
             done();
           }).catch(err => {
             done.fail(err);
@@ -193,13 +197,13 @@ describe('Agent', () => {
         });
       });
 
-      it('removes project if deleted', done => {
-        agent.addProject(project.id).then(result => {
-          agent.getProjects().then(result => {
+      it('removes team if deleted', done => {
+        agent.addTeam(team.id).then(result => {
+          agent.getTeams().then(result => {
             expect(result.length).toEqual(1);
-            expect(result[0].name).toEqual(project.name);
-            project.destroy().then(result => {
-              agent.getProjects().then(result => {
+            expect(result[0].name).toEqual(team.name);
+            team.destroy().then(result => {
+              agent.getTeams().then(result => {
                 expect(result.length).toEqual(0);
                 done();
               }).catch(err => {

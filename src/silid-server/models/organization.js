@@ -34,8 +34,8 @@ module.exports = (sequelize, DataTypes) => {
       through: 'agent_organization'
     });
 
-    Organization.belongsToMany(models.Project, {
-      through: 'organization_project'
+    Organization.belongsToMany(models.Team, {
+      through: 'organization_team'
     });
   };
 

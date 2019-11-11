@@ -35,3 +35,6 @@ src/identity-node/serverless.env.yaml
 
 # vim clutter
 *.sw*
+
+# cypress
+**/cypress/videos/
