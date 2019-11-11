@@ -22,7 +22,7 @@ plugins:
 provider:
   name: aws
   runtime: nodejs10.x
-  stage: dev
+  stage: production
   region: us-east-1
 
 functions:
@@ -102,8 +102,8 @@ resources:
       Properties:
         Engine: Postgres
         DBName: silidserverdb
-        MasterUsername: ${file(./serverless.env.yaml):dev.MasterUsername}
-        MasterUserPassword: ${file(./serverless.env.yaml):dev.MasterUserPassword}
+        MasterUsername: ${file(./serverless.env.yaml):production.MasterUsername}
+        MasterUserPassword: ${file(./serverless.env.yaml):production.MasterUserPassword}
         DBInstanceClass: db.t3.micro
         AllocatedStorage: 10
         VPCSecurityGroups:
