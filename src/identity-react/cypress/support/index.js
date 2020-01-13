@@ -14,16 +14,37 @@
 // ***********************************************************
 
 
+/**
+ * 2019-12-19
+ * https://github.com/cypress-io/cypress/issues/3199#issuecomment-492728331
+ *
+ * So you can see console.logs in headless mode
+ */
+Cypress.on('window:before:load', (win) => {
+  Cypress.log({
+    name: 'console.log',
+    message: 'wrap on console.log',
+  });
 
-// Delete window.fetch on every window load
-//Cypress.on('window:before:load', win => {
-//  delete win.fetch;
-////  win.fetch = require('react-app-polyfill/stable');
-//  Cypress.log({
-//    name: 'Deleting Fetch',
-//  });
-//
-////  win.fetch = require('whatwg-fetch');
-//});
+  // pass through cypress log so we can see log inside command execution order
+  win.console.log = (...args) => {
+    Cypress.log({
+      name: 'console.log',
+      message: args,
+    });
+  };
+});
+
+Cypress.on('log:added', (options) => {
+    if (options.instrument === 'command') {
+        // eslint-disable-next-line no-console
+        console.log(
+            `${(options.displayName || options.name || '').toUpperCase()} ${
+                options.message
+            }`,
+        );
+    }
+});
 
 import './login'
+import './log'

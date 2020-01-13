@@ -47,7 +47,7 @@ describe('jwtAuth', function() {
     /**
      * Auth0 /userinfo mock
      */
-    scope = nock(`https://${process.env.AUTH0_DOMAIN}`, {
+    scope = nock(`http://${process.env.AUTH0_DOMAIN}`, {
         reqheaders: {
           'Authorization': _authHeader
         }
@@ -128,7 +128,7 @@ describe('jwtAuth', function() {
     });
 
     it('calls Auth0\'s /user API if access token has not been seen before', done => {
-      const newTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`, {
+      const newTokenScope = nock(`http://${process.env.AUTH0_DOMAIN}`, {
           reqheaders: {
             'Authorization': 'Bearer SomePreviouslyUnknownThoughValidToken'
           }
@@ -156,7 +156,7 @@ describe('jwtAuth', function() {
     });
 
     it('saves the new Access Token in the agent\'s accessToken', done => {
-      const newTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`, {
+      const newTokenScope = nock(`http://${process.env.AUTH0_DOMAIN}`, {
           reqheaders: {
             'Authorization': 'Bearer SomePreviouslyUnknownThoughValidToken'
           }
@@ -185,7 +185,7 @@ describe('jwtAuth', function() {
     });
 
     it('saves the Identity Token in the agent\'s socialProfile', done => {
-      const newTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`, {
+      const newTokenScope = nock(`http://${process.env.AUTH0_DOMAIN}`, {
           reqheaders: {
             'Authorization': 'Bearer SomePreviouslyUnknownThoughValidToken'
           }

@@ -5,6 +5,9 @@
       "name": "Codename: Mario",
       "organization": {
         "name": "Chill Bill International"
+      },
+      "creator": {
+        "email": "someguy@example.com"
       }
     }
   }

@@ -37,12 +37,13 @@ module.exports = (sequelize, DataTypes) => {
     });
 
     Agent.belongsToMany(models.Team, {
+      as: 'teams',
       through: 'agent_team'
     });
   };
 
   /**
-   * Check new token agains last token provided by this agent.
+   * Check new token against last token provided by this agent.
    *
    * This method does not validate the JWT.
    */

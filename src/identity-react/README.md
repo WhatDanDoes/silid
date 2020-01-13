@@ -60,3 +60,12 @@ npm run test:headless
 Some helpful (but not entirely applicable) info can be found here: https://www.cypress.io/blog/2019/05/02/run-cypress-with-a-single-docker-command/
 
 
+To run a single test file:
+
+```
+npm run test:headless -- --spec cypress/integration/organizationIndexSpec.js
+```
+
+Note the extra `--`.
+
+

@@ -100,6 +100,12 @@ const Home = (props: IProps) => {
             </ListItemLink>
           </ListItem>
         ))}
+        <ListItem button id='organization-button' key='Organizations'>
+          <ListItemIcon><InboxIcon /></ListItemIcon>
+          <ListItemLink href='#organization'>
+            <ListItemText primary='Organizations' />
+          </ListItemLink>
+        </ListItem>
       </List>
       <Divider />
       <List>
@@ -119,6 +125,7 @@ const Home = (props: IProps) => {
     <AppBar position="static">
       <Toolbar>
         <IconButton
+          id="app-menu-button"
           onClick={toggleDrawer('left', true)}
           edge="start"
           className={classes.menuButton}

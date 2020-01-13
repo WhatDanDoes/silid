@@ -1,5 +1,20 @@
 import history from '../history';
-import auth0 from 'auth0-js';
+
+/**
+ * 2019-12-21
+ *
+ * https://community.auth0.com/t/custom-domain-in-angular/21883/5
+ *
+ * _Object literal may only specify known properties, and 'overrides' does not
+ * exist in type 'AuthOptions'.  TS2345_
+ *
+ * `overrides` is needed for testing and I'm tired of fighting with Typescript,
+ * so the regular Javascript file is being imported.
+ */
+//import auth0 from 'auth0-js';
+//import auth0 from '../../node_modules/auth0-js/src';
+import auth0 from '../../node_modules/auth0-js/dist/auth0.min.js';
+
 import { AUTH_CONFIG } from './auth0-variables';
 
 export default class Auth {
@@ -8,6 +23,11 @@ export default class Auth {
   profile: any;
   expiresAt: any;
 
+  /**
+   * For testing
+   */
+  options = {} as any;
+
   auth0 = new auth0.WebAuth({
     domain: AUTH_CONFIG.domain,
     clientID: AUTH_CONFIG.clientId,
@@ -15,6 +35,12 @@ export default class Auth {
     audience: AUTH_CONFIG.audience,
     responseType: 'token id_token',
     scope: 'openid email profile',
+    // These overrides are only used for testing (currently)
+    overrides: process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development' ? {
+      __jwks_uri: 'http://localhost:3002/.well-known/jwks.json',
+      __tenant: 'some-guy',
+      __token_issuer: `https://${AUTH_CONFIG.domain}/`,
+    }: undefined,
   });
 
   constructor() {
@@ -34,10 +60,23 @@ export default class Auth {
 
   handleAuthentication() {
     return new Promise((resolve, reject) => {
-      this.auth0.parseHash((err, authResult) => {
+      let options = {} as any;
+
+      /**
+       * For testing
+       *
+       * Of places to set `state`, this seems to be the one that matters!!!
+       */
+      if (process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development') {
+        options.state = 'abc123';
+      }
+
+//      options.hash = window.location.hash.replace(/^#\/?callback/, '');
+
+      this.auth0.parseHash(options, (err, authResult) => {
         if (err) return reject(err);
         if (!authResult || !authResult.idTokenPayload) {
-          reject(err);
+          return reject(err);
         }
         this.setSession(authResult);
         resolve();

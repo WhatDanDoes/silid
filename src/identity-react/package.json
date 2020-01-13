@@ -14,6 +14,7 @@
     "auth0-js": "^9.11.3",
     "express": "^4.17.1",
     "express-jwt": "^5.3.1",
+    "http-server": "^0.12.0",
     "jwks-rsa": "^1.6.0",
     "npm-run-all": "^4.1.5",
     "react": "^16.10.2",
@@ -28,6 +29,7 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "test:headless": "docker run --rm -it -v $PWD:/e2e -w /e2e --network host cypress/included:3.3.1",
+    "test:headless:log": "docker run --rm -it -e ELECTRON_ENABLE_LOGGING=1 -v $PWD:/e2e -w /e2e --network host cypress/included:3.3.1",
     "eject": "react-scripts eject",
     "dev": "npm-run-all --parallel start server",
     "server": "node server.js",
@@ -57,7 +59,9 @@
     "@types/react-router-dom": "^5.1.0",
     "cypress": "^3.6.0",
     "node-mocks-http": "^1.8.0",
-    "passport": "^0.4.0"
+    "passport": "^0.4.0",
+    "pg": "^7.14.0",
+    "sequelize": "^5.21.2"
   },
   "proxy": "http://localhost:3001"
 }

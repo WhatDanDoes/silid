@@ -2,17 +2,19 @@ import { useEffect, useState } from 'react';
 import { Service } from '../types/Service';
 import { Agent } from '../types/Agent';
 
-export interface Agents {
-  results: Agent[];
-}
-
-const useStarshipsService = () => {
-  const [result, setResult] = useState<Service<Agents>>({
+const useAgentService = (id: number) => {
+  const [result, setResult] = useState<Service<Agent>>({
     status: 'loading'
   });
 
+  let url = '/agent';
+  if (id) {
+    url = `${url}/${id}`;
+  }
+
+  const headers = new Headers({ 'Authorization': `Bearer ${localStorage.getItem('accessToken')}`}); 
   useEffect(() => {
-    fetch('https://swapi.co/api/starships')
+    fetch(url, { headers })
       .then(response => response.json())
       .then(response => setResult({ status: 'loaded', payload: response }))
       .catch(error => setResult({ status: 'error', error }));
@@ -21,4 +23,4 @@ const useStarshipsService = () => {
   return result;
 };
 
-export default useStarshipsService;
+export default useAgentService;

@@ -9,7 +9,7 @@ router.get('/', jwtAuth, function(req, res, next) {
 });
 
 router.get('/:id', jwtAuth, function(req, res, next) {
-  models.Agent.findOne({ where: { id: req.params.id } }).then(result => {
+  models.Agent.findOne({ where: { id: req.params.id }, attributes: { exclude: ['accessToken'] } }).then(result => {
     if (!result) {
       result = { message: 'No such agent' };
     }
@@ -33,7 +33,7 @@ router.post('/', jwtAuth, function(req, res, next) {
 });
 
 router.put('/', jwtAuth, function(req, res, next) {
-  models.Agent.findOne({ where: { id: req.body.id } }).then(agent => {
+  models.Agent.findOne({ where: { id: req.body.id }, attributes: { exclude: ['accessToken'] } }).then(agent => {
     if (!agent) {
       return res.json( { message: 'No such agent' });
     }

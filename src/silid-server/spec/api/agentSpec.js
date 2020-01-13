@@ -124,6 +124,23 @@ describe('agentSpec', () => {
             });
         });
 
+        it('omits the accessToken', done => {
+          request(app)
+            .get(`/agent/${agent.id}`)
+            .set('Accept', 'application/json')
+            .set('Authorization', `Bearer ${signedAccessToken}`)
+            .expect('Content-Type', /json/)
+            .expect(200)
+            .end(function(err, res) {
+              if (err) done.fail(err);
+              scope.done();
+
+              expect(res.body.accessToken).toBeUndefined();
+              done();
+            });
+        });
+
+
         it('doesn\'t barf if record doesn\'t exist', done => {
           request(app)
             .get('/agent/33')
@@ -158,6 +175,7 @@ describe('agentSpec', () => {
               scope.done();
 
               expect(res.body.name).toEqual('Some Cool Guy');
+              expect(res.body.accessToken).toBeUndefined();
  
               models.Agent.findOne({ where: { id: agent.id }}).then(results => {
                 expect(results.name).toEqual('Some Cool Guy');

@@ -13,6 +13,7 @@ const nock = require('nock');
  * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
  */
 const _access = require('../fixtures/sample-auth0-access-token');
+_access.iss = `http://${process.env.AUTH0_DOMAIN}/`;
 
 const jose = require('node-jose');
 const pem2jwk = require('pem-jwk').pem2jwk
@@ -59,7 +60,7 @@ module.exports = function(done) {
   keystore.add(jwkPub, 'pkcs8').then(function(result) {
     const signedAccessToken = jwt.sign(_access, prv, { algorithm: 'RS256', header: { kid: result.kid } });
 
-    scope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+    scope = nock(`http://${process.env.AUTH0_DOMAIN}`)
       .persist()
       .log(console.log)
       .get('/.well-known/jwks.json')

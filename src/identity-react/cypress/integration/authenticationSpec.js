@@ -6,9 +6,76 @@ context('Authentication', function() {
 
   before(function() {
     cy.fixture('google-profile-response.json').as('profile');
+    cy.fixture('someguy-auth0-access-token.json').as('agent');
+  });
+
+  describe('/callback', () => {
+
+    let accessToken, state, idToken;
+    beforeEach(function() {
+      // Need a legitmate accessToken/idToken...
+      cy.login(this.agent);
+      cy.visit('/').then(() => {
+        accessToken = localStorage.getItem('accessToken');
+        idToken = localStorage.getItem('idToken');
+  
+        cy.logout();
+
+        // CSRF prevention requires state to match
+        state = 'abc123';
+      });
+    });
+
+    it('sets the required values in localStorage', () => {
+      expect(localStorage.getItem('profile')).to.be.null;
+      expect(localStorage.getItem('isLoggedIn')).to.be.null;
+      expect(localStorage.getItem('accessToken')).to.be.null;
+      expect(localStorage.getItem('idToken')).to.be.null;
+      expect(localStorage.getItem('expiresAt')).to.be.null;
+      expect(localStorage.getItem('profile')).to.be.null;
+
+      cy.visit(`/callback#access_token=${accessToken}&scope=openid%20profile%20email&expires_in=7200&token_type=Bearer&state=${state}&id_token=${idToken}`).then(() => {
+
+        // This gives the app time to load before subsequent tests are executed
+        cy.visit('/').then(() => {
+          expect(localStorage.getItem('profile')).to.not.be.null;
+          expect(localStorage.getItem('isLoggedIn')).to.not.be.null;
+          expect(localStorage.getItem('accessToken')).to.not.be.null;
+          expect(localStorage.getItem('idToken')).to.be.not.null;
+          expect(localStorage.getItem('expiresAt')).to.not.be.null;
+          expect(localStorage.getItem('profile')).to.not.be.null;
+        });
+      });
+    });
+
+    context('unsuccessful authentication', () => {
+      beforeEach(() => {
+        cy.visit(`/callback#access_token=${accessToken}&scope=openid%20profile%20email&expires_in=7200&token_type=Bearer&state=BAD_STATE_CREATES_ERROR&id_token=${idToken}`);
+      });
+
+      it('renders the interface', () => {
+        cy.get('#login-button').should('exist');
+        cy.get('#logout-button').should('not.exist');
+        cy.get('h3').contains('Something went terribly wrong');
+      });
+    });
+
+    context('successful authentication', () => {
+      beforeEach(() => {
+        cy.visit(`/callback#access_token=${accessToken}&scope=openid%20profile%20email&expires_in=7200&token_type=Bearer&state=${state}&id_token=${idToken}`);
+      });
+
+      it('lands in the right place', () => {
+        cy.url().should('match', /\/#\/$/);
+      });
+  
+      it('renders the interface', () => {
+        cy.get('#logout-button').contains('Logout');
+      });
+    });
   });
   
-  describe('not logged in', done => {
+  describe('not logged in', () => {
     beforeEach(() => {
       cy.visit('/');
     });
@@ -28,9 +95,9 @@ context('Authentication', function() {
     });
   });
 
-  describe('logged in', done => {
-    beforeEach(() => {
-      cy.login();
+  describe('logged in', () => {
+    beforeEach(function() {
+      cy.login(this.agent);
     });
 
     it('does not display the login link', () => {
@@ -48,6 +115,7 @@ context('Authentication', function() {
 
       cy.get('#app-menu ul div:nth-of-type(1) a').should('have.attr', 'href', '#/').and('contain', 'Home');
       cy.get('#app-menu ul div:nth-of-type(2) a').should('have.attr', 'href', '#agent').and('contain', 'Personal Info');
+      cy.get('#app-menu ul div:nth-of-type(3) a').should('have.attr', 'href', '#organization').and('contain', 'Organizations');
       cy.get('#app-menu ul:nth-of-type(2) div').contains('Help');
     });
   });

@@ -19,7 +19,13 @@ module.exports = (sequelize, DataTypes) => {
         msg: 'That organization is already registered'
       }
     },
-  }, {});
+  }, {
+    hooks: {
+      afterCreate: function(org, options) {
+        return org.addMember(org.creatorId);
+      }
+    }
+  });
 
   Organization.associate = function(models) {
     Organization.belongsTo(models.Agent, {
@@ -31,10 +37,12 @@ module.exports = (sequelize, DataTypes) => {
     });
 
     Organization.belongsToMany(models.Agent, {
-      through: 'agent_organization'
+      as: 'members',
+      through: 'agent_organization',
     });
 
     Organization.belongsToMany(models.Team, {
+      as: 'teams',
       through: 'organization_team'
     });
   };

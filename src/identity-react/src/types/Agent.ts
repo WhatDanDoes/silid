@@ -1,7 +1,5 @@
 export interface Agent {
+  id: number;
   name: string;
   email: string;
-  url: string;
-  model: string;
-  passengers: number;
 }
