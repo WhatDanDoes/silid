@@ -1,5 +1,5 @@
 {
-  "executionRoleArn": null,
+  "executionRoleArn": "null",
   "containerDefinitions": [
     {
       "logConfiguration": {
@@ -33,7 +33,7 @@
   "requiresCompatibilities": [
     "EC2"
   ],
-  "networkMode": null,
+  "networkMode":"bridge",
   "cpu": "128",
   "volumes": []
 }
