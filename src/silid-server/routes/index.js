@@ -18,8 +18,4 @@ router.get('/', function(req, res, next) {
   res.sendFile('index.html', { root: staticPath });
 });
 
-router.get('/callback', function(req, res, next) {
-  res.sendFile('index.html', { root: staticPath });
-});
-
 module.exports = router;
