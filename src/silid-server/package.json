@@ -11,6 +11,7 @@
     "docker:build": "docker build -t silid-server .",
     "docker:tag-dev": "docker tag silid-server:latest 117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server:latest",
     "docker:deploy-dev": "docker push 117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server:latest",
+    "ecr:login": "$(aws ecr get-login --no-include-email --region us-east-1)",
     "ecs:register-task-dev":"aws ecs register-task-definition --cli-input-json file://task-dev.json",
     "ecs:update-service-dev":"aws ecs update-service --cluster default --service arn:aws:ecs:us-east-1:117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server-service --task-definition silid-server-task"
   },
