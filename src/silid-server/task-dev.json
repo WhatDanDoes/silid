@@ -4,7 +4,7 @@
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "/ecs/silid-server-task",
+          "awslogs-group": "/ecs/silid-server-dev-task",
           "awslogs-region": "us-east-1",
           "awslogs-stream-prefix": "ecs"
         }
@@ -22,7 +22,7 @@
       "workingDirectory": "/app",
       "memoryReservation": 128,
       "volumesFrom": [],
-      "image": "117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server:latest",
+      "image": "117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server-dev:latest",
       "essential": true,
       "name": "silid-server"
     }
@@ -33,7 +33,7 @@
   "requiresCompatibilities": [
     "EC2"
   ],
-  "family": "silid-server-task",
+  "family": "silid-server-dev-task",
   "requiresCompatibilities": [
     "EC2"
   ],
