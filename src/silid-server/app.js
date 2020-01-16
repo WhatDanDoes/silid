@@ -7,18 +7,12 @@ const bodyParser = require('body-parser');
 const session = require('express-session');
 const logger = require('morgan');
 const cors = require('cors');
-//const serverless = require("serverless-http");
-
 
 const authRouter = require('./routes/auth');
 const indexRouter = require('./routes/index');
 const agentRouter = require('./routes/agent');
 const organizationRouter = require('./routes/organization');
 const teamRouter = require('./routes/team');
-
-//const jwt = require('express-jwt');
-//const jwksRsa = require('jwks-rsa');
-
 
 var app = express();
 
@@ -77,34 +71,12 @@ passport.serializeUser(function(user, done) {
   done(null, user);
 });
 
-passport.deserializeUser(function(id, done) {
-  done(null, user);
+passport.deserializeUser(function(idToken, done) {
+  done(null, idToken);
 });
-
 
 app.use(passport.initialize());
 app.use(passport.session());
-
-
-/**
- * Access Token verification
- */
-//const protocol = process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'e2e' ? 'http' : 'https';
-//const checkJwt = jwt({
-//  secret: jwksRsa.expressJwtSecret({
-//    cache: true,
-//    rateLimit: true,
-//    jwksRequestsPerMinute: 5,
-//    jwksUri: `${protocol}://${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`
-//  }),
-//
-//  audience: process.env.AUTH0_AUDIENCE,
-//  issuer: `${protocol}://${process.env.AUTH0_DOMAIN}/`,
-//  requestProperty: 'agent',
-//  algorithm: ['RS256']
-//});
-//
-//app.use(checkJwt);
 
 /**
  * Routes
@@ -123,15 +95,6 @@ app.use(function(req, res, next) {
 app.use(function(err, req, res, next) {
   console.error("ERROR", err);
   res.status(err.status || 500).json(err);
-
-
-//  // set locals, only providing error in development
-//  res.locals.message = err.message;
-//  res.locals.error = req.app.get('env') === 'development' ? err : {};
-//
-//  // render the error page
-//  res.status(err.status || 500);
-//  res.render('error');
 });
 
 module.exports = app;
