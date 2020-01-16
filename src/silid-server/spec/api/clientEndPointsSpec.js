@@ -18,19 +18,4 @@ describe('client end points', () => {
         });
     });
   });
-
-  describe('/callback', () => {
-    it('returns successfully', done => {
-      request(app)
-        .get('/callback')
-        .set('Accept', 'text/html')
-        .expect('Content-Type', /html/)
-        .expect(200)
-        .end(function(err, res) {
-          if (err) return done.fail(err);
-          expect(res.text).toMatch('TEST INDEX');
-          done();
-        });
-    });
-  });
 });
