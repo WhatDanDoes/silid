@@ -46,6 +46,7 @@ module.exports = function(done) {
     let state, nonce; 
     const authorizeScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
       .log(console.log)
+      .persist()
       .get(/authorize*/)
       .reply(302, (uri, body) => {
         uri = uri.replace('/authorize?', '');
@@ -120,7 +121,6 @@ module.exports = function(done) {
         });
     };
 
-console.log("CALLING DONE");
     done(null, {login, pub, prv, keystore});
   });
 };
