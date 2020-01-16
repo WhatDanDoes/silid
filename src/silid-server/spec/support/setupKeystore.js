@@ -1,4 +1,8 @@
-
+/**
+ * How to sign a token
+ *
+ * const signedAccessToken = jwt.sign({some_json_token}, prv, { algorithm: 'RS256', header: { kid: result.kid } });
+ */
 const jwt = require('jsonwebtoken');
 const jose = require('node-jose');
 const pem2jwk = require('pem-jwk').pem2jwk
