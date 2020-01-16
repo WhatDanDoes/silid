@@ -27,7 +27,7 @@ module.exports = function(done) {
 
   // Note to future self: this will probably muck things up if I
   // try to stub any other services
-//  nock.cleanAll();
+  nock.cleanAll();
 
   setupKeystore((err, keyStuff) => {
     if (err) return done(err);

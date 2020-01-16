@@ -28,6 +28,7 @@ describe('authSpec', () => {
 
   let auth0Scope, state, nonce;
   beforeEach(done => {
+    nock.cleanAll();
 
     /**
      * This is called when `/login` is hit. The session is
@@ -91,6 +92,7 @@ describe('authSpec', () => {
 
     let session, oauthTokenScope;
     beforeEach(done => {
+
       /**
        * `/userinfo` mock
        */
@@ -108,6 +110,7 @@ describe('authSpec', () => {
         .redirects()
         .end(function(err, res) {
           if (err) return done.fail(err);
+          auth0Scope.isDone()
 
           /**
            * `/oauth/token` mock
