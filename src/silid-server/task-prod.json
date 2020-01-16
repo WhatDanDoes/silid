@@ -1,14 +1,6 @@
 {
   "containerDefinitions": [
     {
-      "logConfiguration": {
-        "logDriver": "awslogs",
-        "options": {
-          "awslogs-group": "/ecs/silid-server-dev-task",
-          "awslogs-region": "us-east-1",
-          "awslogs-stream-prefix": "ecs"
-        }
-      },
      "portMappings": [
         {
           "hostPort": 4001,
@@ -22,7 +14,7 @@
       "workingDirectory": "/app",
       "memoryReservation": 128,
       "volumesFrom": [],
-      "image": "117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server-dev:latest",
+      "image": "117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server:latest",
       "essential": true,
       "name": "silid-server"
     }
@@ -33,7 +25,7 @@
   "requiresCompatibilities": [
     "EC2"
   ],
-  "family": "silid-server-dev-task",
+  "family": "silid-server-task",
   "requiresCompatibilities": [
     "EC2"
   ],
