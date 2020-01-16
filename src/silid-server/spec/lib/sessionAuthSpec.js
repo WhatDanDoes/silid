@@ -153,4 +153,28 @@ describe('sessionAuth', function() {
       });
     });
   });
+
+  describe('unauthenticated', () => {
+    it('redirects to login', done => {
+      response = httpMocks.createResponse();
+
+      request = httpMocks.createRequest({
+        method: 'POST',
+        url: '/agent',
+        user: undefined // Passport never got a hold of the request object
+      });
+
+      expect(response.statusCode).toEqual(200);
+
+      // This may prove a bit flaky...
+      // The status code stuff happens outside anything asynchronous
+      sessionAuth(request, response, function(err) {
+        done.fail('Should not get here');
+      });
+
+      expect(response.statusCode).toEqual(302);
+      expect(response._getRedirectUrl()).toEqual('/login');
+      done();
+    });
+  });
 });

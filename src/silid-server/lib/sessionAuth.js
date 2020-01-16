@@ -1,9 +1,5 @@
 require('dotenv').config();
-//const jwt = require('jsonwebtoken');
 const models = require('../models');
-//const request = require('request');
-const protocol = process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'e2e' ? 'http' : 'https';
-
 
 /**
  * This is called subsequent to the `passport.authenticate` function.
@@ -11,7 +7,10 @@ const protocol = process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'e2
  */
 const sessionAuth = function(req, res, next) {
 
-console.log("HERE I AM LORD");
+  if (!req.user) {
+    return res.redirect('/login')
+  }
+
   models.Agent.findOne({ where: { email: req.user.email } }).then(agent => {
     req.agent = agent;
 
