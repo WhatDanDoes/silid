@@ -6,7 +6,6 @@ const protocol = process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'e2
 
 const jwtAuth = function(req, res, next) {
 
-console.log('JWT AUTH');
   models.Agent.findOne({ where: { accessToken: req.header('Authorization') } }).then(agent => {
     req.agent = agent;
 
