@@ -1,16 +1,4 @@
 
-/**
- * 2019-11-13
- * Sample tokens taken from:
- *
- * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
- *
- * For the moment, it doesn't seem to matter that all authenticated
- * agents are using the same access token for testing purposes.
- */
-const _access = require('../fixtures/sample-auth0-access-token');
-_access.iss = `http://${process.env.AUTH0_DOMAIN}/`;
-
 const jwt = require('jsonwebtoken');
 const jose = require('node-jose');
 const pem2jwk = require('pem-jwk').pem2jwk
