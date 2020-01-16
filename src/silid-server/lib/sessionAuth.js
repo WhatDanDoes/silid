@@ -11,20 +11,22 @@ const sessionAuth = function(req, res, next) {
     return res.redirect('/login')
   }
 
-  models.Agent.findOne({ where: { email: req.user.email } }).then(agent => {
+  const socialProfile = req.user._json;
+
+  models.Agent.findOne({ where: { email: socialProfile.email } }).then(agent => {
     req.agent = agent;
 
-    if (!req.agent || JSON.stringify(req.agent.socialProfile) !== JSON.stringify(req.user)) {
+    if (!req.agent || JSON.stringify(req.agent.socialProfile) !== JSON.stringify(socialProfile)) {
       models.Agent.update(
-        { socialProfile: req.user },
-        { returning: true, where: { email: req.user.email } }).then(function([rowsUpdate, [updatedAgent]]) {
+        { socialProfile: socialProfile },
+        { returning: true, where: { email: socialProfile.email } }).then(function([rowsUpdate, [updatedAgent]]) {
 
         if (updatedAgent) {
           req.agent = updatedAgent;
           next();
         }
         else {
-          models.Agent.create({ name: req.user.name, email: req.user.email, socialProfile: req.user }).then(agent => {
+          models.Agent.create({ name: socialProfile.name, email: socialProfile.email, socialProfile: socialProfile }).then(agent => {
             req.agent = agent;
             next();
           }).catch(err => {

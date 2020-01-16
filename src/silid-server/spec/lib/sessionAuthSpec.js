@@ -6,6 +6,7 @@ const httpMocks = require('node-mocks-http');
 const fixtures = require('sequelize-fixtures');
 const models = require('../../models');
 const Agent = models.Agent;
+const Profile = require('passport-auth0/lib/Profile');
 
 const sessionAuth = require('../../lib/sessionAuth');
 
@@ -47,7 +48,7 @@ describe('sessionAuth', function() {
       request = httpMocks.createRequest({
         method: 'POST',
         url: '/agent',
-        user: _identity
+        user: new Profile(_identity)
       });
 
       sessionAuth(request, response, function(err) {
@@ -61,7 +62,7 @@ describe('sessionAuth', function() {
       request = httpMocks.createRequest({
         method: 'POST',
         url: '/agent',
-        user: _identity
+        user: new Profile(_identity)
       });
 
       expect(agent.socialProfile).toBeNull();
@@ -95,7 +96,7 @@ describe('sessionAuth', function() {
       request = httpMocks.createRequest({
         method: 'POST',
         url: '/agent',
-        user: _identity
+        user: new Profile(_identity)
       });
 
       sessionAuth(request, response, function(err) {
@@ -113,7 +114,7 @@ describe('sessionAuth', function() {
       request = httpMocks.createRequest({
         method: 'POST',
         url: '/agent',
-        user: _identity
+        user: new Profile(_identity)
       });
 
       Agent.findAll().then(a => {
@@ -138,7 +139,7 @@ describe('sessionAuth', function() {
       request = httpMocks.createRequest({
         method: 'POST',
         url: '/agent',
-        user: _identity
+        user: new Profile(_identity)
       });
 
       sessionAuth(request, response, function(err) {
