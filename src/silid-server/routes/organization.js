@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const jwtAuth = require('../lib/jwtAuth');
 const sessionAuth = require('../lib/sessionAuth');
 const models = require('../models');
 const mailer = require('../mailer');
@@ -14,7 +13,7 @@ router.get('/', sessionAuth, function(req, res, next) {
   });
 });
 
-router.get('/:id', jwtAuth, function(req, res, next) {
+router.get('/:id', sessionAuth, function(req, res, next) {
   models.Organization.findOne({ where: { id: req.params.id },
                                 include: [ { model: models.Agent, as: 'creator', attributes: { exclude: ['accessToken'] } },
                                            { model: models.Agent, as: 'members', attributes: { exclude: ['accessToken'] } },
@@ -34,8 +33,7 @@ router.get('/:id', jwtAuth, function(req, res, next) {
   });
 });
 
-router.post('/', jwtAuth, function(req, res, next) {
-  delete req.body.token;
+router.post('/', sessionAuth, function(req, res, next) {
   req.body.creatorId = req.agent.id;
 
   req.agent.createOrganization(req.body).then(org => {
@@ -49,7 +47,7 @@ router.post('/', jwtAuth, function(req, res, next) {
   });
 });
 
-router.put('/', jwtAuth, function(req, res, next) {
+router.put('/', sessionAuth, function(req, res, next) {
   models.Organization.findOne({ where: { id: req.body.id } }).then(organization => {
     if (!organization) {
       return res.json( { message: 'No such organization' });
@@ -164,7 +162,7 @@ const patchOrg = function(req, res, next) {
   });
 }
 
-router.patch('/', jwtAuth, function(req, res, next) {
+router.patch('/', sessionAuth, function(req, res, next) {
   if (req.body.email) {
     models.Agent.findOne({ where: { email: req.body.email } }).then(agent => {
       if (!agent) {
@@ -189,7 +187,7 @@ router.patch('/', jwtAuth, function(req, res, next) {
   }
 });
 
-router.delete('/', jwtAuth, function(req, res, next) {
+router.delete('/', sessionAuth, function(req, res, next) {
   models.Organization.findOne({ where: { id: req.body.id } }).then(organization => {
     if (!organization) {
       return res.json( { message: 'No such organization' });
