@@ -1,11 +1,10 @@
 const PORT = process.env.NODE_ENV === 'production' ? 3000 : 3001;
 const app = require('../../app');
-//const request = require('supertest');
 const request = require('supertest-session');
 const nock = require('nock');
 const querystring = require('querystring');
 const jwt = require('jsonwebtoken');
-const stubJwks = require('../support/stubJwks');
+const setupKeystore = require('../support/setupKeystore');
 
 describe('authSpec', () => {
 
@@ -18,11 +17,11 @@ describe('authSpec', () => {
   //const _access = require('../fixtures/sample-auth0-access-token');
   const _identity = require('../fixtures/sample-auth0-identity-token');
 
-  let signedAccessToken, scope, pub, prv, keystore;
+  let pub, prv, keystore;
   beforeAll(done => {
-    stubJwks((err, tokenAndScope) => {
+    setupKeystore((err, keyStuff) => {
       if (err) return done.fail(err);
-      ({ signedAccessToken, scope, pub, prv, keystore } = tokenAndScope);
+      ({ pub, prv, keystore } = keyStuff);
       done();
     });
   });
