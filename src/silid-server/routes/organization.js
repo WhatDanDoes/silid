@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const jwtAuth = require('../lib/jwtAuth');
+const sessionAuth = require('../lib/sessionAuth');
 const models = require('../models');
 const mailer = require('../mailer');
 
 /* GET organization listing. */
-router.get('/', jwtAuth, function(req, res, next) {
+router.get('/', sessionAuth, function(req, res, next) {
   req.agent.getOrganizations().then(orgs => {
     res.json(orgs);
   }).catch(err => {
@@ -212,7 +213,7 @@ router.delete('/', jwtAuth, function(req, res, next) {
   });
 });
 
-router.put('/:id/agent', jwtAuth, function(req, res, next) {
+router.put('/:id/agent', sessionAuth, function(req, res, next) {
   models.Organization.findOne({ where: { id: req.params.id },
                                 include: [ 'creator',
                                            { model: models.Agent, as: 'members', attributes: { exclude: ['accessToken'] } },
@@ -282,7 +283,7 @@ router.put('/:id/agent', jwtAuth, function(req, res, next) {
 });
 
 
-router.delete('/:id/agent/:agentId', jwtAuth, function(req, res, next) {
+router.delete('/:id/agent/:agentId', sessionAuth, function(req, res, next) {
   models.Organization.findOne({ where: { id: req.params.id },
                                 include: [ 'creator',
                                            { model: models.Agent, as: 'members', attributes: { exclude: ['accessToken'] } },

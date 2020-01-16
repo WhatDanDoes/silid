@@ -2,11 +2,8 @@ const PORT = process.env.NODE_ENV === 'production' ? 3000 : 3001;
 const app = require('../../app');
 const fixtures = require('sequelize-fixtures');
 const models = require('../../models');
-const jwt = require('jsonwebtoken');
 const request = require('supertest');
-const stubJwks = require('../support/stubJwks');
-const pem2jwk = require('pem-jwk').pem2jwk
-const nock = require('nock');
+const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 const mailer = require('../../mailer');
 
 /**
@@ -15,18 +12,15 @@ const mailer = require('../../mailer');
  *
  * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
  */
-const _access = require('../fixtures/sample-auth0-access-token');
-//const _identity = require('../fixtures/sample-auth0-identity-token');
+const _identity = require('../fixtures/sample-auth0-identity-token');
 
 describe('organizationMembershipSpec', () => {
 
-  let userinfoScope;
-  let signedAccessToken, scope, pub, prv, keystore;
+  let login, pub, prv, keystore;
   beforeAll(done => {
-    stubJwks((err, tokenAndScope) => {
+    stubAuth0Sessions((err, sessionStuff) => {
       if (err) return done.fail(err);
-      ({ signedAccessToken, scope, pub, prv, keystore } = tokenAndScope);
-      userinfoScope = require('../support/userinfoStub')(signedAccessToken);
+      ({ login, pub, prv, keystore } = sessionStuff);
       done();
     });
   });
@@ -44,14 +38,7 @@ describe('organizationMembershipSpec', () => {
           fixtures.loadFile(`${__dirname}/../fixtures/organizations.json`, models).then(() => {
             models.Organization.findAll().then(results => {
               organization = results[0];
-
-              // This agent has recently returned for a visit
-              agent.accessToken = `Bearer ${signedAccessToken}`;
-              agent.save().then(() => {
-                done();
-              }).catch(err => {
-                done.fail(err);
-              });
+              done();
             });
           }).catch(err => {
             done.fail(err);
@@ -69,6 +56,14 @@ describe('organizationMembershipSpec', () => {
 
   describe('authenticated', () => {
 
+    beforeEach(done => {
+      login(_identity, (err, session) => {
+        if (err) return done.fail(err);
+        authenticatedSession = session;
+        done();
+      });
+    });
+
     describe('authorized', () => {
 
       describe('create', () => {
@@ -78,18 +73,16 @@ describe('organizationMembershipSpec', () => {
               expect(results.length).toEqual(1);
               expect(results[0].members.length).toEqual(1);
   
-              request(app)
+              authenticatedSession
                 .put(`/organization/${organization.id}/agent`)
                 .send({
                   email: 'somebrandnewguy@example.com' 
                 })
                 .set('Accept', 'application/json')
-                .set('Authorization', `Bearer ${signedAccessToken}`)
                 .expect('Content-Type', /json/)
                 .expect(201)
                 .end(function(err, res) {
-                  if (err) done.fail(err);
-                  scope.done();
+                  if (err) return done.fail(err);
                   expect(res.body.name).toEqual(null);
                   expect(res.body.email).toEqual('somebrandnewguy@example.com');
                   expect(res.body.id).toBeDefined();
@@ -108,18 +101,16 @@ describe('organizationMembershipSpec', () => {
               expect(results.length).toEqual(1);
               expect(results[0].members.length).toEqual(1);
   
-              request(app)
+              authenticatedSession
                 .put(`/organization/${organization.id}/agent`)
                 .send({
                   email: 'somebrandnewguy@example.com' 
                 })
                 .set('Accept', 'application/json')
-                .set('Authorization', `Bearer ${signedAccessToken}`)
                 .expect('Content-Type', /json/)
                 .expect(201)
                 .end(function(err, res) {
                   if (err) done.fail(err);
-                  scope.done();
   
                   models.Organization.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
                     expect(results.length).toEqual(1);
@@ -139,18 +130,16 @@ describe('organizationMembershipSpec', () => {
             models.Agent.findOne({ where: { email: 'somebrandnewguy@example.com' } }).then(results => {
               expect(results).toBe(null);
   
-              request(app)
+              authenticatedSession
                 .put(`/organization/${organization.id}/agent`)
                 .send({
                   email: 'somebrandnewguy@example.com' 
                 })
                 .set('Accept', 'application/json')
-                .set('Authorization', `Bearer ${signedAccessToken}`)
                 .expect('Content-Type', /json/)
                 .expect(201)
                 .end(function(err, res) {
                   if (err) done.fail(err);
-                  scope.done();
   
                   models.Agent.findOne({ where: { email: 'somebrandnewguy@example.com' } }).then(results => {
                     expect(results.email).toEqual('somebrandnewguy@example.com');
@@ -169,31 +158,27 @@ describe('organizationMembershipSpec', () => {
   
   
           it('returns a friendly message if the agent is already a member', done => {
-            request(app)
+            authenticatedSession
               .put(`/organization/${organization.id}/agent`)
               .send({
                 email: 'somebrandnewguy@example.com' 
               })
               .set('Accept', 'application/json')
-              .set('Authorization', `Bearer ${signedAccessToken}`)
               .expect('Content-Type', /json/)
               .expect(201)
               .end(function(err, res) {
                 if (err) done.fail(err);
-                scope.done();
 
-                request(app)
+                authenticatedSession
                   .put(`/organization/${organization.id}/agent`)
                   .send({
                     email: 'somebrandnewguy@example.com' 
                   })
                   .set('Accept', 'application/json')
-                  .set('Authorization', `Bearer ${signedAccessToken}`)
                   .expect('Content-Type', /json/)
                   .expect(200)
                   .end(function(err, res) {
                     if (err) done.fail(err);
-                    scope.done();
                     expect(res.body.message).toEqual('somebrandnewguy@example.com is already a member of this organization');
                     done();
                   });
@@ -202,18 +187,16 @@ describe('organizationMembershipSpec', () => {
 
           it('sends an email to notify agent of new membership', function(done) {
             expect(mailer.transport.sentMail.length).toEqual(0);
-            request(app)
+            authenticatedSession
               .put(`/organization/${organization.id}/agent`)
               .send({
                 email: 'somebrandnewguy@example.com' 
               })
               .set('Accept', 'application/json')
-              .set('Authorization', `Bearer ${signedAccessToken}`)
               .expect('Content-Type', /json/)
               .expect(201)
               .end(function(err, res) {
-                if (err) done.fail(err);
-                scope.done();
+                if (err) return done.fail(err);
                 expect(mailer.transport.sentMail.length).toEqual(1);
                 expect(mailer.transport.sentMail[0].data.to).toEqual('somebrandnewguy@example.com');
                 expect(mailer.transport.sentMail[0].data.from).toEqual(process.env.NOREPLY_EMAIL);
@@ -224,18 +207,16 @@ describe('organizationMembershipSpec', () => {
           });
 
           it('doesn\'t barf if organization doesn\'t exist', done => {
-            request(app)
+            authenticatedSession
               .put('/organization/333/agent')
               .send({
                 email: 'somebrandnewguy@example.com' 
               })
               .set('Accept', 'application/json')
-              .set('Authorization', `Bearer ${signedAccessToken}`)
               .expect('Content-Type', /json/)
               .expect(404)
               .end(function(err, res) {
-                if (err) done.fail(err);
-                scope.done();
+                if (err) return done.fail(err);
                 expect(res.body.message).toEqual('No such organization');
                 done();
               });
@@ -258,18 +239,16 @@ describe('organizationMembershipSpec', () => {
               expect(results.length).toEqual(1);
               expect(results[0].members.length).toEqual(1);
 
-              request(app)
+              authenticatedSession
                 .put(`/organization/${organization.id}/agent`)
                 .send({
                   email: knownAgent.email 
                 })
                 .set('Accept', 'application/json')
-                .set('Authorization', `Bearer ${signedAccessToken}`)
                 .expect('Content-Type', /json/)
                 .expect(201)
                 .end(function(err, res) {
                   if (err) done.fail(err);
-                  scope.done();
                   expect(res.body.name).toEqual(knownAgent.name);
                   expect(res.body.email).toEqual(knownAgent.email);
                   expect(res.body.id).toEqual(knownAgent.id);
@@ -288,18 +267,16 @@ describe('organizationMembershipSpec', () => {
               expect(results.length).toEqual(1);
               expect(results[0].members.length).toEqual(1);
   
-              request(app)
+              authenticatedSession
                 .put(`/organization/${organization.id}/agent`)
                 .send({
                   email: knownAgent.email 
                 })
                 .set('Accept', 'application/json')
-                .set('Authorization', `Bearer ${signedAccessToken}`)
                 .expect('Content-Type', /json/)
                 .expect(201)
                 .end(function(err, res) {
-                  if (err) done.fail(err);
-                  scope.done();
+                  if (err) return done.fail(err);
   
                   models.Organization.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
                     expect(results.length).toEqual(1);
@@ -316,30 +293,26 @@ describe('organizationMembershipSpec', () => {
           });
   
           it('returns a friendly message if the agent is already a member', done => {
-            request(app)
+            authenticatedSession
               .put(`/organization/${organization.id}/agent`)
               .send({
                 email: knownAgent.email 
               })
               .set('Accept', 'application/json')
-              .set('Authorization', `Bearer ${signedAccessToken}`)
               .expect('Content-Type', /json/)
               .expect(201)
               .end(function(err, res) {
-                if (err) done.fail(err);
-                scope.done();
-                request(app)
+                if (err) return done.fail(err);
+                authenticatedSession
                   .put(`/organization/${organization.id}/agent`)
                   .send({
                     email: knownAgent.email 
                   })
                   .set('Accept', 'application/json')
-                  .set('Authorization', `Bearer ${signedAccessToken}`)
                   .expect('Content-Type', /json/)
                   .expect(200)
                   .end(function(err, res) {
-                    if (err) done.fail(err);
-                    scope.done();
+                    if (err) return done.fail(err);
                     expect(res.body.message).toEqual(`${knownAgent.email} is already a member of this organization`);
                     done();
                   });
@@ -347,18 +320,16 @@ describe('organizationMembershipSpec', () => {
           });
 
           it('doesn\'t barf if organization doesn\'t exist', done => {
-            request(app)
+            authenticatedSession
               .put('/organization/333/agent')
               .send({
                 email: knownAgent.email 
               })
               .set('Accept', 'application/json')
-              .set('Authorization', `Bearer ${signedAccessToken}`)
               .expect('Content-Type', /json/)
               .expect(404)
               .end(function(err, res) {
                 if (err) done.fail(err);
-                scope.done();
                 expect(res.body.message).toEqual('No such organization');
                 done();
               });
@@ -366,18 +337,16 @@ describe('organizationMembershipSpec', () => {
 
           it('sends an email to notify agent of new membership', function(done) {
             expect(mailer.transport.sentMail.length).toEqual(0);
-            request(app)
+            authenticatedSession
               .put(`/organization/${organization.id}/agent`)
               .send({
                 email: knownAgent.email 
               })
               .set('Accept', 'application/json')
-              .set('Authorization', `Bearer ${signedAccessToken}`)
               .expect('Content-Type', /json/)
               .expect(201)
               .end(function(err, res) {
                 if (err) done.fail(err);
-                scope.done();
                 expect(mailer.transport.sentMail.length).toEqual(1);
                 expect(mailer.transport.sentMail[0].data.to).toEqual(knownAgent.email);
                 expect(mailer.transport.sentMail[0].data.from).toEqual(process.env.NOREPLY_EMAIL);
@@ -405,45 +374,39 @@ describe('organizationMembershipSpec', () => {
         });
 
         it('removes an existing member record from the organization', done => {
-          request(app)
+          authenticatedSession
             .delete(`/organization/${organization.id}/agent/${knownAgent.id}`)
             .set('Accept', 'application/json')
-            .set('Authorization', `Bearer ${signedAccessToken}`)
             .expect('Content-Type', /json/)
             .expect(201)
             .end(function(err, res) {
-              if (err) done.fail(err);
-              scope.done();
+              if (err) return done.fail(err);
               expect(res.body.message).toEqual(`Member removed`);
               done();
             });
         });
 
         it('doesn\'t barf if organization doesn\'t exist', done => {
-          request(app)
+          authenticatedSession
             .delete(`/organization/333/agent/${knownAgent.id}`)
             .set('Accept', 'application/json')
-            .set('Authorization', `Bearer ${signedAccessToken}`)
             .expect('Content-Type', /json/)
             .expect(404)
             .end(function(err, res) {
               if (err) done.fail(err);
-              scope.done();
               expect(res.body.message).toEqual('No such organization');
               done();
             });
         });
 
         it('doesn\'t barf if the agent doesn\'t exist', done => {
-          request(app)
+          authenticatedSession
             .delete(`/organization/${organization.id}/agent/333`)
             .set('Accept', 'application/json')
-            .set('Authorization', `Bearer ${signedAccessToken}`)
             .expect('Content-Type', /json/)
             .expect(404)
             .end(function(err, res) {
               if (err) done.fail(err);
-              scope.done();
               expect(res.body.message).toEqual('That agent is not a member');
               done();
             });
@@ -452,15 +415,13 @@ describe('organizationMembershipSpec', () => {
         it('sends an email to notify agent of membership revocation', function(done) {
           expect(mailer.transport.sentMail.length).toEqual(0);
           organization.addMember(knownAgent).then(result => {
-            request(app)
+            authenticatedSession
               .delete(`/organization/${organization.id}/agent/${knownAgent.id}`)
               .set('Accept', 'application/json')
-              .set('Authorization', `Bearer ${signedAccessToken}`)
               .expect('Content-Type', /json/)
               .expect(201)
               .end(function(err, res) {
                 if (err) done.fail(err);
-                scope.done();
                 expect(mailer.transport.sentMail.length).toEqual(1);
                 expect(mailer.transport.sentMail[0].data.to).toEqual(knownAgent.email);
                 expect(mailer.transport.sentMail[0].data.from).toEqual(process.env.NOREPLY_EMAIL);
@@ -477,13 +438,16 @@ describe('organizationMembershipSpec', () => {
 
     describe('unauthorized', () => {
 
-      let suspiciousToken, suspiciousAgent;
+      let unauthorizedSession, suspiciousAgent;
       beforeEach(done => {
-        suspiciousToken = jwt.sign({ ..._access, sub: 'auth0|888888' }, prv, { algorithm: 'RS256', expiresIn: '1h', header: { kid: keystore.all()[0].kid } });
-
-        models.Agent.create({ email: 'suspiciousagent@example.com', accessToken: `Bearer ${suspiciousToken}` }).then(a => {
+        models.Agent.create({ email: 'suspiciousagent@example.com' }).then(a => {
           suspiciousAgent = a;
-          done();
+
+          login({ ..._identity, email: suspiciousAgent.email }, (err, session) => {
+            if (err) return done.fail(err);
+            unauthorizedSession = session;
+            done();
+          });
         }).catch(err => {
           done.fail(err);
         });
@@ -491,18 +455,16 @@ describe('organizationMembershipSpec', () => {
 
       describe('create', () => {
         it('doesn\'t allow a non-member agent to add a member', done => {
-          request(app)
+          unauthorizedSession
             .put(`/organization/${organization.id}/agent`)
             .send({
               email: suspiciousAgent.email 
             })
             .set('Accept', 'application/json')
-            .set('Authorization', `Bearer ${suspiciousToken}`)
             .expect('Content-Type', /json/)
             .expect(403)
             .end(function(err, res) {
-              if (err) done.fail(err);
-              scope.done();
+              if (err) return done.fail(err);
               expect(res.body.message).toEqual('You are not a member of this organization');
               done();
             });
@@ -525,15 +487,13 @@ describe('organizationMembershipSpec', () => {
         });
 
         it('returns 401', done => {
-          request(app)
+          unauthorizedSession
             .delete(`/organization/${organization.id}/agent/${knownAgent.id}`)
             .set('Accept', 'application/json')
-            .set('Authorization', `Bearer ${suspiciousToken}`)
             .expect('Content-Type', /json/)
             .expect(401)
             .end(function(err, res) {
-              if (err) done.fail(err);
-              scope.done();
+              if (err) return done.fail(err);
               expect(res.body.message).toEqual('Unauthorized: Invalid token');
               done();
             });
@@ -544,15 +504,13 @@ describe('organizationMembershipSpec', () => {
             expect(results.length).toEqual(1);
             expect(results[0].members.length).toEqual(2);
 
-            request(app)
+            unauthorizedSession
               .delete(`/organization/${organization.id}/agent/${knownAgent.id}`)
               .set('Accept', 'application/json')
-              .set('Authorization', `Bearer ${suspiciousToken}`)
               .expect('Content-Type', /json/)
               .expect(401)
               .end(function(err, res) {
-                if (err) done.fail(err);
-                scope.done();
+                if (err) return done.fail(err);
                 models.Organization.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
                   expect(results.length).toEqual(1);
                   expect(results[0].members.length).toEqual(2);
@@ -571,33 +529,15 @@ describe('organizationMembershipSpec', () => {
 
   describe('not authenticated', () => {
 
-    it('returns 401 if provided an expired token', done => {
-      let expiredToken = jwt.sign({ ..._access, iat: Math.floor(Date.now() / 1000) - (60 * 60) }, prv, { algorithm: 'RS256', expiresIn: '1h', header: { kid: keystore.all()[0].kid } });
+    it('redirects to /login', done => {
       request(app)
         .get('/organization')
         .send({ name: 'Some org' })
         .set('Accept', 'application/json')
-        .set('Authorization', `Bearer ${expiredToken}`)
-        .expect('Content-Type', /json/)
-        .expect(401)
+        .expect(302)
         .end(function(err, res) {
-          if (err) done.fail(err);
-          scope.done();
-          expect(res.body.message).toEqual('jwt expired');
-          done();
-        });
-    });
-
-    it('returns 401 if provided no token', done => {
-      request(app)
-        .get('/organization')
-        .send({ name: 'Some org' })
-        .set('Accept', 'application/json')
-        .expect('Content-Type', /json/)
-        .expect(401)
-        .end(function(err, res) {
-          if (err) done.fail(err);
-          expect(res.body.message).toEqual('No authorization token was found');
+          if (err) return done.fail(err);
+          expect(res.headers.location).toEqual('/login');
           done();
         });
     });
