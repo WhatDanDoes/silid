@@ -205,7 +205,6 @@ describe('organizationSpec', () => {
               if (err) done.fail(err);
               expect(res.body.creator).toBeDefined();
               expect(res.body.creator.email).toEqual(agent.email);
-              expect(res.body.creator.accessToken).toBeUndefined();
               done();
             });
         });
@@ -242,7 +241,6 @@ describe('organizationSpec', () => {
                 expect(res.body.teams.length).toEqual(1);
                 expect(res.body.teams[0].members.length).toEqual(1);
                 expect(res.body.teams[0].members[0].email).toEqual(agent.email);
-                expect(res.body.teams[0].members[0].accessToken).toBeUndefined();
                 done();
               });
             }).catch(err => {
@@ -273,7 +271,6 @@ describe('organizationSpec', () => {
             .expect(200)
             .end(function(err, res) {
               if (err) return done.fail(err);
-              expect(res.body.members[0].accessToken).toBeUndefined();
               done();
             });
         });
