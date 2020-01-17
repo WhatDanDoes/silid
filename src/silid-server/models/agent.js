@@ -26,9 +26,6 @@ module.exports = (sequelize, DataTypes) => {
       strict: true,
       type: DataTypes.JSONB
     },
-    accessToken: {
-      type: DataTypes.TEXT
-    }
   }, {});
 
   Agent.associate = function(models) {
@@ -39,23 +36,6 @@ module.exports = (sequelize, DataTypes) => {
     Agent.belongsToMany(models.Team, {
       as: 'teams',
       through: 'agent_team'
-    });
-  };
-
-  /**
-   * Check new token against last token provided by this agent.
-   *
-   * This method does not validate the JWT.
-   */
-  Agent.prototype.isFresh = function(accessToken, done) {
-    if (this.accessToken === accessToken) {
-      return done(null, true);
-    }
-    this.accessToken = accessToken;
-    this.save().then(() => {
-      done(null, false);
-    }).catch(err => {
-      done(err);
     });
   };
 
