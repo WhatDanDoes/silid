@@ -262,18 +262,6 @@ describe('organizationSpec', () => {
               done();
             });
         });
-
-        it('omits agent tokens in populated membership', done => {
-          authenticatedSession
-            .get(`/organization/${organization.id}`)
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(200)
-            .end(function(err, res) {
-              if (err) return done.fail(err);
-              done();
-            });
-        });
       });
 
       describe('update', () => {
@@ -917,7 +905,7 @@ describe('organizationSpec', () => {
               .expect(403)
               .end(function(err, res) {
                 if (err) done.fail(err);
-                expect(res.body.message).toEqual('Unauthorized: Invalid token');
+                expect(res.body.message).toEqual('Unauthorized');
                 done();
               });
           });
@@ -1012,7 +1000,7 @@ describe('organizationSpec', () => {
             .expect(401)
             .end(function(err, res) {
               if (err) return done.fail(err);
-              expect(res.body.message).toEqual('Unauthorized: Invalid token');
+              expect(res.body.message).toEqual('Unauthorized');
               done();
             });
         });
