@@ -86,8 +86,6 @@ describe('organizationMembershipSpec', () => {
                   expect(res.body.name).toEqual(null);
                   expect(res.body.email).toEqual('somebrandnewguy@example.com');
                   expect(res.body.id).toBeDefined();
-                  // Watch out for this... shouldn't it be `undefined`?
-                  expect(res.body.accessToken).toBe(null);
   
                   done();
                 });
@@ -144,8 +142,6 @@ describe('organizationMembershipSpec', () => {
                   models.Agent.findOne({ where: { email: 'somebrandnewguy@example.com' } }).then(results => {
                     expect(results.email).toEqual('somebrandnewguy@example.com');
                     expect(results.id).toBeDefined();
-                    // This one should be `null`
-                    expect(results.accessToken).toBe(null);
                     done();
                   }).catch(err => {
                     done.fail(err);
@@ -226,7 +222,7 @@ describe('organizationMembershipSpec', () => {
         describe('registered agent', () => {
           let knownAgent;
           beforeEach(done => {
-            models.Agent.create({ email: 'weknowthisguy@example.com', name: 'Well-known Guy', accessToken: 'somefakeaccesstoken' }).then(result => {
+            models.Agent.create({ email: 'weknowthisguy@example.com', name: 'Well-known Guy' }).then(result => {
               knownAgent = result;
               done();
             }).catch(err => {
@@ -252,8 +248,6 @@ describe('organizationMembershipSpec', () => {
                   expect(res.body.name).toEqual(knownAgent.name);
                   expect(res.body.email).toEqual(knownAgent.email);
                   expect(res.body.id).toEqual(knownAgent.id);
-                  // `undefined`, as expected
-                  expect(res.body.accessToken).toBeUndefined();
 
                   done();
                 });
@@ -361,7 +355,7 @@ describe('organizationMembershipSpec', () => {
       describe('delete', () => {
         let knownAgent;
         beforeEach(done => {
-          models.Agent.create({ email: 'weknowthisguy@example.com', name: 'Well-known Guy', accessToken: 'somefakeaccesstoken' }).then(result => {
+          models.Agent.create({ email: 'weknowthisguy@example.com', name: 'Well-known Guy' }).then(result => {
             knownAgent = result;
             organization.addMember(knownAgent).then(result => {
               done();
@@ -474,7 +468,7 @@ describe('organizationMembershipSpec', () => {
       describe('delete', () => {
         let knownAgent;
         beforeEach(done => {
-          models.Agent.create({ email: 'weknowthisguy@example.com', name: 'Well-known Guy', accessToken: 'somefakeaccesstoken' }).then(result => {
+          models.Agent.create({ email: 'weknowthisguy@example.com', name: 'Well-known Guy' }).then(result => {
             knownAgent = result;
             organization.addMember(knownAgent).then(result => {
               done();
@@ -494,7 +488,7 @@ describe('organizationMembershipSpec', () => {
             .expect(401)
             .end(function(err, res) {
               if (err) return done.fail(err);
-              expect(res.body.message).toEqual('Unauthorized: Invalid token');
+              expect(res.body.message).toEqual('Unauthorized');
               done();
             });
         });

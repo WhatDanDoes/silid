@@ -15,10 +15,10 @@ router.get('/', sessionAuth, function(req, res, next) {
 
 router.get('/:id', sessionAuth, function(req, res, next) {
   models.Organization.findOne({ where: { id: req.params.id },
-                                include: [ { model: models.Agent, as: 'creator', attributes: { exclude: ['accessToken'] } },
-                                           { model: models.Agent, as: 'members', attributes: { exclude: ['accessToken'] } },
+                                include: [ { model: models.Agent, as: 'creator' },
+                                           { model: models.Agent, as: 'members' },
                                            { model: models.Team, as: 'teams',
-                                             include: [{ model: models.Agent, as: 'members', attributes: { exclude: ['accessToken'] } }] } ] }).then(result => {
+                                             include: [{ model: models.Agent, as: 'members' }] } ] }).then(result => {
     if (!result) {
       return res.status(404).json({ message: 'No such organization' });
     }
@@ -55,7 +55,7 @@ router.put('/', sessionAuth, function(req, res, next) {
 
     organization.getCreator().then(creator => {
       if (req.agent.email !== creator.email) {
-        return res.status(403).json( { message: 'Unauthorized: Invalid token' });
+        return res.status(403).json( { message: 'Unauthorized' });
       }
   
       for (let key in req.body) {
@@ -195,7 +195,7 @@ router.delete('/', sessionAuth, function(req, res, next) {
 
     organization.getCreator().then(creator => {
       if (req.agent.email !== creator.email) {
-        return res.status(401).json( { message: 'Unauthorized: Invalid token' });
+        return res.status(401).json( { message: 'Unauthorized' });
       }
   
       organization.destroy().then(results => {
@@ -214,7 +214,7 @@ router.delete('/', sessionAuth, function(req, res, next) {
 router.put('/:id/agent', sessionAuth, function(req, res, next) {
   models.Organization.findOne({ where: { id: req.params.id },
                                 include: [ 'creator',
-                                           { model: models.Agent, as: 'members', attributes: { exclude: ['accessToken'] } },
+                                           { model: models.Agent, as: 'members' },
                                            'teams'] }).then(organization => {
 
     if (!organization) {
@@ -225,7 +225,7 @@ router.put('/:id/agent', sessionAuth, function(req, res, next) {
       return res.status(403).json({ message: 'You are not a member of this organization' });
     }
 
-    models.Agent.findOne({ where: { email: req.body.email }, attributes: { exclude: ['accessToken'] } }).then(agent => {
+    models.Agent.findOne({ where: { email: req.body.email } }).then(agent => {
 
       const mailOptions = {
         from: process.env.NOREPLY_EMAIL,
@@ -284,14 +284,14 @@ router.put('/:id/agent', sessionAuth, function(req, res, next) {
 router.delete('/:id/agent/:agentId', sessionAuth, function(req, res, next) {
   models.Organization.findOne({ where: { id: req.params.id },
                                 include: [ 'creator',
-                                           { model: models.Agent, as: 'members', attributes: { exclude: ['accessToken'] } },
+                                           { model: models.Agent, as: 'members' },
                                            'teams'] }).then(organization => {
     if (!organization) {
       return res.status(404).json( { message: 'No such organization' });
     }
 
     if (req.agent.email !== organization.creator.email) {
-      return res.status(401).json( { message: 'Unauthorized: Invalid token' });
+      return res.status(401).json( { message: 'Unauthorized' });
     }
 
     models.Agent.findOne({ where: { id: req.params.agentId } }).then(agent => {

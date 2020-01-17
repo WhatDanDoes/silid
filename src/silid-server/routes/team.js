@@ -15,8 +15,8 @@ router.get('/', sessionAuth, function(req, res, next) {
 
 router.get('/:id', sessionAuth, function(req, res, next) {
   models.Team.findOne({ where: { id: req.params.id },
-                        include: [ { model: models.Agent, as: 'creator', attributes: { exclude: ['accessToken'] } },
-                                   { model: models.Agent, as: 'members', attributes: { exclude: ['accessToken'] } },
+                        include: [ { model: models.Agent, as: 'creator' },
+                                   { model: models.Agent, as: 'members' },
                                    'organization'] }).then(team => {
     if (!team) {
       return res.status(404).json({ message: 'No such team' });
@@ -238,7 +238,7 @@ router.patch('/', sessionAuth, function(req, res, next) {
 router.put('/:id/agent', sessionAuth, function(req, res, next) {
   models.Team.findOne({ where: { id: req.params.id },
                                  include: [ 'creator',
-                                            { model: models.Agent, as: 'members', attributes: { exclude: ['accessToken'] } },
+                                            { model: models.Agent, as: 'members' },
                                             'organization'] }).then(team => {
 
     if (!team) {
@@ -249,7 +249,7 @@ router.put('/:id/agent', sessionAuth, function(req, res, next) {
       return res.status(403).json({ message: 'You are not a member of this team' });
     }
 
-    models.Agent.findOne({ where: { email: req.body.email }, attributes: { exclude: ['accessToken'] } }).then(agent => {
+    models.Agent.findOne({ where: { email: req.body.email } }).then(agent => {
 
       const mailOptions = {
         from: process.env.NOREPLY_EMAIL,
@@ -308,7 +308,7 @@ router.put('/:id/agent', sessionAuth, function(req, res, next) {
 router.delete('/:id/agent/:agentId', sessionAuth, function(req, res, next) {
   models.Team.findOne({ where: { id: req.params.id },
                                  include: [ 'creator',
-                                          { model: models.Agent, as: 'members', attributes: { exclude: ['accessToken'] } },
+                                          { model: models.Agent, as: 'members' },
                                            'organization'] }).then(team => {
     if (!team) {
       return res.status(404).json( { message: 'No such team' });

@@ -146,7 +146,6 @@ describe('agentSpec', () => {
               if (err) return done.fail(err);
 
               expect(res.body.name).toEqual('Some Cool Guy');
-              expect(res.body.accessToken).toBeUndefined();
  
               models.Agent.findOne({ where: { id: agent.id }}).then(results => {
                 expect(results.name).toEqual('Some Cool Guy');
