@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const jwtAuth = require('../lib/jwtAuth');
+const sessionAuth = require('../lib/sessionAuth');
 const models = require('../models');
 const mailer = require('../mailer');
 
 /* GET team listing. */
-router.get('/', jwtAuth, function(req, res, next) {
+router.get('/', sessionAuth, function(req, res, next) {
   req.agent.getTeams().then(teams => {
     res.status(200).json(teams);
   }).catch(err => {
@@ -13,7 +13,7 @@ router.get('/', jwtAuth, function(req, res, next) {
   });
 });
 
-router.get('/:id', jwtAuth, function(req, res, next) {
+router.get('/:id', sessionAuth, function(req, res, next) {
   models.Team.findOne({ where: { id: req.params.id },
                         include: [ { model: models.Agent, as: 'creator', attributes: { exclude: ['accessToken'] } },
                                    { model: models.Agent, as: 'members', attributes: { exclude: ['accessToken'] } },
@@ -40,8 +40,7 @@ router.get('/:id', jwtAuth, function(req, res, next) {
   });
 });
 
-router.post('/', jwtAuth, function(req, res, next) {
-  delete req.body.token;
+router.post('/', sessionAuth, function(req, res, next) {
   models.Organization.findOne({ where: { id: req.body.organizationId } }).then(organization => {
     organization.getMembers({attributes: ['email']}).then(agents => {
       // 2019-11-1 https://github.com/sequelize/sequelize/issues/6950#issuecomment-373937803
@@ -50,7 +49,7 @@ router.post('/', jwtAuth, function(req, res, next) {
       organization.getCreator().then(creator => {
 
         if (creator.email !== req.agent.email && !agents.includes(req.agent.email)) {
-          return res.status(401).json( { message: 'Unauthorized: Invalid token' });
+          return res.status(401).json( { message: 'Unauthorized' });
         }
         req.body.creatorId = req.agent.id;
 
@@ -75,7 +74,7 @@ router.post('/', jwtAuth, function(req, res, next) {
   });
 });
 
-router.put('/', jwtAuth, function(req, res, next) {
+router.put('/', sessionAuth, function(req, res, next) {
   models.Team.findOne({where: {id: req.body.id}}).then(team => {
     if (!team) {
       return res.json( { message: 'No such team' });
@@ -85,7 +84,7 @@ router.put('/', jwtAuth, function(req, res, next) {
         organization.getCreator().then(creator => {
 
           if (creator.email !== req.agent.email && teamCreator.email !== req.agent.email) {
-            return res.status(403).json( { message: 'Unauthorized: Invalid token' });
+            return res.status(403).json( { message: 'Unauthorized' });
           }
           for (let key in req.body) {
             if (team[key]) {
@@ -112,7 +111,7 @@ router.put('/', jwtAuth, function(req, res, next) {
   });
 });
 
-router.delete('/:id', jwtAuth, function(req, res, next) {
+router.delete('/:id', sessionAuth, function(req, res, next) {
   models.Team.findOne({ where: { id: req.params.id } }).then(team => {
     if (!team) {
       return res.status(404).json( { message: 'No such team' });
@@ -125,7 +124,7 @@ router.delete('/:id', jwtAuth, function(req, res, next) {
         organization.getCreator().then(creator => {
 
           if (creator.email !== req.agent.email && teamCreator.email !== req.agent.email) {
-            return res.status(403).json( { message: 'Unauthorized: Invalid token' });
+            return res.status(403).json( { message: 'Unauthorized' });
           }
 
           team.destroy().then(results => {
@@ -211,7 +210,7 @@ const patchTeam = function(req, res, next) {
   });
 }
 
-router.patch('/', jwtAuth, function(req, res, next) {
+router.patch('/', sessionAuth, function(req, res, next) {
   if (req.body.email) {
     models.Agent.findOne({ where: { email: req.body.email } }).then(agent => {
       if (!agent) {
@@ -236,7 +235,7 @@ router.patch('/', jwtAuth, function(req, res, next) {
   }
 });
 
-router.put('/:id/agent', jwtAuth, function(req, res, next) {
+router.put('/:id/agent', sessionAuth, function(req, res, next) {
   models.Team.findOne({ where: { id: req.params.id },
                                  include: [ 'creator',
                                             { model: models.Agent, as: 'members', attributes: { exclude: ['accessToken'] } },
@@ -306,7 +305,7 @@ router.put('/:id/agent', jwtAuth, function(req, res, next) {
 });
 
 
-router.delete('/:id/agent/:agentId', jwtAuth, function(req, res, next) {
+router.delete('/:id/agent/:agentId', sessionAuth, function(req, res, next) {
   models.Team.findOne({ where: { id: req.params.id },
                                  include: [ 'creator',
                                           { model: models.Agent, as: 'members', attributes: { exclude: ['accessToken'] } },
@@ -316,7 +315,7 @@ router.delete('/:id/agent/:agentId', jwtAuth, function(req, res, next) {
     }
 
     if (req.agent.email !== team.creator.email) {
-      return res.status(401).json( { message: 'Unauthorized: Invalid token' });
+      return res.status(401).json( { message: 'Unauthorized' });
     }
 
     models.Agent.findOne({ where: { id: req.params.agentId } }).then(agent => {
