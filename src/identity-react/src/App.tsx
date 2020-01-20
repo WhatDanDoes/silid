@@ -51,17 +51,18 @@ function App() {
           <PrivateRoute path="/team/:id" auth={auth} component={Team} redirect="/" />
         </Switch>
       </HashRouter>
-      <BrowserRouter>
-        <Route
-            path="/callback"
-            render={props => {
-              handleAuthentication(props);
-              return <Callback {...props} />;
-            }}
-          />
-      </BrowserRouter>
     </div>
   );
 }
 
+
+//      <BrowserRouter>
+//        <Route
+//            path="/callback"
+//            render={props => {
+//              handleAuthentication(props);
+//              return <Callback {...props} />;
+//            }}
+//          />
+//      </BrowserRouter>
 export default App;
