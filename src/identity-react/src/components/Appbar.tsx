@@ -154,7 +154,7 @@ const Home = (props: IProps) => {
           <Button
             id="login-button"
             color="inherit"
-            onClick={() => auth.login()}
+            onClick={() => fetch('/login', {method: 'GET', redirect: 'follow'}).catch(err => console.log('FETCH ERROR', err)) }
           >
             Login
           </Button>
@@ -174,5 +174,21 @@ const Home = (props: IProps) => {
     </AppBar>
   );
 };
+
+//            onClick={() => window.location.href = `${process.env.REACT_APP_API_URL}/login`}
+
+//          <ListItem button id='login-link' key='login'>
+//            <ListItemLink href='/login'>
+//              <ListItemText primary='Login' />
+//            </ListItemLink>
+//          </ListItem>
+
+//          <Button
+//            id="login-button"
+//            color="inherit"
+//            onClick={() => auth.login()}
+//          >
+//            Login
+//          </Button>
 
 export default Home;
