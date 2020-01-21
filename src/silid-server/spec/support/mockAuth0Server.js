@@ -1,8 +1,6 @@
 'use strict';
 require('dotenv-flow').config();
 
-///require('https').globalAgent.options.rejectUnauthorized = false;
-
 const setupKeystore = require('../support/setupKeystore');
 const jwt = require('jsonwebtoken');
 const pem = require('pem');
@@ -39,16 +37,14 @@ setupKeystore((err, keyStuff) => {
   let { pub, prv, keystore } = keyStuff;
 
 pem.createCertificate({ days: 1, selfSigned: true }, function (err, keys) {
-//pem.createCertificate(function (err, keys) {
   if (err) {
     throw err
   }
 
-const tlsOptions = {
-  key: keys.serviceKey,
-  cert: keys.certificate
-};
-
+  const tlsOptions = {
+    key: keys.serviceKey,
+    cert: keys.certificate
+  };
 
   /**
    * Fake Auth0 server
@@ -60,7 +56,6 @@ const tlsOptions = {
     const server = Hapi.server({
       port: 3002,
       host: '0.0.0.0',
-      //tls: {key: pub, cert: prv},
       tls: tlsOptions,
       routes: {
         cors: true
@@ -75,12 +70,13 @@ const tlsOptions = {
 //    clearInvalid: false,
 //    strictHeader: true
 //});
-  
+
     await server.register({
       plugin: require('hapi-require-https'),
  //     options: {}
     })
 
+    let _nonce;
     server.route({
       method: 'GET',
       path: '/authorize',
@@ -94,11 +90,13 @@ const tlsOptions = {
 //        nonce = parsed.nonce;
 //        console.log(h);
 
+        _nonce = request.query.nonce;
+
         return h.redirect(`http://${process.env.SERVER_DOMAIN}/callback?code=AUTHORIZATION_CODE&state=${request.query.state}`);
       }
     });
 
-    
+
 //          const oauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
 //            .log(console.log)
 //            .post(/oauth\/token/, {
@@ -119,7 +117,17 @@ const tlsOptions = {
       path: '/oauth/token',
       handler: (request, h) => {
         console.log('/oauth/token...');
-        return JSON.stringify({message: 'Hello, world!'});
+        const signedIdToken = jwt.sign({..._identity,
+                                            aud: process.env.AUTH0_CLIENT_ID,
+                                            iat: Math.floor(Date.now() / 1000) - (60 * 60),
+                                            iss: `https://${process.env.AUTH0_DOMAIN}/`,
+                                            nonce: _nonce },
+                                         prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
+
+        return JSON.stringify({
+          'access_token': 'SOME_MADE_UP_ACCESS_TOKEN',
+          'refresh_token': 'SOME_MADE_UP_REFRESH_TOKEN',
+          'id_token': signedIdToken });
 //        return JSON.stringify({
 //              'access_token': signedAccessToken,
 //              'refresh_token': 'SOME_MADE_UP_REFRESH_TOKEN',
@@ -143,9 +151,10 @@ const tlsOptions = {
       path: '/userinfo',
       handler: (request, h) => {
         console.log('/userinfo');
-        const decoded = jwt.verify(request.headers.authorization.split(' ')[1], prv, { algorithms: ['RS256'] });//, function(err, decoded) {
-        console.log(decoded);
-        return { ..._identity, email: `agent${identityDb[decoded.sub]}@example.com` };
+        console.log(request.headers);
+
+        // Need to make email dynamic for multi-agent sign-in
+        return { ..._identity};//, email: `agent${identityDb[decoded.sub]}@example.com` };
       }
     });
 
