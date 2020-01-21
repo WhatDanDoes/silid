@@ -7,7 +7,18 @@
     "local": "node ./bin/www",
     "deploy": "serverless deploy -v",
     "dev": "nodemon ./bin/www",
-    "test": "NODE_ENV=test npx jasmine"
+    "test": "NODE_ENV=test npx jasmine",
+    "docker:build-dev": "docker build --build-arg PORT=3001 -t silid-server-dev .",
+    "docker:tag-dev": "docker tag silid-server:latest 117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server-dev:latest",
+    "docker:deploy-dev": "docker push 117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server-dev:latest",
+    "docker:build-prod": "docker build --build-arg PORT=4001 -t silid-server .",
+    "docker:tag-prod": "docker tag silid-server:latest 117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server:latest",
+    "docker:deploy-prod": "docker push 117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server:latest",
+    "ecr:login": "$(aws ecr get-login --no-include-email --region us-east-1)",
+    "ecs:register-task-dev": "aws ecs register-task-definition --cli-input-json file://task-dev.json",
+    "ecs:update-service-dev": "aws ecs update-service --cluster default --service arn:aws:ecs:us-east-1:117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server-dev-service --task-definition silid-server-dev-task",
+    "ecs:register-task-prod": "aws ecs register-task-definition --cli-input-json file://task-prod.json",
+    "ecs:update-service-prod": "aws ecs update-service --cluster default --service arn:aws:ecs:us-east-1:117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server-service --task-definition silid-server-task"
   },
   "dependencies": {
     "cookie-parser": "~1.4.4",

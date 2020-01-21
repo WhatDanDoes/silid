@@ -33,7 +33,8 @@
     "eject": "react-scripts eject",
     "dev": "npm-run-all --parallel start server",
     "server": "node server.js",
-    "deploy": "aws s3 sync ./build/ s3://profile-dev.languagetechnology.org/"
+    "deploy-dev": "aws s3 sync ./build/ s3://profile-dev.languagetechnology.org/ --profile identity",
+    "deploy-prod": "aws s3 sync ./build/ s3://profile.languagetechnology.org/ --profile identity"
   },
   "eslintConfig": {
     "extends": "react-app"
