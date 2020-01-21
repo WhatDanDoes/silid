@@ -54,15 +54,18 @@ function App() {
     </div>
   );
 }
-
-
 //      <BrowserRouter>
 //        <Route
-//            path="/callback"
+//            path="/callback*"
 //            render={props => {
-//              handleAuthentication(props);
+//              console.log('props');
+//              console.log(props);
+////              handleAuthentication(props);
 //              return <Callback {...props} />;
 //            }}
 //          />
 //      </BrowserRouter>
+
+
+
 export default App;
