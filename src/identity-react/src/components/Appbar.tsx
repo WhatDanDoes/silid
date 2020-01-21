@@ -24,8 +24,7 @@ interface IProps {
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
-    root: {
-      flexGrow: 1,
+    root: { flexGrow: 1,
     },
     menuButton: {
       marginRight: theme.spacing(2),
@@ -154,7 +153,16 @@ const Home = (props: IProps) => {
           <Button
             id="login-button"
             color="inherit"
-            onClick={() => fetch('/login', {method: 'GET', redirect: 'follow'}).catch(err => console.log('FETCH ERROR', err)) }
+            onClick={() => {
+              const headers = new Headers();
+              headers.append('Access-Control-Allow-Credentials', 'true');
+              fetch('/login', {method: 'GET', headers: headers, credentials: 'include', mode: 'no-cors' }).then(response => {
+                console.log('FETCH RESPONSE');
+                console.log(response.headers.values());
+              }).catch(err => {
+                console.log('FETCH ERROR', err);
+              });
+            }}
           >
             Login
           </Button>
