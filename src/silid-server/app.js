@@ -1,4 +1,5 @@
 require('dotenv-flow').config();
+
 const createError = require('http-errors');
 const express = require('express');
 const path = require('path');
@@ -37,6 +38,11 @@ app.use(session({
   cookie: { secure: false},
   saveUninitialized: true
 }));
+
+
+if (process.env.NODE_ENV === 'e2e') {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
 
 if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
   app.use(express.static(path.join(__dirname, 'build')));
