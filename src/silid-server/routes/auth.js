@@ -43,24 +43,14 @@ console.log(info);
       if (err) {
         return next(err);
       }
-      const returnTo = req.session.returnTo;
+      // const returnTo = req.session.returnTo;
       delete req.session.returnTo;
-      res.redirect(returnTo || '/');                                                                                                                                                                           
+      // res.redirect(returnTo || '/');
+
+      res.status(200).json(req.user)
     });
   })(req, res, next);
 });
-
-
-//router.get('/callback',
-//  passport.authenticate('auth0', { failureRedirect: '/' }),
-//  function(req, res) {
-//console.log("CALLING BACK");
-//    if (!req.user) {
-//      throw new Error('user null');
-//    }
-//    res.redirect("/");
-//  }
-//);
 
 /**
  * Perform session logout and redirect to homepage
