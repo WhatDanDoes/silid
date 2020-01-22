@@ -141,7 +141,7 @@ describe('authSpec', () => {
     it('calls the `/oauth/token` endpoint', done => {
       session
         .get(`/callback?code=AUTHORIZATION_CODE&state=${state}`)
-        .expect(302)
+        .expect(200)
         .end(function(err, res) {
           if (err) return done.fail(err);
           oauthTokenScope.done();
@@ -152,13 +152,26 @@ describe('authSpec', () => {
     it('calls the `/userinfo` endpoint', done => {
       session
         .get(`/callback?code=AUTHORIZATION_CODE&state=${state}`)
-        .expect(302)
+        .expect(200)
         .end(function(err, res) {
           if (err) return done.fail(err);
           userInfoScope.done();
           done();
         });
     });
+
+    it('returns agent profile', done => {
+      session
+        .get(`/callback?code=AUTHORIZATION_CODE&state=${state}`)
+        .expect(200)
+        .end(function(err, res) {
+          if (err) return done.fail(err);
+          expect(res.body.nick_name).toEqual(_identity.nick_name);
+          expect(res.body.picture).toEqual(_identity.picture);
+          done();
+        });
+    });
+
 
     describe('/logout', () => {
       it('redirects home and clears the session', done => {
