@@ -53,15 +53,16 @@ const useStyles = makeStyles((theme: Theme) =>
 );
 
 const Home = (props: IProps) => {
-  const classes = useStyles();
-  let profile = JSON.parse(localStorage.getItem('profile')!);
-  if (profile === null) {
-    profile = false;
-  }
   const { auth } = props;
+  const classes = useStyles();
+
   const [state, setState] = React.useState({
     left: false,
   });
+
+  const [authenticated, setAuthenticated] = React.useState(false);
+  const [profile, setProfile] = React.useState({} as any);
+
 
   function ListItemLink(props: any) {
     return <ListItem button component="a" {...props} />;
@@ -149,7 +150,7 @@ const Home = (props: IProps) => {
             <div></div>
           )}
         </Grid>
-        {!auth.isAuthenticated() && (
+        {!authenticated && (
           <Button
             id="login-button"
             color="inherit"
@@ -157,17 +158,22 @@ const Home = (props: IProps) => {
               const headers = new Headers();
               headers.append('Access-Control-Allow-Credentials', 'true');
               fetch('/login', {method: 'GET', headers: headers, credentials: 'include', mode: 'no-cors' }).then(response => {
+                 return response.json();
+              }).then(profile => {
                 console.log('FETCH RESPONSE');
-                console.log(response.headers.values());
+                console.log(JSON.stringify(profile));
+                setProfile(profile);
+                setAuthenticated(true);
               }).catch(err => {
                 console.log('FETCH ERROR', err);
+                setAuthenticated(false);
               });
             }}
           >
             Login
           </Button>
         )}
-        {auth.isAuthenticated() && (
+        {authenticated && (
           <>
             <Button
               id="logout-button"
