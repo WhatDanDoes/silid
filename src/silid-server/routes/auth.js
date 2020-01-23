@@ -5,34 +5,15 @@ const passport = require('passport');
 
 
 router.get('/login', (req, res, next) => {
-  console.log("LOGGING IN");
-  console.log(req.headers);
   const authenticator = passport.authenticate('auth0', { scope: 'openid email profile' })
   authenticator(req, res, next)
 });
-
-//router.get('/login', function(req, res, next) {
-//  console.log("LOGGING IN");
-//console.log(req.session);
-//  next();
-//}, passport.authenticate('auth0', { scope: 'openid email profile' }), function (req, res) {
-//  console.log("LOGIN DONE");
-//  res.redirect('/');
-//});
 
 /**
  * Perform the final stage of authentication and redirect to previously requested URL or '/'
  */
 router.get('/callback', function (req, res, next) {
-console.log("CALLING BACK");
-console.log(req.headers);
-//console.log(req.session);
-
   passport.authenticate('auth0', function (err, user, info) {
-console.log("AUTH DONE");
-console.log(err);
-console.log(user);
-console.log(info);
     if (err) {
       return next(err);
     }
