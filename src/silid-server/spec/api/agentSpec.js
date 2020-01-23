@@ -283,7 +283,8 @@ describe('agentSpec', () => {
 
         it('does not remove the record from the database', done => {
           models.Agent.findAll().then(results => {
-            expect(results.length).toEqual(1);
+            // 2 because the unauthorized agent is in the database
+            expect(results.length).toEqual(2);
 
             unauthorizedSession
               .delete('/agent')
@@ -296,7 +297,7 @@ describe('agentSpec', () => {
               .end(function(err, res) {
                 if (err) done.fail(err);
                 models.Agent.findAll().then(results => {
-                  expect(results.length).toEqual(2); // 2 because the unauthorized agent is now in the database
+                  expect(results.length).toEqual(2);
                   done();
                 }).catch(err => {
                   done.fail(err);
