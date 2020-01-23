@@ -5,6 +5,7 @@ const nock = require('nock');
 const querystring = require('querystring');
 const jwt = require('jsonwebtoken');
 const setupKeystore = require('../support/setupKeystore');
+const models = require('../../models');
 
 describe('authSpec', () => {
 
@@ -29,7 +30,6 @@ describe('authSpec', () => {
   let auth0Scope, state, nonce;
   beforeEach(done => {
     nock.cleanAll();
-
     /**
      * This is called when `/login` is hit. The session is
      * created prior to redirect.
@@ -43,7 +43,17 @@ describe('authSpec', () => {
         state = parsed.state;
         nonce = parsed.nonce;
       });
+
     done();
+  });
+
+  afterEach(done => {
+    // Delete the database
+    models.sequelize.sync({force: true}).then(() => {
+      done();
+    }).catch(err => {
+      done.fail(err);
+    });
   });
 
   describe('/login', () => {
@@ -172,6 +182,121 @@ describe('authSpec', () => {
         });
     });
 
+    describe('database', () => {
+      it('adds a new agent record if none exists', done => {
+        models.Agent.findAll().then(results => {
+          expect(results.length).toEqual(0);
+
+          session
+            .get(`/callback?code=AUTHORIZATION_CODE&state=${state}`)
+            .expect(200)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              models.Agent.findAll().then(results => {
+                expect(results.length).toEqual(1);
+                done();
+              }).catch(err => {
+                done.fail(err);
+              });
+            });
+        }).catch(err => {
+          done.fail(err);
+        });
+      });
+
+      it('saves social profile data for an existing agent', done => {
+        session
+          .get(`/callback?code=AUTHORIZATION_CODE&state=${state}`)
+          .expect(200)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            models.Agent.findAll().then(results => {
+              expect(results.length).toEqual(1);
+              results[0].socialProfile = null;
+              results[0].save().then(results => {
+                expect(results.socialProfile).toBe(null);
+
+                session
+                  .get('/logout')
+                  .expect(302)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    /**
+                     * Blah!
+                     *
+                     * All these mocks need to be set up again for another
+                     * login.
+                     */
+                    let newAuth0Scope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+                      .log(console.log)
+                      .get(/authorize*/)
+                      .reply(302, (uri, body) => {
+                        uri = uri.replace('/authorize?', '');
+                        const parsed = querystring.parse(uri);
+                        state = parsed.state;
+                        nonce = parsed.nonce;
+                      });
+
+                    let newSession = request(app);
+                    newSession
+                      .get('/login')
+                      .redirects()
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+
+                        /**
+                         * `/oauth/token` mock
+                         */
+                        let newOauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+                          .log(console.log)
+                          .post(/oauth\/token/, {
+                                                  'grant_type': 'authorization_code',
+                                                  'redirect_uri': /\/callback/,
+                                                  'client_id': process.env.AUTH0_CLIENT_ID,
+                                                  'client_secret': process.env.AUTH0_CLIENT_SECRET,
+                                                  'code': 'AUTHORIZATION_CODE'
+                                                })
+                          .reply(200, {
+                            'access_token': 'SOME_MADE_UP_ACCESS_TOKEN',
+                            'refresh_token': 'SOME_MADE_UP_REFRESH_TOKEN',
+                            'id_token': jwt.sign({..._identity,
+                                                    aud: process.env.AUTH0_CLIENT_ID,
+                                                    iat: Math.floor(Date.now() / 1000) - (60 * 60),
+                                                    nonce: nonce },
+                                                 prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
+                          });
+
+                        let newUserInfoScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+                          .log(console.log)
+                          .get(/userinfo/)
+                          .reply(200, _identity);
+
+                        /**
+                         * Login again... finally
+                         */
+                        newSession
+                          .get(`/callback?code=AUTHORIZATION_CODE&state=${state}`)
+                          .expect(200)
+                          .end(function(err, res) {
+                            if (err) return done.fail(err);
+                            models.Agent.findAll().then(results => {
+                              expect(results.length).toEqual(1);
+                              expect(results[0].socialProfile._json).toEqual(_identity);
+                              done();
+                            }).catch(err => {
+                              done.fail(err);
+                            });
+                          });
+                      });
+                  });
+              });
+            }).catch(err => {
+              done.fail(err);
+            });
+          });
+      });
+    });
 
     describe('/logout', () => {
       it('redirects home and clears the session', done => {

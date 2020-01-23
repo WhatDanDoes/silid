@@ -2,11 +2,11 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const passport = require('passport');
-
+const models = require('../models');
 
 router.get('/login', (req, res, next) => {
-  const authenticator = passport.authenticate('auth0', { scope: 'openid email profile' })
-  authenticator(req, res, next)
+  const authenticator = passport.authenticate('auth0', { scope: 'openid email profile' });
+  authenticator(req, res, next);
 });
 
 /**
@@ -20,15 +20,40 @@ router.get('/callback', function (req, res, next) {
     if (!user) {
       return res.redirect('/');
     }
-    req.logIn(user, function (err) {
-      if (err) {
-        return next(err);
-      }
-      // const returnTo = req.session.returnTo;
-      delete req.session.returnTo;
-      // res.redirect(returnTo || '/');
 
-      res.status(200).json(req.user)
+    function login() {
+      req.logIn(user, function (err) {
+        if (err) {
+          return next(err);
+        }
+
+        // const returnTo = req.session.returnTo;
+        delete req.session.returnTo;
+        // res.redirect(returnTo || '/');
+
+        res.status(200).json(req.user);
+      });
+    }
+
+    models.Agent.findOne({ where: { email: user._json.email } }).then(result => {
+      if (!result) {
+        let newAgent = new models.Agent({email: user._json.email, name: user._json.name});
+
+        newAgent.save().then(result => {
+          login();
+        }).catch(err => {
+          res.json(err);
+        });
+      } else {
+        result.socialProfile = user;
+        result.save().then(result => {
+          login();
+        }).catch(err => {
+          res.json(err);
+        });
+      }
+    }).catch(err => {
+      res.json(err);
     });
   })(req, res, next);
 });
