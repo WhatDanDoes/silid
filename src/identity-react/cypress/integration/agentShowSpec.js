@@ -6,8 +6,7 @@ context('Agent show', function() {
 
   let memberAgent;
   before(function() {
-    cy.fixture('someguy-auth0-access-token.json').as('agent');
-    cy.fixture('someotherguy-auth0-access-token.json').as('anotherAgent');
+    cy.fixture('google-profile-response').as('profile');
   });
   
   describe('unauthenticated', done => {
@@ -35,11 +34,10 @@ context('Agent show', function() {
   describe('authenticated', () => {
     let memberAgent;
     before(function() {
-      // Convenient way to create a new agent
-      cy.login(this.anotherAgent);
+      // Just a convenient way to create a new agent
+      cy.login('someotherguy@example.com');
       cy.visit('/#/').then(() => {
-        let memberToken = localStorage.getItem('accessToken');
-        cy.task('query', `SELECT * FROM "Agents" WHERE "accessToken"='Bearer ${memberToken}' LIMIT 1;`).then(([results, metadata]) => {
+        cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
           memberAgent = results[0];
         });
       });
@@ -47,11 +45,11 @@ context('Agent show', function() {
  
     describe('viewing member agent\'s profile', () => {
       beforeEach(function() {
-        cy.login(this.agent);
+        cy.login('someguy@example.com');
         cy.visit(`/#/agent/${memberAgent.id}`);
       });
 
-      it('lands in the right spot', () => {
+      it.only('lands in the right spot', () => {
         cy.url().should('contain', `/#/agent/${memberAgent.id}`);
       });
 
@@ -76,10 +74,10 @@ context('Agent show', function() {
 
       let agent;
       beforeEach(function() {
-        cy.login(this.agent);
+        cy.login('someguy@example.com');
         cy.visit('/#/').then(() => {
           let token = localStorage.getItem('accessToken');
-          cy.task('query', `SELECT * FROM "Agents" WHERE "accessToken"='Bearer ${token}' LIMIT 1;`).then(([results, metadata]) => {
+          cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
             agent = results[0];
             cy.visit(`/#/agent/${agent.id}`);
           });
