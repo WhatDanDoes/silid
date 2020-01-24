@@ -86,7 +86,7 @@ setupKeystore((err, keyStuff) => {
         method: 'POST',
         path: '/register',
         handler: (request, h) => {
-          console.log('/sign');
+          console.log('/register');
           console.log(request.payload);
 
           agentIdToken = {...request.payload.token,
