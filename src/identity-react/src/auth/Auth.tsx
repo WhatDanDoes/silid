@@ -13,138 +13,159 @@ import history from '../history';
  */
 //import auth0 from 'auth0-js';
 //import auth0 from '../../node_modules/auth0-js/src';
-import auth0 from '../../node_modules/auth0-js/dist/auth0.min.js';
-
-import { AUTH_CONFIG } from './auth0-variables';
+//import auth0 from '../../node_modules/auth0-js/dist/auth0.min.js';
+//
+//import { AUTH_CONFIG } from './auth0-variables';
 
 export default class Auth {
-  accessToken: any;
-  idToken: any;
+//  accessToken: any;
+//  idToken: any;
   profile: any;
-  expiresAt: any;
+//  expiresAt: any;
 
   /**
    * For testing
    */
-  options = {} as any;
-
-  auth0 = new auth0.WebAuth({
-    domain: AUTH_CONFIG.domain,
-    clientID: AUTH_CONFIG.clientId,
-    redirectUri: AUTH_CONFIG.callbackUrl,
-    audience: AUTH_CONFIG.audience,
-    responseType: 'token id_token',
-    scope: 'openid email profile',
-    // These overrides are only used for testing (currently)
-    overrides: process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development' ? {
-      __jwks_uri: 'http://localhost:3002/.well-known/jwks.json',
-      __tenant: 'some-guy',
-      __token_issuer: `https://${AUTH_CONFIG.domain}/`,
-    }: undefined,
-  });
+//  options = {} as any;
+//
+//  auth0 = new auth0.WebAuth({
+//    domain: AUTH_CONFIG.domain,
+//    clientID: AUTH_CONFIG.clientId,
+//    redirectUri: AUTH_CONFIG.callbackUrl,
+//    audience: AUTH_CONFIG.audience,
+//    responseType: 'token id_token',
+//    scope: 'openid email profile',
+//    // These overrides are only used for testing (currently)
+//    overrides: process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development' ? {
+//      __jwks_uri: 'http://localhost:3002/.well-known/jwks.json',
+//      __tenant: 'some-guy',
+//      __token_issuer: `https://${AUTH_CONFIG.domain}/`,
+//    }: undefined,
+//  });
 
   constructor() {
     this.login = this.login.bind(this);
     this.logout = this.logout.bind(this);
     this.handleAuthentication = this.handleAuthentication.bind(this);
     this.isAuthenticated = this.isAuthenticated.bind(this);
-    this.getAccessToken = this.getAccessToken.bind(this);
-    this.getIdToken = this.getIdToken.bind(this);
-    this.renewSession = this.renewSession.bind(this);
+//    this.getAccessToken = this.getAccessToken.bind(this);
+//    this.getIdToken = this.getIdToken.bind(this);
+//    this.renewSession = this.renewSession.bind(this);
     this.getProfile = this.getProfile.bind(this);
   }
 
   login() {
-    this.auth0.authorize();
+    return new Promise((resolve, reject) => {
+    const headers = new Headers();
+    headers.append('Access-Control-Allow-Credentials', 'true');
+    fetch('/login', {method: 'GET', headers: headers, credentials: 'include', mode: 'no-cors' }).then(response => {
+       return response.json();
+    }).then(profile => {
+      console.log('FETCH RESPONSE');
+      console.log(JSON.stringify(profile));
+       this.profile = profile;
+        resolve();
+//      setProfile(profile);
+//      setAuthenticated(true);
+    }).catch(err => {
+      console.log('FETCH ERROR', err);
+      this.profile = undefined;
+        reject();
+//      setAuthenticated(false);
+    });
+    });
   }
 
   handleAuthentication() {
     return new Promise((resolve, reject) => {
-      let options = {} as any;
-
-      /**
-       * For testing
-       *
-       * Of places to set `state`, this seems to be the one that matters!!!
-       */
-      if (process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development') {
-        options.state = 'abc123';
-      }
-
-//      options.hash = window.location.hash.replace(/^#\/?callback/, '');
-
-      this.auth0.parseHash(options, (err, authResult) => {
-        if (err) return reject(err);
-        if (!authResult || !authResult.idTokenPayload) {
-          return reject(err);
-        }
-        this.setSession(authResult);
+//      let options = {} as any;
+//
+//      /**
+//       * For testing
+//       *
+//       * Of places to set `state`, this seems to be the one that matters!!!
+//       */
+//      if (process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development') {
+//        options.state = 'abc123';
+//      }
+//
+////      options.hash = window.location.hash.replace(/^#\/?callback/, '');
+//
+//      this.auth0.parseHash(options, (err, authResult) => {
+//        if (err) return reject(err);
+//        if (!authResult || !authResult.idTokenPayload) {
+//          return reject(err);
+//        }
+//        this.setSession(authResult);
         resolve();
-      });
+//      });
     });
   }
 
-  getAccessToken() {
-    return this.accessToken;
-  }
+//  getAccessToken() {
+//    return this.accessToken;
+//  }
 
-  getIdToken() {
-    return this.idToken;
-  }
+//  getIdToken() {
+//    return this.idToken;
+//  }
 
   getProfile() {
     return this.profile;
   }
 
-  setSession(authResult: any) {
-    // Set isLoggedIn flag in localStorage
-    localStorage.setItem('isLoggedIn', 'true');
+//  setSession(authResult: any) {
+//    // Set isLoggedIn flag in localStorage
+//    localStorage.setItem('isLoggedIn', 'true');
+//
+//    // Set the time that the access token will expire at
+//    let expiresAt = authResult.expiresIn * 1000 + new Date().getTime();
+//    localStorage.setItem('accessToken', authResult.accessToken);
+//    localStorage.setItem('idToken', authResult.idToken);
+//    localStorage.setItem('expiresAt', expiresAt.toString());
+//    localStorage.setItem('profile', JSON.stringify(authResult.idTokenPayload));
+//    // navigate to the home route
+//
+//    window.location.href = '/';
+//  }
 
-    // Set the time that the access token will expire at
-    let expiresAt = authResult.expiresIn * 1000 + new Date().getTime();
-    localStorage.setItem('accessToken', authResult.accessToken);
-    localStorage.setItem('idToken', authResult.idToken);
-    localStorage.setItem('expiresAt', expiresAt.toString());
-    localStorage.setItem('profile', JSON.stringify(authResult.idTokenPayload));
-    // navigate to the home route
-
-    window.location.href = '/';
-  }
-
-  renewSession() {
-    this.auth0.checkSession({}, (err, authResult) => {
-      if (authResult && authResult.accessToken && authResult.idToken) {
-        this.setSession(authResult);
-      } else if (err) {
-        this.logout();
-        console.log(err);
-        alert(
-          `Could not get a new token (${err.error}: ${err.error_description}).`
-        );
-      }
-    });
-  }
+//  renewSession() {
+//    this.auth0.checkSession({}, (err, authResult) => {
+//      if (authResult && authResult.accessToken && authResult.idToken) {
+//        this.setSession(authResult);
+//      } else if (err) {
+//        this.logout();
+//        console.log(err);
+//        alert(
+//          `Could not get a new token (${err.error}: ${err.error_description}).`
+//        );
+//      }
+//    });
+//  }
 
   logout() {
-    // Remove isLoggedIn flag from localStorage
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('idToken');
-    localStorage.removeItem('profile');
-    localStorage.removeItem('expiresAt');
+//    // Remove isLoggedIn flag from localStorage
+//    localStorage.removeItem('isLoggedIn');
+//    localStorage.removeItem('accessToken');
+//    localStorage.removeItem('idToken');
+//    localStorage.removeItem('profile');
+//    localStorage.removeItem('expiresAt');
+//
+//    this.auth0.logout({
+//      returnTo: window.location.origin,
+//    });
 
-    this.auth0.logout({
-      returnTo: window.location.origin,
-    });
+    this.profile = undefined;
 
     // navigate to the home route
     history.replace('/home');
   }
 
   isAuthenticated() {
+    return this.profile ? Object.keys(this.profile).length : false;
     // Check whether the current time is past the
     // access token's expiry time
-    const expiresAt = Number(localStorage.getItem('expiresAt'));
-    return new Date().getTime() < expiresAt;
+//    const expiresAt = Number(localStorage.getItem('expiresAt'));
+//    return new Date().getTime() < expiresAt;
   }
 }

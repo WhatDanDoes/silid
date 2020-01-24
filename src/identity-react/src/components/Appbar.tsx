@@ -140,40 +140,26 @@ const Home = (props: IProps) => {
           Identity
         </Typography>
         <Grid container justify="flex-end" alignItems="flex-start">
-          {profile.picture ? (
+          {auth.getProfile().picture ? (
             <Avatar
               alt="avatar"
-              src={profile.picture}
+              src={auth.getProfile().picture}
               className={classes.avatar}
             />
           ) : (
             <div></div>
           )}
         </Grid>
-        {!authenticated && (
+        {!auth.isAuthenticated() && (
           <Button
             id="login-button"
             color="inherit"
-            onClick={() => {
-              const headers = new Headers();
-              headers.append('Access-Control-Allow-Credentials', 'true');
-              fetch('/login', {method: 'GET', headers: headers, credentials: 'include', mode: 'no-cors' }).then(response => {
-                 return response.json();
-              }).then(profile => {
-                console.log('FETCH RESPONSE');
-                console.log(JSON.stringify(profile));
-                setProfile(profile);
-                setAuthenticated(true);
-              }).catch(err => {
-                console.log('FETCH ERROR', err);
-                setAuthenticated(false);
-              });
-            }}
+            onClick={auth.login}
           >
             Login
           </Button>
         )}
-        {authenticated && (
+        {auth.isAuthenticated() && (
           <>
             <Button
               id="logout-button"
