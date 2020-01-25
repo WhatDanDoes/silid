@@ -5,10 +5,15 @@
 context('Organization', function() {
 
   before(function() {
-    cy.fixture('someguy-auth0-access-token.json').as('agent');
-    cy.fixture('someotherguy-auth0-access-token.json').as('anotherAgent');
+    cy.fixture('google-profile-response').as('profile');
   });
-  
+
+  let _profile;
+  beforeEach(function() {
+    // Why?
+    _profile = {...this.profile};
+  });
+
   describe('unauthenticated', done => {
     beforeEach(() => {
       cy.visit('/#/organization');
@@ -33,13 +38,12 @@ context('Organization', function() {
 
   describe('authenticated', () => {
 
-    let token, agent;
+    let agent;
     beforeEach(function() {
-      cy.login(this.agent);
+      cy.login(_profile.email, _profile);
       cy.get('#app-menu-button').click();
       cy.get('#organization-button').click().then(() =>  {
-        token = localStorage.getItem('accessToken');
-        cy.task('query', `SELECT * FROM "Agents" WHERE "accessToken"='Bearer ${token}' LIMIT 1;`).then(([results, metadata]) => {
+        cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
           agent = results[0];
         });
       });
@@ -73,15 +77,19 @@ context('Organization', function() {
         beforeEach(function() {
 
           // Create an organization with another agent
-          cy.login(this.anotherAgent);
-          const anotherToken = localStorage.getItem('accessToken');
-          cy.request({ url: '/organization',  method: 'POST', auth: { bearer: anotherToken }, body: { name: 'One Book Canada', agent_organization: [agent.id] } }).then(org => {
+          cy.login('someotherguy@example.com', _profile);
+          cy.request({ url: '/organization',  method: 'POST', body: { name: 'One Book Canada' } }).then(org => {
             organization = org.body;
 
-            cy.login(this.agent);
-            cy.visit('/#/');
-            cy.get('#app-menu-button').click();
-            cy.get('#organization-button').click();
+            // Add member agent
+            cy.request({ url: '/organization', method: 'PATCH', body: { id: organization.id, memberId: agent.id } }).then((res) => {
+
+              // Login member agent
+              cy.login(_profile.email, _profile);
+              cy.visit('/#/');
+              cy.get('#app-menu-button').click();
+              cy.get('#organization-button').click();
+            });
           });
         });
 
@@ -109,8 +117,7 @@ context('Organization', function() {
 
         let organization;
         beforeEach(function() {
-          expect(token).to.eq(localStorage.getItem('accessToken'));
-          cy.request({ url: '/organization',  method: 'POST', auth: { bearer: token }, body: { name: 'One Book Canada' } }).then(org => {
+          cy.request({ url: '/organization',  method: 'POST', body: { name: 'One Book Canada' } }).then(org => {
             organization = org.body;
             cy.visit('/#/');
             cy.get('#app-menu-button').click();
@@ -119,7 +126,7 @@ context('Organization', function() {
         });
 
         it('displays a list of organizations', () => {
-          cy.request({ url: '/organization',  method: 'GET', auth: { bearer: token } }).then(orgs => {
+          cy.request({ url: '/organization',  method: 'GET' }).then(orgs => {
             expect(orgs.body.length).to.eq(1);
 
             cy.get('#organization-list').should('exist');
