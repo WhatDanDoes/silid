@@ -3,7 +3,7 @@
  *
  * This preps an ID token and initiates the client-side login
  */
-Cypress.Commands.add('login', function(email) {
+Cypress.Commands.add('login', function(email, profile) {
   Cypress.log({
     name: 'loginViaAuth0',
   });
@@ -12,7 +12,7 @@ Cypress.Commands.add('login', function(email) {
 
   // Register a test agent with an identity token
   cy.request({ url: 'https://localhost:3002/register', method: 'POST',
-             body: { token: { ...this.profile,
+             body: { token: { ...profile,
                                  email: email,
                                  iss: `https://${Cypress.env('REACT_APP_DOMAIN')}/`,
                                  aud: Cypress.env('REACT_APP_CLIENT_ID') } }
