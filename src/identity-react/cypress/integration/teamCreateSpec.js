@@ -5,18 +5,23 @@
 context('Team creation', function() {
 
   before(function() {
-    cy.fixture('someguy-auth0-access-token.json').as('agent');
+    cy.fixture('google-profile-response').as('profile');
+  });
+
+  let _profile;
+  beforeEach(function() {
+    // Why?
+    _profile = {...this.profile};
   });
 
   context('authenticated', () => {
-    let organization, token, agent;
+    let organization, agent;
     beforeEach(function() {
-      cy.login(this.agent);
-      cy.visit('/').then(() => {
-        token = localStorage.getItem('accessToken');
-        cy.task('query', `SELECT * FROM "Agents" WHERE "accessToken"='Bearer ${token}' LIMIT 1;`).then(([results, metadata]) => {
-          agent = results[0];
-          cy.request({ url: '/organization',  method: 'POST', auth: { bearer: token }, body: { name: 'One Book Canada' } }).then(org => {
+      cy.login(_profile.email, _profile);
+      cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
+        agent = results[0];
+        cy.request({ url: '/organization',  method: 'POST', body: { name: 'One Book Canada' } }).then(org => {
+          cy.visit('/#/').then(() => {
             organization = org.body;
             cy.get('#app-menu-button').click();
             cy.get('#organization-button').click();
