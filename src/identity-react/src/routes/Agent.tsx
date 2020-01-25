@@ -60,7 +60,6 @@ export interface PrevState {
 const Agent = (props: any) => {
   const [formData, setFormData] = useState<FormData>({});
   const [prevState, setPrevState] = useState<PrevState>({});
-//  const [agentProfile, setAgentProfile] = useState<AgentType>(JSON.parse(localStorage.getItem('profile') || '{}') as AgentType);
   const {agent} = useAuthState();
 
   const classes = useStyles();
