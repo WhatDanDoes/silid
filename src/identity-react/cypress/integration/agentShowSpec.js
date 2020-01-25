@@ -8,6 +8,12 @@ context('Agent show', function() {
   before(function() {
     cy.fixture('google-profile-response').as('profile');
   });
+
+  let _profile;
+  beforeEach(function() {
+    // Why?
+    _profile = {...this.profile};
+  });
   
   describe('unauthenticated', done => {
     beforeEach(() => {
@@ -35,7 +41,7 @@ context('Agent show', function() {
     let memberAgent;
     before(function() {
       // Just a convenient way to create a new agent
-      cy.login('someotherguy@example.com');
+      cy.login('someotherguy@example.com', _profile);
       cy.visit('/#/').then(() => {
         cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
           memberAgent = results[0];
@@ -45,11 +51,11 @@ context('Agent show', function() {
  
     describe('viewing member agent\'s profile', () => {
       beforeEach(function() {
-        cy.login('someguy@example.com');
+        cy.login('someguy@example.com', _profile);
         cy.visit(`/#/agent/${memberAgent.id}`);
       });
 
-      it.only('lands in the right spot', () => {
+      it('lands in the right spot', () => {
         cy.url().should('contain', `/#/agent/${memberAgent.id}`);
       });
 
@@ -74,9 +80,8 @@ context('Agent show', function() {
 
       let agent;
       beforeEach(function() {
-        cy.login('someguy@example.com');
+        cy.login('someguy@example.com', _profile);
         cy.visit('/#/').then(() => {
-          let token = localStorage.getItem('accessToken');
           cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
             agent = results[0];
             cy.visit(`/#/agent/${agent.id}`);
