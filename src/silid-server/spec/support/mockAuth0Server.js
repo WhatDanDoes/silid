@@ -114,12 +114,21 @@ setupKeystore((err, keyStuff) => {
           console.log(request.query);
 
           _nonce = request.query.nonce;
-
           const buffer = crypto.randomBytes(12);
           const authorizationCode = buffer.toString('hex');
 
           // A test agent has been registered.
           if (agentIdToken) {
+
+            // Has this agent already been registered?
+            // Update 
+            for (let code in identityDb) {
+              if (identityDb[code].idToken.email === agentIdToken.email) {
+                delete identityDb[code];
+              }
+            }
+
+            // Register agent if no auth code found
             const idToken = { ...agentIdToken, nonce: _nonce };
             const signedToken = jwt.sign(idToken, prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } });
 
