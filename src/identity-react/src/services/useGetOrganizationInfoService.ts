@@ -7,8 +7,10 @@ const useOrganizationInfoService = (id: number) => {
     status: 'loading'
   });
 
+  const headers = new Headers();
+  headers.append('Access-Control-Allow-Credentials', 'true');
+  headers.append('Content-Type', 'application/json; charset=utf-8');
 
-  const headers = new Headers({ 'Authorization': `Bearer ${localStorage.getItem('accessToken')}`}); 
   useEffect(() => {
     fetch(`/organization/${id}`, { headers })
       .then(response => response.json())

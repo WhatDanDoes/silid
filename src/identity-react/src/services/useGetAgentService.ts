@@ -12,7 +12,10 @@ const useAgentService = (id: number) => {
     url = `${url}/${id}`;
   }
 
-  const headers = new Headers({ 'Access-Control-Allow-Credentials': 'true' });
+  const headers = new Headers();
+  headers.append('Access-Control-Allow-Credentials', 'true');
+  headers.append('Content-Type', 'application/json; charset=utf-8');
+
   useEffect(() => {
     fetch(url, { headers })
       .then(response => response.json())

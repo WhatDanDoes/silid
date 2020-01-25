@@ -11,9 +11,11 @@ const useOrganizationService = () => {
     status: 'loading'
   });
 
-  const headers = new Headers({ 'Authorization': `Bearer ${localStorage.getItem('accessToken')}`}); 
+  const headers = new Headers();
+  headers.append('Access-Control-Allow-Credentials', 'true');
+  headers.append('Content-Type', 'application/json; charset=utf-8');
+
   useEffect(() => {
-    //fetch(`${process.env.REACT_APP_API_DOMAIN}agent`, { headers })
     fetch(`/organization`, { headers })
       .then(response => response.json())
       .then(response => setResult({ status: 'loaded', payload: { results: response } }))
