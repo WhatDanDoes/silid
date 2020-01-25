@@ -9,6 +9,12 @@ context('Agent', function() {
     cy.fixture('someguy-auth0-access-token.json').as('agent');
   });
   
+  let _profile;
+  beforeEach(function() {
+    // Why?
+    _profile = {...this.profile};
+  });
+ 
   afterEach(() => {
     cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
   });
@@ -18,10 +24,9 @@ context('Agent', function() {
     context('success', () => {
       let agent, token;
       beforeEach(function() {
-        cy.login(this.agent);
+        cy.login(_profile.email, _profile);
         cy.get('#app-menu-button').click();
         cy.contains('Personal Info').click().then(() => {
-          token = localStorage.getItem('accessToken');
           cy.wait(500); // <--- There has to be a better way!!! Cypress is going too quick for the database
         });
       });
@@ -43,12 +48,12 @@ context('Agent', function() {
       });
 
       it('updates the record in the database', function() {
-        cy.task('query', `SELECT * FROM "Agents" WHERE "accessToken"='Bearer ${token}' LIMIT 1;`).then(([results, metadata]) => {
+        cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
           cy.get('input[name="name"][type="text"]').should('have.value', results[0].name);
           cy.get('input[name="name"][type="text"]').clear().type('Dick Wolf');
           cy.get('button[type="submit"]').click();
           cy.wait(500);
-          cy.task('query', `SELECT * FROM "Agents" WHERE "accessToken"='Bearer ${token}' LIMIT 1;`).then(([results, metadata]) => {;
+          cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
             expect(results[0].name).to.eq('Dick Wolf');
           });
         });
