@@ -19,6 +19,8 @@ import { Team } from '../types/Team';
 import { Agent } from '../types/Agent';
 import Flash from '../components/Flash';
 
+import { AuthProvider, useAuthState } from '../auth/Auth';
+
 import useGetTeamInfoService from '../services/useGetTeamInfoService';
 import usePutTeamService from '../services/usePutTeamService';
 import useDeleteTeamService from '../services/useDeleteTeamService';
@@ -50,6 +52,8 @@ export interface PrevFormState {
 const TeamInfo = (props: any) => {
   const classes = useStyles();
 
+  const {agent} = useAuthState();
+
   const [editFormVisible, setEditFormVisible] = useState(false);
   const [agentFormVisible, setAgentFormVisible] = useState(false);
   const [prevFormState, setPrevFormState] = useState<PrevFormState>({});
@@ -57,7 +61,7 @@ const TeamInfo = (props: any) => {
   const [flashProps, setFlashProps] = useState({} as any);
 
   const [teamInfo, setTeamInfo] = useState<Team>({} as Team);
-  const [agentProfile, setAgentProfile] = useState<Agent>(JSON.parse(localStorage.getItem('profile') || '{}') as Agent);
+  //const [agentProfile, setAgentProfile] = useState<Agent>(JSON.parse(localStorage.getItem('profile') || '{}') as Agent);
 
   const service = useGetTeamInfoService(props.match.params.id);
   let { publishTeam } = usePutTeamService();
@@ -192,7 +196,7 @@ const TeamInfo = (props: any) => {
                 <React.Fragment>
                   {teamInfo.name} 
                 </React.Fragment>
-                {teamInfo.creator && (agentProfile.email === teamInfo.creator.email) ?
+                {teamInfo.creator && (agent._json.email === teamInfo.creator.email) ?
                   <React.Fragment>
                     {!editFormVisible ?
                       <Button id="edit-team" variant="contained" color="primary" onClick={() => setEditFormVisible(true)}>
@@ -241,7 +245,7 @@ const TeamInfo = (props: any) => {
                 {!editFormVisible && !agentFormVisible ?
                   <Typography variant="body2" color="textSecondary" component="p">
                     <React.Fragment>
-                      {teamInfo.creator && (agentProfile.email === teamInfo.creator.email) ?
+                      {teamInfo.creator && (agent._json.email === teamInfo.creator.email) ?
                         <Fab id="add-agent" color="primary" aria-label="add-agent" className={classes.margin}>
                           <PersonAddIcon onClick={() => setAgentFormVisible(true)} />
                         </Fab>
@@ -294,14 +298,14 @@ const TeamInfo = (props: any) => {
                   Members
                 </React.Fragment>
               </Typography>
-              { teamInfo.members.map(agent => (
+              { teamInfo.members.map(member => (
                 <ListItem button className='team-button' key={`agent-${agent.id}`}>
                   <ListItemIcon><InboxIcon /></ListItemIcon>
-                  <ListItemLink href={`#agent/${agent.id}`}>
-                    <ListItemText primary={agent.email} />
+                  <ListItemLink href={`#agent/${member.id}`}>
+                    <ListItemText primary={member.email} />
                   </ListItemLink>
-                  { teamInfo.creator.email !== agent.email && (agentProfile.email === teamInfo.creator.email) ?
-                  <DeleteForeverOutlinedIcon className="delete-member" onClick={() => handleMemberDelete(agent.id)} />
+                  { teamInfo.creator.email !== agent.email && (agent._json.email === teamInfo.creator.email) ?
+                  <DeleteForeverOutlinedIcon className="delete-member" onClick={() => handleMemberDelete(member.id)} />
                   : ''}
                 </ListItem>
               ))}
