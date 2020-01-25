@@ -5,29 +5,34 @@
 context('Team edit', function() {
 
   before(function() {
-    cy.fixture('someguy-auth0-access-token.json').as('agent');
+    cy.fixture('google-profile-response').as('profile');
   });
 
   afterEach(() => {
     cy.task('query', 'TRUNCATE TABLE "Organizations" CASCADE;');
   });
-  
+
+  let _profile;
+  beforeEach(function() {
+    // Why?
+    _profile = {...this.profile};
+  });
+
   describe('Editing', () => {
 
-    let token, agent, organization, team;
+    let agent, organization, team;
     beforeEach(function() {
-      cy.login(this.agent);
-      cy.visit('/#/').then(() => {
-        token = localStorage.getItem('accessToken');
-        cy.task('query', `SELECT * FROM "Agents" WHERE "accessToken"='Bearer ${token}' LIMIT 1;`).then(([results, metadata]) => {
-          agent = results[0];
-  
-          cy.request({ url: '/organization',  method: 'POST', auth: { bearer: token }, body: { name: 'One Book Canada' } }).then((org) => {
-            organization = org.body;
-            cy.request({ url: '/team',  method: 'POST', auth: { bearer: token },
-                         body: { organizationId: organization.id, name: 'Blue42' } }).then(res => {
-              team = res.body;
- 
+      cy.login(_profile.email, _profile);
+      cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
+        agent = results[0];
+
+        cy.request({ url: '/organization',  method: 'POST', body: { name: 'One Book Canada' } }).then((org) => {
+          organization = org.body;
+          cy.request({ url: '/team',  method: 'POST',
+                       body: { organizationId: organization.id, name: 'Blue42' } }).then(res => {
+            team = res.body;
+
+            cy.visit('/#/').then(() => {
               cy.get('#app-menu-button').click();
               cy.get('#organization-button').click();
               cy.contains('One Book Canada').click();
