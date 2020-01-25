@@ -13,7 +13,7 @@ const usePostTeamService = () => {
     setService({ status: 'loading' });
 
     const headers = new Headers();
-    headers.append('Authorization', `Bearer ${localStorage.getItem('accessToken')}`);
+    headers.append('Access-Control-Allow-Credentials', 'true');
     headers.append('Content-Type', 'application/json; charset=utf-8');
 
     return new Promise((resolve, reject) => {
