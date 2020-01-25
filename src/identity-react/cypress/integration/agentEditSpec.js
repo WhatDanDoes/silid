@@ -6,7 +6,6 @@ context('Agent', function() {
 
   before(function() {
     cy.fixture('google-profile-response.json').as('profile');
-    cy.fixture('someguy-auth0-access-token.json').as('agent');
   });
   
   let _profile;

@@ -42,10 +42,8 @@ context('Agent show', function() {
     before(function() {
       // Just a convenient way to create a new agent
       cy.login('someotherguy@example.com', _profile);
-      cy.visit('/#/').then(() => {
-        cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
-          memberAgent = results[0];
-        });
+      cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
+        memberAgent = results[0];
       });
     });
  
@@ -81,11 +79,9 @@ context('Agent show', function() {
       let agent;
       beforeEach(function() {
         cy.login('someguy@example.com', _profile);
-        cy.visit('/#/').then(() => {
-          cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
-            agent = results[0];
-            cy.visit(`/#/agent/${agent.id}`);
-          });
+        cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
+          agent = results[0];
+          cy.visit(`/#/agent/${agent.id}`);
         });
       });
 
