@@ -19,6 +19,7 @@ import { Organization } from '../types/Organization';
 import { Agent } from '../types/Agent';
 import Flash from '../components/Flash';
 import TeamCreateForm from '../components/TeamCreateForm';
+import { AuthProvider, useAuthState } from '../auth/Auth';
 
 import useGetOrganizationInfoService from '../services/useGetOrganizationInfoService';
 import usePutOrganizationService from '../services/usePutOrganizationService';
@@ -52,6 +53,8 @@ export interface PrevState {
 const OrganizationInfo = (props: any) => {
   const classes = useStyles();
 
+  const {agent} = useAuthState();
+
   const [teamFormVisible, setTeamFormVisible] = useState(false);
   const [editFormVisible, setEditFormVisible] = useState(false);
   const [agentFormVisible, setAgentFormVisible] = useState(false);
@@ -60,7 +63,6 @@ const OrganizationInfo = (props: any) => {
   const [flashProps, setFlashProps] = useState({} as any);
 
   const [orgInfo, setOrgInfo] = useState<Organization>({} as Organization);
-  const [agentProfile, setAgentProfile] = useState<Agent>(JSON.parse(localStorage.getItem('profile') || '{}') as Agent);
 
   const service = useGetOrganizationInfoService(props.match.params.id);
   let { publishOrganization } = usePutOrganizationService();
@@ -209,7 +211,7 @@ const OrganizationInfo = (props: any) => {
                 <React.Fragment>
                   {orgInfo.name} 
                 </React.Fragment>
-                {orgInfo.creator && (agentProfile.email === orgInfo.creator.email) ?
+                {orgInfo.creator && (agent._json.email === orgInfo.creator.email) ?
                   <React.Fragment>
                     {!editFormVisible ?
                       <Button id="edit-organization" variant="contained" color="primary" onClick={() => setEditFormVisible(true)}>
@@ -258,7 +260,7 @@ const OrganizationInfo = (props: any) => {
                 {!editFormVisible && !agentFormVisible && !teamFormVisible ?
                     <Typography variant="body2" color="textSecondary" component="p">
                       <React.Fragment>
-                        {orgInfo.creator && (agentProfile.email === orgInfo.creator.email) ?
+                        {orgInfo.creator && (agent._json.email === orgInfo.creator.email) ?
                           <Fab id="add-agent" color="primary" aria-label="add-agent" className={classes.margin}>
                             <PersonAddIcon onClick={() => setAgentFormVisible(true)} />
                           </Fab>
@@ -334,13 +336,13 @@ const OrganizationInfo = (props: any) => {
                   Members
                 </React.Fragment>
               </Typography>
-              { orgInfo.members.map(agent => (
+              { orgInfo.members.map(member => (
                 <ListItem button className='organization-button' key={`agent-${agent.id}`}>
                   <ListItemIcon><InboxIcon /></ListItemIcon>
-                  <ListItemLink href={`#agent/${agent.id}`}>
-                    <ListItemText primary={agent.email} />
+                  <ListItemLink href={`#agent/${member.id}`}>
+                    <ListItemText primary={member.email} />
                   </ListItemLink>
-                  { orgInfo.creator.email !== agent.email && (agentProfile.email === orgInfo.creator.email) ?
+                  { orgInfo.creator.email !== member.email && (agent._json.email === orgInfo.creator.email) ?
                   <DeleteForeverOutlinedIcon className="delete-member" onClick={() => handleMemberDelete(agent.id)} />
                   : ''}
                 </ListItem>
@@ -359,7 +361,7 @@ const OrganizationInfo = (props: any) => {
                   <ListItemLink href={`#team/${team.id}`}>
                     <ListItemText primary={team.name} />
                   </ListItemLink>
-                  { (agentProfile.email === orgInfo.creator.email) ?
+                  { (agent._json.email === orgInfo.creator.email) ?
                     <DeleteForeverOutlinedIcon className="delete-team" onClick={() => handleTeamDelete(team)} />
                   : ''}
                 </ListItem>
