@@ -8,7 +8,7 @@ Cypress.Commands.add('login', function(email, profile) {
     name: 'loginViaAuth0',
   });
 
-  cy.fixture('google-profile-response').as('profile');
+  cy.clearCookies();
 
   // Register a test agent with an identity token
   cy.request({ url: 'https://localhost:3002/register', method: 'POST',
@@ -19,6 +19,7 @@ Cypress.Commands.add('login', function(email, profile) {
             }).then(function(res) {
     cy.visit('/');
     cy.contains('Login').click();
+    cy.wait(500);
   });
 });
 
