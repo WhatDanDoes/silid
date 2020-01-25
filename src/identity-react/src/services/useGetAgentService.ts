@@ -12,7 +12,7 @@ const useAgentService = (id: number) => {
     url = `${url}/${id}`;
   }
 
-  const headers = new Headers({ 'Authorization': `Bearer ${localStorage.getItem('accessToken')}`}); 
+  const headers = new Headers({ 'Access-Control-Allow-Credentials': 'true' });
   useEffect(() => {
     fetch(url, { headers })
       .then(response => response.json())
