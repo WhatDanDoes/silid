@@ -304,7 +304,7 @@ const TeamInfo = (props: any) => {
                   <ListItemLink href={`#agent/${member.id}`}>
                     <ListItemText primary={member.email} />
                   </ListItemLink>
-                  { teamInfo.creator.email !== agent.email && (agent._json.email === teamInfo.creator.email) ?
+                  { teamInfo.creator.email !== member.email && (agent._json.email === teamInfo.creator.email) ?
                   <DeleteForeverOutlinedIcon className="delete-member" onClick={() => handleMemberDelete(member.id)} />
                   : ''}
                 </ListItem>

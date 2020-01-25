@@ -5,28 +5,28 @@
 context('Organization delete agent', function() {
 
   before(function() {
-    cy.fixture('someguy-auth0-access-token.json').as('agent');
-    cy.fixture('someotherguy-auth0-access-token.json').as('anotherAgent');
+    cy.fixture('google-profile-response').as('profile');
+  });
+
+  let _profile;
+  beforeEach(function() {
+    // Why?
+    _profile = {...this.profile};
   });
 
   context('authenticated', () => {
 
-    let token, agent;
-    let memberAgent;
+    let agent, memberAgent;
     beforeEach(function() {
-      cy.login(this.anotherAgent);
-      cy.visit('/#/').then(() => {
-        let memberToken = localStorage.getItem('accessToken');
-        cy.task('query', `SELECT * FROM "Agents" WHERE "accessToken"='Bearer ${memberToken}' LIMIT 1;`).then(([results, metadata]) => {
-          memberAgent = results[0];
+      // Login/create another agent
+      cy.login('someotherguy@example.com', _profile);
+      cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
+        memberAgent = results[0];
 
-          cy.login(this.agent);
-          cy.visit('/#/').then(() => {
-            token = localStorage.getItem('accessToken');
-            cy.task('query', `SELECT * FROM "Agents" WHERE "accessToken"='Bearer ${token}' LIMIT 1;`).then(([results, metadata]) => {
-              agent = results[0];
-            });
-          });
+        // Login/create main test agent
+        cy.login(_profile.email, _profile);
+        cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
+          agent = results[0];
         });
       });
     });
@@ -40,13 +40,13 @@ context('Organization delete agent', function() {
 
       let organization, team;
       beforeEach(function() {
-        cy.request({ url: '/organization', method: 'POST', auth: { bearer: token }, body: { name: 'One Book Canada' } }).then((org) => {
+        cy.request({ url: '/organization', method: 'POST', body: { name: 'One Book Canada' } }).then((org) => {
           organization = org.body;
-          cy.request({ url: '/team',  method: 'POST', auth: { bearer: token },
+          cy.request({ url: '/team',  method: 'POST',
                        body: { organizationId: organization.id, name: 'Calgary Roughnecks' } }).then(res => {
             team = res.body;
 
-            cy.request({ url: `/team/${team.id}/agent`, method: 'PUT', auth: { bearer: token }, body: { email: memberAgent.email } }).then((org) => {
+            cy.request({ url: `/team/${team.id}/agent`, method: 'PUT', body: { email: memberAgent.email } }).then((org) => {
               cy.get('#app-menu-button').click();
               cy.get('#organization-button').click();
               cy.contains('One Book Canada').click();
@@ -120,22 +120,16 @@ context('Organization delete agent', function() {
 
       let organization, team;
       beforeEach(function() {
-        cy.login(this.anotherAgent);
-        cy.visit('/#/').then(() => {
-          let memberToken = localStorage.getItem('accessToken');
-          cy.task('query', `SELECT * FROM "Agents" WHERE "accessToken"='Bearer ${memberToken}' LIMIT 1;`).then(([results, metadata]) => {
-            memberAgent = results[0];
-            cy.request({ url: '/organization', method: 'POST', auth: { bearer: token }, body: { name: 'One Book Canada' } }).then((org) => {
-              organization = org.body;
-              cy.request({ url: '/team',  method: 'POST', auth: { bearer: token },
-                           body: { organizationId: organization.id, name: 'Calgary Roughnecks' } }).then(res => {
-                team = res.body;
-    
-                cy.request({ url: `/team/${team.id}/agent`, method: 'PUT', auth: { bearer: token }, body: { email: memberAgent.email } }).then((org) => {
-                  cy.visit(`/#/team/${team.id}`);
-                  cy.contains('Calgary Roughnecks');
-                });
-              });
+        cy.request({ url: '/organization', method: 'POST', body: { name: 'One Book Canada' } }).then((org) => {
+          organization = org.body;
+          cy.request({ url: '/team',  method: 'POST',
+                       body: { organizationId: organization.id, name: 'Calgary Roughnecks' } }).then(res => {
+            team = res.body;
+
+            cy.request({ url: `/team/${team.id}/agent`, method: 'PUT', body: { email: memberAgent.email } }).then((org) => {
+              cy.login('someotherguy@example.com', _profile);
+              cy.visit(`/#/team/${team.id}`);
+              cy.contains('Calgary Roughnecks');
             });
           });
         });
