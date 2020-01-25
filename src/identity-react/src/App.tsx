@@ -3,57 +3,69 @@
 import React, { useState } from 'react';
 import { Redirect } from 'react-router-dom';
 import { BrowserRouter, HashRouter, Route, Switch } from 'react-router-dom';
+import AppBar from '@material-ui/core/AppBar';
+import Toolbar from '@material-ui/core/Toolbar';
+import Button from '@material-ui/core/Button';
+import Typography from '@material-ui/core/Typography';
 import Home from './routes/Home';
 import Agent from './routes/Agent';
 import Organization from './routes/Organization';
 import OrganizationInfo from './routes/OrganizationInfo';
 import Team from './routes/Team';
-import Auth from './auth/Auth';
+import { AuthProvider, useAuthState } from './auth/Auth';
 import Callback from './callback/Callback';
 import { parseQuery } from './utils/parseQuery';
 import PrivateRoute from './components/PrivateRoute';
 
-const auth = new Auth();
-
 function App() {
   const [message, setMessage] = useState('');
+  const [loggingIn, setLoggingIn] = useState(false);
 
   const handleAuthentication = (props: any) => {
-    const { location } = props;
-    if (location.search !== '') {
-      const params = parseQuery(location.search);
-      if (params.inviteId && typeof params.inviteId === 'string') {
-        localStorage.setItem('inviteId', params.inviteId);
-      }
-    }
-    if (/access_token|id_token|error/.test(location.hash)) {
-      auth.handleAuthentication().then(res => {
-        console.log(res);
-      }).catch(err => {
-        console.log(err);
-        setMessage('Something went terribly wrong');
-      });
-    }
+    setLoggingIn(true);
   };
 
   return (
     <div className="App">
-      <HashRouter>
-        <Route
-          path="/"
-          render={props => <Home auth={auth} message={message} {...props} />}
-        />
-        <Switch>
-          <PrivateRoute path="/agent/:id" auth={auth} component={Agent} redirect="/" />
-          <PrivateRoute path="/agent" auth={auth} component={Agent} redirect="/" />
-          <PrivateRoute path="/organization/:id" auth={auth} component={OrganizationInfo} redirect="/" />
-          <PrivateRoute path="/organization" auth={auth} component={Organization} redirect="/" />
-          <PrivateRoute path="/team/:id" auth={auth} component={Team} redirect="/" />
-        </Switch>
-      </HashRouter>
+      { loggingIn ?
+        <AuthProvider>
+          <HashRouter>
+            <Route
+              path="/"
+              render={props => <Home message={message} {...props} />}
+            />
+            <Switch>
+              <PrivateRoute path="/agent/:id" component={Agent} redirect="/" />
+            </Switch>
+          </HashRouter>
+        </AuthProvider>
+      :
+        <AppBar position="static">
+          <Toolbar>
+            <Typography variant="h6">
+              Identity
+            </Typography>
+            <Button
+              id="login-button"
+              color="inherit"
+              onClick={() => {
+                setLoggingIn(true);
+              }}
+            >
+              Login
+            </Button>
+          </Toolbar>
+        </AppBar>
+      }
     </div>
   );
 }
+
+//          <PrivateRoute path="/agent" auth={agent} component={Agent} redirect="/" />
+//          <PrivateRoute path="/organization/:id" auth={agent} component={OrganizationInfo} redirect="/" />
+//          <PrivateRoute path="/organization" auth={agent} component={Organization} redirect="/" />
+//          <PrivateRoute path="/team/:id" auth={agent} component={Team} redirect="/" />
+
 //      <BrowserRouter>
 //        <Route
 //            path="/callback*"
