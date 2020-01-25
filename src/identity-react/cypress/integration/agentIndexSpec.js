@@ -8,6 +8,13 @@ context('Agent', function() {
     cy.fixture('google-profile-response.json').as('profile');
     cy.fixture('someguy-auth0-access-token.json').as('agent');
   });
+
+  let _profile;
+  beforeEach(function() {
+    // Why?
+    _profile = {...this.profile};
+  });
+ 
   
   describe('unauthenticated', done => {
     beforeEach(() => {
@@ -35,7 +42,7 @@ context('Agent', function() {
 
     context('first visit', () => {
       beforeEach(function() {
-        cy.login(this.agent);
+        cy.login(_profile.email, _profile);
         cy.get('#app-menu-button').click();
         cy.contains('Personal Info').click();
       });
@@ -47,8 +54,7 @@ context('Agent', function() {
       it('displays agent social profile info in form', function() {
         cy.get('h3').contains('Profile');
         cy.get('input[name="name"][type="text"]').should('have.value', this.profile.name);
-        expect(JSON.parse(localStorage.getItem('profile')).email).to.be.defined;
-        cy.get('input[name="email"][type="email"]').should('have.value', JSON.parse(localStorage.getItem('profile')).email);
+        cy.get('input[name="email"][type="email"]').should('have.value', this.profile.email);
         cy.get('button[type="submit"]').should('exist');
       });
 

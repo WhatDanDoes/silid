@@ -36,6 +36,7 @@ function App() {
             />
             <Switch>
               <PrivateRoute path="/agent/:id" component={Agent} redirect="/" />
+              <PrivateRoute path="/agent" component={Agent} redirect="/" />
             </Switch>
           </HashRouter>
         </AuthProvider>
@@ -61,7 +62,6 @@ function App() {
   );
 }
 
-//          <PrivateRoute path="/agent" auth={agent} component={Agent} redirect="/" />
 //          <PrivateRoute path="/organization/:id" auth={agent} component={OrganizationInfo} redirect="/" />
 //          <PrivateRoute path="/organization" auth={agent} component={Organization} redirect="/" />
 //          <PrivateRoute path="/team/:id" auth={agent} component={Team} redirect="/" />
