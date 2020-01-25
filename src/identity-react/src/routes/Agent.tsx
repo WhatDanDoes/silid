@@ -154,7 +154,7 @@ const Agent = (props: any) => {
                 </Button> }
               </form> : ''}
             {service.status === 'error' && (
-              <div>Error, the backend moved to the dark side.</div>
+              <div>{service.error.message}</div>
             )}
           </Typography>
         </CardContent>
