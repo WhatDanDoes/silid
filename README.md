@@ -106,6 +106,9 @@ AUTH0_DOMAIN=silid.auth0.com
 AUTH0_AUDIENCE=https://id.languagetechnology.org/
 NOREPLY_EMAIL=noreply@example.com
 NOREPLY_PASSWORD=secret
+AUTH0_CLIENT_ID=tjrl8aOQEx9AtQhFffuWmvP6bcHM7nXB
+AUTH0_CLIENT_SECRET=some_secret_key
+CALLBACK_URL=https://example.com/callback
 ```
 
 Install dependencies:

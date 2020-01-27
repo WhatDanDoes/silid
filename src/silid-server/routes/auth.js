@@ -5,14 +5,17 @@ const passport = require('passport');
 const models = require('../models');
 
 router.get('/login', (req, res, next) => {
+  console.log('/login attempt');
   const authenticator = passport.authenticate('auth0', { scope: 'openid email profile' });
-  authenticator(req, res, next);
+  console.log('authenticating');
+  return authenticator(req, res, next);
 });
 
 /**
  * Perform the final stage of authentication and redirect to previously requested URL or '/'
  */
 router.get('/callback', function (req, res, next) {
+
   passport.authenticate('auth0', function (err, user, info) {
     if (err) {
       return next(err);

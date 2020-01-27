@@ -16,7 +16,7 @@ const useOrganizationService = () => {
   headers.append('Content-Type', 'application/json; charset=utf-8');
 
   useEffect(() => {
-    fetch(`/organization`, { headers })
+    fetch(`/organization`, { headers, credentials: 'include', mode: 'no-cors' })
       .then(response => response.json())
       .then(response => setResult({ status: 'loaded', payload: { results: response } }))
       .catch(error => setResult({ status: 'error', error }));
