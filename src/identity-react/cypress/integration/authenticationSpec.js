@@ -106,6 +106,31 @@ context('Authentication', function() {
       cy.get('#app-menu ul div:nth-of-type(3) a').should('have.attr', 'href', '#organization').and('contain', 'Organizations');
       cy.get('#app-menu ul:nth-of-type(2) div').contains('Help');
     });
+
+    describe('logout', () => {
+      it('clears the cookies', () => {
+        cy.getCookies().should('have.length', 1);
+
+        cy.contains('Logout').click();
+
+        cy.getCookies().should('have.length', 0);
+      });
+
+      it('lands in the right place', () => {
+        cy.contains('Logout').click();
+        cy.url().should('match', /\/#\/$/);
+      });
+
+      it('renders the interface', () => {
+        cy.get('#login-button').should('not.exist');
+        cy.get('#logout-button').should('exist');
+
+        cy.contains('Logout').click();
+
+        cy.get('#login-button').should('exist');
+        cy.get('#logout-button').should('not.exist');
+      });
+    });
   });
 });
 
