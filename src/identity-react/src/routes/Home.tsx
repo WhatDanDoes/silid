@@ -3,6 +3,7 @@ import AppBar from '../components/Appbar';
 
 interface IProps {
   message?: string;
+  logout: any;
 }
 
 const Home = (props: IProps) => {

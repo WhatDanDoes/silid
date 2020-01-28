@@ -21,8 +21,8 @@ function App() {
   const [message, setMessage] = useState('');
   const [loggingIn, setLoggingIn] = useState(false);
 
-  const handleAuthentication = (props: any) => {
-    setLoggingIn(true);
+  const handleLogout = (props: any) => {
+    setLoggingIn(false);
   };
 
   return (
@@ -32,7 +32,7 @@ function App() {
           <HashRouter>
             <Route
               path="/"
-              render={props => <Home message={message} {...props} />}
+              render={props => <Home logout={handleLogout} message={message} {...props} />}
             />
             <Switch>
               <PrivateRoute path="/agent/:id" component={Agent} redirect="/" />

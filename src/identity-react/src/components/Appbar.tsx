@@ -19,6 +19,7 @@ import Grid from '@material-ui/core/Grid';
 import { useAuthState, AuthContext } from '../auth/Auth';
 
 interface IProps {
+  logout: any;
 }
 
 const useStyles = makeStyles((theme: Theme) =>
@@ -169,7 +170,18 @@ const Home = (props: IProps) => {
             <Button
               id="logout-button"
               color="inherit"
-              onClick={() => /*auth.logout()*/ console.log('logout')}
+              onClick={() => {
+                console.log('logout');
+                const headers = new Headers();
+                fetch('/logout', {method: 'GET', headers: headers, credentials: 'include', mode: 'no-cors' }).then(response => {
+                   return response.text();
+                }).then(profile => {
+                  props.logout();
+                }).catch(error => {
+                  console.log('Logout', error);
+                  props.logout();
+                });
+              }}
             >
               Logout
             </Button>
