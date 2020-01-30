@@ -17,11 +17,6 @@ const teamRouter = require('./routes/team');
 
 var app = express();
 
-/**
- * SPA client route
- */
-//app.use('/', indexRouter);
-
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
@@ -45,6 +40,14 @@ app.use(session({
   saveUninitialized: true
 }));
 
+/**
+ * SPA client route
+ *
+ * Express handles Auth0 login and the subsequent session. If an agent is not
+ * authenticated, a sign-on landing page is presented. If an agent is
+ * authenticated, the client app is delivered
+ */
+app.use('/', indexRouter);
 
 if (process.env.NODE_ENV === 'e2e') {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
