@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
+const passport = require('passport');
 
 /**
  * For the client-side app
@@ -15,7 +16,10 @@ else {
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
-  res.sendFile('index.html', { root: staticPath });
+  if (req.session.passport) {
+    return res.sendFile('index.html', { root: staticPath });
+  }
+  res.render('index');
 });
 
 module.exports = router;
