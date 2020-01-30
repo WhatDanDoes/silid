@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 const setupKeystore = require('../support/setupKeystore');
 const models = require('../../models');
 
+
 describe('authSpec', () => {
 
   /**
@@ -15,7 +16,6 @@ describe('authSpec', () => {
    *
    * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
    */
-  //const _access = require('../fixtures/sample-auth0-access-token');
   const _identity = require('../fixtures/sample-auth0-identity-token');
 
   let pub, prv, keystore;
@@ -100,7 +100,7 @@ describe('authSpec', () => {
    */
   describe('/callback', () => {
 
-    let session, oauthTokenScope;
+    let session, oauthTokenScope, userInfoScope;
     beforeEach(done => {
 
       /**
@@ -151,7 +151,7 @@ describe('authSpec', () => {
     it('calls the `/oauth/token` endpoint', done => {
       session
         .get(`/callback?code=AUTHORIZATION_CODE&state=${state}`)
-        .expect(200)
+        .expect(302)
         .end(function(err, res) {
           if (err) return done.fail(err);
           oauthTokenScope.done();
@@ -162,7 +162,7 @@ describe('authSpec', () => {
     it('calls the `/userinfo` endpoint', done => {
       session
         .get(`/callback?code=AUTHORIZATION_CODE&state=${state}`)
-        .expect(200)
+        .expect(302)
         .end(function(err, res) {
           if (err) return done.fail(err);
           userInfoScope.done();
@@ -170,14 +170,13 @@ describe('authSpec', () => {
         });
     });
 
-    it('returns agent profile', done => {
+    it('redirects home', done => {
       session
         .get(`/callback?code=AUTHORIZATION_CODE&state=${state}`)
-        .expect(200)
+        .expect(302)
         .end(function(err, res) {
           if (err) return done.fail(err);
-          expect(res.body.nick_name).toEqual(_identity.nick_name);
-          expect(res.body.picture).toEqual(_identity.picture);
+          expect(res.headers.location).toEqual('/');
           done();
         });
     });
@@ -189,7 +188,7 @@ describe('authSpec', () => {
 
           session
             .get(`/callback?code=AUTHORIZATION_CODE&state=${state}`)
-            .expect(200)
+            .expect(302)
             .end(function(err, res) {
               if (err) return done.fail(err);
               models.Agent.findAll().then(results => {
@@ -207,7 +206,7 @@ describe('authSpec', () => {
       it('saves social profile data for an existing agent', done => {
         session
           .get(`/callback?code=AUTHORIZATION_CODE&state=${state}`)
-          .expect(200)
+          .expect(302)
           .end(function(err, res) {
             if (err) return done.fail(err);
             models.Agent.findAll().then(results => {
@@ -277,7 +276,7 @@ describe('authSpec', () => {
                          */
                         newSession
                           .get(`/callback?code=AUTHORIZATION_CODE&state=${state}`)
-                          .expect(200)
+                          .expect(302)
                           .end(function(err, res) {
                             if (err) return done.fail(err);
                             models.Agent.findAll().then(results => {
@@ -310,6 +309,152 @@ describe('authSpec', () => {
             expect(session.cookies.length).toEqual(0);
             done();
           });
+      });
+    });
+  });
+
+  describe('Browser', () => {
+    // Setup and start server
+    const http = require('http');
+    const server = http.createServer(app);
+    server.on('listening', () => {
+      console.log('Listening on ' + PORT);
+    });
+    server.listen(PORT);
+
+    // Setup an configure zombie browser
+    const Browser = require('zombie');
+    Browser.localhost('localhost', PORT);
+
+
+    let browser;
+    beforeEach(() => {
+      browser = new Browser({ waitDuration: '30s', loadCss: false });
+    });
+
+    it('displays the correct interface', done => {
+      browser.visit('/', (err) => {
+        browser.assert.element('a[href="/login"]');
+        browser.assert.elements('a[href="/logout"]', 0);
+        done();
+      });
+    });
+
+    it('sets a cookie', done => {
+      expect(browser.cookies.length).toEqual(0);
+      browser.visit('/', (err) => {
+        if (err) return done.fail(err);
+        expect(browser.cookies.length).toEqual(1);
+        done();
+      });
+    });
+
+    describe('Login', () => {
+
+      let loginScope, oauthTokenScope, userInfoScope;
+      beforeEach(done => {
+        nock.cleanAll();
+        /**
+         * This is called when `/login` is hit.
+         */
+        let identity, identityToken;
+        auth0Scope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+          .log(console.log)
+          .get(/authorize*/)
+          .reply((uri, body, next) => {
+            uri = uri.replace('/authorize?', '');
+            const parsed = querystring.parse(uri);
+            state = parsed.state;
+            nonce = parsed.nonce;
+
+            identity = {..._identity,
+                           aud: process.env.AUTH0_CLIENT_ID,
+                           iat: Math.floor(Date.now() / 1000) - (60 * 60),
+                           nonce: nonce }
+            identityToken = jwt.sign(identity, prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
+
+            /**
+             * `/userinfo` mock
+             */
+            userInfoScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+              .log(console.log)
+              .get(/userinfo/)
+              .reply(200, identity);
+
+            /**
+             * `/oauth/token` mock
+             */
+            oauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+              .log(console.log)
+              .post(/oauth\/token/, {
+                                      'grant_type': 'authorization_code',
+                                      'redirect_uri': /\/callback/,
+                                      'client_id': process.env.AUTH0_CLIENT_ID,
+                                      'client_secret': process.env.AUTH0_CLIENT_SECRET,
+                                      'code': 'AUTHORIZATION_CODE'
+                                    })
+              .reply(200, {
+                'access_token': 'SOME_MADE_UP_ACCESS_TOKEN',
+                'refresh_token': 'SOME_MADE_UP_REFRESH_TOKEN',
+                'id_token': identityToken
+              });
+
+            next(null, [302, {}, { 'Location': `https://${process.env.AUTH0_DOMAIN}/login` }]);
+          });
+
+        /**
+         * `/login` mock
+         */
+        loginScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+          .log(console.log)
+          .get(/login/)
+          .reply((uri, body, next) => {
+            next(null, [302, {}, { 'Location': `http://localhost:${PORT}/callback?code=AUTHORIZATION_CODE&state=${state}` }]);
+          });
+
+        browser.visit('/', (err) => {
+          if (err) return done.fail(err);
+          done();
+        });
+      });
+
+      it('calls the various Auth0 endpoints', done => {
+        browser.clickLink('Login', (err) => {
+          if (err) return done.fail(err);
+          auth0Scope.done();
+          loginScope.done();
+          oauthTokenScope.done();
+          userInfoScope.done();
+          done();
+        });
+      });
+
+      it('serves up the static app', done => {
+        browser.clickLink('Login', (err) => {
+          if (err) return done.fail(err);
+          browser.assert.text('body p', 'TEST INDEX');
+          browser.assert.element('a[href="/logout"]');
+          done();
+        });
+      });
+
+      // This is not testing the client side app
+      describe('Logout', () => {
+        beforeEach(done => {
+          browser.clickLink('Login', (err) => {
+            if (err) return done.fail(err);
+            browser.assert.success();
+            done();
+          });
+        });
+
+        it('displays the correct interface', done => {
+          browser.clickLink('Logout', (err) => {
+            browser.assert.elements('a[href="/login"]');
+            browser.assert.elements('a[href="/logout"]', 0);
+            done();
+          });
+        });
       });
     });
   });
