@@ -27,6 +27,12 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
 app.use(cors());
+//app.use(cors({
+//  credentials: true,
+//  headers: ['access-control-allow-origin', 'access-control-allow-credentials']
+//}));
+
+
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -35,7 +41,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(session({
   secret: process.env.AUTH0_CLIENT_SECRET, // This seemed convenient
   resave: true,
-  //cookie: { secure: false},
   //cookie: { sameSite: 'none', secure: true},
   saveUninitialized: true
 }));
