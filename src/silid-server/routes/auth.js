@@ -5,9 +5,7 @@ const passport = require('passport');
 const models = require('../models');
 
 router.get('/login', (req, res, next) => {
-  console.log('/login attempt');
   const authenticator = passport.authenticate('auth0', { scope: 'openid email profile' });
-  console.log('authenticating');
   return authenticator(req, res, next);
 });
 
@@ -30,11 +28,9 @@ router.get('/callback', function (req, res, next) {
           return next(err);
         }
 
-        // const returnTo = req.session.returnTo;
+        const returnTo = req.session.returnTo;
         delete req.session.returnTo;
-        // res.redirect(returnTo || '/');
-
-        res.status(200).json(req.user);
+        res.redirect(returnTo || '/');
       });
     }
 
