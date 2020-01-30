@@ -13,7 +13,7 @@ describe('client end points', () => {
         .expect(200)
         .end(function(err, res) {
           if (err) return done.fail(err);
-          expect(res.text).toMatch('TEST INDEX');
+          expect(res.text).toMatch('Login');
           done();
         });
     });
