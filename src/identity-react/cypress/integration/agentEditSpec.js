@@ -19,6 +19,37 @@ context('Agent', function() {
   });
 
   describe('Editing', () => {
+    
+//    describe('request headers', () => {
+////      let polyfill;
+////      beforeEach(() => {
+////
+////      });
+////
+//      it.only('sets the required request headers', function() {
+//////  //      cy.get('#app-menu-button').click();
+//        cy.server(); 
+//        cy.route({ url: '/agent', method: 'GET', response: {} }).as('getProfile');
+////        cy.route('GET', '/#/agent').as('getProfile');
+//
+//        cy.login(_profile.email, _profile);
+//        cy.get('#app-menu-button').click();
+//
+//
+//////        cy.readFile('./node_modules/whatwg-fetch/dist/fetch.umd.js').then((contents) => polyfill = contents);
+//////        Cypress.on('window:before:load', (win) => {
+//////          delete win.fetch;
+//////          win.eval(polyfill);
+//////        });
+//
+//        cy.visit('/agent');
+////        cy.contains('Personal Info').click();
+//        cy.wait('@getProfile').then(function(xhr) {
+//          cy.log("XHR ON RETURN");
+//          cy.log(xhr.responseBody);
+//        });
+//      });
+//    });
 
     context('success', () => {
       let agent, token;

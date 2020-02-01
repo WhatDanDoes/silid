@@ -67,10 +67,25 @@ setupKeystore((err, keyStuff) => {
         }
       });
 
+
       await server.register({
         plugin: require('hapi-require-https'),
         options: {}
       })
+
+//      await server.register({
+//        plugin: require('hapi-cors'),
+//        options: {
+//          origins: ['*'],
+//          allowCredentials: 'true',
+//////          exposeHeaders: ['content-type', 'content-length'],
+//////          maxAge: 600,
+//////          methods: ['GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS'],
+////          headers: ['access-control-allow-origin', 'access-control-allow-credentials']//, 'Accept', 'Content-Type', 'Authorization'] // add your header params
+//          headers: ['access-control-allow-origin', 'access-control-allow-credentials']//, 'Accept', 'Content-Type', 'Authorization'] // add your header params
+//        },
+//        checkOrigin: true
+//      });
 
       /**
        * Pass an ID token for immediate reference during `/authorize`.  The
@@ -142,6 +157,7 @@ setupKeystore((err, keyStuff) => {
 
           const redirectUrl= `http://${process.env.SERVER_DOMAIN}/callback?code=${authorizationCode}&state=${request.query.state}`;
           console.log(`Redirecting: ${redirectUrl}`);
+
           return h.redirect(redirectUrl);
         }
       });

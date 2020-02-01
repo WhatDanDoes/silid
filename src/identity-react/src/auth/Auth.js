@@ -19,13 +19,17 @@ export function AuthProvider({children}) {
   React.useEffect(() => {
     console.log('login');
     const headers = new Headers();
-    headers.append('Access-Control-Allow-Credentials', 'true');
-    fetch('/login', {method: 'GET', headers: headers, credentials: 'include', mode: 'no-cors' }).then(response => {
+//    headers.append('Access-Control-Allow-Credentials', 'true');
+//    headers.append('Access-Control-Allow-Origin', 'true');
+    //fetch('/login', {method: 'GET', headers: headers, credentials: 'include', mode: 'no-cors' }).then(response => {
+    
+    //fetch('/login', {method: 'GET', headers: headers, credentials: 'include', mode: 'no-cors', redirect: 'follow' }).then(response => {
+    fetch('/login', {method: 'GET', headers: headers, credentials: 'include' }).then(response => {
 //       return response.json();
        return response.text();
     }).then(profile => {
       console.log('FETCH RESPONSE');
-//      console.log(JSON.stringify(profile));
+      console.log(JSON.stringify(profile));
 //      setState({status: 'success', error: null, agent: profile});
       setState({status: 'success', error: null, agent: profile ? JSON.parse(profile) : {} });
     }).catch(error => {
