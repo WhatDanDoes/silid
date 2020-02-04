@@ -15,11 +15,6 @@ context('Authentication', function() {
 
       cy.visit('/');
 
-      /**
-       * A visit to home hits the dev server, so no cookie is set.
-       * `/login` hits the app server, so cookie is set.
-       */
-      cy.contains('Login').click();
       cy.getCookies().should('have.length', 1).then(cookies => {
         expect(cookies[0]).to.have.property('name', 'connect.sid');
         expect(cookies[0]).to.have.property('value');
@@ -28,33 +23,6 @@ context('Authentication', function() {
         expect(cookies[0]).to.have.property('path', '/');
         expect(cookies[0]).to.have.property('secure', false); // false because tests are HTTP
       });
-    });
-  });
-
-  context('unsuccessful authentication', () => {
-    beforeEach(() => {
-//      cy.visit(`/callback#access_token=${accessToken}&scope=openid%20profile%20email&expires_in=7200&token_type=Bearer&state=BAD_STATE_CREATES_ERROR&id_token=${idToken}`);
-    });
-
-    it('renders the interface', () => {
-//      cy.get('#login-button').should('exist');
-//      cy.get('#logout-button').should('not.exist');
-//      cy.get('h3').contains('Something went terribly wrong');
-    });
-  });
-
-  context('successful authentication', () => {
-    beforeEach(() => {
-      cy.visit('/');
-      cy.contains('Login').click();
-    });
-
-    it('lands in the right place', () => {
-      cy.url().should('match', /\/#\/$/);
-    });
-
-    it('renders the interface', () => {
-      cy.get('#logout-button').contains('Logout');
     });
   });
 
@@ -69,7 +37,7 @@ context('Authentication', function() {
       });
 
       it('displays the login button', () => {
-        cy.get('#login-button').contains('Login');
+        cy.get('#login-link').contains('Login');
       });
 
       it('does not display the logout button', () => {
@@ -89,7 +57,7 @@ context('Authentication', function() {
     });
 
     it('does not display the login link', () => {
-      cy.get('#login-button').should('not.exist');
+      cy.get('#login-link').should('not.exist');
     });
 
     it('renders the navbar correctly', function() {
@@ -108,7 +76,16 @@ context('Authentication', function() {
     });
 
     describe('logout', () => {
-      it('clears the cookies', () => {
+//      beforeEach(function() {
+//        cy.wait(500);
+//      });
+
+      it.only('clears the cookies', () => {
+        cy.wait(500);
+cy.log('cy.getCookies()');
+cy.log(JSON.stringify(cy.getCookies()));
+
+
         cy.getCookies().should('have.length', 1);
 
         cy.contains('Logout').click();
@@ -118,16 +95,16 @@ context('Authentication', function() {
 
       it('lands in the right place', () => {
         cy.contains('Logout').click();
-        cy.url().should('match', /\/#\/$/);
+        cy.url().should('match', /^\/$/);
       });
 
       it('renders the interface', () => {
-        cy.get('#login-button').should('not.exist');
+        cy.get('#login-link').should('not.exist');
         cy.get('#logout-button').should('exist');
 
         cy.contains('Logout').click();
 
-        cy.get('#login-button').should('exist');
+        cy.get('#login-link').should('exist');
         cy.get('#logout-button').should('not.exist');
       });
     });
