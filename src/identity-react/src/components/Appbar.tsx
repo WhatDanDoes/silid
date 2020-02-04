@@ -19,7 +19,6 @@ import Grid from '@material-ui/core/Grid';
 import { useAuthState, AuthContext } from '../auth/Auth';
 
 interface IProps {
-  logout: any;
 }
 
 const useStyles = makeStyles((theme: Theme) =>
@@ -54,7 +53,7 @@ const useStyles = makeStyles((theme: Theme) =>
 
 const Home = (props: IProps) => {
   //const { auth } = props;
-  const {agent} = useAuthState();
+  const {agent, logout} = useAuthState();
   const state = React.useContext(AuthContext)
 
   const classes = useStyles();
@@ -157,10 +156,10 @@ const Home = (props: IProps) => {
         {agent && (
           <>
           <Grid container justify="flex-end" alignItems="flex-start">
-            {agent.picture ? (
+            {agent.socialProfile.picture ? (
               <Avatar
                 alt="avatar"
-                src={agent.picture}
+                src={agent.socialProfile.picture}
                 className={classes.avatar}
               />
             ) : (
@@ -172,15 +171,17 @@ const Home = (props: IProps) => {
               color="inherit"
               onClick={() => {
                 console.log('logout');
-                const headers = new Headers();
-                fetch('/logout', {method: 'GET', headers: headers, credentials: 'include', mode: 'no-cors' }).then(response => {
-                   return response.text();
-                }).then(profile => {
-                  props.logout();
-                }).catch(error => {
-                  console.log('Logout', error);
-                  props.logout();
-                });
+                logout();
+//                const headers = new Headers();
+//                fetch('/logout', {method: 'GET', headers: headers, credentials: 'include', mode: 'no-cors' }).then(response => {
+//                //fetch('/logout').then(response => {
+//                   return response.text();
+//                }).then(profile => {
+//                  logout();
+//                }).catch(error => {
+//                  console.log('Logout', error);
+//                  logout();
+//                });
               }}
             >
               Logout
