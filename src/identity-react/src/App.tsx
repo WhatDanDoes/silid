@@ -27,56 +27,61 @@ function App() {
 
   return (
     <div className="App">
-      { loggingIn ?
-        <AuthProvider>
-          <HashRouter>
-            <Route
-              path="/"
-              render={props => <Home logout={handleLogout} message={message} {...props} />}
-            />
-            <Switch>
-              <PrivateRoute path="/agent/:id" component={Agent} redirect="/" />
-              <PrivateRoute path="/agent" component={Agent} redirect="/" />
-              <PrivateRoute path="/organization/:id" component={OrganizationInfo} redirect="/" />
-              <PrivateRoute path="/organization" component={Organization} redirect="/" />
-              <PrivateRoute path="/team/:id" component={Team} redirect="/" />
-            </Switch>
-          </HashRouter>
-        </AuthProvider>
-      :
-        <AppBar position="static">
-          <Toolbar>
-            <Typography variant="h6">
-              Identity
-            </Typography>
-            <Button
-              id="login-button"
-              color="inherit"
-              onClick={() => {
-                setLoggingIn(true);
-              }}
-            >
-              Login
-            </Button>
-          </Toolbar>
-        </AppBar>
-      }
+      <AuthProvider>
+        <HashRouter>
+          <Route
+            path="/"
+            render={props => <Home message={message} {...props} />}
+          />
+          <Switch>
+            <PrivateRoute path="/agent/:id" component={Agent} redirect="/" />
+            <PrivateRoute path="/agent" component={Agent} redirect="/" />
+            <PrivateRoute path="/organization/:id" component={OrganizationInfo} redirect="/" />
+            <PrivateRoute path="/organization" component={Organization} redirect="/" />
+            <PrivateRoute path="/team/:id" component={Team} redirect="/" />
+          </Switch>
+        </HashRouter>
+      </AuthProvider>
     </div>
   );
 }
 
-//      <BrowserRouter>
-//        <Route
-//            path="/callback*"
-//            render={props => {
-//              console.log('props');
-//              console.log(props);
-////              handleAuthentication(props);
-//              return <Callback {...props} />;
-//            }}
-//          />
-//      </BrowserRouter>
-
+//    <div className="App">
+//      { loggingIn ?
+//        <AuthProvider>
+//          <HashRouter>
+//            <Route
+//              path="/"
+//              render={props => <Home logout={handleLogout} message={message} {...props} />}
+//            />
+//            <Switch>
+//              <PrivateRoute path="/agent/:id" component={Agent} redirect="/" />
+//              <PrivateRoute path="/agent" component={Agent} redirect="/" />
+//              <PrivateRoute path="/organization/:id" component={OrganizationInfo} redirect="/" />
+//              <PrivateRoute path="/organization" component={Organization} redirect="/" />
+//              <PrivateRoute path="/team/:id" component={Team} redirect="/" />
+//            </Switch>
+//          </HashRouter>
+//        </AuthProvider>
+//      :
+//        <AppBar position="static">
+//          <Toolbar>
+//            <Typography variant="h6">
+//              Identity
+//            </Typography>
+//            <Button
+//              id="login-button"
+//              color="inherit"
+//              onClick={() => {
+//                setLoggingIn(true);
+//              }}
+//            >
+//              Login
+//            </Button>
+//          </Toolbar>
+//        </AppBar>
+//      }
+//    </div>
 
 
 export default App;
