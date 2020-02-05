@@ -11,6 +11,7 @@ context('Authentication', function() {
 
   describe('browser behaviour', () => {
     it('sets a cookie on first visit', () => {
+      cy.clearCookies();
       cy.getCookies().should('have.length', 0);
 
       cy.visit('/');
