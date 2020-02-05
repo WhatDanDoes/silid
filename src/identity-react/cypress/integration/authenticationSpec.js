@@ -76,26 +76,25 @@ context('Authentication', function() {
     });
 
     describe('logout', () => {
-//      beforeEach(function() {
-//        cy.wait(500);
-//      });
-
-      it.only('clears the cookies', () => {
-        cy.wait(500);
-cy.log('cy.getCookies()');
-cy.log(JSON.stringify(cy.getCookies()));
-
-
+      it('clears the cookies', () => {
         cy.getCookies().should('have.length', 1);
+        cy.getCookies().then(oldCookies => {
+          expect(oldCookies.length).to.equal(1)
 
-        cy.contains('Logout').click();
+          cy.contains('Logout').click();
 
-        cy.getCookies().should('have.length', 0);
+          cy.getCookies().should('have.length', 1);
+          cy.getCookies().then(newCookies => {
+            expect(oldCookies[0].name).to.equal(newCookies[0].name)
+            expect(oldCookies[0].value).to.not.equal(newCookies[0].value)
+          });
+        });
       });
 
       it('lands in the right place', () => {
+        const cypressConfig = require('../../cypress.json');
         cy.contains('Logout').click();
-        cy.url().should('match', /^\/$/);
+        cy.url().should('match', new RegExp(cypressConfig.baseUrl));
       });
 
       it('renders the interface', () => {
