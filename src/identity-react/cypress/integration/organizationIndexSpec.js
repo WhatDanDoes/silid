@@ -24,7 +24,7 @@ context('Organization', function() {
     });
 
     it('displays the login button', () => {
-      cy.get('#login-button').contains('Login');
+      cy.get('#login-link').contains('Login');
     });
 
     it('does not display the logout button', () => {

@@ -211,7 +211,7 @@ const OrganizationInfo = (props: any) => {
                 <React.Fragment>
                   {orgInfo.name} 
                 </React.Fragment>
-                {orgInfo.creator && (agent._json.email === orgInfo.creator.email) ?
+                {orgInfo.creator && (agent.email === orgInfo.creator.email) ?
                   <React.Fragment>
                     {!editFormVisible ?
                       <Button id="edit-organization" variant="contained" color="primary" onClick={() => setEditFormVisible(true)}>
@@ -260,7 +260,7 @@ const OrganizationInfo = (props: any) => {
                 {!editFormVisible && !agentFormVisible && !teamFormVisible ?
                     <Typography variant="body2" color="textSecondary" component="p">
                       <React.Fragment>
-                        {orgInfo.creator && (agent._json.email === orgInfo.creator.email) ?
+                        {orgInfo.creator && (agent.email === orgInfo.creator.email) ?
                           <Fab id="add-agent" color="primary" aria-label="add-agent" className={classes.margin}>
                             <PersonAddIcon onClick={() => setAgentFormVisible(true)} />
                           </Fab>
@@ -342,7 +342,7 @@ const OrganizationInfo = (props: any) => {
                   <ListItemLink href={`#agent/${member.id}`}>
                     <ListItemText primary={member.email} />
                   </ListItemLink>
-                  { orgInfo.creator.email !== member.email && (agent._json.email === orgInfo.creator.email) ?
+                  { orgInfo.creator.email !== member.email && (agent.email === orgInfo.creator.email) ?
                   <DeleteForeverOutlinedIcon className="delete-member" onClick={() => handleMemberDelete(member.id)} />
                   : ''}
                 </ListItem>
@@ -361,7 +361,7 @@ const OrganizationInfo = (props: any) => {
                   <ListItemLink href={`#team/${team.id}`}>
                     <ListItemText primary={team.name} />
                   </ListItemLink>
-                  { (agent._json.email === orgInfo.creator.email) ?
+                  { (agent.email === orgInfo.creator.email) ?
                     <DeleteForeverOutlinedIcon className="delete-team" onClick={() => handleTeamDelete(team)} />
                   : ''}
                 </ListItem>

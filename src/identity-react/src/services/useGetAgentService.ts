@@ -12,8 +12,11 @@ const useAgentService = (id: number) => {
     url = `${url}/${id}`;
   }
 
+  const headers = new Headers();
+  headers.append('Content-Type', 'application/json; charset=utf-8');
+
   useEffect(() => {
-    fetch(url)
+    fetch(url, { headers })
       .then(response => response.json())
       .then(response => setResult({ status: 'loaded', payload: response }))
       .catch(error => setResult({ status: 'error', error }));
