@@ -13,7 +13,6 @@ const useDeleteTeamMemberService = (teamId: any) => {
     setService({ status: 'loading' });
 
     const headers = new Headers();
-    headers.append('Access-Control-Allow-Credentials', 'true');
     headers.append('Content-Type', 'application/json; charset=utf-8');
 
     return new Promise((resolve, reject) => {

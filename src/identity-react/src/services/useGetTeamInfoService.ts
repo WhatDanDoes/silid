@@ -8,7 +8,6 @@ const useTeamInfoService = (id: number) => {
   });
 
   const headers = new Headers();
-  headers.append('Access-Control-Allow-Credentials', 'true');
   headers.append('Content-Type', 'application/json; charset=utf-8');
 
   useEffect(() => {

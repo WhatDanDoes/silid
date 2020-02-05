@@ -196,7 +196,7 @@ const TeamInfo = (props: any) => {
                 <React.Fragment>
                   {teamInfo.name} 
                 </React.Fragment>
-                {teamInfo.creator && (agent._json.email === teamInfo.creator.email) ?
+                {teamInfo.creator && (agent.email === teamInfo.creator.email) ?
                   <React.Fragment>
                     {!editFormVisible ?
                       <Button id="edit-team" variant="contained" color="primary" onClick={() => setEditFormVisible(true)}>
@@ -245,7 +245,7 @@ const TeamInfo = (props: any) => {
                 {!editFormVisible && !agentFormVisible ?
                   <Typography variant="body2" color="textSecondary" component="p">
                     <React.Fragment>
-                      {teamInfo.creator && (agent._json.email === teamInfo.creator.email) ?
+                      {teamInfo.creator && (agent.email === teamInfo.creator.email) ?
                         <Fab id="add-agent" color="primary" aria-label="add-agent" className={classes.margin}>
                           <PersonAddIcon onClick={() => setAgentFormVisible(true)} />
                         </Fab>
@@ -304,7 +304,7 @@ const TeamInfo = (props: any) => {
                   <ListItemLink href={`#agent/${member.id}`}>
                     <ListItemText primary={member.email} />
                   </ListItemLink>
-                  { teamInfo.creator.email !== member.email && (agent._json.email === teamInfo.creator.email) ?
+                  { teamInfo.creator.email !== member.email && (agent.email === teamInfo.creator.email) ?
                   <DeleteForeverOutlinedIcon className="delete-member" onClick={() => handleMemberDelete(member.id)} />
                   : ''}
                 </ListItem>
