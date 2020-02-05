@@ -133,7 +133,7 @@ const Agent = (props: any) => {
                   margin="normal"
                   name="name"
                   required
-                  disabled={formData.email !== agent._json.email}
+                  disabled={formData.email !== agent.email}
                   value={formData.name}
                   onChange={onChange}
                   onInvalid={customMessage}
@@ -148,7 +148,7 @@ const Agent = (props: any) => {
                       Cancel
                   </Button> : ''
                 }
-                { formData.email === agent._json.email &&
+                { formData.email === agent.email &&
                 <Button type="submit" variant="contained" color="primary"
                         disabled={!Object.keys(prevState).length}>
                   Save
