@@ -7,20 +7,20 @@ const useAgentService = (id: number) => {
     status: 'loading'
   });
 
-  let url = '/agent';
-  if (id) {
-    url = `${url}/${id}`;
-  }
-
-  const headers = new Headers();
-  headers.append('Content-Type', 'application/json; charset=utf-8');
-
   useEffect(() => {
+    let url = '/agent';
+    if (id) {
+      url = `${url}/${id}`;
+    }
+
+    const headers = new Headers();
+    headers.append('Content-Type', 'application/json; charset=utf-8');
+
     fetch(url, { headers })
       .then(response => response.json())
       .then(response => setResult({ status: 'loaded', payload: response }))
       .catch(error => setResult({ status: 'error', error }));
-  }, []);
+  }, [id]);
 
   return result;
 };

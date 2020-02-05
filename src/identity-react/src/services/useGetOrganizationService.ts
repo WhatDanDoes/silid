@@ -11,10 +11,10 @@ const useOrganizationService = () => {
     status: 'loading'
   });
 
-  const headers = new Headers();
-  headers.append('Content-Type', 'application/json; charset=utf-8');
-
   useEffect(() => {
+    const headers = new Headers();
+    headers.append('Content-Type', 'application/json; charset=utf-8');
+
     fetch(`/organization`, { headers, credentials: 'include', mode: 'no-cors' })
       .then(response => response.json())
       .then(response => setResult({ status: 'loaded', payload: { results: response } }))

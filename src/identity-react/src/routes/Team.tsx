@@ -16,10 +16,9 @@ import DeleteForeverOutlinedIcon from '@material-ui/icons/DeleteForeverOutlined'
 import InboxIcon from '@material-ui/icons/MoveToInbox';
 
 import { Team } from '../types/Team';
-import { Agent } from '../types/Agent';
 import Flash from '../components/Flash';
 
-import { AuthProvider, useAuthState } from '../auth/Auth';
+import { useAuthState } from '../auth/Auth';
 
 import useGetTeamInfoService from '../services/useGetTeamInfoService';
 import usePutTeamService from '../services/usePutTeamService';
@@ -61,7 +60,6 @@ const TeamInfo = (props: any) => {
   const [flashProps, setFlashProps] = useState({} as any);
 
   const [teamInfo, setTeamInfo] = useState<Team>({} as Team);
-  //const [agentProfile, setAgentProfile] = useState<Agent>(JSON.parse(localStorage.getItem('profile') || '{}') as Agent);
 
   const service = useGetTeamInfoService(props.match.params.id);
   let { publishTeam } = usePutTeamService();
@@ -73,7 +71,7 @@ const TeamInfo = (props: any) => {
     if (service.status === 'loaded') {
       setTeamInfo(service.payload);
     }
-  }, [service.status]);
+  }, [service]);
 
   /**
    * Update this organization

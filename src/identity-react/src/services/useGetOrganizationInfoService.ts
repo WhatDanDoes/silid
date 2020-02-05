@@ -7,10 +7,10 @@ const useOrganizationInfoService = (id: number) => {
     status: 'loading'
   });
 
-  const headers = new Headers();
-  headers.append('Content-Type', 'application/json; charset=utf-8');
-
   useEffect(() => {
+    const headers = new Headers();
+    headers.append('Content-Type', 'application/json; charset=utf-8');
+
     fetch(`/organization/${id}`, { headers })
       .then(response => response.json())
       .then(response => {
@@ -22,7 +22,7 @@ const useOrganizationInfoService = (id: number) => {
         }
       })
       .catch(error => setResult({ status: 'error', error }));
-  }, []);
+  }, [id]);
 
   return result;
 };

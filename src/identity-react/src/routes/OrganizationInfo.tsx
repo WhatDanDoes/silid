@@ -16,10 +16,9 @@ import ListItemText from '@material-ui/core/ListItemText';
 import DeleteForeverOutlinedIcon from '@material-ui/icons/DeleteForeverOutlined';
 import InboxIcon from '@material-ui/icons/MoveToInbox';
 import { Organization } from '../types/Organization';
-import { Agent } from '../types/Agent';
 import Flash from '../components/Flash';
 import TeamCreateForm from '../components/TeamCreateForm';
-import { AuthProvider, useAuthState } from '../auth/Auth';
+import { useAuthState } from '../auth/Auth';
 
 import useGetOrganizationInfoService from '../services/useGetOrganizationInfoService';
 import usePutOrganizationService from '../services/usePutOrganizationService';
@@ -75,7 +74,7 @@ const OrganizationInfo = (props: any) => {
     if (service.status === 'loaded') {
       setOrgInfo(service.payload);
     }
-  }, [service.status]);
+  }, [service]);
 
   /**
    * Update this organization

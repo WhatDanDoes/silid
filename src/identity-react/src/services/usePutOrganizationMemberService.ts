@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Service } from '../types/Service';
-import { Organization } from '../types/Organization';
 
 export type PutOrganizationMember = Pick<any, 'id' | 'email'>;
 

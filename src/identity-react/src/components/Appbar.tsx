@@ -16,7 +16,7 @@ import InboxIcon from '@material-ui/icons/MoveToInbox';
 import MailIcon from '@material-ui/icons/Mail';
 import Avatar from '@material-ui/core/Avatar';
 import Grid from '@material-ui/core/Grid';
-import { useAuthState, AuthContext } from '../auth/Auth';
+import { useAuthState } from '../auth/Auth';
 
 interface IProps {
 }
@@ -54,7 +54,7 @@ const useStyles = makeStyles((theme: Theme) =>
 const Home = (props: IProps) => {
   //const { auth } = props;
   const {agent, logout} = useAuthState();
-  const state = React.useContext(AuthContext)
+//  const state = React.useContext(AuthContext)
 
   const classes = useStyles();
 
@@ -155,34 +155,21 @@ const Home = (props: IProps) => {
         )}
         {agent && (
           <>
-          <Grid container justify="flex-end" alignItems="flex-start">
-            {agent.socialProfile.picture ? (
-              <Avatar
-                alt="avatar"
-                src={agent.socialProfile.picture}
-                className={classes.avatar}
-              />
-            ) : (
-              <div></div>
+            <Grid container justify="flex-end" alignItems="flex-start">
+              {agent.socialProfile.picture ? (
+                <Avatar
+                  alt="avatar"
+                  src={agent.socialProfile.picture}
+                  className={classes.avatar}
+                />
+              ) : (
+                <div></div>
             )}
-          </Grid>
+            </Grid>
             <Button
               id="logout-button"
               color="inherit"
-              onClick={() => {
-                console.log('logout');
-                logout();
-//                const headers = new Headers();
-//                fetch('/logout', {method: 'GET', headers: headers, credentials: 'include', mode: 'no-cors' }).then(response => {
-//                //fetch('/logout').then(response => {
-//                   return response.text();
-//                }).then(profile => {
-//                  logout();
-//                }).catch(error => {
-//                  console.log('Logout', error);
-//                  logout();
-//                });
-              }}
+              onClick={logout}
             >
               Logout
             </Button>
@@ -192,21 +179,5 @@ const Home = (props: IProps) => {
     </AppBar>
   );
 };
-
-//            onClick={() => window.location.href = `${process.env.REACT_APP_API_URL}/login`}
-
-//          <ListItem button id='login-link' key='login'>
-//            <ListItemLink href='/login'>
-//              <ListItemText primary='Login' />
-//            </ListItemLink>
-//          </ListItem>
-
-//          <Button
-//            id="login-button"
-//            color="inherit"
-//            onClick={() => auth.login()}
-//          >
-//            Login
-//          </Button>
 
 export default Home;

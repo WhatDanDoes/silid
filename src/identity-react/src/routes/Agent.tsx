@@ -4,8 +4,7 @@ import { createStyles, makeStyles, Theme } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import Card from '@material-ui/core/Card';
 import CardContent from '@material-ui/core/CardContent';
-import { Agent as AgentType } from '../types/Agent';
-import { AuthProvider, useAuthState } from '../auth/Auth';
+import { useAuthState } from '../auth/Auth';
 
 import Button from '@material-ui/core/Button';
 import useGetAgentService from '../services/useGetAgentService';
@@ -71,7 +70,7 @@ const Agent = (props: any) => {
     if (service.status === 'loaded') {
       setFormData(service.payload);
     }
-  }, [service.status]);
+  }, [service]);
 
   const handleSubmit = (evt:React.FormEvent<EventTarget>) => {
     evt.preventDefault();
