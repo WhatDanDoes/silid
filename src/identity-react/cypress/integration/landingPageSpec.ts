@@ -13,7 +13,7 @@ context('Landing page', () => {
   describe('unauthenticated', () => {
     it('shows login link', function () {
       cy.visit('/')
-      cy.get('#login-button').should('be.visible')
+      cy.get('#login-link').should('be.visible')
         .and('have.text', 'Login')
     })
   })
