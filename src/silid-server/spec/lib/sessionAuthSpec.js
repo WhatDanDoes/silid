@@ -155,6 +155,76 @@ describe('sessionAuth', function() {
     });
   });
 
+  /**
+   * An invited agent won't have any profile data set expect for email
+   */
+  describe('invited agent', () => {
+
+    let invitedAgent;
+    beforeEach(done => {
+      models.sequelize.sync({force: true}).then(() => {
+        invitedAgent = new Agent({ email: _identity.email });
+        invitedAgent.save().then(res => {
+          done();
+        }).catch(err => {
+          done.fail(err);
+        });
+      }).catch(err => {
+        done.fail(err);
+      });
+    });
+
+    it('populates new agent\'s fields with data from the identity token when the social profile is out of date', done => {
+      request = httpMocks.createRequest({
+        method: 'GET',
+        url: '/agent',
+        user: new Profile(_identity)
+      });
+
+      expect(invitedAgent.socialProfile).toBeNull();
+
+      sessionAuth(request, response, function(err) {
+        if (err) return done.fail(err);
+        Agent.findOne({ where: { email: _identity.email } }).then(a => {
+          expect(a.socialProfile).toEqual(_identity);
+          expect(a.email).toEqual(_identity.email);
+          expect(a.name).toEqual(_identity.name);
+          done();
+        }).catch(err => {
+          done.fail(err);
+        });
+      });
+    });
+
+    it('populates new agent\'s fields with data from the identity token when the social profile is up to date', done => {
+      invitedAgent.socialProfile = _identity;
+      invitedAgent.save().then(savedAgent => {
+
+        request = httpMocks.createRequest({
+          method: 'GET',
+          url: '/agent',
+          user: new Profile(_identity)
+        });
+
+        expect(savedAgent.socialProfile).toEqual(_identity);
+
+        sessionAuth(request, response, function(err) {
+          if (err) return done.fail(err);
+          Agent.findOne({ where: { email: _identity.email } }).then(a => {
+            expect(a.socialProfile).toEqual(_identity);
+            expect(a.email).toEqual(_identity.email);
+            expect(a.name).toEqual(_identity.name);
+            done();
+          }).catch(err => {
+            done.fail(err);
+          });
+        });
+      }).catch(err => {
+        done.fail(err);
+      });
+    });
+  });
+
   describe('unauthenticated', () => {
     it('redirects to login', done => {
       response = httpMocks.createResponse();
