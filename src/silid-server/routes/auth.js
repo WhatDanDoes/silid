@@ -6,9 +6,6 @@ const models = require('../models');
 const request = require('request');
 
 router.get('/login', (req, res, next) => {
-console.log('/login req.cookies');
-console.log(req.cookies);
-
   const authenticator = passport.authenticate('auth0', { scope: 'openid email profile' });
   return authenticator(req, res, next);
 });

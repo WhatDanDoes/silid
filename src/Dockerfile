@@ -10,7 +10,7 @@ COPY ./identity-react/package.json /srv/app/client
 COPY ./identity-react/package-lock.json /srv/app/client
 COPY ./identity-react /srv/app/client
 
-RUN npm install
+RUN npm install --production
 RUN npm run build
 
 #
@@ -21,7 +21,7 @@ WORKDIR /app
 COPY ./silid-server/package.json .
 COPY ./silid-server/package-lock.json .
 
-RUN npm install
+RUN npm install --production
 
 COPY ./silid-server .
 

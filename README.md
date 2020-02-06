@@ -94,7 +94,7 @@ REACT_APP_CALLBACK_URL=https://example.com/callback
 Install dependencies:
 
 ```
-npm install
+npm install --production
 ```
 
 ### Server
@@ -114,7 +114,7 @@ CALLBACK_URL=https://example.com/callback
 Install dependencies:
 
 ```
-npm install
+npm install --production
 ```
 
 ### Docker
