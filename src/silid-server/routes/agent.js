@@ -36,7 +36,7 @@ router.post('/', sessionAuth, function(req, res, next) {
 router.put('/', sessionAuth, function(req, res, next) {
   models.Agent.findOne({ where: { id: req.body.id } }).then(agent => {
     if (!agent) {
-      return res.json( { message: 'No such agent' });
+      return res.json({ message: 'No such agent' });
     }
 
     if (req.agent.email !== agent.email) {
@@ -44,7 +44,7 @@ router.put('/', sessionAuth, function(req, res, next) {
     }
 
     for (let key in req.body) {
-      if (agent[key]) {
+      if (agent[key] || agent[key] === null) {
         agent[key] = req.body[key];
       }
     }

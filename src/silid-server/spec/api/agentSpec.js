@@ -159,6 +159,38 @@ describe('agentSpec', () => {
             });
         });
 
+        it('allows updating null fields', done => {
+          agent.name = null;
+          agent.save().then(agent => {
+            expect(agent.name).toBeNull();
+
+            authenticatedSession
+              .put('/agent')
+              .send({
+                id: agent.id,
+                name: 'Some Cool Guy'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(res.body.name).toEqual('Some Cool Guy');
+
+                models.Agent.findOne({ where: { id: agent.id }}).then(results => {
+                  expect(results.name).toEqual('Some Cool Guy');
+                  expect(results.email).toEqual(agent.email);
+                  done();
+                }).catch(err => {
+                  done.fail(err);
+                });
+              });
+          }).catch(err => {
+            done.fail(err);
+          });
+        });
+
         it('doesn\'t barf if agent doesn\'t exist', done => {
           authenticatedSession
             .put('/agent')
