@@ -42,6 +42,8 @@ describe('agentSpec', () => {
   });
 
   describe('authenticated', () => {
+
+    let authenticatedSession;
     beforeEach(done => {
       login(_identity, (err, session) => {
         if (err) return done.fail(err);

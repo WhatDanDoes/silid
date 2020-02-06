@@ -432,7 +432,7 @@ describe('authSpec', () => {
       it('serves up the static app', done => {
         browser.clickLink('Login', (err) => {
           if (err) return done.fail(err);
-          browser.assert.text('body p', 'TEST INDEX');
+          browser.assert.text('body p', /This is a test page/);
           browser.assert.element('a[href="/logout"]');
           done();
         });
