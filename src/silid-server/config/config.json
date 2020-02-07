@@ -17,7 +17,8 @@
     "password": "pass",
     "database": "postgres",
     "host": "localhost",
-    "dialect": "postgres"
+    "dialect": "postgres",
+    "migrationStorage": "none"
   },
   "staging": {
     "username": "user",
