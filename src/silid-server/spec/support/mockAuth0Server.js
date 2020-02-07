@@ -15,10 +15,29 @@ const crypto = require('crypto');
 
 
 if (process.env.NODE_ENV === 'e2e') {
-  const models =  require('../../models');
 
-  models.sequelize.sync({force: true}).then(() => {
-    console.log('Database synced');
+  /**
+   * To ensure the e2e tests are true to production, the database must
+   * first be migrated (as opposed to synced).
+   *
+   * This is syncing:
+   * ```
+   *  const models =  require('../../models');
+   *  models.sequelize.sync({force: true}).then(() => {
+   *    console.log('Database synced');
+   *  }).catch(err => {
+   *    console.error(err);
+   *  });
+   * ```
+   *
+   * The following runs the migrations when the tests are started.
+   */
+  const exec = require('child_process').execSync;
+  const models =  require('../../models');
+  models.sequelize.drop().then(() => {
+    console.log('Database dropped');
+    exec('npx sequelize-cli db:migrate', { stdio: 'inherit' });//, (err) => {
+    console.log('Database migrated');
   }).catch(err => {
     console.error(err);
   });
