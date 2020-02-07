@@ -115,64 +115,6 @@ describe('Agent', () => {
         });
       });
     });
-
-    describe('accessToken', () => {
-      beforeEach(() => {
-        _valid.accessToken = 'SomeJWTAccessToken';
-      });
-
-      it('is an agent property', function(done) {
-        agent = new Agent(_valid);
-        agent.save().then(obj => {
-          expect(obj.accessToken).toEqual(_valid.accessToken);
-          done();
-        }).catch(err => {
-          done.fail(err);
-        });
-      });
-
-      describe('#isFresh', () => {
-        beforeEach(done => {
-          _valid.accessToken = 'SomeJWTAccessToken';
-          agent = new Agent(_valid);
-          agent.save().then(obj => {
-            done();
-          }).catch(err => {
-            done.fail(err);
-          });
-        });
-
-        it('returns true if token matches that provided', done => {
-          agent.isFresh('SomeJWTAccessToken', (err, result) => {
-            if (err) return done.fail(err);
-            expect(result).toBe(true);
-            done();
-          });
-        });
-
-        it('returns false if token does not match that provided', done => {
-          agent.isFresh('ANewJWTAccessToken', (err, result) => {
-            if (err) return done.fail(err);
-            expect(result).toBe(false);
-            done();
-          });
-        });
-
-        it('updates the accessToken if token does not match that provided', done => {
-          agent.isFresh('ANewJWTAccessToken', (err, result) => {
-            if (err) return done.fail(err);
-            expect(agent.accessToken).toEqual('ANewJWTAccessToken');
-            // Just to be extra sure...
-            Agent.findOne({ where: { id: agent.id } }).then(a => {
-              expect(a.accessToken).toEqual('ANewJWTAccessToken');
-              done();
-            }).catch(err => {
-              done.fail(err);
-            });
-          });
-        });
-      });
-    });
   });
 
   describe('relationships', () => {

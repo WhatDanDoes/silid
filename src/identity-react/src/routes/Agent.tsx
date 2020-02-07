@@ -4,7 +4,7 @@ import { createStyles, makeStyles, Theme } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import Card from '@material-ui/core/Card';
 import CardContent from '@material-ui/core/CardContent';
-import { Agent as AgentType } from '../types/Agent';
+import { useAuthState } from '../auth/Auth';
 
 import Button from '@material-ui/core/Button';
 import useGetAgentService from '../services/useGetAgentService';
@@ -59,7 +59,7 @@ export interface PrevState {
 const Agent = (props: any) => {
   const [formData, setFormData] = useState<FormData>({});
   const [prevState, setPrevState] = useState<PrevState>({});
-  const [agentProfile, setAgentProfile] = useState<AgentType>(JSON.parse(localStorage.getItem('profile') || '{}') as AgentType);
+  const {agent} = useAuthState();
 
   const classes = useStyles();
   const service = useGetAgentService(props.match.params.id);
@@ -70,7 +70,7 @@ const Agent = (props: any) => {
     if (service.status === 'loaded') {
       setFormData(service.payload);
     }
-  }, [service.status]);
+  }, [service]);
 
   const handleSubmit = (evt:React.FormEvent<EventTarget>) => {
     evt.preventDefault();
@@ -132,7 +132,7 @@ const Agent = (props: any) => {
                   margin="normal"
                   name="name"
                   required
-                  disabled={formData.email !== agentProfile.email}
+                  disabled={formData.email !== agent.email}
                   value={formData.name}
                   onChange={onChange}
                   onInvalid={customMessage}
@@ -147,14 +147,14 @@ const Agent = (props: any) => {
                       Cancel
                   </Button> : ''
                 }
-                { formData.email === agentProfile.email &&
+                { formData.email === agent.email &&
                 <Button type="submit" variant="contained" color="primary"
                         disabled={!Object.keys(prevState).length}>
                   Save
                 </Button> }
               </form> : ''}
             {service.status === 'error' && (
-              <div>Error, the backend moved to the dark side.</div>
+              <div>{service.error.message}</div>
             )}
           </Typography>
         </CardContent>

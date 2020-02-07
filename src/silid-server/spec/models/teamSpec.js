@@ -10,11 +10,10 @@ describe('Team', () => {
   const _valid = {};
   beforeEach(done => {
     db.sequelize.sync({force: true}).then(() => {
-
       fixtures.loadFile(`${__dirname}/../fixtures/agents.json`, db).then(() => {
-        db.Agent.findAll().then(results => {
-          let agent = results[0];
-          fixtures.loadFile(`${__dirname}/../fixtures/organizations.json`, db).then(() => {
+        fixtures.loadFile(`${__dirname}/../fixtures/organizations.json`, db).then(() => {
+          db.Agent.findAll().then(results => {
+            let agent = results[0];
             db.Organization.findAll().then(results => {
               let org = results[0];
 
@@ -25,6 +24,8 @@ describe('Team', () => {
               team = new Team(_valid);
 
               done();
+            }).catch(err => {
+              done.fail(err);
             });
           }).catch(err => {
             done.fail(err);

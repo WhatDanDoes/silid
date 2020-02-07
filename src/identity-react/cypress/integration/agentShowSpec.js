@@ -6,8 +6,13 @@ context('Agent show', function() {
 
   let memberAgent;
   before(function() {
-    cy.fixture('someguy-auth0-access-token.json').as('agent');
-    cy.fixture('someotherguy-auth0-access-token.json').as('anotherAgent');
+    cy.fixture('google-profile-response').as('profile');
+  });
+
+  let _profile;
+  beforeEach(function() {
+    // Why?
+    _profile = {...this.profile};
   });
   
   describe('unauthenticated', done => {
@@ -20,7 +25,7 @@ context('Agent show', function() {
     });
 
     it('displays the login button', () => {
-      cy.get('#login-button').contains('Login');
+      cy.get('#login-link').contains('Login');
     });
 
     it('does not display the logout button', () => {
@@ -35,19 +40,16 @@ context('Agent show', function() {
   describe('authenticated', () => {
     let memberAgent;
     before(function() {
-      // Convenient way to create a new agent
-      cy.login(this.anotherAgent);
-      cy.visit('/#/').then(() => {
-        let memberToken = localStorage.getItem('accessToken');
-        cy.task('query', `SELECT * FROM "Agents" WHERE "accessToken"='Bearer ${memberToken}' LIMIT 1;`).then(([results, metadata]) => {
-          memberAgent = results[0];
-        });
+      // Just a convenient way to create a new agent
+      cy.login('someotherguy@example.com', _profile);
+      cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
+        memberAgent = results[0];
       });
     });
  
     describe('viewing member agent\'s profile', () => {
       beforeEach(function() {
-        cy.login(this.agent);
+        cy.login('someguy@example.com', _profile);
         cy.visit(`/#/agent/${memberAgent.id}`);
       });
 
@@ -76,13 +78,10 @@ context('Agent show', function() {
 
       let agent;
       beforeEach(function() {
-        cy.login(this.agent);
-        cy.visit('/#/').then(() => {
-          let token = localStorage.getItem('accessToken');
-          cy.task('query', `SELECT * FROM "Agents" WHERE "accessToken"='Bearer ${token}' LIMIT 1;`).then(([results, metadata]) => {
-            agent = results[0];
-            cy.visit(`/#/agent/${agent.id}`);
-          });
+        cy.login('someguy@example.com', _profile);
+        cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
+          agent = results[0];
+          cy.visit(`/#/agent/${agent.id}`);
         });
       });
 

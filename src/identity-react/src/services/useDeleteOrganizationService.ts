@@ -9,12 +9,10 @@ const useDeleteOrganizationService = () => {
     status: 'init',
   });
 
-  //const publishOrganization = (organization: DeleteOrganization) => {
   const deleteOrganization = (organization: any) => {
     setService({ status: 'loading' });
 
     const headers = new Headers();
-    headers.append('Authorization', `Bearer ${localStorage.getItem('accessToken')}`);
     headers.append('Content-Type', 'application/json; charset=utf-8');
 
     return new Promise((resolve, reject) => {

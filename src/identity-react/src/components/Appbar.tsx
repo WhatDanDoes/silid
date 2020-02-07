@@ -1,5 +1,4 @@
 import React from 'react';
-import Auth from '../auth/Auth';
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
 import Button from '@material-ui/core/Button';
@@ -17,15 +16,14 @@ import InboxIcon from '@material-ui/icons/MoveToInbox';
 import MailIcon from '@material-ui/icons/Mail';
 import Avatar from '@material-ui/core/Avatar';
 import Grid from '@material-ui/core/Grid';
+import { useAuthState } from '../auth/Auth';
 
 interface IProps {
-  auth: Auth;
 }
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
-    root: {
-      flexGrow: 1,
+    root: { flexGrow: 1,
     },
     menuButton: {
       marginRight: theme.spacing(2),
@@ -54,15 +52,19 @@ const useStyles = makeStyles((theme: Theme) =>
 );
 
 const Home = (props: IProps) => {
+  //const { auth } = props;
+  const {agent, logout} = useAuthState();
+//  const state = React.useContext(AuthContext)
+
   const classes = useStyles();
-  let profile = JSON.parse(localStorage.getItem('profile')!);
-  if (profile === null) {
-    profile = false;
-  }
-  const { auth } = props;
-  const [state, setState] = React.useState({
+
+  const [drawerPosition, setDrawerPosition] = React.useState({
     left: false,
   });
+
+//  const [authenticated, setAuthenticated] = React.useState(false);
+//  const [profile, setProfile] = React.useState({} as any);
+
 
   function ListItemLink(props: any) {
     return <ListItem button component="a" {...props} />;
@@ -79,8 +81,9 @@ const Home = (props: IProps) => {
     ) {
       return;
     }
-    setState({ ...state, [side]: open });
+    setDrawerPosition({ ...drawerPosition, [side]: open });
   };
+
   const sideList = (side: DrawerSide) => (
     <div
       id="app-menu"
@@ -133,38 +136,40 @@ const Home = (props: IProps) => {
           aria-label="menu">
           <MenuIcon />
         </IconButton>
-        <Drawer open={state.left} onClose={toggleDrawer('left', false)}>
+        <Drawer open={drawerPosition.left} onClose={toggleDrawer('left', false)}>
           {sideList('left')}
         </Drawer>
         <Typography variant="h6" className={classes.title}>
           Identity
         </Typography>
-        <Grid container justify="flex-end" alignItems="flex-start">
-          {profile.picture ? (
-            <Avatar
-              alt="avatar"
-              src={profile.picture}
-              className={classes.avatar}
-            />
-          ) : (
-            <div></div>
-          )}
-        </Grid>
-        {!auth.isAuthenticated() && (
+
+        {!agent && (
           <Button
             id="login-button"
             color="inherit"
-            onClick={() => auth.login()}
+            onClick={() => {
+            }}
           >
             Login
           </Button>
         )}
-        {auth.isAuthenticated() && (
+        {agent && (
           <>
+            <Grid container justify="flex-end" alignItems="flex-start">
+              {agent.socialProfile.picture ? (
+                <Avatar
+                  alt="avatar"
+                  src={agent.socialProfile.picture}
+                  className={classes.avatar}
+                />
+              ) : (
+                <div></div>
+            )}
+            </Grid>
             <Button
               id="logout-button"
               color="inherit"
-              onClick={() => auth.logout()}
+              onClick={logout}
             >
               Logout
             </Button>

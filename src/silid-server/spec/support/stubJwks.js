@@ -1,4 +1,18 @@
 /**
+ * Test setup:
+ *
+ * let signedAccessToken, scope, pub, prv, keystore;
+ * beforeAll(done => {
+ *   stubJwks((err, tokenAndScope) => {
+ *     if (err) return done.fail(err);
+ *     ({ signedAccessToken, scope, pub, prv, keystore } = tokenAndScope);
+ *     done();
+ *   });
+ * });
+ */
+
+
+/**
  * Mock the Auth0 `/.well-known/jwks.json` endpoint
  *
  * Not configurable, though self-documenting and reusable

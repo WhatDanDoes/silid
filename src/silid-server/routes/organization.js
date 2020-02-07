@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const jwtAuth = require('../lib/jwtAuth');
+const sessionAuth = require('../lib/sessionAuth');
 const models = require('../models');
 const mailer = require('../mailer');
 
 /* GET organization listing. */
-router.get('/', jwtAuth, function(req, res, next) {
+router.get('/', sessionAuth, function(req, res, next) {
   req.agent.getOrganizations().then(orgs => {
     res.json(orgs);
   }).catch(err => {
@@ -13,12 +13,12 @@ router.get('/', jwtAuth, function(req, res, next) {
   });
 });
 
-router.get('/:id', jwtAuth, function(req, res, next) {
+router.get('/:id', sessionAuth, function(req, res, next) {
   models.Organization.findOne({ where: { id: req.params.id },
-                                include: [ { model: models.Agent, as: 'creator', attributes: { exclude: ['accessToken'] } },
-                                           { model: models.Agent, as: 'members', attributes: { exclude: ['accessToken'] } },
+                                include: [ { model: models.Agent, as: 'creator' },
+                                           { model: models.Agent, as: 'members' },
                                            { model: models.Team, as: 'teams',
-                                             include: [{ model: models.Agent, as: 'members', attributes: { exclude: ['accessToken'] } }] } ] }).then(result => {
+                                             include: [{ model: models.Agent, as: 'members' }] } ] }).then(result => {
     if (!result) {
       return res.status(404).json({ message: 'No such organization' });
     }
@@ -33,8 +33,7 @@ router.get('/:id', jwtAuth, function(req, res, next) {
   });
 });
 
-router.post('/', jwtAuth, function(req, res, next) {
-  delete req.body.token;
+router.post('/', sessionAuth, function(req, res, next) {
   req.body.creatorId = req.agent.id;
 
   req.agent.createOrganization(req.body).then(org => {
@@ -48,7 +47,7 @@ router.post('/', jwtAuth, function(req, res, next) {
   });
 });
 
-router.put('/', jwtAuth, function(req, res, next) {
+router.put('/', sessionAuth, function(req, res, next) {
   models.Organization.findOne({ where: { id: req.body.id } }).then(organization => {
     if (!organization) {
       return res.json( { message: 'No such organization' });
@@ -56,7 +55,7 @@ router.put('/', jwtAuth, function(req, res, next) {
 
     organization.getCreator().then(creator => {
       if (req.agent.email !== creator.email) {
-        return res.status(403).json( { message: 'Unauthorized: Invalid token' });
+        return res.status(403).json( { message: 'Unauthorized' });
       }
   
       for (let key in req.body) {
@@ -163,7 +162,7 @@ const patchOrg = function(req, res, next) {
   });
 }
 
-router.patch('/', jwtAuth, function(req, res, next) {
+router.patch('/', sessionAuth, function(req, res, next) {
   if (req.body.email) {
     models.Agent.findOne({ where: { email: req.body.email } }).then(agent => {
       if (!agent) {
@@ -188,7 +187,7 @@ router.patch('/', jwtAuth, function(req, res, next) {
   }
 });
 
-router.delete('/', jwtAuth, function(req, res, next) {
+router.delete('/', sessionAuth, function(req, res, next) {
   models.Organization.findOne({ where: { id: req.body.id } }).then(organization => {
     if (!organization) {
       return res.json( { message: 'No such organization' });
@@ -196,7 +195,7 @@ router.delete('/', jwtAuth, function(req, res, next) {
 
     organization.getCreator().then(creator => {
       if (req.agent.email !== creator.email) {
-        return res.status(401).json( { message: 'Unauthorized: Invalid token' });
+        return res.status(401).json( { message: 'Unauthorized' });
       }
   
       organization.destroy().then(results => {
@@ -212,10 +211,10 @@ router.delete('/', jwtAuth, function(req, res, next) {
   });
 });
 
-router.put('/:id/agent', jwtAuth, function(req, res, next) {
+router.put('/:id/agent', sessionAuth, function(req, res, next) {
   models.Organization.findOne({ where: { id: req.params.id },
                                 include: [ 'creator',
-                                           { model: models.Agent, as: 'members', attributes: { exclude: ['accessToken'] } },
+                                           { model: models.Agent, as: 'members' },
                                            'teams'] }).then(organization => {
 
     if (!organization) {
@@ -226,7 +225,7 @@ router.put('/:id/agent', jwtAuth, function(req, res, next) {
       return res.status(403).json({ message: 'You are not a member of this organization' });
     }
 
-    models.Agent.findOne({ where: { email: req.body.email }, attributes: { exclude: ['accessToken'] } }).then(agent => {
+    models.Agent.findOne({ where: { email: req.body.email } }).then(agent => {
 
       const mailOptions = {
         from: process.env.NOREPLY_EMAIL,
@@ -282,17 +281,17 @@ router.put('/:id/agent', jwtAuth, function(req, res, next) {
 });
 
 
-router.delete('/:id/agent/:agentId', jwtAuth, function(req, res, next) {
+router.delete('/:id/agent/:agentId', sessionAuth, function(req, res, next) {
   models.Organization.findOne({ where: { id: req.params.id },
                                 include: [ 'creator',
-                                           { model: models.Agent, as: 'members', attributes: { exclude: ['accessToken'] } },
+                                           { model: models.Agent, as: 'members' },
                                            'teams'] }).then(organization => {
     if (!organization) {
       return res.status(404).json( { message: 'No such organization' });
     }
 
     if (req.agent.email !== organization.creator.email) {
-      return res.status(401).json( { message: 'Unauthorized: Invalid token' });
+      return res.status(401).json( { message: 'Unauthorized' });
     }
 
     models.Agent.findOne({ where: { id: req.params.agentId } }).then(agent => {

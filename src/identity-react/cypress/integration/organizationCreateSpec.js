@@ -5,18 +5,23 @@
 context('Organization creation', function() {
 
   before(function() {
-    cy.fixture('someguy-auth0-access-token.json').as('agent');
+    cy.fixture('google-profile-response').as('profile');
   });
 
-  let token, agent;
+  let _profile;
+  beforeEach(function() {
+    // Why?
+    _profile = {...this.profile};
+  });
+
+  let agent;
 
   context('authenticated', () => {
     beforeEach(function() {
-      cy.login(this.agent);
+      cy.login(_profile.email, _profile);
       cy.get('#app-menu-button').click();
       cy.contains('Organizations').click().then(() =>  {
-        token = localStorage.getItem('accessToken');
-        cy.task('query', `SELECT * FROM "Agents" WHERE "accessToken"='Bearer ${token}' LIMIT 1;`).then(([results, metadata]) => {
+        cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
           agent = results[0];
         });
       });

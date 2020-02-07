@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import TextField from '@material-ui/core/TextField';
 import { createStyles, makeStyles, Theme } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import Card from '@material-ui/core/Card';
@@ -48,11 +47,7 @@ const Organization = (props: any) => {
     if (service.status === 'loaded') {
       setOrgList(service.payload);
     }
-  }, [service.status]);
-
-  const customMessage = (evt:React.ChangeEvent<HTMLInputElement>) => {
-    evt.target.setCustomValidity(`${evt.target.name} required`);
-  }
+  }, [service]);
 
   function ListItemLink(props:any) {
     return <ListItem className='list-item' button component="a" {...props} />;

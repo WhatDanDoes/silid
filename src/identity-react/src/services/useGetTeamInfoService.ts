@@ -7,9 +7,10 @@ const useTeamInfoService = (id: number) => {
     status: 'loading'
   });
 
-
-  const headers = new Headers({ 'Authorization': `Bearer ${localStorage.getItem('accessToken')}`}); 
   useEffect(() => {
+    const headers = new Headers();
+    headers.append('Content-Type', 'application/json; charset=utf-8');
+
     fetch(`/team/${id}`, { headers })
       .then(response => response.json())
       .then(response => {
@@ -21,7 +22,7 @@ const useTeamInfoService = (id: number) => {
         }
       })
       .catch(error => setResult({ status: 'error', error }));
-  }, []);
+  }, [id]);
 
   return result;
 };

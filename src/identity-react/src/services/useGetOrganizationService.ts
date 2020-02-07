@@ -11,10 +11,11 @@ const useOrganizationService = () => {
     status: 'loading'
   });
 
-  const headers = new Headers({ 'Authorization': `Bearer ${localStorage.getItem('accessToken')}`}); 
   useEffect(() => {
-    //fetch(`${process.env.REACT_APP_API_DOMAIN}agent`, { headers })
-    fetch(`/organization`, { headers })
+    const headers = new Headers();
+    headers.append('Content-Type', 'application/json; charset=utf-8');
+
+    fetch(`/organization`, { headers, credentials: 'include', mode: 'no-cors' })
       .then(response => response.json())
       .then(response => setResult({ status: 'loaded', payload: { results: response } }))
       .catch(error => setResult({ status: 'error', error }));

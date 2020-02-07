@@ -6,22 +6,57 @@ context('Agent', function() {
 
   before(function() {
     cy.fixture('google-profile-response.json').as('profile');
-    cy.fixture('someguy-auth0-access-token.json').as('agent');
   });
   
+  let _profile;
+  beforeEach(function() {
+    // Why?
+    _profile = {...this.profile};
+  });
+ 
   afterEach(() => {
     cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
   });
 
   describe('Editing', () => {
+    
+//    describe('request headers', () => {
+////      let polyfill;
+////      beforeEach(() => {
+////
+////      });
+////
+//      it.only('sets the required request headers', function() {
+//////  //      cy.get('#app-menu-button').click();
+//        cy.server(); 
+//        cy.route({ url: '/agent', method: 'GET', response: {} }).as('getProfile');
+////        cy.route('GET', '/#/agent').as('getProfile');
+//
+//        cy.login(_profile.email, _profile);
+//        cy.get('#app-menu-button').click();
+//
+//
+//////        cy.readFile('./node_modules/whatwg-fetch/dist/fetch.umd.js').then((contents) => polyfill = contents);
+//////        Cypress.on('window:before:load', (win) => {
+//////          delete win.fetch;
+//////          win.eval(polyfill);
+//////        });
+//
+//        cy.visit('/agent');
+////        cy.contains('Personal Info').click();
+//        cy.wait('@getProfile').then(function(xhr) {
+//          cy.log("XHR ON RETURN");
+//          cy.log(xhr.responseBody);
+//        });
+//      });
+//    });
 
     context('success', () => {
       let agent, token;
       beforeEach(function() {
-        cy.login(this.agent);
+        cy.login(_profile.email, _profile);
         cy.get('#app-menu-button').click();
         cy.contains('Personal Info').click().then(() => {
-          token = localStorage.getItem('accessToken');
           cy.wait(500); // <--- There has to be a better way!!! Cypress is going too quick for the database
         });
       });
@@ -43,12 +78,12 @@ context('Agent', function() {
       });
 
       it('updates the record in the database', function() {
-        cy.task('query', `SELECT * FROM "Agents" WHERE "accessToken"='Bearer ${token}' LIMIT 1;`).then(([results, metadata]) => {
+        cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
           cy.get('input[name="name"][type="text"]').should('have.value', results[0].name);
           cy.get('input[name="name"][type="text"]').clear().type('Dick Wolf');
           cy.get('button[type="submit"]').click();
           cy.wait(500);
-          cy.task('query', `SELECT * FROM "Agents" WHERE "accessToken"='Bearer ${token}' LIMIT 1;`).then(([results, metadata]) => {;
+          cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
             expect(results[0].name).to.eq('Dick Wolf');
           });
         });
