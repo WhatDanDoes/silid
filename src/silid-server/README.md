@@ -62,9 +62,25 @@ Build Docker images:
 docker-compose up
 ```
 
-Seed database:
+### Database
+
+Setup and management.
+
+#### Sync database:
+
+For initial setup. This smokes everything and writes the schema from scratch.
 
 ```
 docker-compose exec app node config/seed.js
 ```
 
+#### Migrations
+
+For an orderly database deployment. Should preserve data.
+
+```
+docker-compose exec app npx sequelize-cli db:create
+docker-compose exec app npx sequelize-cli db:migrate
+```
+
+For info on `sequelize` management, refer to https://sequelize.org/master/manual/migrations.html
