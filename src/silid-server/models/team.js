@@ -57,3 +57,4 @@ module.exports = (sequelize, DataTypes) => {
 
   return Team;
 };
+

@@ -1,11 +1,7 @@
 'use strict';
-
 module.exports = (sequelize, DataTypes) => {
-
   const Agent = sequelize.define('Agent', {
-    name: {
-      type: DataTypes.STRING,
-    },
+    name: DataTypes.STRING,
     email: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -25,7 +21,7 @@ module.exports = (sequelize, DataTypes) => {
     socialProfile: {
       strict: true,
       type: DataTypes.JSONB
-    },
+    }
   }, {});
 
   Agent.associate = function(models) {
