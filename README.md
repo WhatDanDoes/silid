@@ -140,6 +140,16 @@ docker-compose -f docker-compose.staging.yml up -d
 
 In `./src/silid-server/`:
 
+#### Migrations
+
+```
+docker-compose -f docker-compose.staging.yml exec app npx sequelize-cli db:migrate
+```
+
+#### Sync
+
+Careful, you will lose all your data if you sync the database:
+
 ```
 docker-compose -f docker-compose.staging.yml exec app node config/seed.js
 ```
