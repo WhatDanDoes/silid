@@ -10,6 +10,8 @@ context('Organization delete', function() {
 
   afterEach(() => {
     cy.task('query', 'TRUNCATE TABLE "Organizations" CASCADE;');
+    cy.task('query', 'TRUNCATE TABLE "organization_team" CASCADE;');
+    cy.task('query', 'TRUNCATE TABLE "agent_organization" CASCADE;');
   });
 
   let _profile, agent, memberAgent;

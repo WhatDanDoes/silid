@@ -2,7 +2,7 @@
 // https://on.cypress.io/intelligent-code-completion
 /// <reference types="Cypress" />
 
-context('Organization delete agent', function() {
+context('Team delete agent', function() {
 
   before(function() {
     cy.fixture('google-profile-response').as('profile');
@@ -34,6 +34,7 @@ context('Organization delete agent', function() {
     afterEach(() => {
       cy.task('query', 'TRUNCATE TABLE "Organizations" CASCADE;');
       cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
+      cy.task('query', 'TRUNCATE TABLE "agent_team" CASCADE;');
     });
 
     context('creator agent visit', () => {

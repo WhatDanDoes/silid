@@ -34,6 +34,7 @@ context('Team add agent', function() {
     afterEach(() => {
       cy.task('query', 'TRUNCATE TABLE "Organizations" CASCADE;');
       cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
+      cy.task('query', 'TRUNCATE TABLE "agent_team" CASCADE;');
     });
 
     context('creator agent visit', () => {
