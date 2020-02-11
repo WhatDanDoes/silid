@@ -6,7 +6,7 @@ services:
     build: .
     network_mode: host
     depends_on:
-      - postgres
+      - auth0
     environment:
       DATABASE_URL: postgres://user:pass@postgres:5432/postgres
       NODE_ENV: e2e
@@ -17,11 +17,9 @@ services:
     volumes:
       - .:/app/
       - /app/node_modules
-#  jwks:
   auth0:
     build:
       context: .
-#      dockerfile: ./spec/support/mockJwksServer-Dockerfile
       dockerfile: ./spec/support/mockAuth0Server-Dockerfile
     network_mode: host
     depends_on:

@@ -41,6 +41,7 @@
     "pg-hstore": "^2.3.3",
     "request": "^2.88.0",
     "sequelize": "^5.21.1",
+    "sequelize-cli": "^5.5.1",
     "serverless-http": "^2.3.0"
   },
   "devDependencies": {
