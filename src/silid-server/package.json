@@ -21,6 +21,7 @@
     "ecs:update-service-prod": "aws ecs update-service --cluster default --service arn:aws:ecs:us-east-1:117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server-service --task-definition silid-server-task"
   },
   "dependencies": {
+    "connect-session-sequelize": "^6.1.1",
     "cookie-parser": "~1.4.4",
     "cors": "^2.8.5",
     "debug": "~2.6.9",
