@@ -5,10 +5,12 @@ const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
-const session = require('express-session');
 const logger = require('morgan');
 const cors = require('cors');
 
+/**
+ * Routes
+ */
 const authRouter = require('./routes/auth');
 const indexRouter = require('./routes/index');
 const agentRouter = require('./routes/agent');
@@ -17,7 +19,9 @@ const teamRouter = require('./routes/team');
 
 const app = express();
 
-// view engine setup
+/**
+ * view engine setup
+ */
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
@@ -28,9 +32,20 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+
+/**
+ * Set up database-managed sessions
+ */
+const db = require('./models');
+const session = require('express-session');
+const SequelizeStore = require('connect-session-sequelize')(session.Store);
+const store = new SequelizeStore({ db: db.sequelize });
+
 app.use(session({
   secret: process.env.AUTH0_CLIENT_SECRET, // This seemed convenient
-  resave: true,
+  store: store,
+  resave: false,
   //cookie: { sameSite: 'none', secure: true},
   saveUninitialized: true
 }));
@@ -90,7 +105,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 /**
- * Routes
+ * Use routes
  */
 app.use('/', authRouter);
 app.use('/agent', agentRouter);

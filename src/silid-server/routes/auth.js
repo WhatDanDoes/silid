@@ -13,49 +13,51 @@ router.get('/login', (req, res, next) => {
 /**
  * Perform the final stage of authentication and redirect to previously requested URL or '/'
  */
-router.get('/callback', function (req, res, next) {
+router.get('/callback', passport.authenticate('auth0'), (req, res) => {
+  if (!req.user) {
+    return res.redirect('/');
+  }
 
-  passport.authenticate('auth0', function (err, user, info) {
-    if (err) {
-      return next(err);
-    }
-    if (!user) {
-      return res.redirect('/');
-    }
+  function login() {
+    req.login(req.user, function (err) {
+      if (err) {
+        return next(err);
+      }
 
-    function login() {
-      req.logIn(user, function (err) {
+      const returnTo = req.session.returnTo;
+      delete req.session.returnTo;
+
+      // 2020-2-11 Some kind of session-saving/redirect race condition
+      // https://github.com/expressjs/session/issues/360#issuecomment-552312910
+      req.session.save(function(err) {
         if (err) {
-          return next(err);
+          return res.json(err);
         }
-
-        const returnTo = req.session.returnTo;
-        delete req.session.returnTo;
         res.redirect(returnTo || '/');
       });
-    }
-
-    models.Agent.findOne({ where: { email: user._json.email } }).then(result => {
-      if (!result) {
-        let newAgent = new models.Agent({email: user._json.email, name: user._json.name});
-
-        newAgent.save().then(result => {
-          login();
-        }).catch(err => {
-          res.json(err);
-        });
-      } else {
-        result.socialProfile = user;
-        result.save().then(result => {
-          login();
-        }).catch(err => {
-          res.json(err);
-        });
-      }
-    }).catch(err => {
-      res.json(err);
     });
-  })(req, res, next);
+  }
+
+  models.Agent.findOne({ where: { email: req.user._json.email } }).then(result => {
+    if (!result) {
+      let newAgent = new models.Agent({email: req.user._json.email, name: req.user._json.name});
+
+      newAgent.save().then(result => {
+        login();
+      }).catch(err => {
+        res.json(err);
+      });
+    } else {
+      result.socialProfile = req.user;
+      result.save().then(result => {
+        login();
+      }).catch(err => {
+        res.json(err);
+      });
+    }
+  }).catch(err => {
+    res.json(err);
+  });
 });
 
 /**

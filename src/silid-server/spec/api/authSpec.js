@@ -450,6 +450,7 @@ describe('authSpec', () => {
 
         it('displays the correct interface', done => {
           browser.clickLink('Logout', (err) => {
+            if (err) return done.fail(err);
             browser.assert.elements('a[href="/login"]');
             browser.assert.elements('a[href="/logout"]', 0);
             done();
