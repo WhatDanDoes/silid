@@ -54,7 +54,7 @@ context('Authentication', function() {
     });
 
     it('lands in the right place', () => {
-      cy.url().should('match', /\/#\/$/);
+      cy.url().should('match', /\/#\/organization$/);
     });
 
     it('does not display the login link', () => {
