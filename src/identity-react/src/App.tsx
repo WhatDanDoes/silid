@@ -9,6 +9,18 @@ import OrganizationInfo from './routes/OrganizationInfo';
 import Team from './routes/Team';
 import { AuthProvider } from './auth/Auth';
 import PrivateRoute from './components/PrivateRoute';
+import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
+
+/**
+ * Colour everything SIL blue
+ */
+const theme = createMuiTheme({
+  palette: {
+    primary: {
+      main: '#005c99',
+    },
+  },
+});
 
 function App() {
   const [message] = useState('');
@@ -16,19 +28,21 @@ function App() {
   return (
     <div className="App">
       <AuthProvider>
-        <HashRouter>
-          <Route
-            path="/"
-            render={props => <Home message={message} {...props} />}
-          />
-          <Switch>
-            <PrivateRoute path="/agent/:id" component={Agent} redirect="/" />
-            <PrivateRoute path="/agent" component={Agent} redirect="/" />
-            <PrivateRoute path="/organization/:id" component={OrganizationInfo} redirect="/" />
-            <PrivateRoute path="/organization" component={Organization} redirect="/" />
-            <PrivateRoute path="/team/:id" component={Team} redirect="/" />
-          </Switch>
-        </HashRouter>
+        <ThemeProvider theme={theme}>
+          <HashRouter>
+            <Route
+              path="/"
+              render={props => <Home message={message} {...props} />}
+            />
+            <Switch>
+              <PrivateRoute path="/agent/:id" component={Agent} redirect="/" />
+              <PrivateRoute path="/agent" component={Agent} redirect="/" />
+              <PrivateRoute path="/organization/:id" component={OrganizationInfo} redirect="/" />
+              <PrivateRoute path="/organization" component={Organization} redirect="/" />
+              <PrivateRoute path="/team/:id" component={Team} redirect="/" />
+            </Switch>
+          </HashRouter>
+        </ThemeProvider>
       </AuthProvider>
     </div>
   );
