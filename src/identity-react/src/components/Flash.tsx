@@ -72,6 +72,7 @@ function Flash(props: Props) {
 
   return (
     <Snackbar
+      id="flash-message"
       anchorOrigin={{
         vertical: 'bottom',
         horizontal: 'left',
@@ -90,7 +91,7 @@ function Flash(props: Props) {
           </span>
         }
         action={[
-          <IconButton key="close" aria-label="close" color="inherit" onClick={onClose}>
+          <IconButton id="close-flash" key="close" aria-label="close" color="inherit" onClick={handleClose}>
             <CloseIcon className={classes.icon} />
           </IconButton>,
         ]}

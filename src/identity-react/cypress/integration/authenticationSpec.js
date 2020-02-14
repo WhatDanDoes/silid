@@ -74,8 +74,16 @@ context('Authentication', function() {
       cy.get('#app-menu ul div:nth-of-type(2) a').should('have.attr', 'href', '#organization').and('contain', 'Organizations');
     });
 
-    it('displays a friendly message', function() {
-      cy.contains(`Hello, ${this.profile.name}`);
+    describe('post sign-in', function() {
+      it('displays a friendly message', function() {
+        cy.contains(`Hello, ${this.profile.name}`);
+      });
+
+      it('allows you to dismiss the sign-in message', function() {
+        cy.get('#flash-message').should('exist');
+        cy.get('#close-flash').click();
+        cy.get('#flash-message').should('not.exist');
+      });
     });
 
     describe('logout', () => {
