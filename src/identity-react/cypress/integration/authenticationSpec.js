@@ -70,10 +70,12 @@ context('Authentication', function() {
       cy.get('#app-menu').should('not.exist');
       cy.get('#app-menu-button').click();
 
-      cy.get('#app-menu ul div:nth-of-type(1) a').should('have.attr', 'href', '#/').and('contain', 'Home');
-      cy.get('#app-menu ul div:nth-of-type(2) a').should('have.attr', 'href', '#agent').and('contain', 'Personal Info');
-      cy.get('#app-menu ul div:nth-of-type(3) a').should('have.attr', 'href', '#organization').and('contain', 'Organizations');
-      cy.get('#app-menu ul:nth-of-type(2) div').contains('Help');
+      cy.get('#app-menu ul div:nth-of-type(1) a').should('have.attr', 'href', '#agent').and('contain', 'Profile');
+      cy.get('#app-menu ul div:nth-of-type(2) a').should('have.attr', 'href', '#organization').and('contain', 'Organizations');
+    });
+
+    it('displays a friendly message', function() {
+      cy.contains(`Hello, ${this.profile.name}`);
     });
 
     describe('logout', () => {
