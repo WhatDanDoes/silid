@@ -72,8 +72,7 @@ context('Team show', function() {
         cy.request({ url: '/team',  method: 'POST',
                      body: { organizationId: organization.id, name: 'Insert Funny Team Name Here' } }).then(res => {
           team = res.body;
-          cy.get('#app-menu-button').click();
-          cy.get('#organization-button').click();
+          cy.login(_profile.email, _profile);
           cy.contains('One Book Canada').click();
           cy.contains('Insert Funny Team Name Here').click();
         });

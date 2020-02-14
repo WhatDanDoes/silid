@@ -1,7 +1,3 @@
-// enables intelligent code completion for Cypress commands
-// https://on.cypress.io/intelligent-code-completion
-/// <reference types="Cypress" />
-
 context('Team delete agent', function() {
 
   before(function() {
@@ -48,8 +44,7 @@ context('Team delete agent', function() {
             team = res.body;
 
             cy.request({ url: `/team/${team.id}/agent`, method: 'PUT', body: { email: memberAgent.email } }).then((org) => {
-              cy.get('#app-menu-button').click();
-              cy.get('#organization-button').click();
+              cy.login(_profile.email, _profile);
               cy.contains('One Book Canada').click();
               cy.contains('Calgary Roughnecks').click();
             });
