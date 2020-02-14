@@ -24,7 +24,7 @@ context('Agent', function() {
       beforeEach(function() {
         cy.login(_profile.email, _profile);
         cy.get('#app-menu-button').click();
-        cy.contains('Personal Info').click().then(() => {
+        cy.contains('Profile').click().then(() => {
           cy.wait(500); // <--- There has to be a better way!!! Cypress is going too quick for the database
         });
       });

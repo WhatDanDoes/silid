@@ -43,7 +43,7 @@ context('Agent', function() {
       beforeEach(function() {
         cy.login(_profile.email, _profile);
         cy.get('#app-menu-button').click();
-        cy.contains('Personal Info').click();
+        cy.contains('Profile').click();
       });
 
       it('lands in the right spot', () => {
