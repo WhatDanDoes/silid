@@ -1,7 +1,3 @@
-// enables intelligent code completion for Cypress commands
-// https://on.cypress.io/intelligent-code-completion
-/// <reference types="Cypress" />
-
 context('Organization add agent', function() {
 
   before(function() {
@@ -17,16 +13,24 @@ context('Organization add agent', function() {
   context('authenticated', () => {
 
     let agent, anotherAgent;
+    let organization;
     beforeEach(function() {
-      // Login/create another agent
-      cy.login('someotherguy@example.com', _profile);
-      cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
-        anotherAgent = results[0];
+      // Login/create main test agent
+      cy.login(_profile.email, _profile);
+      cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
+        agent = results[0];
 
-        // Login/create main test agent
-        cy.login(_profile.email, _profile);
-        cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
-          agent = results[0];
+        cy.request({ url: '/organization', method: 'POST', body: { name: 'One Book Canada' } }).then((org) => {
+          organization = org.body;
+
+          // Login/create another agent
+          cy.login('someotherguy@example.com', _profile);
+          cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
+            anotherAgent = results[0];
+
+            // Login main test agent again
+            cy.login(_profile.email, _profile);
+          });
         });
       });
     });
@@ -39,14 +43,9 @@ context('Organization add agent', function() {
 
     context('creator agent visit', () => {
 
-      let organization;
       beforeEach(function() {
-        cy.request({ url: '/organization', method: 'POST', body: { name: 'One Book Canada' } }).then((org) => {
-          organization = org.body;
-          cy.get('#app-menu-button').click();
-          cy.get('#organization-button').click();
-          cy.contains('One Book Canada').click();
-        });
+        cy.url().should('match', /\/#\/organization$/);
+        cy.contains('One Book Canada').click();
       });
 
       describe('add-agent button', () => {
@@ -228,22 +227,14 @@ context('Organization add agent', function() {
 
     context('member agent visit', () => {
 
-      let organization;
       beforeEach(function() {
-        cy.request({ url: '/organization', method: 'POST', body: { name: 'One Book Canada' } }).then((org) => {
-          organization = org.body;
+        // Add member agent
+        cy.request({ url: '/organization', method: 'PATCH', body: { id: organization.id, memberId: anotherAgent.id } }).then((res) => {
 
-          // Add member agent
-          cy.request({ url: '/organization', method: 'PATCH', body: { id: organization.id, memberId: anotherAgent.id } }).then((res) => {
-
-            // Login member agent (again)
-            cy.login(anotherAgent.email, _profile);
-            cy.visit('/#/').then(() => {
-              cy.get('#app-menu-button').click();
-              cy.get('#organization-button').click();
-              cy.contains('One Book Canada').click();
-            });
-          });
+          // Login member agent (again)
+          cy.login(anotherAgent.email, _profile);
+          cy.url().should('match', /\/#\/organization$/);
+          cy.contains('One Book Canada').click();
         });
       });
 

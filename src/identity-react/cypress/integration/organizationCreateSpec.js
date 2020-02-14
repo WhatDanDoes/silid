@@ -1,7 +1,3 @@
-// enables intelligent code completion for Cypress commands
-// https://on.cypress.io/intelligent-code-completion
-/// <reference types="Cypress" />
-
 context('Organization creation', function() {
 
   before(function() {
@@ -19,11 +15,8 @@ context('Organization creation', function() {
   context('authenticated', () => {
     beforeEach(function() {
       cy.login(_profile.email, _profile);
-      cy.get('#app-menu-button').click();
-      cy.contains('Organizations').click().then(() =>  {
-        cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
-          agent = results[0];
-        });
+      cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
+        agent = results[0];
       });
     });
 

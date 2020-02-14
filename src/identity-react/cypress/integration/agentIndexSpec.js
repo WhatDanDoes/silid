@@ -21,7 +21,7 @@ context('Agent', function() {
     });
 
     it('shows the home page', () => {
-      cy.get('h6').contains('Identity');
+      cy.get('header h1').contains('Identity');
     });
 
     it('displays the login button', () => {
@@ -43,7 +43,7 @@ context('Agent', function() {
       beforeEach(function() {
         cy.login(_profile.email, _profile);
         cy.get('#app-menu-button').click();
-        cy.contains('Personal Info').click();
+        cy.contains('Profile').click();
       });
 
       it('lands in the right spot', () => {

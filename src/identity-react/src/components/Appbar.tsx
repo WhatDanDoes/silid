@@ -52,19 +52,13 @@ const useStyles = makeStyles((theme: Theme) =>
 );
 
 const Home = (props: IProps) => {
-  //const { auth } = props;
   const {agent, logout} = useAuthState();
-//  const state = React.useContext(AuthContext)
 
   const classes = useStyles();
 
   const [drawerPosition, setDrawerPosition] = React.useState({
     left: false,
   });
-
-//  const [authenticated, setAuthenticated] = React.useState(false);
-//  const [profile, setProfile] = React.useState({} as any);
-
 
   function ListItemLink(props: any) {
     return <ListItem button component="a" {...props} />;
@@ -93,16 +87,12 @@ const Home = (props: IProps) => {
       onKeyDown={toggleDrawer(side, false)}
     >
       <List>
-        {['Home', 'Personal Info'].map((text, index) => (
-          <ListItem button key={text}>
-            <ListItemIcon>
-              {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
-            </ListItemIcon>
-            <ListItemLink href={index === 1 ? '#agent' : '#/'}>
-              <ListItemText primary={text} />
-            </ListItemLink>
-          </ListItem>
-        ))}
+        <ListItem button id='agent-button' key='Agents'>
+          <ListItemIcon><InboxIcon /></ListItemIcon>
+          <ListItemLink href='#agent'>
+            <ListItemText primary='Profile' />
+          </ListItemLink>
+        </ListItem>
         <ListItem button id='organization-button' key='Organizations'>
           <ListItemIcon><InboxIcon /></ListItemIcon>
           <ListItemLink href='#organization'>
@@ -111,16 +101,6 @@ const Home = (props: IProps) => {
         </ListItem>
       </List>
       <Divider />
-      <List>
-        {['Help'].map((text, index) => (
-          <ListItem button key={text}>
-            <ListItemIcon>
-              {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
-            </ListItemIcon>
-            <ListItemText primary={text} />
-          </ListItem>
-        ))}
-      </List>
     </div>
   );
 
@@ -143,16 +123,6 @@ const Home = (props: IProps) => {
           Identity
         </Typography>
 
-        {!agent && (
-          <Button
-            id="login-button"
-            color="inherit"
-            onClick={() => {
-            }}
-          >
-            Login
-          </Button>
-        )}
         {agent && (
           <>
             <Grid container justify="flex-end" alignItems="flex-start">
