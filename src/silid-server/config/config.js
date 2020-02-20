@@ -1,3 +1,4 @@
+//Change to js
 module.exports = {
   development: {
     username: process.env.DATABASE_USER_DEV,

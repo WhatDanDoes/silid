@@ -1,4 +1,7 @@
 FROM node
+#
+# Set arg to environment variable
+#
 ARG environment
 ENV NODE_ENV=${environment}
 #
