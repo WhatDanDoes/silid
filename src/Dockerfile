@@ -1,6 +1,5 @@
 FROM node
-ARG environment
-ENV NODE_ENV=${environment}
+
 #
 # Build client app
 #
@@ -31,5 +30,6 @@ COPY ./silid-server .
 RUN cp -R /srv/app/client/build/* /app/build
 
 EXPOSE 3001
-CMD npm start
+
+CMD NODE_ENV=staging npm start 
 
