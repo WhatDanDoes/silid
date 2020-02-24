@@ -3,7 +3,7 @@ const router = express.Router();
 const path = require('path');
 const passport = require('passport');
 
-const request = require('request');//.defaults({proxy: 'http://localhost:3000', tunnel: false});
+const request = require('request'); //.defaults({proxy: 'http://localhost:3000', tunnel: false});
 
 const httpProxy = require('http-proxy');
 const clientProxy = httpProxy.createProxyServer();
@@ -12,10 +12,13 @@ const clientProxy = httpProxy.createProxyServer();
  * For the client-side app
  */
 let staticPath;
-if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
+if (
+  process.env.NODE_ENV === 'production' ||
+  process.env.NODE_ENV === 'staging' ||
+  process.env.NODE_ENV === 'development_aws'
+) {
   staticPath = path.join(__dirname, '/../build');
-}
-else {
+} else {
   staticPath = path.join(__dirname, '/../public');
 }
 
@@ -41,15 +44,18 @@ if (process.env.NODE_ENV === 'e2e') {
    * If client app is served from another domain, proxy requested
    * static resources
    */
-  router.get(/jpeg|gif|png|jpg|js|css|ico|woff|svg|ttf|json|map/, function(req, res, next) {
+  router.get(/jpeg|gif|png|jpg|js|css|ico|woff|svg|ttf|json|map/, function(
+    req,
+    res,
+    next
+  ) {
     if (req.session.passport) {
       return clientProxy.web(req, res, { target: 'http://localhost:3000' });
     }
 
     res.sendFile(req.path, { root: staticPath });
   });
-}
-else {
+} else {
   router.get('/', function(req, res, next) {
     if (req.session.passport) {
       return res.sendFile('index.html', { root: staticPath });
@@ -57,6 +63,5 @@ else {
     res.render('index');
   });
 }
-
 
 module.exports = router;
