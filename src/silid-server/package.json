@@ -11,7 +11,7 @@
     "docker:build-dev": "docker build --build-arg PORT=3001 -t silid-server-dev .",
     "docker:tag-dev": "docker tag silid-server:latest 117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server-dev:latest",
     "docker:deploy-dev": "docker push 117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server-dev:latest",
-    "docker:build-prod": "docker build --build-arg PORT=4001 -t silid-server .",
+    "docker:build-prod": "docker build --build-arg PORT=3001 -t silid-server .",
     "docker:tag-prod": "docker tag silid-server:latest 117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server:latest",
     "docker:deploy-prod": "docker push 117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server:latest",
     "ecr:login": "$(aws ecr get-login --no-include-email --region us-east-1)",
