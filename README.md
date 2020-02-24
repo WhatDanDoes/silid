@@ -153,3 +153,6 @@ Careful, you will lose all your data if you sync the database:
 ```
 docker-compose -f docker-compose.staging.yml exec app node config/seed.js
 ```
+
+## Deploy to Production
+
