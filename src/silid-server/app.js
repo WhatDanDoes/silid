@@ -33,7 +33,6 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-
 /**
  * Set up database-managed sessions
  */
@@ -42,13 +41,15 @@ const session = require('express-session');
 const SequelizeStore = require('connect-session-sequelize')(session.Store);
 const store = new SequelizeStore({ db: db.sequelize });
 
-app.use(session({
-  secret: process.env.AUTH0_CLIENT_SECRET, // This seemed convenient
-  store: store,
-  resave: false,
-  //cookie: { sameSite: 'none', secure: true},
-  saveUninitialized: true
-}));
+app.use(
+  session({
+    secret: process.env.AUTH0_CLIENT_SECRET, // This seemed convenient
+    store: store,
+    resave: false,
+    //cookie: { sameSite: 'none', secure: true},
+    saveUninitialized: true
+  })
+);
 
 /**
  * SPA client route
@@ -60,14 +61,17 @@ app.use(session({
 app.use('/', indexRouter);
 
 if (process.env.NODE_ENV === 'e2e') {
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 }
 
-if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
+if (
+  process.env.NODE_ENV === 'production' ||
+  process.env.NODE_ENV === 'staging' ||
+  process.env.NODE_ENV === 'development_aws'
+) {
   app.use(express.static(path.join(__dirname, 'build')));
   app.use(express.static(path.join(__dirname, 'public')));
-}
-else {
+} else {
   app.use(express.static(path.join(__dirname, 'public')));
 }
 
@@ -77,11 +81,12 @@ else {
 const Auth0Strategy = require('passport-auth0');
 const passport = require('passport');
 
-const strategy = new Auth0Strategy({
-   domain:       process.env.AUTH0_DOMAIN,
-   clientID:     process.env.AUTH0_CLIENT_ID,
-   clientSecret: process.env.AUTH0_CLIENT_SECRET,
-   callbackURL:  process.env.CALLBACK_URL
+const strategy = new Auth0Strategy(
+  {
+    domain: process.env.AUTH0_DOMAIN,
+    clientID: process.env.AUTH0_CLIENT_ID,
+    clientSecret: process.env.AUTH0_CLIENT_SECRET,
+    callbackURL: process.env.CALLBACK_URL
   },
   function(accessToken, refreshToken, extraParams, profile, done) {
     // accessToken is the token to call Auth0 API (not needed in the most cases)
@@ -119,7 +124,7 @@ app.use(function(req, res, next) {
 
 // error handler
 app.use(function(err, req, res, next) {
-  console.error("ERROR", err);
+  console.error('ERROR', err);
   res.status(err.status || 500).json(err);
 });
 
