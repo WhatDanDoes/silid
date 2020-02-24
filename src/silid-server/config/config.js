@@ -27,6 +27,13 @@ module.exports = {
     host: 'postgres',
     dialect: 'postgres'
   },
+  development_aws: {
+    username: process.env.DATABASE_USER_DEV,
+    password: process.env.DATABASE_PASSWORD_DEV,
+    database: 'postgres',
+    host: process.env.DATABASE_HOST_DEV,
+    dialect: 'postgres'
+  },
   production: {
     username: process.env.DATABASE_USER_PROD,
     password: process.env.DATABASE_PASSWORD_PROD,
