@@ -1,10 +1,9 @@
-//Change to js
 module.exports = {
   development: {
-    username: process.env.DATABASE_USER_DEV,
-    password: process.env.DATABASE_PASSWORD_DEV,
-    database: 'postgres',
-    host: process.env.DATABASE_HOST_DEV,
+    username: 'user',
+    password: 'pass',
+    database: 'silid_development',
+    host: 'postgres',
     dialect: 'postgres'
   },
   test: {
@@ -18,13 +17,14 @@ module.exports = {
     password: 'pass',
     database: 'postgres',
     host: 'localhost',
-    dialect: 'postgres'
+    dialect: 'postgres',
+    migrationStorage: 'none'
   },
   staging: {
-    username: process.env.DATABASE_USER_DEV,
-    password: process.env.DATABASE_PASSWORD_DEV,
-    database: 'postgres',
-    host: process.env.DATABASE_HOST_DEV,
+    username: 'user',
+    password: 'pass',
+    database: 'silid_staging',
+    host: 'postgres',
     dialect: 'postgres'
   },
   production: {
