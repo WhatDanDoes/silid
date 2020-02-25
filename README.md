@@ -153,6 +153,13 @@ Careful, you will lose all your data if you sync the database:
 ```
 docker-compose -f docker-compose.staging.yml exec app node config/seed.js
 ```
+## Deploy to Development (silid-dev.languagetechnology.org)
 
-## Deploy to Production
+Deployment is automated from an approved pull request by team members into the develop branch. Once the merge has been completed, the CI/CD
+build process injects the environment variables required by silid into the Docker container and ships them with the app onto ECS infrastructure.
+
+## Deploy to Production (silid.languagetechnology.org)
+
+Deployment is automated from an approved pull request by team members into the master branch. Once the merge has been completed, the CI/CD
+build process injects the environment variables required by silid into the Docker container and ships them with the app onto ECS infrastructure.
 
