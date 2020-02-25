@@ -3,9 +3,9 @@
     {
       "portMappings": [
         {
-          "hostPort": 3001,
+          "hostPort": 4001,
           "protocol": "tcp",
-          "containerPort": 3001
+          "containerPort": 4001
         }
       ],
       "cpu": 1,
