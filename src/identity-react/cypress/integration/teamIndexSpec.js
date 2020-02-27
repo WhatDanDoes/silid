@@ -1,4 +1,4 @@
-context('Team', function() {
+context('Team Index', function() {
 
   before(function() {
     cy.fixture('google-profile-response').as('profile');
@@ -34,18 +34,23 @@ context('Team', function() {
 
   describe('authenticated', () => {
 
-    let agent;
+    let agent, organization;
     beforeEach(function() {
       cy.login(_profile.email, _profile);
       cy.get('#app-menu-button').click();
       cy.get('#team-button').click().then(() =>  {
         cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
           agent = results[0];
+
+          cy.request({ url: '/organization',  method: 'POST', body: { name: 'One Book Canada' } }).then(org => {
+            organization = org.body;
+          });
         });
       });
     });
 
     afterEach(() => {
+      cy.task('query', 'TRUNCATE TABLE "Organizations" CASCADE;');
       cy.task('query', 'TRUNCATE TABLE "Teams" CASCADE;');
     });
 
@@ -72,19 +77,24 @@ context('Team', function() {
         let team;
         beforeEach(function() {
 
-          // Create an team with another agent
-          cy.login('someotherguy@example.com', _profile);
-          cy.request({ url: '/team',  method: 'POST', body: { name: 'Princess Patricia\'s Light Infantry' } }).then(res => {
-            team = res.body;
+          // Add agent to organization membership (still logged in as org creator here)
+          cy.request({ url: `/organization/${organization.id}/agent`, method: 'PUT', body: { email: 'someotherguy@example.com' } }).then(res => {
 
-            // Add member agent
-            cy.request({ url: '/team', method: 'PATCH', body: { id: team.id, memberId: agent.id } }).then(res => {
+            // Create a team with another agent
+            cy.login('someotherguy@example.com', _profile);
 
-              // Login member agent
-              cy.login(_profile.email, _profile);
-              cy.visit('/#/');
-              cy.get('#app-menu-button').click();
-              cy.get('#team-button').click();
+            cy.request({ url: '/team',  method: 'POST', body: { organizationId: organization.id, name: 'Princess Patricia\'s Light Infantry' } }).then(res => {
+              team = res.body;
+
+              // Add member agent
+              cy.request({ url: '/team', method: 'PATCH', body: { id: team.id, memberId: agent.id } }).then(res => {
+
+                // Login member agent
+                cy.login(_profile.email, _profile);
+                cy.visit('/#/');
+                cy.get('#app-menu-button').click();
+                cy.get('#team-button').click();
+              });
             });
           });
         });
@@ -92,7 +102,7 @@ context('Team', function() {
         it('displays a list of teams', () => {
           cy.get('#team-list').should('exist');
           cy.get('#team-list').find('.team-button').its('length').should('eq', 1);
-          cy.get('.team-button').first().contains('One Book Canada');
+          cy.get('.team-button').first().contains('Princess Patricia\'s Light Infantry');
           cy.get('.team-button a').first().should('have.attr', 'href').and('include', `#team/${team.id}`)
         });
       });
@@ -113,7 +123,7 @@ context('Team', function() {
 
         let team;
         beforeEach(function() {
-          cy.request({ url: '/team',  method: 'POST', body: { name: 'Princess Patricia\'s Light Infantry' } }).then(res => {
+          cy.request({ url: '/team',  method: 'POST', body: { organizationId: organization.id, name: 'Princess Patricia\'s Light Infantry' } }).then(res => {
             team = res.body;
             cy.visit('/#/');
             cy.get('#app-menu-button').click();
