@@ -54,7 +54,7 @@ const Organization = (props: any) => {
   }
 
   return (
-    <div className="agent">
+    <div className="organization">
       <Card className={classes.card}>
         <CardContent>
           <Typography variant="h5" component="h3">
