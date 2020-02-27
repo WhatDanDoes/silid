@@ -158,6 +158,104 @@ docker-compose -f docker-compose.staging.yml exec app node config/seed.js
 Deployment is automated from an approved pull request by team members into the develop branch. Once the merge has been completed, the CI/CD
 build process injects the environment variables required by silid into the Docker container and ships them with the app onto ECS infrastructure.
 
+Login to TeamCity.
+
+In _Silid > Develop_ project.
+
+### _Parameters_ > _Environment Variables (.env)
+
+Set _all_ `.env` variables - for both the client and the server - in this section.
+
+### _Edit Build Configuration_ > _Version Control Settings_
+
+As prescribed by fields
+
+### _Edit Build Configuration_ > _Build Steps_
+
+
+#### Set variables
+
+Runner type: _Command Line_
+Step name: _Set variables_
+Execute steps: _If all previous steps finished successfully_
+Working directory: `src/silid-server`
+Run: _Custom script_
+Custom script: `printenv > .env`
+
+#### ECR Login
+
+Runner type: _Node.js NPM_
+Step name: _ECR Login_
+Execute steps: _If all previous steps finished successfully_
+npm commands: `run ecr:login`
+Working Directory: `src/silid-server`
+
+#### Docker Build
+
+Runner type: _Command Line_
+Step name: _Docker Build_
+Execute steps: _If all previous steps finished successfully_
+Working Directory: `src`
+Run: _Custom script_
+Custom script: `docker build --build-arg environment=development_aws -t sild-server .`
+
+#### Docker Tag
+
+Runner type: _Node.js NPM_
+Step name: _Docker Tag_
+Execute steps: _If all previous steps finished successfully_
+npm commands: `run docker:tag-dev`
+Working Directory: `src/silid-server`
+
+#### Docker Deploy
+
+Runner type: _Node.js NPM_
+Step name: _Docker Deploy_
+Execute steps: _If all previous steps finished successfully_
+npm commands: `run docker:deploy-dev`
+Working Directory: `src/silid-server`
+
+#### Register ECS
+
+Runner type: _Node.js NPM_
+Step name: _Register ECS_
+Execute steps: _If all previous steps finished successfully_
+npm commands: `run ecs:register-task-dev`
+Working Directory: `src/silid-server`
+
+#### Update Service Task
+
+Runner type: _Node.js NPM_
+Step name: _Update Service Task_
+Execute steps: _If all previous steps finished successfully_
+npm commands: `run ecs:update-service-dev
+Working Directory: `src/silid-server`
+
+### _Edit Build Configuration_ > _Triggers_
+
+- Trigger: _VCS Trigger_
+- Parameters Descripture: _Branch filter:_ `+:*`
+
+
+### _Edit Build Configuration_ > _Agent Requirements_
+
+#### Explicit Requirements
+
+- Parameters Name: _awsDeploy_
+- Condition: _equals true_
+
+#### Build Steps Requirements
+
+- Parameters Name: _node.js.npm_
+- Condition: _exists_
+
+#### Agents Compatability
+
+Compatible agents:
+
+  Default pool: `ba-aws-bionic64-2`
+
+
 ## Deploy to Production (silid.languagetechnology.org)
 
 Deployment is automated from an approved pull request by team members into the master branch. Once the merge has been completed, the CI/CD
