@@ -92,6 +92,76 @@ describe('teamSpec', () => {
             });
         });
 
+        it('returns an error if empty team name provided', done => {
+          authenticatedSession
+            .post('/team')
+            .send({
+              organizationId: organization.id,
+              name: '   '
+            })
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(500)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(res.body.errors.length).toEqual(1);
+              expect(res.body.errors[0].message).toEqual('Team requires a name');
+              done();
+            });
+        });
+
+        it('returns an error if no team name provided', done => {
+          authenticatedSession
+            .post('/team')
+            .send({
+              organizationId: organization.id,
+            })
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(500)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(res.body.errors.length).toEqual(1);
+              expect(res.body.errors[0].message).toEqual('Team requires a name');
+              done();
+            });
+        });
+
+        it('returns an error if organization doesn\'t exist', done => {
+          authenticatedSession
+            .post('/team')
+            .send({
+              organizationId: 333,
+              name: team.name
+            })
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(404)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(res.body.errors.length).toEqual(1);
+              expect(res.body.errors[0].message).toEqual('That organization doesn\'t exist');
+              done();
+            });
+        });
+
+        it('returns an error if no organization provided', done => {
+          authenticatedSession
+            .post('/team')
+            .send({
+              name: team.name
+            })
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(400)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(res.body.errors.length).toEqual(1);
+              expect(res.body.errors[0].message).toEqual('No organization provided');
+              done();
+            });
+        });
+
         describe('organization creator', () => {
 
           let orgCreatorSession;
