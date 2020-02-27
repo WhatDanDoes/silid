@@ -60,7 +60,6 @@ context('Team Index', function() {
 
     it('displays common Team interface elements', function() {
       cy.get('h3').contains('Teams');
-      cy.get('button#add-team').should('exist');
     });
 
     describe('team membership', () => {
