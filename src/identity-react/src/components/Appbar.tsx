@@ -22,7 +22,8 @@ interface IProps {
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
-    root: { flexGrow: 1,
+    root: {
+      flexGrow: 1,
     },
     menuButton: {
       marginRight: theme.spacing(2),
@@ -96,6 +97,12 @@ const Home = (props: IProps) => {
           <ListItemIcon><InboxIcon /></ListItemIcon>
           <ListItemLink href='#organization'>
             <ListItemText primary='Organizations' />
+          </ListItemLink>
+        </ListItem>
+        <ListItem button id='team-button' key='Teams'>
+          <ListItemIcon><InboxIcon /></ListItemIcon>
+          <ListItemLink href='#team'>
+            <ListItemText primary='Teams' />
           </ListItemLink>
         </ListItem>
       </List>
