@@ -346,3 +346,52 @@ run ecs:update-service-prod
 ```
 
 Note: The build steps scripts are referencing aws-cli scripts which are available in the `package.json` file in the `silid-server` directory. Manual deployment by developers is also possible running these scripts directory.
+
+## Database
+
+Silid is utilizing Postgres and Sequelizer as an ORM. The database is running locally in a Postgres docker container via docker-compose for local environments and in AWS RDS for silid.languagetechnology.org and silid-dev.languagetechnology.org.
+
+Migrations to these databases can be run by utilizing [sequelizer-cli](https://www.npmjs.com/package/sequelize-cli) and running the following command:
+
+```
+sequelize db:migrate
+```
+
+Sequelizer-cli will determine the enviroment by looking at the NODE_ENV variable set locally, f.e. if the environment is set to test as shown below, it will look for the environment test.
+
+```
+export NODE_ENV=test
+```
+
+Depending on the environment credentials in the `config/config.js` file, will determine the database environment the migration tool connects to.
+
+```
+  test: {
+    username: 'username',
+    password: 'password',
+    database: 'database',
+    host: 'localhost:3002',
+    dialect: 'postgres',
+    use_environment_variable: true
+  },
+  development_aws: {
+    username: process.env.DATABASE_USER_DEV,
+    password: process.env.DATABASE_PASSWORD_DEV,
+    database: 'postgres',
+    host: process.env.DATABASE_HOST_DEV,
+    dialect: 'postgres'
+  },
+  production: {
+    username: process.env.DATABASE_USER_PROD,
+    password: process.env.DATABASE_PASSWORD_PROD,
+    database: 'postgres',
+    host: process.env.DATABASE_HOST_PROD,
+    dialect: 'postgres'
+  }
+```
+
+So in order to connect to silid-dev.languagetechnology.org (development_aws database) the NODE_ENV will need to be set to development_aws.
+
+```
+export NODE_ENV=development_aws
+```
