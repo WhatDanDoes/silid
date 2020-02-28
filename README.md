@@ -306,7 +306,7 @@ Working directory: `src/silid-server`
 npm command:
 
 ```
-run docker:tag-dev
+run docker:tag-prod
 ```
 
 #### Docker Deploy
@@ -318,7 +318,7 @@ Working directory: `src/silid-server`
 npm command:
 
 ```
-run docker:deploy-dev
+run docker:deploy-prod
 ```
 
 #### Register ECS Task
@@ -330,7 +330,7 @@ Working directory: `src/silid-server`
 npm command:
 
 ```
- run ecs:register-task-dev
+ run ecs:register-task-prod
 ```
 
 #### Update Service Task
@@ -342,7 +342,7 @@ Working directory: `src/silid-server`
 npm command:
 
 ```
-run ecs:update-service-dev
+run ecs:update-service-prod
 ```
 
 Note: The build steps scripts are referencing aws-cli scripts which are available in the `package.json` file in the `silid-server` directory. Manual deployment by developers is also possible running these scripts directory.
