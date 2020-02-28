@@ -1,5 +1,4 @@
-silid
-=====
+# silid
 
 This client app was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
@@ -59,7 +58,7 @@ docker-compose -f docker-compose.e2e.yml up --build
 
 Sometimes the database doesn't start on time during the first build. If `stdout` suggests this is the case, restart the server.
 
-### Execute e2e tests 
+### Execute e2e tests
 
 End-to-end tests depend on `cypress`. They are executed from the `src/identity-react` project directory. Tests may be executed in your preferred browser, or _headlessly_, as may be appropriate in a staging environment.
 
@@ -153,6 +152,7 @@ Careful, you will lose all your data if you sync the database:
 ```
 docker-compose -f docker-compose.staging.yml exec app node config/seed.js
 ```
+
 ## Deploy to Development (silid-dev.languagetechnology.org)
 
 Deployment is automated from an approved pull request by team members into the develop branch. Once the merge has been completed, the CI/CD
@@ -162,7 +162,7 @@ Login to TeamCity.
 
 In _Silid > Develop_ project.
 
-### _Parameters_ > _Environment Variables (.env)
+### _Parameters_ > \_Environment Variables (.env)
 
 Set _all_ `.env` variables - for both the client and the server - in this section.
 
@@ -171,7 +171,6 @@ Set _all_ `.env` variables - for both the client and the server - in this sectio
 As prescribed by fields
 
 ### _Edit Build Configuration_ > _Build Steps_
-
 
 #### Set variables
 
@@ -228,14 +227,12 @@ Working Directory: `src/silid-server`
 Runner type: _Node.js NPM_
 Step name: _Update Service Task_
 Execute steps: _If all previous steps finished successfully_
-npm commands: `run ecs:update-service-dev
-Working Directory: `src/silid-server`
+npm commands: `run ecs:update-service-dev Working Directory:`src/silid-server`
 
 ### _Edit Build Configuration_ > _Triggers_
 
 - Trigger: _VCS Trigger_
 - Parameters Descripture: _Branch filter:_ `+:*`
-
 
 ### _Edit Build Configuration_ > _Agent Requirements_
 
@@ -253,11 +250,99 @@ Working Directory: `src/silid-server`
 
 Compatible agents:
 
-  Default pool: `ba-aws-bionic64-2`
-
+Default pool: `ba-aws-bionic64-2`
 
 ## Deploy to Production (silid.languagetechnology.org)
 
 Deployment is automated from an approved pull request by team members into the master branch. Once the merge has been completed, the CI/CD
-build process injects the environment variables required by silid into the Docker container and ships them with the app onto ECS infrastructure.
+build process injects the environment variables required by silid into the Docker container and ships them with the app onto ECS infrastructure. The steps for this build are listed below in detail.
 
+Login to TeamCity.
+
+In the Silid > Production project build configuration:
+
+#### Set variables
+
+Runner type: Command Line
+
+Working directory: `src/silid-server`
+
+Custom script:
+
+```
+printenv > .env
+```
+
+#### ECR Login
+
+Runner type: Node.js NPM
+
+Working directory: `src/silid-server`
+
+npm command:
+
+```
+run ecr:login
+```
+
+#### Docker Build
+
+Runner type: Command Line
+
+Working directory: `src`
+
+Custom script:
+
+```
+docker build --build-arg environment=production -t sild-server .
+```
+
+#### Docker Tag
+
+Runner type: Node.js NPM
+
+Working directory: `src/silid-server`
+
+npm command:
+
+```
+run docker:tag-dev
+```
+
+#### Docker Deploy
+
+Runner type: Node.js NPM
+
+Working directory: `src/silid-server`
+
+npm command:
+
+```
+run docker:deploy-dev
+```
+
+#### Register ECS Task
+
+Runner type: Node.js NPM
+
+Working directory: `src/silid-server`
+
+npm command:
+
+```
+ run ecs:register-task-dev
+```
+
+#### Update Service Task
+
+Runner type: Node.js NPM
+
+Working directory: `src/silid-server`
+
+npm command:
+
+```
+run ecs:update-service-dev
+```
+
+Note: The build steps scripts are referencing aws-cli scripts which are available in the `package.json` file in the `silid-server` directory. Manual deployment by developers is also possible running these scripts directory.
