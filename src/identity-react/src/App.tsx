@@ -7,6 +7,7 @@ import Agent from './routes/Agent';
 import Organization from './routes/Organization';
 import OrganizationInfo from './routes/OrganizationInfo';
 import Team from './routes/Team';
+import TeamInfo from './routes/TeamInfo';
 import { AuthProvider } from './auth/Auth';
 import PrivateRoute from './components/PrivateRoute';
 import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
@@ -39,7 +40,8 @@ function App() {
               <PrivateRoute path="/agent" component={Agent} redirect="/" />
               <PrivateRoute path="/organization/:id" component={OrganizationInfo} redirect="/" />
               <PrivateRoute path="/organization" component={Organization} redirect="/" />
-              <PrivateRoute path="/team/:id" component={Team} redirect="/" />
+              <PrivateRoute path="/team/:id" component={TeamInfo} redirect="/" />
+              <PrivateRoute path="/team" component={Team} redirect="/" />
             </Switch>
           </HashRouter>
         </ThemeProvider>

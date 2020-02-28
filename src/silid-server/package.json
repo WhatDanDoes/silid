@@ -8,10 +8,10 @@
     "deploy": "serverless deploy -v",
     "dev": "nodemon ./bin/www",
     "test": "NODE_ENV=test npx jasmine",
-    "docker:build-dev": "docker build --build-arg PORT=3001 -t silid-server-dev .",
+    "docker:build-dev": "docker build --build-arg environment=development_aws -t silid-server .",
     "docker:tag-dev": "docker tag silid-server:latest 117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server-dev:latest",
     "docker:deploy-dev": "docker push 117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server-dev:latest",
-    "docker:build-prod": "docker build --build-arg PORT=4001 -t silid-server .",
+    "docker:build-prod": "docker build --build-arg environment=production -t silid-server .",
     "docker:tag-prod": "docker tag silid-server:latest 117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server:latest",
     "docker:deploy-prod": "docker push 117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server:latest",
     "ecr:login": "$(aws ecr get-login --no-include-email --region us-east-1)",
@@ -46,7 +46,7 @@
     "serverless-http": "^2.3.0"
   },
   "devDependencies": {
-    "@hapi/hapi": "^18.4.0",
+    "@hapi/hapi": "^18.4.1",
     "crypto-js": "^3.1.9-1",
     "hapi-cors": "^1.0.3",
     "hapi-require-https": "^4.0.0",

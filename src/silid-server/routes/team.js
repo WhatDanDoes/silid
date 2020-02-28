@@ -41,7 +41,16 @@ router.get('/:id', sessionAuth, function(req, res, next) {
 });
 
 router.post('/', sessionAuth, function(req, res, next) {
+  if (!req.body.organizationId) {
+    return res.status(400).json({ errors: [{ message: 'No organization provided' }] });
+  }
+
   models.Organization.findOne({ where: { id: req.body.organizationId } }).then(organization => {
+
+    if (!organization) {
+      return res.status(404).json({ errors: [{ message: 'That organization doesn\'t exist' }] });
+    }
+
     organization.getMembers({attributes: ['email']}).then(agents => {
       // 2019-11-1 https://github.com/sequelize/sequelize/issues/6950#issuecomment-373937803
       // Sequelize doesn't return a flat array
@@ -67,10 +76,10 @@ router.post('/', sessionAuth, function(req, res, next) {
         res.status(500).json(err);
       });
     }).catch(err => {
-      res.json(err);
+      res.status(500).json(err);
     });
   }).catch(err => {
-    res.json(err);
+    res.status(500).json(err);
   });
 });
 
@@ -130,7 +139,7 @@ router.delete('/:id', sessionAuth, function(req, res, next) {
           team.destroy().then(results => {
             res.status(201).json({ message: 'Team deleted' });
           }).catch(err => {
-            res.json(err);
+            res.status(500).json(err);
           });
         }).catch(err => {
           res.status(500).json(err);
@@ -142,7 +151,7 @@ router.delete('/:id', sessionAuth, function(req, res, next) {
       res.status(500).json(err);
     });
   }).catch(err => {
-    res.json(err);
+    res.status(500).json(err);
   });
 });
 
