@@ -108,6 +108,12 @@ NOREPLY_PASSWORD=secret
 AUTH0_CLIENT_ID=tjrl8aOQEx9AtQhFffuWmvP6bcHM7nXB
 AUTH0_CLIENT_SECRET=some_secret_key
 CALLBACK_URL=https://example.com/callback
+DATABASE_HOST_DEV=example1.rds.amazonaws.com
+DATABASE_USER_DEV=user
+DATABASE_PASSWORD_DEV=password
+DATABASE_HOST_PROD=example2.rds.amazonaws.com
+DATABASE_USER_PROD=user
+DATABASE_PASSWORD_PROD=password
 ```
 
 Install dependencies:
@@ -351,47 +357,24 @@ Note: The build steps scripts are referencing aws-cli scripts which are availabl
 
 Silid is utilizing Postgres and Sequelizer as an ORM. The database is running locally in a Postgres docker container via docker-compose for local environments and in AWS RDS for silid.languagetechnology.org and silid-dev.languagetechnology.org.
 
-Migrations to these databases can be run by utilizing [sequelizer-cli](https://www.npmjs.com/package/sequelize-cli) and running the following command:
+Migrations to these databases can be run by utilizing [sequelizer-cli](https://www.npmjs.com/package/sequelize-cli) and running the following command in the `src/silid-server/` directory:
 
 ```
 sequelize db:migrate
 ```
 
-Sequelizer-cli will determine the enviroment by looking at the NODE_ENV variable set locally, f.e. if the environment is set to test as shown below, it will look for the environment test.
+The migrator tool will then look for migrations (located in the `src/silid-server/migrations/` folder) that need to be run against the configured database.
+
+Sequelizer-cli will determine the enviroment by looking at the NODE_ENV environment variable set locally, f.e. if the environment is set to test as shown below, it will look for the environment test.
 
 ```
 export NODE_ENV=test
 ```
 
-Depending on the environment credentials in the `config/config.js` file, will determine the database environment the migration tool connects to.
-
-```
-  test: {
-    username: 'username',
-    password: 'password',
-    database: 'database',
-    host: 'localhost:3002',
-    dialect: 'postgres',
-    use_environment_variable: true
-  },
-  development_aws: {
-    username: process.env.DATABASE_USER_DEV,
-    password: process.env.DATABASE_PASSWORD_DEV,
-    database: 'postgres',
-    host: process.env.DATABASE_HOST_DEV,
-    dialect: 'postgres'
-  },
-  production: {
-    username: process.env.DATABASE_USER_PROD,
-    password: process.env.DATABASE_PASSWORD_PROD,
-    database: 'postgres',
-    host: process.env.DATABASE_HOST_PROD,
-    dialect: 'postgres'
-  }
-```
-
-So in order to connect to silid-dev.languagetechnology.org (development_aws database) the NODE_ENV will need to be set to development_aws.
+So in order to connect to silid-dev.languagetechnology.org (development_aws database) the NODE_ENV environment variable will need to be set to development_aws like so:
 
 ```
 export NODE_ENV=development_aws
 ```
+
+This can be set in the `.env` file alongside the rest of the environment variables for silid.
