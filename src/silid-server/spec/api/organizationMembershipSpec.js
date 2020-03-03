@@ -5,6 +5,7 @@ const models = require('../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 const mailer = require('../../mailer');
+const { uuid } = require('uuidv4');
 
 /**
  * 2019-11-13
@@ -181,27 +182,6 @@ describe('organizationMembershipSpec', () => {
               });
           });
 
-          it('sends an email to notify agent of new membership', function(done) {
-            expect(mailer.transport.sentMail.length).toEqual(0);
-            authenticatedSession
-              .put(`/organization/${organization.id}/agent`)
-              .send({
-                email: 'somebrandnewguy@example.com' 
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(201)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-                expect(mailer.transport.sentMail.length).toEqual(1);
-                expect(mailer.transport.sentMail[0].data.to).toEqual('somebrandnewguy@example.com');
-                expect(mailer.transport.sentMail[0].data.from).toEqual(process.env.NOREPLY_EMAIL);
-                expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity membership update');
-                expect(mailer.transport.sentMail[0].data.text).toContain(`You are now a member of ${organization.name}`);
-                done();
-              });
-          });
-
           it('doesn\'t barf if organization doesn\'t exist', done => {
             authenticatedSession
               .put('/organization/333/agent')
@@ -216,6 +196,176 @@ describe('organizationMembershipSpec', () => {
                 expect(res.body.message).toEqual('No such organization');
                 done();
               });
+          });
+
+          describe('email', () => {
+            describe('notification', () => {
+              it('sends an email to notify agent of new membership', function(done) {
+                expect(mailer.transport.sentMail.length).toEqual(0);
+                authenticatedSession
+                  .put(`/organization/${organization.id}/agent`)
+                  .send({
+                    email: 'somebrandnewguy@example.com'
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+                    expect(mailer.transport.sentMail.length).toEqual(1);
+                    expect(mailer.transport.sentMail[0].data.to).toEqual('somebrandnewguy@example.com');
+                    expect(mailer.transport.sentMail[0].data.from).toEqual(process.env.NOREPLY_EMAIL);
+                    expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity organization invitation');
+
+                    models.Agent.findOne({ where: { email: 'somebrandnewguy@example.com' } }).then(a => {
+                      models.OrganizationMember.findOne({ where: { AgentId: a.id } }).then(results => {
+                        expect(mailer.transport.sentMail[0].data.text).toContain(`You have been invited to join ${organization.name}`);
+                        expect(mailer.transport.sentMail[0].data.text).toContain(`Click or copy-paste the link below to accept:`);
+                        expect(mailer.transport.sentMail[0].data.text).toContain(`${process.env.SERVER_DOMAIN}/verify/${results.verificationCode}`);
+                        done();
+                      }).catch(err => {
+                        done.fail(err);
+                      });
+                    }).catch(err => {
+                      done.fail(err);
+                    });
+                  });
+              });
+            });
+
+            describe('verification', () => {
+              let verificationUrl, unverifiedMembership;
+
+              beforeEach(done => {
+                authenticatedSession
+                  .put(`/organization/${organization.id}/agent`)
+                  .send({
+                    email: 'somebrandnewguy@example.com'
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+                    models.Agent.findOne({ where: { email: 'somebrandnewguy@example.com' } }).then(a => {
+                      models.OrganizationMember.findOne({ where: { AgentId: a.id } }).then(results => {
+
+                        unverifiedMembership = results;
+                        verificationUrl = `/verify/${results.verificationCode}`;
+
+                        done();
+                      }).catch(err => {
+                        done.fail(err);
+                      });
+                    }).catch(err => {
+                      done.fail(err);
+                    });
+                  });
+              });
+
+              describe('while authenticated', () => {
+                it('nullifies the verification code on click', function(done) {
+                  expect(unverifiedMembership.verificationCode).toBeDefined();
+
+                  authenticatedSession
+                    .get(verificationUrl)
+                    .set('Accept', 'application/json')
+                    .expect(302)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+
+                      models.OrganizationMember.findOne({ where: { AgentId: unverifiedMembership.AgentId } }).then(results => {
+                        expect(results.verificationCode).toBe(null);
+                        done();
+                      }).catch(err => {
+                        done.fail(err);
+                      });
+                    });
+                });
+
+                it('redirects to /organization/:id', function(done) {
+                  authenticatedSession
+                    .get(verificationUrl)
+                    .set('Accept', 'application/json')
+                    .expect(302)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+
+                      expect(res.headers.location).toEqual(`/organization/${unverifiedMembership.OrganizationId}`);
+                      done();
+                    });
+                });
+
+                it('doesn\'t barf if verificationCode is mangled', function(done) {
+                  authenticatedSession
+                    .get('/verify/some-mangled-code')
+                    .set('Accept', 'application/json')
+                    .expect(302)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(res.headers.location).toEqual(`/login`);
+                      done();
+                    });
+                });
+
+                it('doesn\'t barf if verificationCode does not exist', function(done) {
+                  authenticatedSession
+                    .get(`/verify/${uuid()}`)
+                    .set('Accept', 'application/json')
+                    .expect(302)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(res.headers.location).toEqual(`/login`);
+                      done();
+                    });
+                });
+              });
+
+              describe('while not authenticated', () => {
+                it('nullifies the verification code on click', function(done) {
+                  expect(unverifiedMembership.verificationCode).toBeDefined();
+                  request(app)
+                    .get(verificationUrl)
+                    .set('Accept', 'application/json')
+                    .expect(302)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+
+                      models.OrganizationMember.findOne({ where: { AgentId: unverifiedMembership.AgentId } }).then(results => {
+                        expect(results.verificationCode).toBe(null);
+                        done();
+                      }).catch(err => {
+                        done.fail(err);
+                      });
+                    });
+                });
+
+                it('redirects to /login', function(done) {
+                  request(app)
+                    .get(verificationUrl)
+                    .set('Accept', 'application/json')
+                    .expect(302)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+
+                      expect(res.headers.location).toEqual(`/login`);
+                      done();
+                    });
+                });
+
+                it('doesn\'t barf if verificationCode is invalid', function(done) {
+                  request(app)
+                    .get('/verify/some-mangled-code')
+                    .set('Accept', 'application/json')
+                    .expect(302)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(res.headers.location).toEqual(`/login`);
+                      done();
+                    });
+                });
+              });
+            });
           });
         });
 
@@ -329,26 +479,176 @@ describe('organizationMembershipSpec', () => {
               });
           });
 
-          it('sends an email to notify agent of new membership', function(done) {
-            expect(mailer.transport.sentMail.length).toEqual(0);
-            authenticatedSession
-              .put(`/organization/${organization.id}/agent`)
-              .send({
-                email: knownAgent.email 
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(201)
-              .end(function(err, res) {
-                if (err) done.fail(err);
-                expect(mailer.transport.sentMail.length).toEqual(1);
-                expect(mailer.transport.sentMail[0].data.to).toEqual(knownAgent.email);
-                expect(mailer.transport.sentMail[0].data.from).toEqual(process.env.NOREPLY_EMAIL);
-                expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity membership update');
-                expect(mailer.transport.sentMail[0].data.text).toContain(`You are now a member of ${organization.name}`);
-                done();
+          describe('email', () => {
+            describe('notification', () => {
+              it('sends an email to notify agent of new membership', function(done) {
+                expect(mailer.transport.sentMail.length).toEqual(0);
+                authenticatedSession
+                  .put(`/organization/${organization.id}/agent`)
+                  .send({
+                    email: knownAgent.email
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+                    expect(mailer.transport.sentMail.length).toEqual(1);
+                    expect(mailer.transport.sentMail[0].data.to).toEqual(knownAgent.email);
+                    expect(mailer.transport.sentMail[0].data.from).toEqual(process.env.NOREPLY_EMAIL);
+                    expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity organization invitation');
+
+                    models.Agent.findOne({ where: { email: knownAgent.email } }).then(a => {
+                      models.OrganizationMember.findOne({ where: { AgentId: a.id } }).then(results => {
+                        expect(mailer.transport.sentMail[0].data.text).toContain(`You have been invited to join ${organization.name}`);
+                        expect(mailer.transport.sentMail[0].data.text).toContain(`Click or copy-paste the link below to accept:`);
+                        expect(mailer.transport.sentMail[0].data.text).toContain(`${process.env.SERVER_DOMAIN}/verify/${results.verificationCode}`);
+                        done();
+                      }).catch(err => {
+                        done.fail(err);
+                      });
+                    }).catch(err => {
+                      done.fail(err);
+                    });
+                  });
               });
+            });
+
+            describe('verification', () => {
+              let verificationUrl, unverifiedMembership;
+
+              beforeEach(done => {
+                authenticatedSession
+                  .put(`/organization/${organization.id}/agent`)
+                  .send({
+                    email: knownAgent.email
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+                    models.Agent.findOne({ where: { email: knownAgent.email } }).then(a => {
+                      models.OrganizationMember.findOne({ where: { AgentId: a.id } }).then(results => {
+
+                        unverifiedMembership = results;
+                        verificationUrl = `/verify/${results.verificationCode}`;
+
+                        done();
+                      }).catch(err => {
+                        done.fail(err);
+                      });
+                    }).catch(err => {
+                      done.fail(err);
+                    });
+                  });
+              });
+
+              describe('while authenticated', () => {
+                it('nullifies the verification code on click', function(done) {
+                  expect(unverifiedMembership.verificationCode).toBeDefined();
+
+                  authenticatedSession
+                    .get(verificationUrl)
+                    .set('Accept', 'application/json')
+                    .expect(302)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+
+                      models.OrganizationMember.findOne({ where: { AgentId: unverifiedMembership.AgentId } }).then(results => {
+                        expect(results.verificationCode).toBe(null);
+                        done();
+                      }).catch(err => {
+                        done.fail(err);
+                      });
+                    });
+                });
+
+                it('redirects to /organization/:id', function(done) {
+                  authenticatedSession
+                    .get(verificationUrl)
+                    .set('Accept', 'application/json')
+                    .expect(302)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+
+                      expect(res.headers.location).toEqual(`/organization/${unverifiedMembership.OrganizationId}`);
+                      done();
+                    });
+                });
+
+                it('doesn\'t barf if verificationCode is mangled', function(done) {
+                  authenticatedSession
+                    .get('/verify/some-mangled-code')
+                    .set('Accept', 'application/json')
+                    .expect(302)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(res.headers.location).toEqual(`/login`);
+                      done();
+                    });
+                });
+
+                it('doesn\'t barf if verificationCode does not exist', function(done) {
+                  authenticatedSession
+                    .get(`/verify/${uuid()}`)
+                    .set('Accept', 'application/json')
+                    .expect(302)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(res.headers.location).toEqual(`/login`);
+                      done();
+                    });
+                });
+              });
+
+              describe('while not authenticated', () => {
+                it('nullifies the verification code on click', function(done) {
+                  expect(unverifiedMembership.verificationCode).toBeDefined();
+                  request(app)
+                    .get(verificationUrl)
+                    .set('Accept', 'application/json')
+                    .expect(302)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+
+                      models.OrganizationMember.findOne({ where: { AgentId: unverifiedMembership.AgentId } }).then(results => {
+                        expect(results.verificationCode).toBe(null);
+                        done();
+                      }).catch(err => {
+                        done.fail(err);
+                      });
+                    });
+                });
+
+                it('redirects to /login', function(done) {
+                  request(app)
+                    .get(verificationUrl)
+                    .set('Accept', 'application/json')
+                    .expect(302)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+
+                      expect(res.headers.location).toEqual(`/login`);
+                      done();
+                    });
+                });
+
+                it('doesn\'t barf if verificationCode is invalid', function(done) {
+                  request(app)
+                    .get('/verify/some-mangled-code')
+                    .set('Accept', 'application/json')
+                    .expect(302)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(res.headers.location).toEqual(`/login`);
+                      done();
+                    });
+                });
+              });
+            });
           });
+
         });
       });
 
