@@ -225,7 +225,6 @@ describe('Organization', () => {
         });
       });
 
-
       it('removes agent if deleted', done => {
         org.addMember(agent.id).then(result => {
           org.getMembers().then(result => {
@@ -305,7 +304,6 @@ describe('Organization', () => {
           done.fail(err);
         });
       });
-
 
       it('removes team if deleted', done => {
         org.addTeam(team.id).then(result => {
