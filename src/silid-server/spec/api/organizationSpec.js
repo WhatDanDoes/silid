@@ -371,8 +371,8 @@ describe('organizationSpec', () => {
                     expect(mailer.transport.sentMail.length).toEqual(1);
                     expect(mailer.transport.sentMail[0].data.to).toEqual(anotherAgent.email);
                     expect(mailer.transport.sentMail[0].data.from).toEqual(process.env.NOREPLY_EMAIL);
-                    expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity membership update');
-                    expect(mailer.transport.sentMail[0].data.text).toContain(`You are now a member of ${organization.name}`);
+                    expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity organization invitation');
+                    expect(mailer.transport.sentMail[0].data.text).toContain(`You have been invited to join ${organization.name}`);
                     done();
                   });
               });
@@ -565,8 +565,8 @@ describe('organizationSpec', () => {
                     expect(mailer.transport.sentMail.length).toEqual(1);
                     expect(mailer.transport.sentMail[0].data.to).toEqual(anotherAgent.email);
                     expect(mailer.transport.sentMail[0].data.from).toEqual(process.env.NOREPLY_EMAIL);
-                    expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity membership update');
-                    expect(mailer.transport.sentMail[0].data.text).toContain(`You are now a member of ${organization.name}`);
+                    expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity organization invitation');
+                    expect(mailer.transport.sentMail[0].data.text).toContain(`You have been invited to join ${organization.name}`);
                     done();
                   });
               });
@@ -674,8 +674,8 @@ describe('organizationSpec', () => {
                     expect(mailer.transport.sentMail.length).toEqual(1);
                     expect(mailer.transport.sentMail[0].data.to).toEqual('someunknownagent@example.com');
                     expect(mailer.transport.sentMail[0].data.from).toEqual(process.env.NOREPLY_EMAIL);
-                    expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity membership update');
-                    expect(mailer.transport.sentMail[0].data.text).toContain(`You are now a member of ${organization.name}`);
+                    expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity organization invitation');
+                    expect(mailer.transport.sentMail[0].data.text).toContain(`You have been invited to join ${organization.name}`);
                     done();
                   });
               });
