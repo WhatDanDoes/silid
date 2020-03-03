@@ -38,7 +38,7 @@ context('Organization add agent', function() {
     afterEach(() => {
       cy.task('query', 'TRUNCATE TABLE "Organizations" CASCADE;');
       cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
-      cy.task('query', 'TRUNCATE TABLE "agent_organization" CASCADE;');
+      cy.task('query', 'TRUNCATE TABLE "OrganizationMembers" CASCADE;');
     });
 
     context('creator agent visit', () => {
@@ -97,12 +97,12 @@ context('Organization add agent', function() {
       
             describe('unknown agent', () => {
               it('updates the record in the database', function() {
-                cy.task('query', `SELECT * FROM "agent_organization";`).then(([results, metadata]) => {
+                cy.task('query', `SELECT * FROM "OrganizationMembers";`).then(([results, metadata]) => {
                   expect(results.length).to.eq(1);
                   cy.get('input[name="email"][type="email"]').type('somenewguy@example.com');
                   cy.get('button[type="submit"]').click();
                   cy.wait(500);
-                  cy.task('query', `SELECT * FROM "agent_organization";`).then(([results, metadata]) => {
+                  cy.task('query', `SELECT * FROM "OrganizationMembers";`).then(([results, metadata]) => {
                     expect(results.length).to.eq(2);
                   });
                 });
@@ -154,13 +154,13 @@ context('Organization add agent', function() {
 
             describe('known agent', () => {
               it('updates the record in the database', function() {
-                cy.task('query', `SELECT * FROM "agent_organization";`).then(([results, metadata]) => {
+                cy.task('query', `SELECT * FROM "OrganizationMembers";`).then(([results, metadata]) => {
                   expect(results.length).to.eq(1);
                   expect(results[0].AgentId).to.eq(agent.id);
                   cy.get('input[name="email"][type="email"]').type(anotherAgent.email);
                   cy.get('button[type="submit"]').click();
                   cy.wait(500);
-                  cy.task('query', `SELECT * FROM "agent_organization";`).then(([results, metadata]) => {
+                  cy.task('query', `SELECT * FROM "OrganizationMembers";`).then(([results, metadata]) => {
                     expect(results.length).to.eq(2);
                     expect(results[0].AgentId).to.eq(agent.id);
                     expect(results[1].AgentId).to.eq(anotherAgent.id);
