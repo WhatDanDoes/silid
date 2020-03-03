@@ -1,6 +1,9 @@
 'use strict';
 
+
 module.exports = (sequelize, DataTypes) => {
+
+  const OrganizationMember = require('./organizationMember')(sequelize, DataTypes);
 
   const Organization = sequelize.define('Organization', {
     name: {
@@ -22,7 +25,7 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     hooks: {
       afterCreate: function(org, options) {
-        return org.addMember(org.creatorId);
+        return new OrganizationMember({ AgentId: org.creatorId, OrganizationId: org.id, verificationCode: null }).save();
       }
     }
   });
@@ -38,7 +41,7 @@ module.exports = (sequelize, DataTypes) => {
 
     Organization.belongsToMany(models.Agent, {
       as: 'members',
-      through: 'agent_organization',
+      through: 'OrganizationMember',
     });
 
     Organization.belongsToMany(models.Team, {

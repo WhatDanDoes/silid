@@ -26,7 +26,7 @@ module.exports = (sequelize, DataTypes) => {
 
   Agent.associate = function(models) {
     Agent.belongsToMany(models.Organization, {
-      through: 'agent_organization'
+      through: 'OrganizationMember'
     });
 
     Agent.belongsToMany(models.Team, {

@@ -148,7 +148,7 @@ const patchOrg = function(req, res, next) {
       let status = 500;
       if (err instanceof models.Sequelize.ForeignKeyConstraintError) {
         status = 404;
-        if (err.parent.table === 'agent_organization') {
+        if (err.parent.table === 'OrganizationMembers') {
           err = { message: 'No such agent' }
         }
         else if (err.parent.table === 'organization_team') {
