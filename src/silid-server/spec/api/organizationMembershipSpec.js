@@ -283,7 +283,7 @@ describe('organizationMembershipSpec', () => {
                     });
                 });
 
-                it('redirects to /organization/:id', function(done) {
+                it('redirects to root', function(done) {
                   authenticatedSession
                     .get(verificationUrl)
                     .set('Accept', 'application/json')
@@ -291,7 +291,7 @@ describe('organizationMembershipSpec', () => {
                     .end(function(err, res) {
                       if (err) return done.fail(err);
 
-                      expect(res.headers.location).toEqual(`/organization/${unverifiedMembership.OrganizationId}`);
+                      expect(res.headers.location).toEqual(`/`);
                       done();
                     });
                 });
@@ -564,7 +564,7 @@ describe('organizationMembershipSpec', () => {
                     });
                 });
 
-                it('redirects to /organization/:id', function(done) {
+                it('redirects to root', function(done) {
                   authenticatedSession
                     .get(verificationUrl)
                     .set('Accept', 'application/json')
@@ -572,7 +572,7 @@ describe('organizationMembershipSpec', () => {
                     .end(function(err, res) {
                       if (err) return done.fail(err);
 
-                      expect(res.headers.location).toEqual(`/organization/${unverifiedMembership.OrganizationId}`);
+                      expect(res.headers.location).toEqual(`/`);
                       done();
                     });
                 });

@@ -86,7 +86,7 @@ router.get('/verify/:uuid', (req, res) => {
       if (!req.user) {
         return res.redirect('/login');
       }
-      res.redirect(`/organization/${m.OrganizationId}`);
+      res.redirect(`/`);
     }).catch(err => {
       res.status(500).json(err);
     });
