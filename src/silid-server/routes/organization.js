@@ -93,13 +93,15 @@ const patchOrg = function(req, res, next) {
     }
 
     // Agent membership
-    let memberStatus = 'now a';
+    let memberStatus = 'have been invited to join';
+    let subjectLine = 'Identity organization invitation';
     if (req.body.memberId) {
       const index = members.indexOf(req.body.memberId);
       // Delete
       if (index > -1) {
-        memberStatus = 'no longer a';
+        memberStatus = 'are no longer a member of';
         members.splice(index, 1);
+        subjectLine = 'Identity membership update';
       }
       // Add
       else {
@@ -127,8 +129,8 @@ const patchOrg = function(req, res, next) {
           let mailOptions = {
             to: agent.email,
             from: process.env.NOREPLY_EMAIL,
-            subject: 'Identity membership update',
-            text: `You are ${memberStatus} member of ${organization.name}`
+            subject: subjectLine,
+            text: `You ${memberStatus} ${organization.name}`
           };
           mailer.transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
@@ -227,17 +229,22 @@ router.put('/:id/agent', sessionAuth, function(req, res, next) {
 
     models.Agent.findOne({ where: { email: req.body.email } }).then(agent => {
 
+      // Text is real ugly. Don't touch unless you know a better way!
       const mailOptions = {
         from: process.env.NOREPLY_EMAIL,
-        subject: 'Identity membership update',
-        text: `You are now a member of ${organization.name}`
+        subject: 'Identity organization invitation',
+        text: `You have been invited to join ${organization.name}
+
+Click or copy-paste the link below to accept:
+
+`
       };
 
       if (!agent) {
         let newAgent = new models.Agent({ email: req.body.email });
         newAgent.save().then(result => {
           organization.addMember(newAgent.id).then(result => {
-
+            mailOptions.text += `${process.env.SERVER_DOMAIN}/verify/${result[0].verificationCode}\n`;
             mailOptions.to = newAgent.email;
             mailer.transporter.sendMail(mailOptions, (error, info) => {
               if (error) {
@@ -259,7 +266,7 @@ router.put('/:id/agent', sessionAuth, function(req, res, next) {
         }
 
         organization.addMember(agent.id).then(result => {
-
+          mailOptions.text += `${process.env.SERVER_DOMAIN}/verify/${result[0].verificationCode}\n`;
           mailOptions.to = agent.email;
           mailer.transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
