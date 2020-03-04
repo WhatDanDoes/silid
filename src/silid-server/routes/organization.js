@@ -23,8 +23,17 @@ router.get('/:id', sessionAuth, function(req, res, next) {
       return res.status(404).json({ message: 'No such organization' });
     }
 
-    if (!result.members.map(member => member.id).includes(req.agent.id)) {
+    const memberIds = result.members.map(member => member.id);
+    const memberIdIndex = memberIds.indexOf(req.agent.id);
+
+    // Make sure agent is a member
+    if (memberIdIndex < 0) {
       return res.status(403).json({ message: 'You are not a member of that organization' });
+    }
+
+    // Make sure agent is email verified
+    if (result.members[memberIdIndex].OrganizationMember.verificationCode) {
+      return res.status(403).json({ message: 'You have not verified your invitation to this organization. Check your email.' });
     }
 
     res.status(200).json(result);
@@ -88,8 +97,16 @@ const patchOrg = function(req, res, next) {
     }
 
     let members = organization.members.map(member => member.id);
-    if (!members.includes(req.agent.id)) {
+    const memberIdIndex = members.indexOf(req.agent.id);
+
+    // Make sure agent is a member
+    if (memberIdIndex < 0) {
       return res.status(403).json( { message: 'You are not a member of this organization' });
+    }
+
+    // Make sure agent is email verified
+    if (organization.members[memberIdIndex].OrganizationMember.verificationCode) {
+      return res.status(403).json({ message: 'You have not verified your invitation to this organization. Check your email.' });
     }
 
     // Agent membership

@@ -877,8 +877,187 @@ describe('organizationSpec', () => {
       });
     });
 
+    describe('not verified', () => {
+
+      let unverifiedSession;
+      beforeEach(done => {
+        models.Agent.create({ email: 'invitedagent@example.com' }).then(a => {
+          models.OrganizationMember.create({ AgentId: a.id, OrganizationId: organization.id }).then(o => {
+            login({..._identity, email: a.email}, (err, session) => {
+              if (err) return done.fail(err);
+              unverifiedSession = session;
+              done();
+            });
+          }).catch(err => {
+            done.fail(err);
+          });
+        }).catch(err => {
+          done.fail(err);
+        });
+      });
+
+      describe('update', () => {
+        describe('PUT', () => {
+          it('returns 403', done => {
+            unverifiedSession
+              .put('/organization')
+              .send({
+                id: organization.id,
+                name: 'Some Cool Guy'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(403)
+              .end(function(err, res) {
+                if (err) done.fail(err);
+                expect(res.body.message).toEqual('Unauthorized');
+                done();
+              });
+          });
+
+          it('does not change the record in the database', done => {
+            unverifiedSession
+              .put('/organization')
+              .send({
+                id: organization.id,
+                name: 'Some Cool Guy'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(403)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                models.Organization.findOne({ where: { id: organization.id }}).then(results => {
+                  expect(results.name).toEqual(organization.name);
+                  done();
+                }).catch(err => {
+                  done.fail(err);
+                });
+              });
+          });
+        });
+
+        describe('PATCH', () => {
+
+          let anotherAgent;
+          beforeEach(done => {
+            models.Agent.create({ email: 'buddy@example.com' }).then(a => {
+              anotherAgent = a;
+              done();
+            }).catch(err => {
+              done.fail(err);
+            });
+          });
+
+          it('returns 403', done => {
+            unverifiedSession
+              .patch('/organization')
+              .send({
+                id: organization.id,
+                memberId: anotherAgent.id
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(403)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.message).toEqual('You have not verified your invitation to this organization. Check your email.');
+                done();
+              });
+          });
+
+          it('does not change the record in the database', done => {
+            models.Organization.findOne({ where: { id: organization.id }, include: ['members'] }).then(results => {
+              expect(results.members.length).toEqual(2);
+
+              unverifiedSession
+                .patch('/organization')
+                .send({
+                  id: organization.id,
+                  memberId: anotherAgent.id
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(403)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+                  models.Organization.findOne({ where: { id: organization.id }, include: ['members'] }).then(results => {
+                    expect(results.members.length).toEqual(2);
+                    done();
+                  }).catch(err => {
+                    done.fail(err);
+                  });
+                });
+            }).catch(err => {
+              done.fail(err);
+            });
+          });
+        });
+      });
+
+      describe('read', () => {
+        it('returns 403 on organization show', done => {
+          unverifiedSession
+            .get(`/organization/${organization.id}`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(403)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(res.body.message).toEqual('You have not verified your invitation to this organization. Check your email.');
+              done();
+            });
+        });
+      });
+
+      describe('delete', () => {
+        it('returns 401', done => {
+          unverifiedSession
+            .delete('/organization')
+            .send({
+              id: organization.id
+            })
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(401)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(res.body.message).toEqual('Unauthorized');
+              done();
+            });
+        });
+
+        it('does not remove the record from the database', done => {
+          models.Organization.findAll().then(results => {
+            expect(results.length).toEqual(1);
+
+            unverifiedSession
+              .delete('/organization')
+              .send({
+                id: organization.id
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(401)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                models.Organization.findAll().then(results => {
+                  expect(results.length).toEqual(1);
+                  done();
+                }).catch(err => {
+                  done.fail(err);
+                });
+              });
+          }).catch(err => {
+            done.fail(err);
+          });
+        });
+      });
+    });
+
     describe('unauthorized', () => {
 
+      let unauthorizedSession;
       beforeEach(done => {
         models.Agent.create({ email: 'suspiciousagent@example.com' }).then(a => {
           login({..._identity, email: a.email}, (err, session) => {
