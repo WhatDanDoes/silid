@@ -225,7 +225,7 @@ context('Organization add agent', function() {
       });
     });
 
-    context('member agent visit', () => {
+    context('verified member agent visit', () => {
 
       beforeEach(function() {
         // Add member agent
@@ -245,6 +245,26 @@ context('Organization add agent', function() {
       it('displays common Organization interface elements', function() {
         cy.get('button#add-agent').should('not.exist');
         cy.get('button#add-team').should('exist');
+      });
+    });
+
+    context('unverified member agent visit', () => {
+
+      beforeEach(function() {
+        // Add member agent
+        cy.request({ url: '/organization', method: 'PATCH', body: { id: organization.id, memberId: anotherAgent.id } }).then((res) => {
+
+          // Login member agent (again)
+          cy.login(anotherAgent.email, _profile);
+          cy.url().should('match', /\/#\/organization$/);
+          cy.contains('One Book Canada').click();
+        });
+      });
+
+      it('displays common Organization interface elements', function() {
+        cy.get('button#add-agent').should('not.exist');
+        cy.get('button#add-team').should('not.exist');
+        cy.contains('You have not verified your invitation to this organization. Check your email.');
       });
     });
   });
