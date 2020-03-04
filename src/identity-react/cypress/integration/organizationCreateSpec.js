@@ -124,6 +124,20 @@ context('Organization creation', function() {
                   cy.get('.error').contains('name can\'t be blank');
                   cy.get('button[type="submit"]').should('be.disabled');
                 });
+
+                it('does not allow a duplicate organization', function() {
+                  cy.get('#close-flash').click();
+                  cy.get('input[name="name"][type="text"]').type('Lutheran Bible Translators');
+                  cy.get('button[type="submit"]').click();
+                  cy.wait(500);
+                  cy.get('button#add-organization').click();
+                  cy.get('#organization-list .list-item').first().contains('Lutheran Bible Translators');
+                  cy.get('input[name="name"][type="text"]').type('Lutheran Bible Translators');
+                  cy.get('button[type="submit"]').click();
+                  cy.wait(500);
+                  cy.get('#organization-list').find('.list-item').its('length').should('eq', 1);
+                  cy.get('#flash-message').contains('That organization is already registered');
+                });
               });
             });
           });
