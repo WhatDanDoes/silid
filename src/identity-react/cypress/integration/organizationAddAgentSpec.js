@@ -231,10 +231,14 @@ context('Organization add agent', function() {
         // Add member agent
         cy.request({ url: '/organization', method: 'PATCH', body: { id: organization.id, memberId: anotherAgent.id } }).then((res) => {
 
-          // Login member agent (again)
-          cy.login(anotherAgent.email, _profile);
-          cy.url().should('match', /\/#\/organization$/);
-          cy.contains('One Book Canada').click();
+          // Verify agent membership
+          cy.task('query', `UPDATE "OrganizationMembers" SET "verificationCode"=null WHERE "AgentId"=${anotherAgent.id};`).then(([results, metadata]) => {
+
+            // Login member agent (again)
+            cy.login(anotherAgent.email, _profile);
+            cy.url().should('match', /\/#\/organization$/);
+            cy.contains('One Book Canada').click();
+          });
         });
       });
 
