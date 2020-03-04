@@ -174,7 +174,7 @@ setupKeystore((err, keyStuff) => {
             agentIdToken = undefined;
           }
 
-          const redirectUrl= `http://${process.env.SERVER_DOMAIN}/callback?code=${authorizationCode}&state=${request.query.state}`;
+          const redirectUrl= `${process.env.SERVER_DOMAIN}/callback?code=${authorizationCode}&state=${request.query.state}`;
           console.log(`Redirecting: ${redirectUrl}`);
 
           return h.redirect(redirectUrl);

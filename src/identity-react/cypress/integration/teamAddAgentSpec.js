@@ -235,7 +235,44 @@ context('Team add agent', function() {
       });
     });
 
-    context('member agent visit', () => {
+    context('verified member agent visit', () => {
+
+      let organization, team;
+      beforeEach(function() {
+        cy.request({ url: '/organization',  method: 'POST', body: { name: 'One Book Canada' } }).then((org) => {
+          organization = org.body;
+          cy.request({ url: '/organization',  method: 'PATCH', body: { id: organization.id, memberId: anotherAgent.id } }).then((res) => {
+
+            // Verify agent membership
+            cy.task('query', `UPDATE "OrganizationMembers" SET "verificationCode"=null WHERE "AgentId"=${anotherAgent.id};`).then(([results, metadata]) => {
+
+              cy.request({ url: '/team',  method: 'POST',
+                           body: { organizationId: organization.id, name: 'Calgary Roughnecks' } }).then(res => {
+                team = res.body;
+
+                cy.login(anotherAgent.email, _profile);
+                cy.visit('/#/');
+                cy.get('#app-menu-button').click();
+                cy.get('#organization-button').click();
+                cy.contains('One Book Canada').click();
+                cy.contains('Calgary Roughnecks').click();
+              });
+            });
+          });
+        });
+      });
+
+      it('lands in the right spot', () => {
+        cy.url().should('contain', `/#/team/${team.id}`);
+      });
+
+      it('displays common Team interface elements', function() {
+        cy.get('button#add-agent').should('not.exist');
+        cy.get('button#add-team').should('not.exist');
+      });
+    });
+
+    context('unverified member agent visit', () => {
 
       let organization, team;
       beforeEach(function() {
@@ -251,15 +288,19 @@ context('Team add agent', function() {
               cy.get('#app-menu-button').click();
               cy.get('#organization-button').click();
               cy.contains('One Book Canada').click();
-              cy.contains('Calgary Roughnecks').click();
             });
           });
         });
       });
 
+      it('lands in the right spot', () => {
+        cy.url().should('contain', `/#/organization/${organization.id}`);
+      });
+
       it('displays common Team interface elements', function() {
         cy.get('button#add-agent').should('not.exist');
         cy.get('button#add-team').should('not.exist');
+        cy.contains('You have not verified your invitation to this organization. Check your email.');
       });
     });
   });

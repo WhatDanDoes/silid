@@ -64,6 +64,7 @@
     "sequelize-fixtures": "^1.1.1",
     "supertest": "^4.0.2",
     "supertest-session": "^4.0.0",
+    "uuidv4": "^6.0.5",
     "zombie": "^6.1.4"
   }
 }

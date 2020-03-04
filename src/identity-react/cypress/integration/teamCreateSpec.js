@@ -97,6 +97,27 @@ context('Team creation', function() {
                   cy.get('.error').contains('name can\'t be blank');
                   cy.get('button[type="submit"]').should('be.disabled');
                 });
+
+                it('does not allow an empty field', function() {
+                  cy.get('input[name="name"][type="text"]').type('Some new team');
+                  cy.get('input[name="name"][type="text"]').clear();
+                  cy.get('input[name="name"][type="text"]').should('have.value', '');
+                  cy.get('.error').contains('This is a required field');
+                  cy.get('button[type="submit"]').should('be.disabled');
+                });
+
+                it('does not allow a duplicate team', function() {
+                  cy.get('input[name="name"][type="text"]').type('Team Copycat');
+                  cy.get('button[type="submit"]').click();
+                  cy.wait(500);
+                  cy.get('button#add-team').click();
+                  cy.get('#organization-team-list .list-item').first().contains('Team Copycat');
+                  cy.get('input[name="name"][type="text"]').type('Team Copycat');
+                  cy.get('button[type="submit"]').click();
+                  cy.wait(500);
+                  cy.get('#organization-team-list').find('.list-item').its('length').should('eq', 1);
+                  cy.get('#flash-message').contains('That team is already registered');
+                });
               });
             });
 
