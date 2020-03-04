@@ -11,19 +11,7 @@ module.exports = {
       name: {
         type: Sequelize.STRING,
         allowNull: false,
-        validate: {
-          notNull: {
-            msg: 'Organization requires a name'
-          },
-          notEmpty: {
-            msg: 'Organization requires a name'
-          }
-        },
         unique: true
-//        unique: {
-//          args: true,
-//          msg: 'That organization is already registered'
-//        }
       },
       createdAt: {
         allowNull: false,
