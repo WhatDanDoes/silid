@@ -108,6 +108,12 @@ NOREPLY_PASSWORD=secret
 AUTH0_CLIENT_ID=tjrl8aOQEx9AtQhFffuWmvP6bcHM7nXB
 AUTH0_CLIENT_SECRET=some_secret_key
 CALLBACK_URL=https://example.com/callback
+DATABASE_HOST_DEV=example1.rds.amazonaws.com
+DATABASE_USER_DEV=user
+DATABASE_PASSWORD_DEV=password
+DATABASE_HOST_PROD=example2.rds.amazonaws.com
+DATABASE_USER_PROD=user
+DATABASE_PASSWORD_PROD=password
 ```
 
 Install dependencies:
@@ -346,3 +352,29 @@ run ecs:update-service-prod
 ```
 
 Note: The build steps scripts are referencing aws-cli scripts which are available in the `package.json` file in the `silid-server` directory. Manual deployment by developers is also possible running these scripts directory.
+
+## Database
+
+Silid is utilizing Postgres and Sequelizer as an ORM. The database is running locally in a Postgres docker container via docker-compose for local environments and in AWS RDS for silid.languagetechnology.org and silid-dev.languagetechnology.org.
+
+Migrations to these databases can be run by utilizing [sequelizer-cli](https://www.npmjs.com/package/sequelize-cli) and running the following command in the `src/silid-server/` directory:
+
+```
+sequelize db:migrate
+```
+
+The migrator tool will then look for migrations (located in the `src/silid-server/migrations/` folder) that need to be run against the configured database.
+
+Sequelizer-cli will determine the enviroment by looking at the NODE_ENV environment variable set locally, f.e. if the environment is set to test as shown below, it will look for the environment test.
+
+```
+export NODE_ENV=test
+```
+
+So in order to connect to silid-dev.languagetechnology.org (development_aws database) the NODE_ENV environment variable will need to be set to development_aws like so:
+
+```
+export NODE_ENV=development_aws
+```
+
+This can be set in the `.env` file alongside the rest of the environment variables for silid.
