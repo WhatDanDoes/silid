@@ -34,7 +34,7 @@ context('Organization delete agent', function() {
     afterEach(() => {
       cy.task('query', 'TRUNCATE TABLE "Organizations" CASCADE;');
       cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
-      cy.task('query', 'TRUNCATE TABLE "agent_organization" CASCADE;');
+      cy.task('query', 'TRUNCATE TABLE "OrganizationMembers" CASCADE;');
     });
 
     context('creator agent visit', () => {
@@ -80,11 +80,11 @@ context('Organization delete agent', function() {
           cy.on('window:confirm', (str) => {
             return true;
           });
-          cy.task('query', `SELECT * FROM "agent_organization";`).then(([results, metadata]) => {
+          cy.task('query', `SELECT * FROM "OrganizationMembers";`).then(([results, metadata]) => {
             expect(results.length).to.eq(2);
             cy.get('.delete-member').first().click();
             cy.wait(500);
-            cy.task('query', `SELECT * FROM "agent_organization";`).then(([results, metadata]) => {
+            cy.task('query', `SELECT * FROM "OrganizationMembers";`).then(([results, metadata]) => {
               expect(results.length).to.eq(1);
             });
           });

@@ -61,7 +61,7 @@ const Organization = (props: any) => {
             Organizations
           </Typography>
           { props.location.state ? <Flash message={props.location.state} variant="success" /> : '' }
-          { flashProps.errors ? flashProps.errors.map(error => <Flash message={error.message} variant={flashProps.variant} />) : '' }
+          { flashProps.errors ? flashProps.errors.map((error, index) => <Flash message={error.message} variant={flashProps.variant} key={`flash-${index}`} />) : '' }
           { formVisible ?
               <React.Fragment>
                 <OrgCreateForm
@@ -88,12 +88,12 @@ const Organization = (props: any) => {
               </Fab>
           }
 
-          <Typography variant="body2" color="textSecondary" component="p">
+          <Typography variant="body2" color="textSecondary" component="div">
           {service.status === 'loading' && <div>Loading...</div>}
           {service.status === 'loaded' && orgList.results.length ?
             <List id="organization-list">
               { orgList.results.map(org => (
-                <ListItem button className='organization-button' key='Organizations'>
+                <ListItem button className='organization-button' key={`Organizations-${org.id}`}>
                   <ListItemIcon><InboxIcon /></ListItemIcon>
                   <ListItemLink href={`#organization/${org.id}`}>
                     <ListItemText primary={org.name} />

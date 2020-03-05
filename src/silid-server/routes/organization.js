@@ -23,8 +23,17 @@ router.get('/:id', sessionAuth, function(req, res, next) {
       return res.status(404).json({ message: 'No such organization' });
     }
 
-    if (!result.members.map(member => member.id).includes(req.agent.id)) {
+    const memberIds = result.members.map(member => member.id);
+    const memberIdIndex = memberIds.indexOf(req.agent.id);
+
+    // Make sure agent is a member
+    if (memberIdIndex < 0) {
       return res.status(403).json({ message: 'You are not a member of that organization' });
+    }
+
+    // Make sure agent is email verified
+    if (result.members[memberIdIndex].OrganizationMember.verificationCode) {
+      return res.status(403).json({ message: 'You have not verified your invitation to this organization. Check your email.' });
     }
 
     res.status(200).json(result);
@@ -88,18 +97,28 @@ const patchOrg = function(req, res, next) {
     }
 
     let members = organization.members.map(member => member.id);
-    if (!members.includes(req.agent.id)) {
+    const memberIdIndex = members.indexOf(req.agent.id);
+
+    // Make sure agent is a member
+    if (memberIdIndex < 0) {
       return res.status(403).json( { message: 'You are not a member of this organization' });
     }
 
+    // Make sure agent is email verified
+    if (organization.members[memberIdIndex].OrganizationMember.verificationCode) {
+      return res.status(403).json({ message: 'You have not verified your invitation to this organization. Check your email.' });
+    }
+
     // Agent membership
-    let memberStatus = 'now a';
+    let memberStatus = 'have been invited to join';
+    let subjectLine = 'Identity organization invitation';
     if (req.body.memberId) {
       const index = members.indexOf(req.body.memberId);
       // Delete
       if (index > -1) {
-        memberStatus = 'no longer a';
+        memberStatus = 'are no longer a member of';
         members.splice(index, 1);
+        subjectLine = 'Identity membership update';
       }
       // Add
       else {
@@ -127,8 +146,8 @@ const patchOrg = function(req, res, next) {
           let mailOptions = {
             to: agent.email,
             from: process.env.NOREPLY_EMAIL,
-            subject: 'Identity membership update',
-            text: `You are ${memberStatus} member of ${organization.name}`
+            subject: subjectLine,
+            text: `You ${memberStatus} ${organization.name}`
           };
           mailer.transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
@@ -148,7 +167,7 @@ const patchOrg = function(req, res, next) {
       let status = 500;
       if (err instanceof models.Sequelize.ForeignKeyConstraintError) {
         status = 404;
-        if (err.parent.table === 'agent_organization') {
+        if (err.parent.table === 'OrganizationMembers') {
           err = { message: 'No such agent' }
         }
         else if (err.parent.table === 'organization_team') {
@@ -227,17 +246,22 @@ router.put('/:id/agent', sessionAuth, function(req, res, next) {
 
     models.Agent.findOne({ where: { email: req.body.email } }).then(agent => {
 
+      // Text is real ugly. Don't touch unless you know a better way!
       const mailOptions = {
         from: process.env.NOREPLY_EMAIL,
-        subject: 'Identity membership update',
-        text: `You are now a member of ${organization.name}`
+        subject: 'Identity organization invitation',
+        text: `You have been invited to join ${organization.name}
+
+Click or copy-paste the link below to accept:
+
+`
       };
 
       if (!agent) {
         let newAgent = new models.Agent({ email: req.body.email });
         newAgent.save().then(result => {
           organization.addMember(newAgent.id).then(result => {
-
+            mailOptions.text += `${process.env.SERVER_DOMAIN}/verify/${result[0].verificationCode}\n`;
             mailOptions.to = newAgent.email;
             mailer.transporter.sendMail(mailOptions, (error, info) => {
               if (error) {
@@ -259,7 +283,7 @@ router.put('/:id/agent', sessionAuth, function(req, res, next) {
         }
 
         organization.addMember(agent.id).then(result => {
-
+          mailOptions.text += `${process.env.SERVER_DOMAIN}/verify/${result[0].verificationCode}\n`;
           mailOptions.to = agent.email;
           mailer.transporter.sendMail(mailOptions, (error, info) => {
             if (error) {

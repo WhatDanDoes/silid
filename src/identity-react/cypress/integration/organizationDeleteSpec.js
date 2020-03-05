@@ -11,7 +11,7 @@ context('Organization delete', function() {
   afterEach(() => {
     cy.task('query', 'TRUNCATE TABLE "Organizations" CASCADE;');
     cy.task('query', 'TRUNCATE TABLE "organization_team" CASCADE;');
-    cy.task('query', 'TRUNCATE TABLE "agent_organization" CASCADE;');
+    cy.task('query', 'TRUNCATE TABLE "OrganizationMembers" CASCADE;');
   });
 
   let _profile, agent, memberAgent;
@@ -88,7 +88,7 @@ context('Organization delete', function() {
         beforeEach(() => {
           cy.task('query', `SELECT * FROM "organization_team";`).then(([results, metadata]) => {
             expect(results.length).to.eq(0);
-            cy.task('query', `SELECT * FROM "agent_organization";`).then(([results, metadata]) => {
+            cy.task('query', `SELECT * FROM "OrganizationMembers";`).then(([results, metadata]) => {
               expect(results.length).to.eq(1);
               expect(results[0].AgentId).to.eq(agent.id);
               cy.visit('/#/').then(() => {

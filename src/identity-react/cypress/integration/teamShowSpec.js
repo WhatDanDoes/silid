@@ -93,16 +93,21 @@ context('Team show', function() {
       let team;
       beforeEach(function() {
         cy.request({ url: `/organization/${organization.id}/agent`, method: 'PUT', body: { email: anotherAgent.email } }).then((org) => {
-          cy.login(anotherAgent.email, _profile);
-          cy.request({ url: '/team',  method: 'POST',
-                       body: { organizationId: organization.id, name: 'Insert Funny Team Name Here' } }).then(res => {
-            team = res.body;
 
-            cy.visit('/#/').then(() => {
-              cy.get('#app-menu-button').click();
-              cy.get('#organization-button').click();
-              cy.contains('One Book Canada').click();
-              cy.contains('Insert Funny Team Name Here').click();
+          // Verify agent membership in organization
+          cy.task('query', `UPDATE "OrganizationMembers" SET "verificationCode"=null WHERE "AgentId"=${anotherAgent.id};`).then(([results, metadata]) => {
+
+            cy.login(anotherAgent.email, _profile);
+            cy.request({ url: '/team',  method: 'POST',
+                         body: { organizationId: organization.id, name: 'Insert Funny Team Name Here' } }).then(res => {
+              team = res.body;
+
+              cy.visit('/#/').then(() => {
+                cy.get('#app-menu-button').click();
+                cy.get('#organization-button').click();
+                cy.contains('One Book Canada').click();
+                cy.contains('Insert Funny Team Name Here').click();
+              });
             });
           });
         });
@@ -146,7 +151,7 @@ context('Team show', function() {
       });
     });
 
-    context('organization member agent visit', () => {
+    context('verified organization member agent visit', () => {
 
       let team;
       beforeEach(function() {
@@ -156,12 +161,16 @@ context('Team show', function() {
 
           cy.request({ url: `/organization/${organization.id}/agent`, method: 'PUT', body: { email: anotherAgent.email } }).then(res => {
 
-            cy.login(anotherAgent.email, _profile);
-            cy.visit('/#/').then(() => {
-              cy.get('#app-menu-button').click();
-              cy.get('#organization-button').click();
-              cy.contains('One Book Canada').click();
-              cy.contains('Insert Funny Team Name Here').click();
+            // Verify agent membership
+            cy.task('query', `UPDATE "OrganizationMembers" SET "verificationCode"=null WHERE "AgentId"=${anotherAgent.id};`).then(([results, metadata]) => {
+
+              cy.login(anotherAgent.email, _profile);
+              cy.visit('/#/').then(() => {
+                cy.get('#app-menu-button').click();
+                cy.get('#organization-button').click();
+                cy.contains('One Book Canada').click();
+                cy.contains('Insert Funny Team Name Here').click();
+              });
             });
           });
         });
@@ -177,6 +186,38 @@ context('Team show', function() {
         cy.get('button#edit-team').should('not.exist');
       });
     });
+
+    context('unverified organization member agent visit', () => {
+
+      let team;
+      beforeEach(function() {
+        cy.request({ url: '/team',  method: 'POST',
+                     body: { organizationId: organization.id, name: 'Insert Funny Team Name Here' } }).then(res => {
+          team = res.body;
+
+          cy.request({ url: `/organization/${organization.id}/agent`, method: 'PUT', body: { email: anotherAgent.email } }).then(res => {
+
+            cy.login(anotherAgent.email, _profile);
+            cy.visit('/#/').then(() => {
+              cy.get('#app-menu-button').click();
+              cy.get('#organization-button').click();
+              cy.contains('One Book Canada').click();
+            });
+          });
+        });
+      });
+
+      it('lands in the right spot', () => {
+        cy.url().should('contain', `/#/organization/${organization.id}`);
+      });
+
+      it('displays appropriate Team interface elements', function() {
+        cy.get('button#add-agent').should('not.exist');
+        cy.get('button#edit-team').should('not.exist');
+        cy.contains('You have not verified your invitation to this organization. Check your email.');
+      });
+    });
+
 
     context('non-member agent visit', () => {
 
