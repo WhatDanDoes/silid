@@ -124,7 +124,7 @@ context('Team show', function() {
       });
     });
 
-    context('team member agent visit', () => {
+    context('unverified team member agent visit', () => {
 
       let team;
       beforeEach(function() {
@@ -136,6 +136,36 @@ context('Team show', function() {
 
             cy.login(anotherAgent.email, _profile);
             cy.visit(`/#/team/${team.id}`);
+          });
+        });
+      });
+
+      it('lands in the right spot', () => {
+        cy.url().should('contain', `/#/team/${team.id}`);
+      });
+
+      it('displays appropriate Team interface elements', function() {
+        cy.get('button#add-agent').should('not.exist');
+        cy.get('button#edit-team').should('not.exist');
+        cy.contains('You have not verified your invitation to this team. Check your email.');
+      });
+    });
+
+    context('verified team member agent visit', () => {
+
+      let team;
+      beforeEach(function() {
+        cy.request({ url: '/team',  method: 'POST',
+                     body: { organizationId: organization.id, name: 'Insert Funny Team Name Here' } }).then(res => {
+          team = res.body;
+
+          cy.request({ url: `/team/${team.id}/agent`, method: 'PUT', body: { email: anotherAgent.email } }).then(res => {
+
+            // Verify agent membership
+            cy.task('query', `UPDATE "TeamMembers" SET "verificationCode"=null WHERE "AgentId"=${anotherAgent.id};`).then(([results, metadata]) => {
+              cy.login(anotherAgent.email, _profile);
+              cy.visit(`/#/team/${team.id}`);
+            });
           });
         });
       });

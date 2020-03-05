@@ -1089,7 +1089,7 @@ describe('teamSpec', () => {
             .expect(403)
             .end(function(err, res) {
               if (err) return done.fail(err);
-              expect(res.body.message).toEqual('You have not verified your invitation to this organization. Check your email.');
+              expect(res.body.message).toEqual('You have not verified your invitation to this team. Check your email.');
               done();
             });
         });

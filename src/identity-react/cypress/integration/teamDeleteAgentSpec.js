@@ -123,9 +123,14 @@ context('Team delete agent', function() {
             team = res.body;
 
             cy.request({ url: `/team/${team.id}/agent`, method: 'PUT', body: { email: memberAgent.email } }).then((org) => {
-              cy.login('someotherguy@example.com', _profile);
-              cy.visit(`/#/team/${team.id}`);
-              cy.contains('Calgary Roughnecks');
+
+              // Verify agent membership
+              cy.task('query', `UPDATE "TeamMembers" SET "verificationCode"=null WHERE "AgentId"=${memberAgent.id};`).then(([results, metadata]) => {
+
+                cy.login('someotherguy@example.com', _profile);
+                cy.visit(`/#/team/${team.id}`);
+                cy.contains('Calgary Roughnecks');
+              });
             });
           });
         });
