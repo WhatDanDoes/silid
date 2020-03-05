@@ -21,11 +21,25 @@ router.get('/:id', sessionAuth, function(req, res, next) {
     if (!team) {
       return res.status(404).json({ message: 'No such team' });
     }
+
     let teamMembers = team.members.map(agent => agent.email);
+    const memberIdIndex = teamMembers.indexOf(req.agent.email);
+
+
+    if (memberIdIndex < 0) {
+      return res.status(403).json({ message: 'You are not a member of that team' });
+    }
+
+    // Make sure agent is email verified
+    if (team.members[memberIdIndex].TeamMember.verificationCode) {
+      return res.status(403).json({ message: 'You have not verified your invitation to this organization. Check your email.' });
+    }
+
+
     team.getOrganization().then(org => {
       org.getMembers().then(orgMembers => {
         orgMembers = orgMembers.map(agent => agent.email);
-        if (!teamMembers.includes(req.agent.email) && !orgMembers.includes(req.agent.email)) {
+        if (!orgMembers.includes(req.agent.email)) {
           return res.status(403).json({ message: 'You are not a member of that team' });
         }
         res.status(200).json(team);
