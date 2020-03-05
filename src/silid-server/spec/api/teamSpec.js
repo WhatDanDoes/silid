@@ -1060,6 +1060,66 @@ describe('teamSpec', () => {
       });
     });
 
+
+    describe('not verified', () => {
+
+      let unverifiedSession, unverifiedAgent;
+      beforeEach(done => {
+        models.Agent.create({ email: 'invitedagent@example.com' }).then(a => {
+          unverifiedAgent = a;
+          models.TeamMember.create({ AgentId: unverifiedAgent.id, TeamId: team.id }).then(t => {
+            login({..._identity, email: a.email}, (err, session) => {
+              if (err) return done.fail(err);
+              unverifiedSession = session;
+              done();
+            });
+          }).catch(err => {
+            done.fail(err);
+          });
+        }).catch(err => {
+          done.fail(err);
+        });
+      });
+
+      describe('read', () => {
+        it('returns 403 on team show', done => {
+          unverifiedSession
+            .get(`/team/${team.id}`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(403)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(res.body.message).toEqual('You have not verified your invitation to this team. Check your email.');
+              done();
+            });
+        });
+
+        describe('agent is also unverified organization member', () => {
+          beforeEach(done => {
+            models.OrganizationMember.create({ AgentId: unverifiedAgent.id, OrganizationId: organization.id }).then(t => {
+              done();
+            }).catch(err => {
+              done.fail(err);
+            });
+          });
+
+          it('returns 403 on team show', done => {
+            unverifiedSession
+              .get(`/team/${team.id}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(403)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.message).toEqual('You have not verified your invitation to this team or its organization. Check your email.');
+                done();
+              });
+          });
+        });
+      });
+    });
+
     describe('unauthorized', () => {
       let unauthorizedSession, unauthorizedAgent;
       beforeEach(done => {
