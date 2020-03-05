@@ -10,7 +10,7 @@ context('Team delete', function() {
 
   afterEach(() => {
     cy.task('query', 'TRUNCATE TABLE "Organizations" CASCADE;');
-    cy.task('query', 'TRUNCATE TABLE "agent_team" CASCADE;');
+    cy.task('query', 'TRUNCATE TABLE "TeamMembers" CASCADE;');
   });
 
   let _profile;
@@ -77,7 +77,7 @@ context('Team delete', function() {
 
         context('when team has no team members', () => {
           beforeEach(() => {
-            cy.task('query', `SELECT * FROM "agent_team";`).then(([results, metadata]) => {
+            cy.task('query', `SELECT * FROM "TeamMembers";`).then(([results, metadata]) => {
               expect(results.length).to.eq(1);
               expect(results[0].AgentId).to.eq(agent.id);
               cy.visit('/#/').then(() => {
@@ -156,7 +156,7 @@ context('Team delete', function() {
 
         context('when team has no team members', () => {
           beforeEach(() => {
-            cy.task('query', `SELECT * FROM "agent_team";`).then(([results, metadata]) => {
+            cy.task('query', `SELECT * FROM "TeamMembers";`).then(([results, metadata]) => {
               expect(results.length).to.eq(1);
               expect(results[0].AgentId).to.eq(agent.id);
               cy.visit('/#/').then(() => {
