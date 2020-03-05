@@ -262,15 +262,19 @@ router.put('/:id/agent', sessionAuth, function(req, res, next) {
 
       const mailOptions = {
         from: process.env.NOREPLY_EMAIL,
-        subject: 'Identity membership update',
-        text: `You are now a member of ${team.name}`
+        subject: 'Identity team invitation',
+        text: `You have been invited to join ${team.name}
+
+Click or copy-paste the link below to accept:
+
+`
       };
 
       if (!agent) {
         let newAgent = new models.Agent({ email: req.body.email });
         newAgent.save().then(result => {
           team.addMember(newAgent.id).then(result => {
-
+            mailOptions.text += `${process.env.SERVER_DOMAIN}/verify/${result[0].verificationCode}\n`;
             mailOptions.to = newAgent.email;
             mailer.transporter.sendMail(mailOptions, (error, info) => {
               if (error) {
