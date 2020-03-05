@@ -308,7 +308,7 @@ Click or copy-paste the link below to accept:
         }
 
         team.addMember(agent.id).then(result => {
-
+          mailOptions.text += `${process.env.SERVER_DOMAIN}/verify/${result[0].verificationCode}\n`;
           mailOptions.to = agent.email;
           mailer.transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
