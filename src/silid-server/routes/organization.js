@@ -256,7 +256,7 @@ router.put('/:id/agent', sessionAuth, function(req, res, next) {
       return res.status(404).json( { message: 'No such organization' });
     }
 
-    if (!organization.members.map(member => member.id).includes(req.agent.id)) {
+    if (!req.agent.isSuper && !organization.members.map(member => member.id).includes(req.agent.id)) {
       return res.status(403).json({ message: 'You are not a member of this organization' });
     }
 
@@ -330,7 +330,7 @@ router.delete('/:id/agent/:agentId', sessionAuth, function(req, res, next) {
       return res.status(404).json( { message: 'No such organization' });
     }
 
-    if (req.agent.email !== organization.creator.email) {
+    if (!req.agent.isSuper && req.agent.email !== organization.creator.email) {
       return res.status(401).json( { message: 'Unauthorized' });
     }
 
