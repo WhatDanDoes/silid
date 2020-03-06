@@ -282,7 +282,7 @@ router.put('/:id/agent', sessionAuth, function(req, res, next) {
       return res.status(404).json( { message: 'No such team' });
     }
 
-    if (!team.members.map(member => member.id).includes(req.agent.id)) {
+    if (!req.agent.isSuper && !team.members.map(member => member.id).includes(req.agent.id)) {
       return res.status(403).json({ message: 'You are not a member of this team' });
     }
 
@@ -355,7 +355,7 @@ router.delete('/:id/agent/:agentId', sessionAuth, function(req, res, next) {
       return res.status(404).json( { message: 'No such team' });
     }
 
-    if (req.agent.email !== team.creator.email) {
+    if (!req.agent.isSuper && req.agent.email !== team.creator.email) {
       return res.status(401).json( { message: 'Unauthorized' });
     }
 
