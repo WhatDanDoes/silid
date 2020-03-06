@@ -6,11 +6,20 @@ const mailer = require('../mailer');
 
 /* GET organization listing. */
 router.get('/', sessionAuth, function(req, res, next) {
-  req.agent.getOrganizations().then(orgs => {
-    res.json(orgs);
-  }).catch(err => {
-    res.status(500).json(err);
-  });
+  if (req.agent.isSuper) {
+    models.Organization.findAll().then(orgs => {
+      res.json(orgs);
+    }).catch(err => {
+      res.status(500).json(err);
+    });
+  }
+  else {
+    req.agent.getOrganizations().then(orgs => {
+      res.json(orgs);
+    }).catch(err => {
+      res.status(500).json(err);
+    });
+  }
 });
 
 router.get('/:id', sessionAuth, function(req, res, next) {
@@ -26,19 +35,23 @@ router.get('/:id', sessionAuth, function(req, res, next) {
     const memberIds = result.members.map(member => member.id);
     const memberIdIndex = memberIds.indexOf(req.agent.id);
 
-    // Make sure agent is a member
-    if (memberIdIndex < 0) {
-      return res.status(403).json({ message: 'You are not a member of that organization' });
-    }
+    // Super agent gets all-access pass
+    if (!req.agent.isSuper) {
 
-    // Make sure agent is email verified
-    if (result.members[memberIdIndex].OrganizationMember.verificationCode) {
-      return res.status(403).json({ message: 'You have not verified your invitation to this organization. Check your email.' });
+      // Make sure agent is a member
+      if (memberIdIndex < 0) {
+        return res.status(403).json({ message: 'You are not a member of that organization' });
+      }
+
+      // Make sure agent is email verified
+      if (result.members[memberIdIndex].OrganizationMember.verificationCode) {
+        return res.status(403).json({ message: 'You have not verified your invitation to this organization. Check your email.' });
+      }
     }
 
     res.status(200).json(result);
   }).catch(err => {
-    res.json(err);
+    res.status(500).json(err);
   });
 });
 
@@ -63,10 +76,10 @@ router.put('/', sessionAuth, function(req, res, next) {
     }
 
     organization.getCreator().then(creator => {
-      if (req.agent.email !== creator.email) {
+      if (!req.agent.isSuper && req.agent.email !== creator.email) {
         return res.status(403).json( { message: 'Unauthorized' });
       }
-  
+
       for (let key in req.body) {
         if (organization[key]) {
           organization[key] = req.body[key];
@@ -99,14 +112,17 @@ const patchOrg = function(req, res, next) {
     let members = organization.members.map(member => member.id);
     const memberIdIndex = members.indexOf(req.agent.id);
 
-    // Make sure agent is a member
-    if (memberIdIndex < 0) {
-      return res.status(403).json( { message: 'You are not a member of this organization' });
-    }
+    // Super agent gets all-access pass
+    if (!req.agent.isSuper) {
+      // Make sure agent is a member
+      if (memberIdIndex < 0) {
+        return res.status(403).json( { message: 'You are not a member of this organization' });
+      }
 
-    // Make sure agent is email verified
-    if (organization.members[memberIdIndex].OrganizationMember.verificationCode) {
-      return res.status(403).json({ message: 'You have not verified your invitation to this organization. Check your email.' });
+      // Make sure agent is email verified
+      if (organization.members[memberIdIndex].OrganizationMember.verificationCode) {
+        return res.status(403).json({ message: 'You have not verified your invitation to this organization. Check your email.' });
+      }
     }
 
     // Agent membership
@@ -213,7 +229,7 @@ router.delete('/', sessionAuth, function(req, res, next) {
     }
 
     organization.getCreator().then(creator => {
-      if (req.agent.email !== creator.email) {
+      if (!req.agent.isSuper && req.agent.email !== creator.email) {
         return res.status(401).json( { message: 'Unauthorized' });
       }
   
