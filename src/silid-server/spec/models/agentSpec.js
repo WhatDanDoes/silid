@@ -1,6 +1,6 @@
 'use strict';
-require('dotenv-flow').config();
 
+require('../../app'); // Just so .env vars are loaded
 const fixtures = require('sequelize-fixtures');
 
 describe('Agent', () => {
@@ -246,7 +246,6 @@ describe('Agent', () => {
   describe('virtuals', () => {
     describe('isSuper', () => {
       it('returns true if ROOT_AGENT is set in .env', done => {
-        console.log(process.env);
         Agent.create({ email: process.env.ROOT_AGENT }).then(agent => {
           expect(agent.isSuper).toBe(true);
           done();
