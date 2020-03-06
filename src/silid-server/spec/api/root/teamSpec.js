@@ -44,7 +44,6 @@ describe('root/teamSpec', () => {
                   }).catch(err => {
                     done.fail(err);
                   });
-                  done();
                 }).catch(err => {
                   done.fail(err);
                 });
