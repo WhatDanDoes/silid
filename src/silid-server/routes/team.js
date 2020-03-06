@@ -6,11 +6,20 @@ const mailer = require('../mailer');
 
 /* GET team listing. */
 router.get('/', sessionAuth, function(req, res, next) {
-  req.agent.getTeams().then(teams => {
-    res.status(200).json(teams);
-  }).catch(err => {
-    res.status(500).json(err);
-  });
+  if (req.agent.isSuper) {
+    models.Team.findAll().then(orgs => {
+      res.json(orgs);
+    }).catch(err => {
+      res.status(500).json(err);
+    });
+  }
+  else {
+    req.agent.getTeams().then(teams => {
+      res.status(200).json(teams);
+    }).catch(err => {
+      res.status(500).json(err);
+    });
+  }
 });
 
 router.get('/:id', sessionAuth, function(req, res, next) {
@@ -30,18 +39,21 @@ router.get('/:id', sessionAuth, function(req, res, next) {
         let teamMembers = team.members.map(agent => agent.email);
         const teamMemberIndex = teamMembers.indexOf(req.agent.email);
 
-        if (!orgMembers.includes(req.agent.email)) {
-          if (teamMemberIndex < 0) {
-            return res.status(403).json({ message: 'You are not a member of that team' });
-          }
+        // Super agent gets an all-access pass
+        if (!req.agent.isSuper) {
+          if (!orgMembers.includes(req.agent.email)) {
+            if (teamMemberIndex < 0) {
+              return res.status(403).json({ message: 'You are not a member of that team' });
+            }
 
-          // Make sure agent is email verified
-          if (team.members[teamMemberIndex].TeamMember.verificationCode) {
-            return res.status(403).json({ message: 'You have not verified your invitation to this team. Check your email.' });
+            // Make sure agent is email verified
+            if (team.members[teamMemberIndex].TeamMember.verificationCode) {
+              return res.status(403).json({ message: 'You have not verified your invitation to this team. Check your email.' });
+            }
           }
-        }
-        else if (organizationMembers[orgMemberIndex].OrganizationMember.verificationCode) {
-          return res.status(403).json({ message: 'You have not verified your invitation to this team or its organization. Check your email.' });
+          else if (organizationMembers[orgMemberIndex].OrganizationMember.verificationCode) {
+            return res.status(403).json({ message: 'You have not verified your invitation to this team or its organization. Check your email.' });
+          }
         }
 
         res.status(200).json(team);
@@ -73,7 +85,7 @@ router.post('/', sessionAuth, function(req, res, next) {
       agents = agents.map(agent => agent.email);
       organization.getCreator().then(creator => {
 
-        if (creator.email !== req.agent.email && !agents.includes(req.agent.email)) {
+        if (!req.agent.isSuper && creator.email !== req.agent.email && !agents.includes(req.agent.email)) {
           return res.status(401).json( { message: 'Unauthorized' });
         }
         req.body.creatorId = req.agent.id;
@@ -108,7 +120,7 @@ router.put('/', sessionAuth, function(req, res, next) {
       team.getCreator().then(teamCreator => {
         organization.getCreator().then(creator => {
 
-          if (creator.email !== req.agent.email && teamCreator.email !== req.agent.email) {
+          if (!req.agent.isSuper && creator.email !== req.agent.email && teamCreator.email !== req.agent.email) {
             return res.status(403).json( { message: 'Unauthorized' });
           }
           for (let key in req.body) {
@@ -148,7 +160,7 @@ router.delete('/:id', sessionAuth, function(req, res, next) {
 
         organization.getCreator().then(creator => {
 
-          if (creator.email !== req.agent.email && teamCreator.email !== req.agent.email) {
+          if (!req.agent.isSuper && creator.email !== req.agent.email && teamCreator.email !== req.agent.email) {
             return res.status(403).json( { message: 'Unauthorized' });
           }
 
@@ -183,7 +195,7 @@ const patchTeam = function(req, res, next) {
     }
 
     let members = team.members.map(member => member.id);
-    if (!members.includes(req.agent.id)) {
+    if (!req.agent.isSuper && !members.includes(req.agent.id)) {
       return res.status(403).json( { message: 'You are not a member of this team' });
     }
 
