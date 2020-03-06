@@ -21,6 +21,12 @@ module.exports = (sequelize, DataTypes) => {
     socialProfile: {
       strict: true,
       type: DataTypes.JSONB
+    },
+    isSuper: {
+      type: DataTypes.VIRTUAL,
+      get: function() {
+        return process.env.ROOT_AGENT === this.email;
+      }
     }
   }, {});
 
