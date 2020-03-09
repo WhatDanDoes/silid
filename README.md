@@ -378,3 +378,21 @@ export NODE_ENV=development_aws
 ```
 
 This can be set in the `.env` file alongside the rest of the environment variables for silid.
+
+## Troubleshooting
+
+Since silid is running across distributed services in AWS, there are a number of places to check in case of application errors or failures.
+
+A good place to start is by running tests against the AWS RDS development database which silid-dev.languagetechnology.org is pointing towards by running the tests locally:
+
+```
+npm test
+```
+
+If the tests return failures, it is possible the data model needs to be updated in the database. This can be done by running:
+
+```
+sequelize db:migrate
+```
+
+However, it may be required to 'reset' the database models in order for data model to be updated/migrated correctly. The current solution for this is to manually connect to the postgres database and drop the tables manually.
