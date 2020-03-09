@@ -378,3 +378,29 @@ export NODE_ENV=development_aws
 ```
 
 This can be set in the `.env` file alongside the rest of the environment variables for silid.
+
+## AWS RDS
+
+The UI for RDS can be found at the [Amazon dashboard](https://928745222303.signin.aws.amazon.com/console) and directly at the [RDS service.](https://console.aws.amazon.com/rds/home?region=us-east-1#databases:)
+
+Two RDS databases are being used for silid and can be seen in the AWS console listed as `ss1e8pfmqwgebvu` for silid-dev.languagetechnology.org and `ss1fejs6cgbasrw` for silid.languagetechnology.org. These databases were created manually through the AWS dashboard and set to `db.t3.micro` instance type. Daily backups are being taken and handled throughout the RDS service.
+
+In the event of a database outage or loss, the database can be restored by [restoring a snapshot of the database instance](https://console.aws.amazon.com/rds/home?region=us-east-1#database:id=ss1fejs6cgbasrw;is-cluster=false;tab=maintenance-and-backups) or recreated entirely [here](https://console.aws.amazon.com/rds/home?region=us-east-1#launch-dbinstance:gdb=false;s3-import=false).
+
+## Troubleshooting
+
+Since silid is running across distributed services in AWS, there are a number of places to check in case of application errors or failures.
+
+A good place to start is by running tests against the AWS RDS development database which silid-dev.languagetechnology.org is pointing towards by running the tests locally:
+
+```
+npm test
+```
+
+If the tests return failures, it is possible the data model needs to be updated in the database. This can be done by running:
+
+```
+sequelize db:migrate
+```
+
+However, it may be required to 'reset' the database models in order for data model to be updated/migrated correctly. The current solution for this is to manually connect to the postgres database and drop the tables manually.
