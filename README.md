@@ -381,6 +381,8 @@ This can be set in the `.env` file alongside the rest of the environment variabl
 
 ## AWS RDS
 
+The UI for RDS can be found at the [Amazon dashboard](https://928745222303.signin.aws.amazon.com/console) and directly at the [RDS service.](https://console.aws.amazon.com/rds/home?region=us-east-1#databases:)
+
 Two RDS databases are being used for silid and can be seen in the AWS console listed as `ss1e8pfmqwgebvu` for silid-dev.languagetechnology.org and `ss1fejs6cgbasrw` for silid.languagetechnology.org. These databases were created manually through the AWS dashboard and set to `db.t3.micro` instance type. Daily backups are being taken and handled throught the RDS service.
 
 In the event of a database outage or loss, the database can be restored by [restoring a snapshot of the database instance](https://console.aws.amazon.com/rds/home?region=us-east-1#database:id=ss1fejs6cgbasrw;is-cluster=false;tab=maintenance-and-backups) or recreated entirely [here](https://console.aws.amazon.com/rds/home?region=us-east-1#launch-dbinstance:gdb=false;s3-import=false).
