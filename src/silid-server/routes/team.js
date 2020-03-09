@@ -21,13 +21,29 @@ router.get('/:id', sessionAuth, function(req, res, next) {
     if (!team) {
       return res.status(404).json({ message: 'No such team' });
     }
-    let teamMembers = team.members.map(agent => agent.email);
+
     team.getOrganization().then(org => {
-      org.getMembers().then(orgMembers => {
-        orgMembers = orgMembers.map(agent => agent.email);
-        if (!teamMembers.includes(req.agent.email) && !orgMembers.includes(req.agent.email)) {
-          return res.status(403).json({ message: 'You are not a member of that team' });
+      org.getMembers().then(organizationMembers => {
+        const orgMembers = organizationMembers.map(agent => agent.email);
+        const orgMemberIndex = orgMembers.indexOf(req.agent.email);
+
+        let teamMembers = team.members.map(agent => agent.email);
+        const teamMemberIndex = teamMembers.indexOf(req.agent.email);
+
+        if (!orgMembers.includes(req.agent.email)) {
+          if (teamMemberIndex < 0) {
+            return res.status(403).json({ message: 'You are not a member of that team' });
+          }
+
+          // Make sure agent is email verified
+          if (team.members[teamMemberIndex].TeamMember.verificationCode) {
+            return res.status(403).json({ message: 'You have not verified your invitation to this team. Check your email.' });
+          }
         }
+        else if (organizationMembers[orgMemberIndex].OrganizationMember.verificationCode) {
+          return res.status(403).json({ message: 'You have not verified your invitation to this team or its organization. Check your email.' });
+        }
+
         res.status(200).json(team);
       }).catch(err => {
         res.status(500).json(err);
@@ -208,7 +224,7 @@ const patchTeam = function(req, res, next) {
       let status = 500;
       if (err instanceof models.Sequelize.ForeignKeyConstraintError) {
         status = 404;
-        if (err.parent.table === 'agent_team') {
+        if (err.parent.table === 'TeamMembers') {
           err = { message: 'No such agent' }
         }
       }
@@ -262,15 +278,19 @@ router.put('/:id/agent', sessionAuth, function(req, res, next) {
 
       const mailOptions = {
         from: process.env.NOREPLY_EMAIL,
-        subject: 'Identity membership update',
-        text: `You are now a member of ${team.name}`
+        subject: 'Identity team invitation',
+        text: `You have been invited to join ${team.name}
+
+Click or copy-paste the link below to accept:
+
+`
       };
 
       if (!agent) {
         let newAgent = new models.Agent({ email: req.body.email });
         newAgent.save().then(result => {
           team.addMember(newAgent.id).then(result => {
-
+            mailOptions.text += `${process.env.SERVER_DOMAIN}/verify/${result[0].verificationCode}\n`;
             mailOptions.to = newAgent.email;
             mailer.transporter.sendMail(mailOptions, (error, info) => {
               if (error) {
@@ -292,7 +312,7 @@ router.put('/:id/agent', sessionAuth, function(req, res, next) {
         }
 
         team.addMember(agent.id).then(result => {
-
+          mailOptions.text += `${process.env.SERVER_DOMAIN}/verify/${result[0].verificationCode}\n`;
           mailOptions.to = agent.email;
           mailer.transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
