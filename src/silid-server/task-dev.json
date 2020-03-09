@@ -1,11 +1,11 @@
 {
   "containerDefinitions": [
     {
-     "portMappings": [
+      "portMappings": [
         {
-          "hostPort": 3001,
+          "hostPort": 5001,
           "protocol": "tcp",
-          "containerPort": 3001
+          "containerPort": 5001
         }
       ],
       "cpu": 1,
@@ -22,13 +22,9 @@
   "placementConstraints": [],
   "memory": "512",
   "taskRoleArn": "arn:aws:iam::117995318043:role/ecsTaskExecutionRole",
-  "requiresCompatibilities": [
-    "EC2"
-  ],
+  "requiresCompatibilities": ["EC2"],
   "family": "silid-server-dev-task",
-  "requiresCompatibilities": [
-    "EC2"
-  ],
+  "requiresCompatibilities": ["EC2"],
   "networkMode": "host",
   "cpu": "128",
   "volumes": []
