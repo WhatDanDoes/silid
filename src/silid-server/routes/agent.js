@@ -5,9 +5,9 @@ const models = require('../models');
 const passport = require('passport');
 
 /* GET agent listing. */
-router.get('/', sessionAuth, function(req, res, next) {
+router.get('/admin', sessionAuth, function(req, res, next) {
   if (!req.agent.isSuper) {
-    return res.json(req.agent);
+    return res.status(403).json( { message: 'Forbidden' });
   }
 
   // Super agent gets entire listing
@@ -17,6 +17,11 @@ router.get('/', sessionAuth, function(req, res, next) {
     res.status(500).json(err);
   });
 });
+
+router.get('/', sessionAuth, function(req, res, next) {
+  return res.json(req.agent);
+});
+
 
 router.get('/:id', sessionAuth, function(req, res, next) {
   models.Agent.findOne({ where: { id: req.params.id } }).then(result => {
