@@ -6,7 +6,7 @@ context('Authentication', function() {
 
   before(function() {
     cy.fixture('google-profile-response.json').as('profile');
-    cy.fixture('someguy-auth0-access-token.json').as('agent');
+//    cy.fixture('someguy-auth0-access-token.json').as('agent');
   });
 
   describe('browser behaviour', () => {
@@ -72,6 +72,9 @@ context('Authentication', function() {
 
       cy.get('#app-menu ul div:nth-of-type(1) a').should('have.attr', 'href', '#agent').and('contain', 'Profile');
       cy.get('#app-menu ul div:nth-of-type(2) a').should('have.attr', 'href', '#organization').and('contain', 'Organizations');
+      cy.get('#app-menu ul div:nth-of-type(3) a').should('have.attr', 'href', '#team').and('contain', 'Teams');
+      cy.get('#app-menu ul div:nth-of-type(4) input').should('not.exist');
+      cy.get('#app-menu ul div:nth-of-type(5) a').should('not.exist');
     });
 
     describe('post sign-in', function() {
