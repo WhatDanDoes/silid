@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { HashRouter, Route, Switch } from 'react-router-dom';
 import Home from './routes/Home';
+import AgentDirectory from './routes/AgentDirectory';
 import Agent from './routes/Agent';
 import Organization from './routes/Organization';
 import OrganizationInfo from './routes/OrganizationInfo';
@@ -36,6 +37,7 @@ function App() {
               render={props => <Home message={message} {...props} />}
             />
             <Switch>
+              <PrivateRoute path="/agent/admin" component={AgentDirectory} redirect="/" />
               <PrivateRoute path="/agent/:id" component={Agent} redirect="/" />
               <PrivateRoute path="/agent" component={Agent} redirect="/" />
               <PrivateRoute path="/organization/:id" component={OrganizationInfo} redirect="/" />
