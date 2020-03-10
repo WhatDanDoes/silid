@@ -5,15 +5,15 @@ const models = require('../../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../../support/stubAuth0Sessions');
 
-describe('root/agentSpec', () => {
+/**
+ * 2019-11-13
+ * Sample tokens taken from:
+ *
+ * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
+ */
+const _identity = require('../../fixtures/sample-auth0-identity-token');
 
-  /**
-   * 2019-11-13
-   * Sample tokens taken from:
-   *
-   * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
-   */
-  const _identity = require('../../fixtures/sample-auth0-identity-token');
+describe('root/agentSpec', () => {
 
   let login, pub, prv, keystore;
   beforeAll(done => {
@@ -62,10 +62,10 @@ describe('root/agentSpec', () => {
     });
 
     describe('read', () => {
-      describe('/agent', () => {
+      describe('/agent/admin', () => {
         it('retrieves all the agents in the database', done => {
           rootSession
-            .get(`/agent`)
+            .get(`/agent/admin`)
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(200)
@@ -299,18 +299,16 @@ describe('root/agentSpec', () => {
     });
 
     describe('read', () => {
-      describe('/agent', () => {
-        it('retrieves the requesting agent\'s info', done => {
+      describe('/agent/admin', () => {
+        it('returns 403 with message', done => {
           unauthorizedSession
-            .get(`/agent`)
+            .get(`/agent/admin`)
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
-            .expect(200)
+            .expect(403)
             .end(function(err, res) {
               if (err) return done.fail(err);
-
-              expect(res.body.email).toEqual(agent.email);
-              expect(res.body.isSuper).toEqual(false);
+              expect(res.body.message).toEqual('Forbidden');
               done();
             });
         });
