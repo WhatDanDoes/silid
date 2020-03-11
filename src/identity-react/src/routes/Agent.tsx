@@ -132,7 +132,7 @@ const Agent = (props: any) => {
                   margin="normal"
                   name="name"
                   required
-                  disabled={formData.email !== agent.email}
+                  disabled={formData.email !== agent.email && !agent.isSuper}
                   value={formData.name}
                   onChange={onChange}
                   onInvalid={customMessage}
@@ -147,11 +147,11 @@ const Agent = (props: any) => {
                       Cancel
                   </Button> : ''
                 }
-                { formData.email === agent.email &&
+                { formData.email === agent.email || agent.isSuper ?
                 <Button type="submit" variant="contained" color="primary"
                         disabled={!Object.keys(prevState).length}>
                   Save
-                </Button> }
+                </Button> : ''}
               </form> : ''}
             {service.status === 'error' && (
               <div>{service.error.message}</div>
