@@ -1,8 +1,6 @@
-silid-server
-============
+# silid-server
 
 `express-generator`-bootstrapped app to administer agent identity within a dynamic organizational structure.
-
 
 ## Setup
 
@@ -46,7 +44,6 @@ If you want to poke around in the test database, connect like this:
 ```
 psql -h localhost -d postgres -U user -W
 ```
-
 
 ## Dev server
 

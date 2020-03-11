@@ -13,9 +13,7 @@ const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 const _identity = require('../fixtures/sample-auth0-identity-token');
 
 describe('client end points', () => {
-
   describe('/', () => {
-
     describe('not authenticated', () => {
       it('returns successfully', done => {
         request(app)
@@ -32,7 +30,6 @@ describe('client end points', () => {
     });
 
     describe('authenticated', () => {
-
       let login, pub, prv, keystore;
       beforeAll(done => {
         stubAuth0Sessions((err, sessionStuff) => {

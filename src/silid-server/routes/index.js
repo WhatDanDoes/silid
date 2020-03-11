@@ -64,4 +64,8 @@ if (process.env.NODE_ENV === 'e2e') {
   });
 }
 
+router.get('/callback', function(req, res, next) {
+  res.sendFile('index.html', { root: __dirname + '/../public' });
+});
+
 module.exports = router;
