@@ -42,27 +42,12 @@ context('root/Agent Index', function() {
       cy.login(_profile.email, _profile);
     });
 
-    it('enters with admin mode turned off', () => {
-      cy.get('#app-menu-button').click();
-      cy.get('#app-menu ul div:nth-of-type(4) input').should('have.attr', 'type', 'checkbox').and('not.be.checked');
-      cy.get('#app-menu ul div:nth-of-type(5) a').should('not.exist');
-    });
-
-    it('allows the super agent to toggle admin mode', () => {
-      cy.get('#app-menu-button').click();
-      cy.get('#app-menu ul div:nth-of-type(5) a').should('not.exist');
-      cy.get('#app-menu ul div:nth-of-type(4) input').check();
-      cy.get('#app-menu ul div:nth-of-type(5) a').should('have.attr', 'href', '#agent/admin').and('contain', 'Directory');
-      cy.get('#app-menu ul div:nth-of-type(4) input').uncheck();
-      cy.get('#app-menu ul div:nth-of-type(5) a').should('not.exist');
-    });
-
     context('admin mode', () => {
 
       beforeEach(function() {
         cy.get('#app-menu-button').click();
         cy.get('#admin-switch').check();
-        cy.contains('Directory').click();
+        cy.contains('Agent Directory').click();
       });
  
       it('lands in the right spot', () => {

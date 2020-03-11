@@ -135,12 +135,26 @@ const Home = (props: IProps) => {
           </ListItem>
         )}
         {admin.isEnabled && (
-          <ListItem button id='directory-button' key='Directory'>
-            <ListItemIcon><InboxIcon /></ListItemIcon>
-            <ListItemLink href='#agent/admin'>
-              <ListItemText primary='Directory' />
-            </ListItemLink>
-          </ListItem>
+          <>
+            <ListItem button id='directory-button' key='Directory'>
+              <ListItemIcon><InboxIcon /></ListItemIcon>
+              <ListItemLink href='#agent/admin'>
+                <ListItemText primary='Agent Directory' />
+              </ListItemLink>
+            </ListItem>
+            <ListItem button id='organizations-button' key='OrganizationDirectory'>
+              <ListItemIcon><InboxIcon /></ListItemIcon>
+              <ListItemLink href='#organization/admin'>
+                <ListItemText primary='Organization Directory' />
+              </ListItemLink>
+            </ListItem>
+            <ListItem button id='teams-button' key='TeamDirectory'>
+              <ListItemIcon><InboxIcon /></ListItemIcon>
+              <ListItemLink href='#team/admin'>
+                <ListItemText primary='Team Directory' />
+              </ListItemLink>
+            </ListItem>
+          </>
         )}
       </List>
       <Divider />

@@ -136,7 +136,7 @@ context('root/Agent edit', function() {
               cy.login(_profile.email, _profile);
               cy.get('#app-menu-button').click();
               cy.get('#admin-switch').check();
-              cy.contains('Directory').click();
+              cy.contains('Agent Directory').click();
               cy.wait(500);
               cy.contains(memberAgent.name).click();
               cy.wait(500);
