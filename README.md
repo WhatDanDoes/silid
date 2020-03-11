@@ -403,6 +403,8 @@ In the event of a database outage or loss, the database can be restored by [rest
 
 For the development_aws and production environments (silid-dev, silid), email is dependent on the [Amazon Simple Email Service](https://console.aws.amazon.com/ses/home?region=us-east-1#verified-sender-details:domain:languagetechnology.org) (SES). A config file named `aws.json` is required in the `config` directory of `silid-server` with SES credentials. This is currently being created by a step in the build process handled by TeamCity (see Add AWS aws.json file).
 
+We are using [this](https://console.aws.amazon.com/iam/home?region=us-east-1#/users/ses-smtp-user.20200304-155331) smtp account for ses. It is providing the noreply@languagetechnology.org sending service for the verification process of silid.
+
 ## Troubleshooting
 
 Since silid is running across distributed services in AWS, there are a number of places to check in case of application errors or failures.
