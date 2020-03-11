@@ -62,6 +62,23 @@ describe('root/agentSpec', () => {
     });
 
     describe('read', () => {
+      describe('/agent', () => {
+        it('retrieves root agent\'s info from the database', done => {
+          rootSession
+            .get('/agent')
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(200)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+
+              expect(res.body.email).toEqual(process.env.ROOT_AGENT);
+              expect(res.body.name).toEqual('Professor Fresh');
+              done();
+            });
+        });
+      });
+
       describe('/agent/admin', () => {
         it('retrieves all the agents in the database', done => {
           rootSession
