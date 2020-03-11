@@ -63,10 +63,10 @@ const Home = (props: IProps) => {
   /**
    * Admin toggle
    */
-  const {admin, toggleMode} = useAdminState();
+  const admin = useAdminState();
   const toggleAdminMode = (event) => {
     setDrawerPosition({ ...drawerPosition, left: true });
-    toggleMode();
+    admin.toggleMode();
   };
 
   /**
@@ -128,13 +128,13 @@ const Home = (props: IProps) => {
           <ListItem button key='Admin'>
             <FormControlLabel
               control={
-                <Switch id='admin-switch' checked={admin} onChange={toggleAdminMode} value="admin" />
+                <Switch id='admin-switch' checked={admin.isEnabled} onChange={toggleAdminMode} value="admin" />
               }
               label="Admin Mode"
             />
           </ListItem>
         )}
-        {admin && (
+        {admin.isEnabled && (
           <ListItem button id='directory-button' key='Directory'>
             <ListItemIcon><InboxIcon /></ListItemIcon>
             <ListItemLink href='#agent/admin'>
