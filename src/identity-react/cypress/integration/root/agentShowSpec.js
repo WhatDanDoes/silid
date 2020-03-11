@@ -48,60 +48,62 @@ context('root/Agent show', function() {
       });
     });
 
-    context('switched on', () => {
-      describe('viewing member agent\'s profile', () => {
-        beforeEach(function() {
-          cy.login(_profile.email, _profile);
-          cy.get('#app-menu-button').click();
-          cy.get('#admin-switch').check();
-          cy.visit(`/#/agent/${memberAgent.id}`);
-          cy.wait(500);
-        });
-
-        it('lands in the right spot', () => {
-          cy.url().should('contain', `/#/agent/${memberAgent.id}`);
-        });
-
-        it('displays agent social profile info in form', function() {
-          cy.get('h3').contains('Profile');
-          cy.get('input[name="name"][type="text"]').should('have.value', memberAgent.name);
-          cy.get('input[name="name"][type="text"]').should('not.be.disabled');
-          cy.get('input[name="email"][type="email"]').should('have.value', memberAgent.email);
-          cy.get('input[name="email"][type="email"]').should('be.disabled');
-          cy.get('button[type="submit"]').should('exist');
-        });
-
-        it('disables the Save button', () => {
-          cy.get('button[type="submit"]').should('be.disabled');
-        });
-      });
-
-      describe('viewing your own profile', () => {
-
-        let root;
-        beforeEach(function() {
-          cy.login(_profile.email, _profile);
-          cy.get('#app-menu-button').click();
-          cy.get('#admin-switch').check();
-          cy.contains('Profile').click();
-          cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
-            root = results[0];
-            cy.visit(`/#/agent/${root.id}`);
+    describe('admin mode', () => {
+      context('switched on', () => {
+        describe('viewing member agent\'s profile', () => {
+          beforeEach(function() {
+            cy.login(_profile.email, _profile);
+            cy.get('#app-menu-button').click();
+            cy.get('#admin-switch').check();
+            cy.visit(`/#/agent/${memberAgent.id}`);
             cy.wait(500);
+          });
+
+          it('lands in the right spot', () => {
+            cy.url().should('contain', `/#/agent/${memberAgent.id}`);
+          });
+
+          it('displays agent social profile info in form', function() {
+            cy.get('h3').contains('Profile');
+            cy.get('input[name="name"][type="text"]').should('have.value', memberAgent.name);
+            cy.get('input[name="name"][type="text"]').should('not.be.disabled');
+            cy.get('input[name="email"][type="email"]').should('have.value', memberAgent.email);
+            cy.get('input[name="email"][type="email"]').should('be.disabled');
+            cy.get('button[type="submit"]').should('exist');
+          });
+
+          it('disables the Save button', () => {
+            cy.get('button[type="submit"]').should('be.disabled');
           });
         });
 
-        it('lands in the right spot', () => {
-          cy.url().should('contain', `/#/agent/${root.id}`);
-        });
+        describe('viewing your own profile', () => {
 
-        it('displays agent social profile info in form', () => {
-          cy.get('h3').contains('Profile');
-          cy.get('input[name="name"][type="text"]').should('have.value', root.name);
-          cy.get('input[name="name"][type="text"]').should('not.be.disabled');
-          cy.get('input[name="email"][type="email"]').should('have.value', root.email);
-          cy.get('input[name="email"][type="email"]').should('be.disabled');
-          cy.get('button[type="submit"]').should('exist');
+          let root;
+          beforeEach(function() {
+            cy.login(_profile.email, _profile);
+            cy.get('#app-menu-button').click();
+            cy.get('#admin-switch').check();
+            cy.contains('Profile').click();
+            cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
+              root = results[0];
+              cy.visit(`/#/agent/${root.id}`);
+              cy.wait(500);
+            });
+          });
+
+          it('lands in the right spot', () => {
+            cy.url().should('contain', `/#/agent/${root.id}`);
+          });
+
+          it('displays agent social profile info in form', () => {
+            cy.get('h3').contains('Profile');
+            cy.get('input[name="name"][type="text"]').should('have.value', root.name);
+            cy.get('input[name="name"][type="text"]').should('not.be.disabled');
+            cy.get('input[name="email"][type="email"]').should('have.value', root.email);
+            cy.get('input[name="email"][type="email"]').should('be.disabled');
+            cy.get('button[type="submit"]').should('exist');
+          });
         });
       });
     });
