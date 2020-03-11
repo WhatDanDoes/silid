@@ -82,6 +82,7 @@ context('Agent show', function() {
         cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
           agent = results[0];
           cy.visit(`/#/agent/${agent.id}`);
+          cy.wait(500);
         });
       });
 
@@ -98,8 +99,8 @@ context('Agent show', function() {
         cy.get('button[type="submit"]').should('exist');
       });
 
-      it('hides the Save button', () => {
-        cy.get('button[type="submit"]').should('not.exist');
+      it('disables the Save button', () => {
+        cy.get('button[type="submit"]').should('be.disabled');
       });
     });
   });
