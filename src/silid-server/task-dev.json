@@ -1,0 +1,31 @@
+{
+  "containerDefinitions": [
+    {
+      "portMappings": [
+        {
+          "hostPort": 4001,
+          "protocol": "tcp",
+          "containerPort": 4001
+        }
+      ],
+      "cpu": 1,
+      "environment": [],
+      "mountPoints": [],
+      "workingDirectory": "/app",
+      "memoryReservation": 128,
+      "volumesFrom": [],
+      "image": "117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server-dev:latest",
+      "essential": true,
+      "name": "silid-server"
+    }
+  ],
+  "placementConstraints": [],
+  "memory": "512",
+  "taskRoleArn": "arn:aws:iam::117995318043:role/ecsTaskExecutionRole",
+  "requiresCompatibilities": ["EC2"],
+  "family": "silid-server-dev-task",
+  "requiresCompatibilities": ["EC2"],
+  "networkMode": "host",
+  "cpu": "128",
+  "volumes": []
+}

@@ -19,7 +19,25 @@ npm start
 
 ## Test
 
-For the moment, the dev server needs to be running (as above: `npm start`). Execute `cypress` tests:
+Start `silid-server` in another shell or process:
+
+```
+cd ../silid-server && PORT=3001 npm start
+```
+
+Since the API is running on port `3001`, the `identity-react` API port needs to be configured in `.env`:
+
+```
+REACT_APP_API_DOMAIN=localhost:3001
+```
+
+As above, the dev server needs to be running in another shell or process. From the `identity-react` directory:
+
+```
+npm start
+```
+
+Execute `cypress` tests:
 
 ```
 npx cypress run
@@ -40,5 +58,14 @@ npm run test:headless
 ```
 
 Some helpful (but not entirely applicable) info can be found here: https://www.cypress.io/blog/2019/05/02/run-cypress-with-a-single-docker-command/
+
+
+To run a single test file:
+
+```
+npm run test:headless -- --spec cypress/integration/organizationIndexSpec.js
+```
+
+Note the extra `--`.
 
 

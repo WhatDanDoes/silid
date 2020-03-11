@@ -2,10 +2,28 @@ const PORT = process.env.NODE_ENV === 'production' ? 3000 : 3001;
 const app = require('../../app');
 const fixtures = require('sequelize-fixtures');
 const models = require('../../models');
-const jwt = require('jsonwebtoken');
 const request = require('supertest');
+const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 
 describe('agentSpec', () => {
+
+  /**
+   * 2019-11-13
+   * Sample tokens taken from:
+   *
+   * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
+   */
+  const _identity = require('../fixtures/sample-auth0-identity-token');
+
+  let login, pub, prv, keystore;
+  beforeAll(done => {
+    stubAuth0Sessions((err, sessionStuff) => {
+      if (err) return done.fail(err);
+      ({ login, pub, prv, keystore } = sessionStuff);
+      done();
+    });
+  });
+
 
   let agent;
   beforeEach(done => {
@@ -25,10 +43,13 @@ describe('agentSpec', () => {
 
   describe('authenticated', () => {
 
-    let token;
+    let authenticatedSession;
     beforeEach(done => {
-      token = jwt.sign({ email: agent.email, iat: Math.floor(Date.now()) }, process.env.SECRET, { expiresIn: '1h' });
-      done();
+      login(_identity, (err, session) => {
+        if (err) return done.fail(err);
+        authenticatedSession = session;
+        done();
+      });
     });
 
     describe('authorized', () => {
@@ -38,17 +59,17 @@ describe('agentSpec', () => {
           models.Agent.findAll().then(results => {
             expect(results.length).toEqual(1);
 
-            request(app)
+            authenticatedSession
               .post('/agent')
               .send({
-                token: token,
                 email: 'someotherguy@example.com' 
               })
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
               .end(function(err, res) {
-                if (err) done.fail(err);
+                if (err) return done.fail(err);
+
                 expect(res.body.email).toEqual('someotherguy@example.com');
 
                 models.Agent.findAll().then(results => {
@@ -64,10 +85,9 @@ describe('agentSpec', () => {
         });
 
         it('returns an error if record already exists', done => {
-          request(app)
+          authenticatedSession
             .post('/agent')
             .send({
-              token: token,
               email: agent.email 
             })
             .set('Accept', 'application/json')
@@ -75,6 +95,7 @@ describe('agentSpec', () => {
             .expect(200)
             .end(function(err, res) {
               if (err) done.fail(err);
+
               expect(res.body.errors.length).toEqual(1);
               expect(res.body.errors[0].message).toEqual('That agent is already registered');
               done();
@@ -84,28 +105,28 @@ describe('agentSpec', () => {
   
       describe('read', () => {
         it('retrieves an existing record from the database', done => {
-          request(app)
+          authenticatedSession
             .get(`/agent/${agent.id}`)
-            .send({ token: token })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(200)
             .end(function(err, res) {
-              if (err) done.fail(err);
+              if (err) return done.fail(err);
+
               expect(res.body.email).toEqual(agent.email);
               done();
             });
         });
 
         it('doesn\'t barf if record doesn\'t exist', done => {
-          request(app)
+          authenticatedSession
             .get('/agent/33')
-            .send({ token: token })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(200)
             .end(function(err, res) {
               if (err) done.fail(err);
+
               expect(res.body.message).toEqual('No such agent');
               done();
             });
@@ -114,10 +135,9 @@ describe('agentSpec', () => {
  
       describe('update', () => {
         it('updates an existing record in the database', done => {
-          request(app)
+          authenticatedSession
             .put('/agent')
             .send({
-              token: token,
               id: agent.id,
               name: 'Some Cool Guy'
             })
@@ -125,7 +145,8 @@ describe('agentSpec', () => {
             .expect('Content-Type', /json/)
             .expect(201)
             .end(function(err, res) {
-              if (err) done.fail(err);
+              if (err) return done.fail(err);
+
               expect(res.body.name).toEqual('Some Cool Guy');
  
               models.Agent.findOne({ where: { id: agent.id }}).then(results => {
@@ -138,88 +159,28 @@ describe('agentSpec', () => {
             });
         });
 
-        it('doesn\'t barf if agent doesn\'t exist', done => {
-          request(app)
-            .put('/agent')
-            .send({
-              token: token,
-              id: 111,
-              name: 'Some Guy' 
-            })
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(200)
-            .end(function(err, res) {
-              if (err) done.fail(err);
-              expect(res.body.message).toEqual('No such agent');
-              done();
-            });
-        });
-      });
+        it('allows updating null fields', done => {
+          agent.name = null;
+          agent.save().then(agent => {
+            expect(agent.name).toBeNull();
 
-      describe('delete', () => {
-        it('removes an existing record from the database', done => {
-          request(app)
-            .delete('/agent')
-            .send({
-              token: token,
-              id: agent.id,
-            })
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(200)
-            .end(function(err, res) {
-              if (err) done.fail(err);
-              expect(res.body.message).toEqual('Agent deleted');
-              done();
-            });
-        });
-
-        it('doesn\'t barf if agent doesn\'t exist', done => {
-          request(app)
-            .delete('/agent')
-            .send({
-              token: token,
-              id: 111,
-            })
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(200)
-            .end(function(err, res) {
-              if (err) done.fail(err);
-              expect(res.body.message).toEqual('No such agent');
-              done();
-            });
-        });
-      });
-    });
-
-    describe('unknown', () => {
-      let newToken;
-      beforeEach(done => {
-        newToken = jwt.sign({ email: 'brandnewagent@example.com', iat: Math.floor(Date.now()) }, process.env.SECRET, { expiresIn: '1h' });
-        done();
-      });
-
-      describe('create', () => {
-        it('adds a new record to the database', done => {
-          models.Agent.findAll().then(results => {
-            expect(results.length).toEqual(1);
-
-            request(app)
-              .post('/agent')
+            authenticatedSession
+              .put('/agent')
               .send({
-                token: newToken,
+                id: agent.id,
+                name: 'Some Cool Guy'
               })
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
               .end(function(err, res) {
-                if (err) done.fail(err);
-                expect(res.body.email).toEqual('brandnewagent@example.com');
+                if (err) return done.fail(err);
 
-                models.Agent.findAll().then(results => {
-                  expect(results.length).toEqual(2);
+                expect(res.body.name).toEqual('Some Cool Guy');
+
+                models.Agent.findOne({ where: { id: agent.id }}).then(results => {
+                  expect(results.name).toEqual('Some Cool Guy');
+                  expect(results.email).toEqual(agent.email);
                   done();
                 }).catch(err => {
                   done.fail(err);
@@ -230,52 +191,77 @@ describe('agentSpec', () => {
           });
         });
 
-        it('returns an error if record already exists', done => {
-          request(app)
-            .post('/agent')
+        it('doesn\'t barf if agent doesn\'t exist', done => {
+          authenticatedSession
+            .put('/agent')
             .send({
-              token: newToken,
+              id: 111,
+              name: 'Some Guy' 
             })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
-            .expect(201)
+            .expect(200)
             .end(function(err, res) {
               if (err) done.fail(err);
-              expect(res.body.errors).toBe(undefined);
 
-              request(app)
-                .post('/agent')
-                .send({
-                  token: newToken,
-                })
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(200)
-                .end(function(err, res) {
-                  if (err) done.fail(err);
-                  expect(res.body.errors.length).toEqual(1);
-                  expect(res.body.errors[0].message).toEqual('That agent is already registered');
-                  done();
-                });
+              expect(res.body.message).toEqual('No such agent');
+              done();
+            });
+        });
+      });
+
+      describe('delete', () => {
+        it('removes an existing record from the database', done => {
+          authenticatedSession
+            .delete('/agent')
+            .send({
+              id: agent.id,
+            })
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(200)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+
+              expect(res.body.message).toEqual('Agent deleted');
+              done();
+            });
+        });
+
+        it('doesn\'t barf if agent doesn\'t exist', done => {
+          authenticatedSession
+            .delete('/agent')
+            .send({
+              id: 111,
+            })
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(200)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+
+              expect(res.body.message).toEqual('No such agent');
+              done();
             });
         });
       });
     });
 
     describe('unauthorized', () => {
-
-      let wrongToken;
+      let unauthorizedSession;
       beforeEach(done => {
-        wrongToken = jwt.sign({ email: 'unauthorizedagent@example.com', iat: Math.floor(Date.now()) }, process.env.SECRET, { expiresIn: '1h' });
-        done();
+        login({ ..._identity, email: 'someotherguy@example.com', name: 'Some Other Guy' }, (err, session) => {
+          if (err) return done.fail(err);
+          unauthorizedSession = session;
+          done();
+        });
       });
 
       describe('update', () => {
         it('returns 401', done => {
-          request(app)
+          unauthorizedSession
             .put('/agent')
             .send({
-              token: wrongToken,
               id: agent.id,
               name: 'Some Cool Guy'
             })
@@ -283,17 +269,16 @@ describe('agentSpec', () => {
             .expect('Content-Type', /json/)
             .expect(401)
             .end(function(err, res) {
-              if (err) done.fail(err);
-              expect(res.body.message).toEqual('Unauthorized: Invalid token');
+              if (err) return done.fail(err);
+              expect(res.body.message).toEqual('Unauthorized');
               done();
             });
         });
 
         it('does not change the record in the database', done => {
-          request(app)
+          unauthorizedSession
             .put('/agent')
             .send({
-              token: wrongToken,
               id: agent.id,
               name: 'Some Cool Guy'
             })
@@ -315,10 +300,9 @@ describe('agentSpec', () => {
 
       describe('delete', () => {
         it('returns 401', done => {
-          request(app)
+          unauthorizedSession
             .delete('/agent')
             .send({
-              token: wrongToken,
               id: agent.id
             })
             .set('Accept', 'application/json')
@@ -326,19 +310,19 @@ describe('agentSpec', () => {
             .expect(401)
             .end(function(err, res) {
               if (err) done.fail(err);
-                expect(res.body.message).toEqual('Unauthorized: Invalid token');
-                done();
-              });
+              expect(res.body.message).toEqual('Unauthorized');
+              done();
+            });
         });
 
         it('does not remove the record from the database', done => {
           models.Agent.findAll().then(results => {
-            expect(results.length).toEqual(1);
+            // 2 because the unauthorized agent is in the database
+            expect(results.length).toEqual(2);
 
-            request(app)
+            unauthorizedSession
               .delete('/agent')
               .send({
-                token: wrongToken,
                 id: agent.id
               })
               .set('Accept', 'application/json')
@@ -347,7 +331,7 @@ describe('agentSpec', () => {
               .end(function(err, res) {
                 if (err) done.fail(err);
                 models.Agent.findAll().then(results => {
-                  expect(results.length).toEqual(1);
+                  expect(results.length).toEqual(2);
                   done();
                 }).catch(err => {
                   done.fail(err);
@@ -362,31 +346,15 @@ describe('agentSpec', () => {
   });
 
   describe('not authenticated', () => {
-    it('returns 401 if provided an expired token', done => {
-      const expiredToken = jwt.sign({ email: agent.email, iat: Math.floor(Date.now() / 1000) - (60 * 60) }, process.env.SECRET, { expiresIn: '1h' });
-      request(app)
-        .get('/agent')
-        .send({ token: expiredToken })
-        .set('Accept', 'application/json')
-        .expect('Content-Type', /json/)
-        .expect(401)
-        .end(function(err, res) {
-          if (err) done.fail(err);
-          expect(res.body.message).toEqual('Unauthorized: Invalid token');
-          done();
-        });
-    });
 
-    it('returns 401 if provided no token', done => {
+    it('redirects to login', done => {
       request(app)
         .get('/agent')
-        .send({})
         .set('Accept', 'application/json')
-        .expect('Content-Type', /json/)
-        .expect(401)
+        .expect(302)
         .end(function(err, res) {
-          if (err) done.fail(err);
-          expect(res.body.message).toEqual('Unauthorized: No token provided');
+          if (err) return done.fail(err);
+          expect(res.headers.location).toEqual('/login');
           done();
         });
     });

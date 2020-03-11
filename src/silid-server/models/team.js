@@ -2,6 +2,8 @@
 
 module.exports = (sequelize, DataTypes) => {
 
+  const TeamMember = require('./teamMember')(sequelize, DataTypes);
+
   const Team = sequelize.define('Team', {
     name: {
       type: DataTypes.STRING,
@@ -19,9 +21,29 @@ module.exports = (sequelize, DataTypes) => {
         msg: 'That team is already registered'
       }
     },
-  }, {});
+  }, {
+    hooks: {
+      afterCreate: function(team, options) {
+        return new Promise((resolve, reject) => {
+          team.addOrganization(team.organizationId).then(org => {
+            resolve(new TeamMember({ AgentId: team.creatorId, TeamId: team.id, verificationCode: null }).save());
+          }).catch(err => {
+            reject(err);
+          });
+        });
+      }
+    }
+  });
 
   Team.associate = function(models) {
+    Team.belongsTo(models.Agent, {
+      as: 'creator',
+      foreignKey: {
+        allowNull: false,
+      },
+      onDelete: 'CASCADE'
+    });
+
     Team.belongsTo(models.Organization, {
       as: 'organization',
       foreignKey: {
@@ -31,7 +53,8 @@ module.exports = (sequelize, DataTypes) => {
     });
 
     Team.belongsToMany(models.Agent, {
-      through: 'agent_team'
+      as: 'members',
+      through: 'TeamMember'
     });
 
     Team.belongsToMany(models.Organization, {
@@ -41,3 +64,4 @@ module.exports = (sequelize, DataTypes) => {
 
   return Team;
 };
+

@@ -1,5 +1,4 @@
 import React from 'react';
-import Auth from '../auth/Auth';
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
 import Button from '@material-ui/core/Button';
@@ -7,10 +6,20 @@ import IconButton from '@material-ui/core/IconButton';
 import MenuIcon from '@material-ui/icons/Menu';
 import Typography from '@material-ui/core/Typography';
 import { createStyles, makeStyles, Theme } from '@material-ui/core/styles';
+import Drawer from '@material-ui/core/Drawer';
+import List from '@material-ui/core/List';
+import Divider from '@material-ui/core/Divider';
+import ListItem from '@material-ui/core/ListItem';
+import ListItemIcon from '@material-ui/core/ListItemIcon';
+import ListItemText from '@material-ui/core/ListItemText';
+import InboxIcon from '@material-ui/icons/MoveToInbox';
+import Avatar from '@material-ui/core/Avatar';
+import Grid from '@material-ui/core/Grid';
+import { useAuthState } from '../auth/Auth';
 
-interface IProps  {
-  auth: Auth;
+interface IProps {
 }
+
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
     root: {
@@ -22,32 +31,129 @@ const useStyles = makeStyles((theme: Theme) =>
     title: {
       flexGrow: 1,
     },
-  }),
+    link: {
+      margin: theme.spacing(1),
+    },
+    list: {
+      width: 250,
+    },
+    fullList: {
+      width: 'auto',
+    },
+    avatar: {
+      margin: 10,
+    },
+    bigAvatar: {
+      margin: 10,
+      width: 60,
+      height: 60,
+    },
+  })
 );
-  const Home = (props: IProps) => {
-    const classes = useStyles();
-    const { auth } = props;
-console.log(auth.isAuthenticated());
-    return (
-      <AppBar position="static">
+
+const Home = (props: IProps) => {
+  const {agent, logout} = useAuthState();
+
+  const classes = useStyles();
+
+  const [drawerPosition, setDrawerPosition] = React.useState({
+    left: false,
+  });
+
+  function ListItemLink(props: any) {
+    return <ListItem button component="a" {...props} />;
+  }
+
+  type DrawerSide = 'left';
+  const toggleDrawer = (side: DrawerSide, open: boolean) => (
+    event: React.KeyboardEvent | React.MouseEvent
+  ) => {
+    if (
+      event.type === 'keydown' &&
+      ((event as React.KeyboardEvent).key === 'Tab' ||
+        (event as React.KeyboardEvent).key === 'Shift')
+    ) {
+      return;
+    }
+    setDrawerPosition({ ...drawerPosition, [side]: open });
+  };
+
+  const sideList = (side: DrawerSide) => (
+    <div
+      id="app-menu"
+      className={classes.list}
+      role="presentation"
+      onClick={toggleDrawer(side, false)}
+      onKeyDown={toggleDrawer(side, false)}
+    >
+      <List>
+        <ListItem button id='agent-button' key='Agents'>
+          <ListItemIcon><InboxIcon /></ListItemIcon>
+          <ListItemLink href='#agent'>
+            <ListItemText primary='Profile' />
+          </ListItemLink>
+        </ListItem>
+        <ListItem button id='organization-button' key='Organizations'>
+          <ListItemIcon><InboxIcon /></ListItemIcon>
+          <ListItemLink href='#organization'>
+            <ListItemText primary='Organizations' />
+          </ListItemLink>
+        </ListItem>
+        <ListItem button id='team-button' key='Teams'>
+          <ListItemIcon><InboxIcon /></ListItemIcon>
+          <ListItemLink href='#team'>
+            <ListItemText primary='Teams' />
+          </ListItemLink>
+        </ListItem>
+      </List>
+      <Divider />
+    </div>
+  );
+
+  return (
+    <AppBar position="static">
       <Toolbar>
-        <IconButton edge="start" className={classes.menuButton} color="inherit" aria-label="menu">
+        <IconButton
+          id="app-menu-button"
+          onClick={toggleDrawer('left', true)}
+          edge="start"
+          className={classes.menuButton}
+          color="inherit"
+          aria-label="menu">
           <MenuIcon />
         </IconButton>
+        <Drawer open={drawerPosition.left} onClose={toggleDrawer('left', false)}>
+          {sideList('left')}
+        </Drawer>
         <Typography variant="h6" className={classes.title}>
           Identity
         </Typography>
-        {!auth.isAuthenticated() && (
-      <Button color="inherit" onClick={() => auth.login()}>Log in</Button>
-      )}
-        {auth.isAuthenticated() && (
-      <Button color="inherit" onClick={() => auth.logout()}>Log Out</Button>
-      )}
-      </Toolbar>
-      </AppBar>
-    );
-  }
 
+        {agent && (
+          <>
+            <Grid container justify="flex-end" alignItems="flex-start">
+              {agent.socialProfile.picture ? (
+                <Avatar
+                  alt="avatar"
+                  src={agent.socialProfile.picture}
+                  className={classes.avatar}
+                />
+              ) : (
+                <div></div>
+            )}
+            </Grid>
+            <Button
+              id="logout-button"
+              color="inherit"
+              onClick={logout}
+            >
+              Logout
+            </Button>
+          </>
+        )}
+      </Toolbar>
+    </AppBar>
+  );
+};
 
 export default Home;
-

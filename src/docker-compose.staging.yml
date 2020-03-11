@@ -1,0 +1,40 @@
+# 2019-10-24 Swiped from here: https://codewithhugo.com/node-postgres-express-docker-compose/
+# docker-compose.yml
+version: "3"
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile-staging
+    depends_on:
+      - postgres
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./silid-server:/app/
+      - /app/node_modules
+      - /app/build
+    environment:
+      - VIRTUAL_HOST=id.whatdandoes.info
+      - LETSENCRYPT_HOST=id.whatdandoes.info
+      - LETSENCRYPT_EMAIL=daniel@capitolhill.ca
+      - DATABASE_URL=postgres://user:pass@postgres:5432/db
+      - NODE_ENV=staging
+      - PORT=3001
+  postgres:
+    image: postgres
+    ports:
+      - "35432:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: silid_staging
+    volumes:
+      - silid_postgres_data:/var/lib/postgresql/data
+volumes:
+  silid_postgres_data:
+networks:
+  default:
+    external:
+      name: nginx-proxy
+

@@ -11,6 +11,7 @@
 # production
 /build
 src/identity-react/build
+src/silid-server/build/**
 
 # misc
 .DS_Store
@@ -38,3 +39,4 @@ src/identity-node/serverless.env.yaml
 
 # cypress
 **/cypress/videos/
+**/cypress/screenshots/

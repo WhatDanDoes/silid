@@ -1,0 +1,17 @@
+{
+  "displayName": "Some Guy",
+  "id": "google-oauth2|100000000000000000010",
+  "user_id": "google-oauth2|100000000000000000000",
+  "name": {
+    "familyName": "Guy",
+    "givenName": "Some"
+  },
+  "emails": [
+    {
+      "value": "someguy@example.com"
+    }
+  ],
+  "picture": "/images/photo.jpg",
+  "locale": "en",
+  "nickname": "someguy"
+}

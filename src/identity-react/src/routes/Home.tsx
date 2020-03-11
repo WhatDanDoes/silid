@@ -1,34 +1,25 @@
 import React from 'react';
-import Auth from '../auth/Auth';
 import AppBar from '../components/Appbar';
 
-interface IProps  {
-  auth: Auth;
+import { useAuthState } from '../auth/Auth';
+import { Redirect } from 'react-router-dom';
+
+interface IProps {
+  message?: string;
 }
-  const Home = (props: IProps) => {
-    console.log('test');
-    const { auth } = props;
 
-    return (
-      <div className="home">
+const Home = (props: IProps) => {
+  const {agent} = useAuthState();
+
+  return (
+    <div className="home">
       <AppBar {...props} />
-        {
-          auth.isAuthenticated() && (
-              <h4>
-                You are logged in!
-              </h4>
-            )
-        }
-        {
-          !auth.isAuthenticated() && (
-              <h4>
-                You are not logged in! Please log in to continue.
-              </h4>
-            )
-        }
-      </div>
-    );
-  }
-
+      { props.message && (<h3>{props.message}</h3>) }
+      { agent ?
+        <Redirect to={{ pathname: '/organization', state: `Hello, ${agent.name}` }} />
+      : ''}
+    </div>
+  );
+};
 
 export default Home;
