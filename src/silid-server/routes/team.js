@@ -5,22 +5,27 @@ const models = require('../models');
 const mailer = require('../mailer');
 
 /* GET team listing. */
-router.get('/', sessionAuth, function(req, res, next) {
-  if (req.agent.isSuper) {
-    models.Team.findAll().then(orgs => {
-      res.json(orgs);
-    }).catch(err => {
-      res.status(500).json(err);
-    });
+router.get('/admin', sessionAuth, function(req, res, next) {
+  if (!req.agent.isSuper) {
+    return res.status(403).json( { message: 'Forbidden' });
   }
-  else {
-    req.agent.getTeams().then(teams => {
-      res.status(200).json(teams);
-    }).catch(err => {
-      res.status(500).json(err);
-    });
-  }
+
+  // Super agent gets entire listing
+  models.Team.findAll().then(orgs => {
+    res.json(orgs);
+  }).catch(err => {
+    res.status(500).json(err);
+  });
 });
+
+router.get('/', sessionAuth, function(req, res, next) {
+  req.agent.getTeams().then(teams => {
+    res.status(200).json(teams);
+  }).catch(err => {
+    res.status(500).json(err);
+  });
+});
+
 
 router.get('/:id', sessionAuth, function(req, res, next) {
   models.Team.findOne({ where: { id: req.params.id },

@@ -80,13 +80,39 @@ describe('root/teamSpec', () => {
     describe('read', () => {
 
       describe('/team', () => {
+        it('retrieves root agent\'s teams', done => {
+          models.Team.create({ name: 'The Mike Tyson Mystery Team', organizationId: organization.id, creatorId: root.id }).then(o => {
+            models.Team.findAll().then(results => {
+              expect(results.length).toEqual(2);
+ 
+              rootSession
+                .get('/team')
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+                  expect(res.body.length).toEqual(1);
+                  expect(res.body[0].name).toEqual('The Mike Tyson Mystery Team');
+                  done();
+                });
+            }).catch(err => {
+              done.fail(err);
+            });
+          }).catch(err => {
+            done.fail(err);
+          });
+        });
+      });
+
+      describe('/team/admin', () => {
         it('retrieves all teams', done => {
           models.Team.create({ name: 'The Mike Tyson Mystery Team', organizationId: organization.id, creatorId: root.id }).then(o => {
             models.Team.findAll().then(results => {
               expect(results.length).toEqual(2);
  
               rootSession
-                .get(`/team`)
+                .get('/team/admin')
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(200)
@@ -103,6 +129,7 @@ describe('root/teamSpec', () => {
           });
         });
       });
+
 
       describe('/team/:id', () => {
         it('retrieves an existing record from the database', done => {
