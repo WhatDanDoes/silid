@@ -32,7 +32,7 @@ describe('root/agentSpec', () => {
         models.Agent.findAll().then(results => {
           agent = results[0];
           expect(agent.isSuper).toBe(false);
-          models.Agent.create({ email: process.env.ROOT_AGENT }).then(results => {
+          models.Agent.create({ email: process.env.ROOT_AGENT, name: 'Professor Fresh' }).then(results => {
             root = results;
             expect(root.isSuper).toBe(true);
             done();
@@ -54,7 +54,7 @@ describe('root/agentSpec', () => {
 
     let rootSession;
     beforeEach(done => {
-      login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, (err, session) => {
+      login({..._identity, email: process.env.ROOT_AGENT}, (err, session) => {
         if (err) return done.fail(err);
         rootSession = session;
         done();
@@ -332,16 +332,17 @@ describe('root/agentSpec', () => {
       });
 
       describe('/agent/:id', () => {
-        it('does not allow retrieval of root agent\'s record', done => {
+        it('retrieves root agent\'s record', done => {
           unauthorizedSession
             .get(`/agent/${root.id}`)
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
-            .expect(401)
+            .expect(200)
             .end(function(err, res) {
               if (err) return done.fail(err);
-              expect(res.body.message).toEqual('Unauthorized');
-    
+              expect(res.body.email).toEqual(process.env.ROOT_AGENT);
+              expect(res.body.name).toEqual('Professor Fresh');
+
               done();
             });
         });

@@ -29,11 +29,6 @@ router.get('/:id', sessionAuth, function(req, res, next) {
       result = { message: 'No such agent' };
     }
 
-    // Root agent can only be viewed by other super agents
-    if (!req.agent.isSuper && result.email === process.env.ROOT_AGENT) {
-      return res.status(401).json( { message: 'Unauthorized' });
-    }
-
     res.json(result);
   }).catch(err => {
     res.status(500).json(err);
