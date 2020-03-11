@@ -70,12 +70,37 @@ describe('root/organizationSpec', () => {
 
     describe('read', () => {
       describe('/organization', () => {
+        it('retrieves only the root agent\'s organization', done => {
+          models.Organization.create({ name: 'Mr Worldwide', creatorId: root.id }).then(o => {
+            models.Organization.findAll().then(results => {
+              expect(results.length).toEqual(2);
+              rootSession
+                .get(`/organization`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+                  expect(res.body.length).toEqual(1);
+                  expect(res.body[0].name).toEqual('Mr Worldwide');
+                  done();
+                });
+            }).catch(err => {
+              done.fail(err);
+            });
+          }).catch(err => {
+            done.fail(err);
+          });
+        });
+      });
+
+      describe('/organization/admin', () => {
         it('retrieves all organizations', done => {
           models.Organization.create({ name: 'Mr Worldwide', creatorId: agent.id }).then(o => {
             models.Organization.findAll().then(results => {
               expect(results.length).toEqual(2);
               rootSession
-                .get(`/organization`)
+                .get(`/organization/admin`)
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(200)
@@ -92,6 +117,7 @@ describe('root/organizationSpec', () => {
           });
         });
       });
+
 
       describe('/organization/:id', () => {
         it('retrieves an existing record from the database', done => {
