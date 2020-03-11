@@ -288,7 +288,7 @@ Working directory: `src/silid-server/config`
 Custom script:
 
 ```
-echo '{"accessKeyId": "key","secretAccessKey":"secret","region": "region","signatureVersion": "v4"}' >> aws.json
+echo '{"accessKeyId": "key","secretAccessKey":"secret","region": "region","signatureVersion": "v4"}' > aws.json
 ```
 
 #### ECR Login
