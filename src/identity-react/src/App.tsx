@@ -42,6 +42,7 @@ function App() {
                 <PrivateRoute path="/agent/admin" component={AgentDirectory} redirect="/" />
                 <PrivateRoute path="/agent/:id" component={Agent} redirect="/" />
                 <PrivateRoute path="/agent" component={Agent} redirect="/" />
+                <PrivateRoute path="/organization/admin" component={Organization} redirect="/" />
                 <PrivateRoute path="/organization/:id" component={OrganizationInfo} redirect="/" />
                 <PrivateRoute path="/organization" component={Organization} redirect="/" />
                 <PrivateRoute path="/team/:id" component={TeamInfo} redirect="/" />
