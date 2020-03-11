@@ -16,6 +16,7 @@ import InboxIcon from '@material-ui/icons/MoveToInbox';
 import Avatar from '@material-ui/core/Avatar';
 import Grid from '@material-ui/core/Grid';
 import { useAuthState } from '../auth/Auth';
+import { useAdminState } from '../auth/Admin';
 
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Switch from '@material-ui/core/Switch';
@@ -62,11 +63,10 @@ const Home = (props: IProps) => {
   /**
    * Admin toggle
    */
-  const [admin, setAdmin] = React.useState(false)
-
+  const {admin, toggleMode} = useAdminState();
   const toggleAdminMode = (event) => {
     setDrawerPosition({ ...drawerPosition, left: true });
-    setAdmin(!admin);
+    toggleMode();
   };
 
   /**
