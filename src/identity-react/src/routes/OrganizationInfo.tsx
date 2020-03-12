@@ -212,7 +212,7 @@ const OrganizationInfo = (props: any) => {
                 <React.Fragment>
                   {orgInfo.name} 
                 </React.Fragment>
-                {admin.isEnabled || orgInfo.creator && (agent.email === orgInfo.creator.email) ?
+                {admin.isEnabled || (orgInfo.creator && (agent.email === orgInfo.creator.email)) ?
                   <React.Fragment>
                     {!editFormVisible ?
                       <Button id="edit-organization" variant="contained" color="primary" onClick={() => setEditFormVisible(true)}>
@@ -261,7 +261,7 @@ const OrganizationInfo = (props: any) => {
                 {!editFormVisible && !agentFormVisible && !teamFormVisible ?
                     <Typography variant="body2" color="textSecondary" component="p">
                       <React.Fragment>
-                        {admin.isEnabled || orgInfo.creator && (agent.email === orgInfo.creator.email) ?
+                        {admin.isEnabled || (orgInfo.creator && (agent.email === orgInfo.creator.email)) ?
                           <Fab id="add-agent" color="primary" aria-label="add-agent" className={classes.margin}>
                             <PersonAddIcon onClick={() => setAgentFormVisible(true)} />
                           </Fab>
