@@ -153,7 +153,7 @@ context('root/Organization show', function() {
           });
 
           // A root agent is still a root agent. The only thing contstraining
-          // the root agent from changing data is the interface itself. 
+          // the root agent from changing data is the interface itself.
           it('still displays common Organization interface elements', function() {
             cy.visit(`/#/organization/${organization.id}`);
             cy.wait(500);
