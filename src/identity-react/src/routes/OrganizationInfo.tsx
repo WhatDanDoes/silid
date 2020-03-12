@@ -343,7 +343,7 @@ const OrganizationInfo = (props: any) => {
                   <ListItemLink href={`#agent/${member.id}`}>
                     <ListItemText primary={member.email} />
                   </ListItemLink>
-                  { orgInfo.creator.email !== member.email && (agent.email === orgInfo.creator.email) ?
+                  { orgInfo.creator.email !== member.email && (agent.email === orgInfo.creator.email || admin.isEnabled) ?
                   <DeleteForeverOutlinedIcon className="delete-member" onClick={() => handleMemberDelete(member.id)} />
                   : ''}
                 </ListItem>
