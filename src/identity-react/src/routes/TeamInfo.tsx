@@ -19,6 +19,7 @@ import { Team } from '../types/Team';
 import Flash from '../components/Flash';
 
 import { useAuthState } from '../auth/Auth';
+import { useAdminState } from '../auth/Admin';
 
 import useGetTeamInfoService from '../services/useGetTeamInfoService';
 import usePutTeamService from '../services/usePutTeamService';
@@ -52,6 +53,7 @@ const TeamInfo = (props: any) => {
   const classes = useStyles();
 
   const {agent} = useAuthState();
+  const admin = useAdminState();
 
   const [editFormVisible, setEditFormVisible] = useState(false);
   const [agentFormVisible, setAgentFormVisible] = useState(false);
@@ -194,7 +196,7 @@ const TeamInfo = (props: any) => {
                 <React.Fragment>
                   {teamInfo.name} 
                 </React.Fragment>
-                {teamInfo.creator && (agent.email === teamInfo.creator.email) ?
+                {admin.isEnabled || (teamInfo.creator && (agent.email === teamInfo.creator.email)) ?
                   <React.Fragment>
                     {!editFormVisible ?
                       <Button id="edit-team" variant="contained" color="primary" onClick={() => setEditFormVisible(true)}>
@@ -243,7 +245,7 @@ const TeamInfo = (props: any) => {
                 {!editFormVisible && !agentFormVisible ?
                   <Typography variant="body2" color="textSecondary" component="p">
                     <React.Fragment>
-                      {teamInfo.creator && (agent.email === teamInfo.creator.email) ?
+                      {admin.isEnabled || (teamInfo.creator && (agent.email === teamInfo.creator.email)) ?
                         <Fab id="add-agent" color="primary" aria-label="add-agent" className={classes.margin}>
                           <PersonAddIcon onClick={() => setAgentFormVisible(true)} />
                         </Fab>
