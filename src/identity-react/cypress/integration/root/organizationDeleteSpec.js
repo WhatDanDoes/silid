@@ -10,28 +10,11 @@ context('root/Organization delete', function() {
     _profile = {...this.profile, email: 'root@example.com'};
   });
 
-
   afterEach(() => {
     cy.task('query', 'TRUNCATE TABLE "Organizations" CASCADE;');
     cy.task('query', 'TRUNCATE TABLE "organization_team" CASCADE;');
     cy.task('query', 'TRUNCATE TABLE "OrganizationMembers" CASCADE;');
   });
-
-//  let _profile, agent, memberAgent;
-//  beforeEach(function() {
-//    // Why?
-//    _profile = {...this.profile};
-//
-//    cy.login('someotherguy@example.com', _profile);
-//    cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
-//      memberAgent = results[0];
-//
-//      cy.login(_profile.email, _profile);
-//      cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
-//        agent = results[0];
-//      });
-//    });
-//  });
 
   let memberAgent;
   beforeEach(function() {
@@ -323,7 +306,7 @@ context('root/Organization delete', function() {
               cy.get('button#delete-organization').click();
             });
           });
-    
+
           context('member teams exist', () => {
             beforeEach(() => {
               // Still regular agent
@@ -341,7 +324,7 @@ context('root/Organization delete', function() {
                 });
               });
             });
-    
+
             it('does not allow deletion', function(done) {
               cy.on('window:alert', (str) => {
                 expect(str).to.eq('Remove all members and teams before deleting organization');
@@ -350,7 +333,7 @@ context('root/Organization delete', function() {
               cy.get('button#delete-organization').click();
             });
           });
-    
+
           context('no members or teams exist', () => {
             beforeEach(() => {
               cy.task('query', `SELECT * FROM "organization_team";`).then(([results, metadata]) => {
@@ -372,7 +355,7 @@ context('root/Organization delete', function() {
                 });
               });
             });
-    
+
             it('displays a popup warning', function(done) {
               cy.on('window:confirm', (str) => {
                 expect(str).to.eq('Are you sure you want to delete this organization?');
@@ -380,7 +363,7 @@ context('root/Organization delete', function() {
               });
               cy.get('button#delete-organization').click();
             });
-    
+
             it('lands in the proper place', () => {
               cy.on('window:confirm', (str) => {
                 return true;
@@ -388,7 +371,7 @@ context('root/Organization delete', function() {
               cy.get('button#delete-organization').click();
               cy.url().should('match', /\/#\/organization$/);
             });
-    
+
             it('removes record from the database', () => {
               cy.on('window:confirm', (str) => {
                 return true;
@@ -403,7 +386,7 @@ context('root/Organization delete', function() {
                 });
               });
             });
-    
+
             it('renders the interface correctly on completion with success message', () => {
               cy.on('window:confirm', (str) => {
                 return true;
@@ -414,12 +397,12 @@ context('root/Organization delete', function() {
             });
           });
         });
- 
+
         context('switched off', () => {
           beforeEach(() => {
             // Login/create root
             cy.login(_profile.email, _profile);
- 
+
             cy.get('#app-menu-button').click();
             cy.get('#app-menu ul div:nth-of-type(4) input').should('have.attr', 'type', 'checkbox').and('not.be.checked');
             cy.get('#organization-button').click();
