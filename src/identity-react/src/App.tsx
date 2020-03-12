@@ -45,6 +45,7 @@ function App() {
                 <PrivateRoute path="/organization/admin" component={Organization} redirect="/" />
                 <PrivateRoute path="/organization/:id" component={OrganizationInfo} redirect="/" />
                 <PrivateRoute path="/organization" component={Organization} redirect="/" />
+                <PrivateRoute path="/team/admin" component={Team} redirect="/" />
                 <PrivateRoute path="/team/:id" component={TeamInfo} redirect="/" />
                 <PrivateRoute path="/team" component={Team} redirect="/" />
               </Switch>
