@@ -101,7 +101,6 @@ context('root/Organization edit', function() {
 
     describe('an organization created by a regular agent', () => {
 
-      let regularAgent;
       beforeEach(function() {
         // Login/create regular agent
         cy.login('regularguy@example.com', _profile);
