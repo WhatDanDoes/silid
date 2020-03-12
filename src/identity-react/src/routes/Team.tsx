@@ -56,7 +56,7 @@ const Team = (props: any) => {
             Teams
           </Typography>
           { props.location.state ? <Flash message={props.location.state} variant="success" /> : '' }
-          { flashProps.errors ? flashProps.errors.map(error => <Flash message={error.message} variant={flashProps.variant} />) : '' }
+          { flashProps.errors ? flashProps.errors.map((error, index) => <Flash message={error.message} variant={flashProps.variant} key={`flash-${index}`} />) : '' }
 
           <Typography variant="body2" color="textSecondary" component="p">
           {service.status === 'loading' && <div>Loading...</div>}
