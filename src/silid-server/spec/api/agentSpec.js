@@ -32,6 +32,8 @@ describe('agentSpec', () => {
         models.Agent.findAll().then(results => {
           agent = results[0];
           done();
+        }).catch(err => {
+          done.fail(err);
         });
       }).catch(err => {
         done.fail(err);
@@ -92,7 +94,7 @@ describe('agentSpec', () => {
             })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
-            .expect(200)
+            .expect(500)
             .end(function(err, res) {
               if (err) done.fail(err);
 

@@ -1,7 +1,3 @@
-// enables intelligent code completion for Cypress commands
-// https://on.cypress.io/intelligent-code-completion
-/// <reference types="Cypress" />
-
 context('Team show', function() {
 
   before(function() {
@@ -10,7 +6,6 @@ context('Team show', function() {
 
   let _profile;
   beforeEach(function() {
-    // Why?
     _profile = {...this.profile};
   });
 
@@ -37,7 +32,7 @@ context('Team show', function() {
   });
 
   describe('authenticated', () => {
- 
+
     let agent, anotherAgent, organization;
     beforeEach(function() {
       // Login/create another agent

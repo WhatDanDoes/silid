@@ -6,7 +6,6 @@ context('Team delete agent', function() {
 
   let _profile;
   beforeEach(function() {
-    // Why?
     _profile = {...this.profile};
   });
 

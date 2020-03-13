@@ -19,6 +19,7 @@ import { Team } from '../types/Team';
 import Flash from '../components/Flash';
 
 import { useAuthState } from '../auth/Auth';
+import { useAdminState } from '../auth/Admin';
 
 import useGetTeamInfoService from '../services/useGetTeamInfoService';
 import usePutTeamService from '../services/usePutTeamService';
@@ -52,6 +53,7 @@ const TeamInfo = (props: any) => {
   const classes = useStyles();
 
   const {agent} = useAuthState();
+  const admin = useAdminState();
 
   const [editFormVisible, setEditFormVisible] = useState(false);
   const [agentFormVisible, setAgentFormVisible] = useState(false);
@@ -192,9 +194,9 @@ const TeamInfo = (props: any) => {
             {service.status === 'loaded' ?
               <React.Fragment>
                 <React.Fragment>
-                  {teamInfo.name} 
+                  {teamInfo.name}
                 </React.Fragment>
-                {teamInfo.creator && (agent.email === teamInfo.creator.email) ?
+                {admin.isEnabled || (teamInfo.creator && (agent.email === teamInfo.creator.email)) ?
                   <React.Fragment>
                     {!editFormVisible ?
                       <Button id="edit-team" variant="contained" color="primary" onClick={() => setEditFormVisible(true)}>
@@ -243,7 +245,7 @@ const TeamInfo = (props: any) => {
                 {!editFormVisible && !agentFormVisible ?
                   <Typography variant="body2" color="textSecondary" component="p">
                     <React.Fragment>
-                      {teamInfo.creator && (agent.email === teamInfo.creator.email) ?
+                      {admin.isEnabled || (teamInfo.creator && (agent.email === teamInfo.creator.email)) ?
                         <Fab id="add-agent" color="primary" aria-label="add-agent" className={classes.margin}>
                           <PersonAddIcon onClick={() => setAgentFormVisible(true)} />
                         </Fab>
@@ -302,7 +304,7 @@ const TeamInfo = (props: any) => {
                   <ListItemLink href={`#agent/${member.id}`}>
                     <ListItemText primary={member.email} />
                   </ListItemLink>
-                  { teamInfo.creator.email !== member.email && (agent.email === teamInfo.creator.email) ?
+                  { teamInfo.creator.email !== member.email && (agent.email === teamInfo.creator.email || admin.isEnabled) ?
                   <DeleteForeverOutlinedIcon className="delete-member" onClick={() => handleMemberDelete(member.id)} />
                   : ''}
                 </ListItem>

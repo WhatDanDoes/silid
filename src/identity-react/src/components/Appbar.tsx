@@ -16,6 +16,10 @@ import InboxIcon from '@material-ui/icons/MoveToInbox';
 import Avatar from '@material-ui/core/Avatar';
 import Grid from '@material-ui/core/Grid';
 import { useAuthState } from '../auth/Auth';
+import { useAdminState } from '../auth/Admin';
+
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+import Switch from '@material-ui/core/Switch';
 
 interface IProps {
 }
@@ -56,13 +60,28 @@ const Home = (props: IProps) => {
 
   const classes = useStyles();
 
-  const [drawerPosition, setDrawerPosition] = React.useState({
-    left: false,
-  });
+  /**
+   * Admin toggle
+   */
+  const admin = useAdminState();
+  const toggleAdminMode = (event) => {
+    setDrawerPosition({ ...drawerPosition, left: true });
+    admin.toggleMode();
+  };
 
+  /**
+   * Menu link
+   */
   function ListItemLink(props: any) {
     return <ListItem button component="a" {...props} />;
   }
+
+  /**
+   * Menu drawer
+   */
+  const [drawerPosition, setDrawerPosition] = React.useState({
+    left: false,
+  });
 
   type DrawerSide = 'left';
   const toggleDrawer = (side: DrawerSide, open: boolean) => (
@@ -105,6 +124,38 @@ const Home = (props: IProps) => {
             <ListItemText primary='Teams' />
           </ListItemLink>
         </ListItem>
+        {agent.isSuper && (
+          <ListItem button key='Admin'>
+            <FormControlLabel
+              control={
+                <Switch id='admin-switch' checked={admin.isEnabled} onChange={toggleAdminMode} value="admin" />
+              }
+              label="Admin Mode"
+            />
+          </ListItem>
+        )}
+        {admin.isEnabled && (
+          <>
+            <ListItem button id='directory-button' key='Directory'>
+              <ListItemIcon><InboxIcon /></ListItemIcon>
+              <ListItemLink href='#agent/admin'>
+                <ListItemText primary='Agent Directory' />
+              </ListItemLink>
+            </ListItem>
+            <ListItem button id='organizations-button' key='OrganizationDirectory'>
+              <ListItemIcon><InboxIcon /></ListItemIcon>
+              <ListItemLink href='#organization/admin'>
+                <ListItemText primary='Organization Directory' />
+              </ListItemLink>
+            </ListItem>
+            <ListItem button id='teams-button' key='TeamDirectory'>
+              <ListItemIcon><InboxIcon /></ListItemIcon>
+              <ListItemLink href='#team/admin'>
+                <ListItemText primary='Team Directory' />
+              </ListItemLink>
+            </ListItem>
+          </>
+        )}
       </List>
       <Divider />
     </div>

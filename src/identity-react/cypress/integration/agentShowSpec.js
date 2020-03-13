@@ -14,7 +14,7 @@ context('Agent show', function() {
     // Why?
     _profile = {...this.profile};
   });
-  
+
   describe('unauthenticated', done => {
     beforeEach(() => {
       cy.visit(`/#/agent/333`);
@@ -46,7 +46,7 @@ context('Agent show', function() {
         memberAgent = results[0];
       });
     });
- 
+
     describe('viewing member agent\'s profile', () => {
       beforeEach(function() {
         cy.login('someguy@example.com', _profile);
@@ -82,6 +82,7 @@ context('Agent show', function() {
         cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
           agent = results[0];
           cy.visit(`/#/agent/${agent.id}`);
+          cy.wait(500);
         });
       });
 
@@ -98,8 +99,8 @@ context('Agent show', function() {
         cy.get('button[type="submit"]').should('exist');
       });
 
-      it('hides the Save button', () => {
-        cy.get('button[type="submit"]').should('not.exist');
+      it('disables the Save button', () => {
+        cy.get('button[type="submit"]').should('be.disabled');
       });
     });
   });

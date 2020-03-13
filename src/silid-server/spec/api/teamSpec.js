@@ -274,7 +274,7 @@ describe('teamSpec', () => {
 
           it('credits organization member as team creator', done => {
             memberSession
-              .post('/organization')
+              .post('/team')
               .send({
                 organizationId: organization.id,
                 name: 'Tsuutina Translation'
@@ -300,7 +300,7 @@ describe('teamSpec', () => {
             .expect(200)
             .end(function(err, res) {
               if (err) return done.fail(err);
-              expect(res.body.email).toEqual(team.email);
+              expect(res.body.name).toEqual(team.name);
               done();
             });
         });

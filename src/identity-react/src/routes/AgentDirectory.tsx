@@ -11,7 +11,7 @@ import Flash from '../components/Flash';
 // Remove this junk later
 import InboxIcon from '@material-ui/icons/MoveToInbox';
 
-import useGetTeamService, { Teams } from '../services/useGetTeamService';
+import useGetAgentDirectoryService, { Agents } from '../services/useGetAgentDirectoryService';
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -31,16 +31,22 @@ const useStyles = makeStyles((theme: Theme) =>
   }),
 );
 
-const Team = (props: any) => {
-  const [teamList, setTeamList] = useState<Teams>({ results: [] } as Teams);
-  const [flashProps] = useState({} as any);
+const AgentDirectory = (props: any) => {
+//  const [formVisible, toggleFormVisible] = useState(false);
+  const [agentList, setAgentList] = useState<Agents>({ results: [] } as Agents);
+  const [flashProps, setFlashProps] = useState({} as any);
 
   const classes = useStyles();
-  const service = useGetTeamService();
+  const service = useGetAgentDirectoryService();
 
   useEffect(() => {
     if (service.status === 'loaded') {
-      setTeamList(service.payload);
+      if (service.payload.message) {
+        setFlashProps({ message: service.payload.message, variant: 'error' });
+      }
+      else {
+        setAgentList(service.payload);
+      }
     }
   }, [service]);
 
@@ -49,36 +55,35 @@ const Team = (props: any) => {
   }
 
   return (
-    <div className="team">
+    <div className="agent-directory">
       <Card className={classes.card}>
         <CardContent>
           <Typography variant="h5" component="h3">
-            Teams
+            Directory
           </Typography>
-          { props.location.state ? <Flash message={props.location.state} variant="success" /> : '' }
-          { flashProps.errors ? flashProps.errors.map((error, index) => <Flash message={error.message} variant={flashProps.variant} key={`flash-${index}`} />) : '' }
-
-          <Typography variant="body2" color="textSecondary" component="p">
+          <Typography variant="body2" color="textSecondary" component="div">
           {service.status === 'loading' && <div>Loading...</div>}
-          {service.status === 'loaded' && teamList.results.length ?
-            <List id="team-list">
-              { teamList.results.map(team => (
-                <ListItem button className='team-button' key='Teams'>
+          {service.status === 'loaded' && agentList.results.length ?
+            <List id="agent-list">
+              { agentList.results.map(a => (
+                <ListItem button className='agent-button' key={`Agents-${a.id}`}>
                   <ListItemIcon><InboxIcon /></ListItemIcon>
-                  <ListItemLink href={`#team/${team.id}`}>
-                    <ListItemText primary={team.name} />
+                  <ListItemLink href={`#agent/${a.id}`}>
+                    <ListItemText primary={a.name} />
                   </ListItemLink>
                 </ListItem>
               ))}
             </List> : ''}
+          </Typography>
           {service.status === 'error' && (
             <div>Error, the backend moved to the dark side.</div>
           )}
-          </Typography>
         </CardContent>
       </Card>
+      { flashProps.message ? <Flash message={flashProps.message} variant={flashProps.variant} /> : '' }
+      { flashProps.errors ? flashProps.errors.map((error, index) => <Flash message={error.message} variant={flashProps.variant} key={`flash-${index}`} />) : '' }
     </div>
   );
 };
 
-export default Team;
+export default AgentDirectory;

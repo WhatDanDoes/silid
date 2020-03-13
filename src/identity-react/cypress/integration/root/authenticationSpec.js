@@ -1,8 +1,15 @@
-context('Authentication', function() {
+context('Super Agent Authentication', function() {
 
   before(function() {
     cy.fixture('google-profile-response.json').as('profile');
   });
+  
+  let _profile;
+  beforeEach(function() {
+    // Why?
+    _profile = {...this.profile};
+  });
+ 
 
   describe('browser behaviour', () => {
     it('sets a cookie on first visit', () => {
@@ -44,8 +51,13 @@ context('Authentication', function() {
 
   describe('logged in', () => {
     beforeEach(function() {
-      cy.visit('/');
-      cy.contains('Login').click();
+
+      /**
+       * The root user corresponds to the email set in
+       * `silid-server/.env.e2e`. If these tests fail for some reason,
+       * make sure no one was monkeying with this value
+       */
+      cy.login('root@example.com', _profile);
     });
 
     it('lands in the right place', () => {
@@ -68,8 +80,27 @@ context('Authentication', function() {
       cy.get('#app-menu ul div:nth-of-type(1) a').should('have.attr', 'href', '#agent').and('contain', 'Profile');
       cy.get('#app-menu ul div:nth-of-type(2) a').should('have.attr', 'href', '#organization').and('contain', 'Organizations');
       cy.get('#app-menu ul div:nth-of-type(3) a').should('have.attr', 'href', '#team').and('contain', 'Teams');
-      cy.get('#app-menu ul div:nth-of-type(4) input').should('not.exist');
+      cy.get('#app-menu ul div:nth-of-type(4) input').should('have.attr', 'type', 'checkbox').and('not.be.checked');
       cy.get('#app-menu ul div:nth-of-type(5) a').should('not.exist');
+    });
+
+    describe('admin toggle', () => {
+      it('enters with admin mode turned off', () => {
+        cy.get('#app-menu-button').click();
+        cy.get('#app-menu ul div:nth-of-type(4) input').should('have.attr', 'type', 'checkbox').and('not.be.checked');
+        cy.get('#app-menu ul div:nth-of-type(5) a').should('not.exist');
+      });
+
+      it('allows the super agent to toggle admin mode', () => {
+        cy.get('#app-menu-button').click();
+        cy.get('#app-menu ul div:nth-of-type(5) a').should('not.exist');
+        cy.get('#app-menu ul div:nth-of-type(4) input').check();
+        cy.get('#app-menu ul div:nth-of-type(5) a').should('have.attr', 'href', '#agent/admin').and('contain', 'Agent Directory');
+        cy.get('#app-menu ul div:nth-of-type(6) a').should('have.attr', 'href', '#organization/admin').and('contain', 'Organization Directory');
+        cy.get('#app-menu ul div:nth-of-type(7) a').should('have.attr', 'href', '#team/admin').and('contain', 'Team Directory');
+        cy.get('#app-menu ul div:nth-of-type(4) input').uncheck();
+        cy.get('#app-menu ul div:nth-of-type(5) a').should('not.exist');
+      });
     });
 
     describe('post sign-in', function() {
@@ -101,7 +132,7 @@ context('Authentication', function() {
       });
 
       it('lands in the right place', () => {
-        const cypressConfig = require('../../cypress.json');
+        const cypressConfig = require('../../../cypress.json');
         cy.contains('Logout').click();
         cy.url().should('match', new RegExp(cypressConfig.baseUrl));
       });

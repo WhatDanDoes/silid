@@ -7,13 +7,13 @@ context('Agent', function() {
   before(function() {
     cy.fixture('google-profile-response.json').as('profile');
   });
-  
+
   let _profile;
   beforeEach(function() {
     // Why?
     _profile = {...this.profile};
   });
- 
+
   afterEach(() => {
     cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
   });

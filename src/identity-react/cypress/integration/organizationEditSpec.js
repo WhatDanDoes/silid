@@ -1,7 +1,3 @@
-// enables intelligent code completion for Cypress commands
-// https://on.cypress.io/intelligent-code-completion
-/// <reference types="Cypress" />
-
 context('Organization edit', function() {
 
   before(function() {
@@ -26,7 +22,7 @@ context('Organization edit', function() {
       cy.visit('/#/').then(() => {
         cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
           agent = results[0];
-  
+
           cy.request({ url: '/organization',  method: 'POST', body: { name: 'One Book Canada' } }).then((org) => {
             organization = org.body;
             cy.get('#app-menu-button').click();
@@ -43,7 +39,7 @@ context('Organization edit', function() {
         cy.get('button#edit-organization').click();
         cy.get('form#edit-organization-form').should('exist');
       });
-  
+
       it('displays the organization info in form', () => {
         cy.get('button#edit-organization').click();
         cy.get('input[name="name"][type="text"]').should('have.value', organization.name);

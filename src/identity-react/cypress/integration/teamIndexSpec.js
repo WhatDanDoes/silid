@@ -32,6 +32,12 @@ context('Team Index', function() {
     });
   });
 
+  afterEach(() => {
+    cy.task('query', 'TRUNCATE TABLE "Organizations" CASCADE;');
+    cy.task('query', 'TRUNCATE TABLE "Teams" CASCADE;');
+    cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
+  });
+
   describe('authenticated', () => {
 
     let agent, organization;
@@ -47,11 +53,6 @@ context('Team Index', function() {
           });
         });
       });
-    });
-
-    afterEach(() => {
-      cy.task('query', 'TRUNCATE TABLE "Organizations" CASCADE;');
-      cy.task('query', 'TRUNCATE TABLE "Teams" CASCADE;');
     });
 
     it('lands in the right spot', () => {
