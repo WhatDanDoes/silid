@@ -1,8 +1,4 @@
-// enables intelligent code completion for Cypress commands
-// https://on.cypress.io/intelligent-code-completion
-/// <reference types="Cypress" />
-
-context('Agent', function() {
+context('Agent Index', function() {
 
   before(function() {
     cy.fixture('google-profile-response.json').as('profile');
@@ -10,11 +6,9 @@ context('Agent', function() {
 
   let _profile;
   beforeEach(function() {
-    // Why?
     _profile = {...this.profile};
   });
- 
-  
+
   describe('unauthenticated', done => {
     beforeEach(() => {
       cy.visit('/#/agent');
