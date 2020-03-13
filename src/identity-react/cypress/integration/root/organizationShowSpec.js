@@ -58,6 +58,7 @@ context('root/Organization show', function() {
       cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
       cy.task('query', 'TRUNCATE TABLE "Organizations" CASCADE;');
       cy.task('query', 'TRUNCATE TABLE "Teams" CASCADE;');
+      cy.task('query', 'TRUNCATE TABLE "TeamMembers" CASCADE;');
     });
 
     describe('admin mode', () => {
