@@ -1,12 +1,7 @@
-// enables intelligent code completion for Cypress commands
-// https://on.cypress.io/intelligent-code-completion
-/// <reference types="Cypress" />
-
 context('Authentication', function() {
 
   before(function() {
     cy.fixture('google-profile-response.json').as('profile');
-//    cy.fixture('someguy-auth0-access-token.json').as('agent');
   });
 
   describe('browser behaviour', () => {

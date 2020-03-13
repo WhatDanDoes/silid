@@ -38,6 +38,7 @@ context('Agent Index', function() {
         cy.login(_profile.email, _profile);
         cy.get('#app-menu-button').click();
         cy.contains('Profile').click();
+        cy.wait(500);
       });
 
       it('lands in the right spot', () => {

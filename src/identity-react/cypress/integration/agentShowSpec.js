@@ -14,7 +14,7 @@ context('Agent show', function() {
     // Why?
     _profile = {...this.profile};
   });
-  
+
   describe('unauthenticated', done => {
     beforeEach(() => {
       cy.visit(`/#/agent/333`);
@@ -46,7 +46,7 @@ context('Agent show', function() {
         memberAgent = results[0];
       });
     });
- 
+
     describe('viewing member agent\'s profile', () => {
       beforeEach(function() {
         cy.login('someguy@example.com', _profile);

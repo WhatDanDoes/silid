@@ -40,7 +40,7 @@ context('root/Organization show', function() {
       cy.login('regularguy@example.com', _profile);
       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='regularguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
         regularAgent = results[0];
-        
+
         cy.request({ url: '/organization',  method: 'POST', body: { name: 'One Book Canada' } }).then(org => {
           organization = org.body;
 
@@ -57,6 +57,7 @@ context('root/Organization show', function() {
     afterEach(() => {
       cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
       cy.task('query', 'TRUNCATE TABLE "Organizations" CASCADE;');
+      cy.task('query', 'TRUNCATE TABLE "Teams" CASCADE;');
     });
 
     describe('admin mode', () => {
@@ -73,9 +74,9 @@ context('root/Organization show', function() {
           cy.visit('/#/organization/333');
           cy.get('#error-message').contains('No such organization');
         });
- 
+
         describe('viewing organization\'s profile', () => {
-   
+
           beforeEach(function() {
             cy.visit(`/#/organization/${organization.id}`);
             cy.wait(500);
@@ -84,7 +85,7 @@ context('root/Organization show', function() {
           it('lands in the right spot', () => {
             cy.url().should('contain', `/#/organization/${organization.id}`);
           });
- 
+
           it('displays common Organization interface elements', function() {
             cy.get('h3').contains(organization.name);
             cy.get('button#add-team').should('exist');
@@ -97,7 +98,7 @@ context('root/Organization show', function() {
       context('switched off', () => {
 
         context('root is member agent', () => {
-    
+
           beforeEach(function() {
             cy.request({ url: '/organization',  method: 'PATCH', body: { id: organization.id, memberId: root.id } }).then(res => {
 
@@ -116,11 +117,11 @@ context('root/Organization show', function() {
               });
             });
           });
-    
+
           it('lands in the right spot', () => {
             cy.url().should('contain', `/#/organization/${organization.id}`);
           });
-    
+
           it('displays common Organization interface elements', function() {
             cy.get('h3').contains('One Book Canada');
             cy.get('#edit-organization-form').should('not.exist');
@@ -129,9 +130,9 @@ context('root/Organization show', function() {
             cy.get('button#add-agent').should('not.exist');
           });
         });
-    
+
         context('root is non-member', () => {
-    
+
           beforeEach(function() {
             // Verify non-membership
             cy.task('query', `SELECT * FROM "OrganizationMembers" WHERE "AgentId"=${root.id};`).then(([results, metadata]) => {

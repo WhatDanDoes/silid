@@ -170,7 +170,7 @@ context('root/Organization add agent', function() {
           cy.get('#organization-button').click();
           cy.wait(500);
           cy.contains(organization.name).should('not.exist');
-          cy.visit(`/#/organization/${organization.id}`); 
+          cy.visit(`/#/organization/${organization.id}`);
         });
 
         // A root agent is still a root agent. The only thing contstraining

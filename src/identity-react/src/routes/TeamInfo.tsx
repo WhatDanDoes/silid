@@ -194,7 +194,7 @@ const TeamInfo = (props: any) => {
             {service.status === 'loaded' ?
               <React.Fragment>
                 <React.Fragment>
-                  {teamInfo.name} 
+                  {teamInfo.name}
                 </React.Fragment>
                 {admin.isEnabled || (teamInfo.creator && (agent.email === teamInfo.creator.email)) ?
                   <React.Fragment>

@@ -210,7 +210,7 @@ const OrganizationInfo = (props: any) => {
             {service.status === 'loaded' ?
               <React.Fragment>
                 <React.Fragment>
-                  {orgInfo.name} 
+                  {orgInfo.name}
                 </React.Fragment>
                 {admin.isEnabled || (orgInfo.creator && (agent.email === orgInfo.creator.email)) ?
                   <React.Fragment>

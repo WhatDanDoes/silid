@@ -18,7 +18,6 @@ context('root/Team add agent', function() {
     cy.task('query', 'TRUNCATE TABLE "TeamMembers" CASCADE;');
   });
 
-
   describe('Adding agent to team', () => {
 
     let root, regularAgent, organization, team;
@@ -140,7 +139,7 @@ context('root/Team add agent', function() {
           });
         });
       });
- 
+
       describe('when not an organization member', () => {
         beforeEach(function() {
           // Login root and create team
