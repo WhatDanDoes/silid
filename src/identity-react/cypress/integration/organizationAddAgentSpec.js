@@ -68,7 +68,7 @@ context('Organization add agent', function() {
               cy.get('button#cancel-add-agent').click();
               cy.get('form#add-member-agent-form').should('not.exist');
             });
-  
+
             it('clears the email input field', function() {
               cy.get('input[name="email"][type="email"]').type('somenewguy@example.com');
               cy.get('button#cancel-add-agent').click();
@@ -94,7 +94,7 @@ context('Organization add agent', function() {
                 expect($input[0].validationMessage).to.eq('email required')
               });
             });
-      
+
             describe('unknown agent', () => {
               it('updates the record in the database', function() {
                 cy.task('query', `SELECT * FROM "OrganizationMembers";`).then(([results, metadata]) => {
@@ -119,13 +119,13 @@ context('Organization add agent', function() {
                   });
                 });
               });
-      
+
               it('hides the add-member-agent-form', function() {
                 cy.get('input[name="email"][type="email"]').type('somenewguy@example.com');
                 cy.get('button[type="submit"]').click();
                 cy.get('form#add-member-agent-form').should('not.exist');
               });
-  
+
               it('updates the record on the interface', function() {
                 cy.get('#organization-member-list').should('exist');
                 cy.get('#organization-member-list').find('.list-item').its('length').should('eq', 1);
@@ -174,7 +174,7 @@ context('Organization add agent', function() {
                 cy.wait(500);
                 cy.get('form#add-member-agent-form').should('not.exist');
               });
-  
+
               it('updates the record on the interface', function() {
                 cy.get('#organization-member-list').find('.list-item').its('length').should('eq', 1);
                 cy.get('#organization-member-list .list-item').first().contains(agent.email);

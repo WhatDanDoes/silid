@@ -1,7 +1,3 @@
-// enables intelligent code completion for Cypress commands
-// https://on.cypress.io/intelligent-code-completion
-/// <reference types="Cypress" />
-
 context('Team creation', function() {
 
   before(function() {
@@ -10,7 +6,6 @@ context('Team creation', function() {
 
   let _profile;
   beforeEach(function() {
-    // Why?
     _profile = {...this.profile};
   });
 
@@ -30,15 +25,15 @@ context('Team creation', function() {
         });
       });
     });
-  
+
     afterEach(() => {
       cy.task('query', 'TRUNCATE TABLE "Organizations" CASCADE;');
     });
-  
+
     it('lands in the right spot', () => {
       cy.url().should('contain', `/#/organization/${organization.id}`);
     });
-  
+
     describe('interface', () => {
       it('displays Team interface elements', () => {
         cy.get('button#add-team').should('exist');
@@ -78,7 +73,7 @@ context('Team creation', function() {
               cy.get('button#cancel-changes').click();
               cy.get('form#add-team-form').should('not.exist');
             });
-  
+
             it('clears the name input field', function() {
               cy.get('input[name="name"][type="text"]').type('The Justice League');
               cy.get('button#cancel-changes').click();
@@ -133,7 +128,7 @@ context('Team creation', function() {
                   });
                 });
               });
-      
+
               it('hides the add-team-form', function() {
                 cy.get('input[name="name"][type="text"]').type('The Justice League');
                 cy.get('button[type="submit"]').click();

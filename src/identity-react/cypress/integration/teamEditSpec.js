@@ -1,7 +1,3 @@
-// enables intelligent code completion for Cypress commands
-// https://on.cypress.io/intelligent-code-completion
-/// <reference types="Cypress" />
-
 context('Team edit', function() {
 
   before(function() {
@@ -14,7 +10,6 @@ context('Team edit', function() {
 
   let _profile;
   beforeEach(function() {
-    // Why?
     _profile = {...this.profile};
   });
 
@@ -49,7 +44,7 @@ context('Team edit', function() {
         cy.get('button#edit-team').click();
         cy.get('form#edit-team-form').should('exist');
       });
-  
+
       it('displays the team info in form', () => {
         cy.get('button#edit-team').click();
         cy.get('input[name="name"][type="text"]').should('have.value', team.name);
