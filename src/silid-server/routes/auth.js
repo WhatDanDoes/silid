@@ -4,6 +4,9 @@ const path = require('path');
 const passport = require('passport');
 const models = require('../models');
 const request = require('request');
+const util = require('util');
+const querystring = require('querystring');
+const url = require('url');
 
 router.get('/login', (req, res, next) => {
   const authenticator = passport.authenticate('auth0', { scope: 'openid email profile' });
@@ -61,7 +64,10 @@ router.get('/callback', passport.authenticate('auth0'), (req, res) => {
 });
 
 /**
- * Perform session logout and redirect to homepage
+ * 2020-3-17 https://github.com/auth0-samples/auth0-nodejs-webapp-sample/blob/master/01-Login/routes/auth.js
+ *
+ * Perform session logout and redirect to silid homepage
+ * through Auth0 `/logout` endpoint
  */
 router.get('/logout', (req, res) => {
   req.logout();
@@ -70,7 +76,18 @@ router.get('/logout', (req, res) => {
   for (var cookie in cookies) {
     res.cookie(cookie, '', {expires: new Date(0)});
   }
-  res.redirect('/');
+
+  const logoutURL = new url.URL(
+    util.format('https://%s/v2/logout', process.env.AUTH0_DOMAIN)
+  );
+
+  const searchString = querystring.stringify({
+    client_id: process.env.AUTH0_CLIENT_ID,
+    returnTo: process.env.SERVER_DOMAIN
+  });
+  logoutURL.search = searchString;
+
+  res.redirect(logoutURL);
 });
 
 

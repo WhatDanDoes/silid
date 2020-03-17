@@ -7,7 +7,6 @@ const jwt = require('jsonwebtoken');
 const setupKeystore = require('../support/setupKeystore');
 const models = require('../../models');
 
-
 describe('authSpec', () => {
 
   /**
@@ -65,7 +64,7 @@ describe('authSpec', () => {
           if (err) return done.fail(err);
           expect(res.headers.location).toMatch(process.env.AUTH0_DOMAIN);
           done();
-        });     
+        });
     });
 
     it('starts a session', done => {
@@ -78,7 +77,7 @@ describe('authSpec', () => {
           if (err) return done.fail(err);
           expect(session.cookies.length).toEqual(1);
           done();
-        });     
+        });
     });
 
     it('calls the /authorize endpoint', done => {
@@ -89,7 +88,7 @@ describe('authSpec', () => {
           if (err) return done.fail(err);
           auth0Scope.isDone()
           done();
-        });     
+        });
     });
   });
 
@@ -112,7 +111,7 @@ describe('authSpec', () => {
         .reply(200, _identity);
 
       /**
-       * This sets the cookie before the Auth0 redirects take over 
+       * This sets the cookie before the Auth0 redirects take over
        */
       session = request(app);
       session
@@ -298,6 +297,23 @@ describe('authSpec', () => {
     });
 
     describe('/logout', () => {
+
+      let ssoScope;
+      beforeEach(done => {
+        /**
+         * Redirect client to Auth0 `/logout` after silid session is cleared
+         */
+        ssoScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+          .log(console.log)
+          .get('/v2/logout')
+          .query({
+            client_id: process.env.AUTH0_CLIENT_ID,
+            returnTo: process.env.SERVER_DOMAIN
+          })
+          .reply(302, {}, { 'Location': process.env.SERVER_DOMAIN });
+        done();
+      });
+
       it('redirects home and clears the session', done => {
         expect(session.cookies.length).toEqual(1);
         session
@@ -305,8 +321,23 @@ describe('authSpec', () => {
           .expect(302)
           .end(function(err, res) {
             if (err) return done.fail(err);
-            expect(res.headers.location).toMatch('/');
             expect(session.cookies.length).toEqual(0);
+            done();
+          });
+      });
+
+      it('redirects to the Auth0 SSO /logout endpoint and sets redirect query string', done => {
+        session
+          .get('/logout')
+          .expect(302)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            const loc = new URL(res.header.location);
+            expect(loc.origin).toMatch(`https://${process.env.AUTH0_DOMAIN}`);
+            expect(loc.hostname).toMatch(process.env.AUTH0_DOMAIN);
+            expect(loc.pathname).toMatch('/v2/logout');
+            expect(loc.searchParams.get('client_id')).toMatch(process.env.AUTH0_CLIENT_ID);
+            expect(loc.searchParams.get('returnTo')).toMatch(process.env.SERVER_DOMAIN);
             done();
           });
       });
@@ -441,6 +472,16 @@ describe('authSpec', () => {
       // This is not testing the client side app
       describe('Logout', () => {
         beforeEach(done => {
+          // Clear Auth0 SSO session cookies
+          nock(`https://${process.env.AUTH0_DOMAIN}`)
+            .log(console.log)
+            .get('/v2/logout')
+            .query({
+              client_id: process.env.AUTH0_CLIENT_ID,
+              returnTo: process.env.SERVER_DOMAIN
+            })
+            .reply(302, {}, { 'Location': process.env.SERVER_DOMAIN });
+
           browser.clickLink('Login', (err) => {
             if (err) return done.fail(err);
             browser.assert.success();

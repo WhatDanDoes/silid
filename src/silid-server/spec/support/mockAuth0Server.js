@@ -248,6 +248,20 @@ setupKeystore((err, keyStuff) => {
         }
       });
 
+      /**
+       * Clear Auth0-set SSO session/cookies
+       */
+      server.route({
+        method: 'GET',
+        path: '/v2/logout',
+        handler: (request, h) => {
+          console.log('/v2/logout');
+          console.log(`Redirecting home`);
+          return h.redirect(process.env.SERVER_DOMAIN);
+        }
+      });
+
+
       await server.start();
       console.log('Server running on %s', server.info.uri);
     };
