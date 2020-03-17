@@ -7,7 +7,6 @@ const jwt = require('jsonwebtoken');
 const setupKeystore = require('../support/setupKeystore');
 const models = require('../../models');
 
-
 describe('authSpec', () => {
 
   /**
@@ -307,8 +306,11 @@ describe('authSpec', () => {
         ssoScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
           .log(console.log)
           .get('/v2/logout')
+          .query({
+            client_id: process.env.AUTH0_CLIENT_ID,
+            returnTo: process.env.SERVER_DOMAIN
+          })
           .reply(302, {}, { 'Location': process.env.SERVER_DOMAIN });
-
         done();
       });
 
@@ -324,13 +326,18 @@ describe('authSpec', () => {
           });
       });
 
-      it('redirects to the Auth0 SSO /logout endpoint', done => {
+      it('redirects to the Auth0 SSO /logout endpoint and sets redirect query string', done => {
         session
           .get('/logout')
           .expect(302)
           .end(function(err, res) {
             if (err) return done.fail(err);
-            expect(res.headers.location).toMatch(`https://${process.env.AUTH0_DOMAIN}/v2/logout`);
+            const loc = new URL(res.header.location);
+            expect(loc.origin).toMatch(`https://${process.env.AUTH0_DOMAIN}`);
+            expect(loc.hostname).toMatch(process.env.AUTH0_DOMAIN);
+            expect(loc.pathname).toMatch('/v2/logout');
+            expect(loc.searchParams.get('client_id')).toMatch(process.env.AUTH0_CLIENT_ID);
+            expect(loc.searchParams.get('returnTo')).toMatch(process.env.SERVER_DOMAIN);
             done();
           });
       });
@@ -469,6 +476,10 @@ describe('authSpec', () => {
           nock(`https://${process.env.AUTH0_DOMAIN}`)
             .log(console.log)
             .get('/v2/logout')
+            .query({
+              client_id: process.env.AUTH0_CLIENT_ID,
+              returnTo: process.env.SERVER_DOMAIN
+            })
             .reply(302, {}, { 'Location': process.env.SERVER_DOMAIN });
 
           browser.clickLink('Login', (err) => {
