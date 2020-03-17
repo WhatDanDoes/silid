@@ -27,10 +27,18 @@ const useStyles = makeStyles((theme: Theme) =>
       marginRight: theme.spacing(1),
       width: '100%',
     },
-    card: {
-      marginLeft: '25%',
-      marginTop: '4%',
-      maxWidth: 720,
+    [theme.breakpoints.down('sm')]: {
+      card: {
+        marginTop: '4%',
+        maxWidth: 720,
+      },
+    },
+    [theme.breakpoints.up('md')]: {
+      card: {
+        marginLeft: '25%',
+        marginTop: '4%',
+        maxWidth: 720,
+      },
     },
   }),
 );
