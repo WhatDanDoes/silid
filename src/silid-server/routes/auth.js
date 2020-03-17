@@ -70,7 +70,13 @@ router.get('/logout', (req, res) => {
   for (var cookie in cookies) {
     res.cookie(cookie, '', {expires: new Date(0)});
   }
-  res.redirect('/');
+
+  /**
+   * 2020-3-17 https://auth0.com/docs/logout/guides/logout-auth0
+   *
+   * Clear Auth0 SSO session cookie
+   */
+  res.redirect(`https://${process.env.AUTH0_DOMAIN}/v2/logout`);
 });
 
 
