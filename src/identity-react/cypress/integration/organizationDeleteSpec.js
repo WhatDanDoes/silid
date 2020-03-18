@@ -1,7 +1,3 @@
-// enables intelligent code completion for Cypress commands
-// https://on.cypress.io/intelligent-code-completion
-/// <reference types="Cypress" />
-
 context('Organization delete', function() {
 
   before(function() {
@@ -16,7 +12,6 @@ context('Organization delete', function() {
 
   let _profile, agent, memberAgent;
   beforeEach(function() {
-    // Why?
     _profile = {...this.profile};
 
     cy.login('someotherguy@example.com', _profile);

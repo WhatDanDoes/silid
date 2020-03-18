@@ -23,10 +23,18 @@ const useStyles = makeStyles((theme: Theme) =>
       marginRight: theme.spacing(1),
       width: '100%',
     },
-    card: {
-      marginLeft: '25%',
-      marginTop: '4%',
-      maxWidth: 720,
+    [theme.breakpoints.down('sm')]: {
+      card: {
+        marginTop: '4%',
+        maxWidth: 720,
+      },
+    },
+    [theme.breakpoints.up('md')]: {
+      card: {
+        marginLeft: '25%',
+        marginTop: '4%',
+        maxWidth: 720,
+      },
     },
   }),
 );
@@ -56,7 +64,7 @@ const Team = (props: any) => {
             Teams
           </Typography>
           { props.location.state ? <Flash message={props.location.state} variant="success" /> : '' }
-          { flashProps.errors ? flashProps.errors.map(error => <Flash message={error.message} variant={flashProps.variant} />) : '' }
+          { flashProps.errors ? flashProps.errors.map((error, index) => <Flash message={error.message} variant={flashProps.variant} key={`flash-${index}`} />) : '' }
 
           <Typography variant="body2" color="textSecondary" component="p">
           {service.status === 'loading' && <div>Loading...</div>}

@@ -19,6 +19,7 @@ import { Organization } from '../types/Organization';
 import Flash from '../components/Flash';
 import TeamCreateForm from '../components/TeamCreateForm';
 import { useAuthState } from '../auth/Auth';
+import { useAdminState } from '../auth/Admin';
 
 import useGetOrganizationInfoService from '../services/useGetOrganizationInfoService';
 import usePutOrganizationService from '../services/usePutOrganizationService';
@@ -37,10 +38,18 @@ const useStyles = makeStyles((theme: Theme) =>
       marginRight: theme.spacing(1),
       width: '100%',
     },
-    card: {
-      marginLeft: '25%',
-      marginTop: '4%',
-      maxWidth: 720,
+    [theme.breakpoints.down('sm')]: {
+      card: {
+        marginTop: '4%',
+        maxWidth: 720,
+      },
+    },
+    [theme.breakpoints.up('md')]: {
+      card: {
+        marginLeft: '25%',
+        marginTop: '4%',
+        maxWidth: 720,
+      },
     },
   }),
 );
@@ -53,6 +62,7 @@ const OrganizationInfo = (props: any) => {
   const classes = useStyles();
 
   const {agent} = useAuthState();
+  const admin = useAdminState();
 
   const [teamFormVisible, setTeamFormVisible] = useState(false);
   const [editFormVisible, setEditFormVisible] = useState(false);
@@ -208,9 +218,9 @@ const OrganizationInfo = (props: any) => {
             {service.status === 'loaded' ?
               <React.Fragment>
                 <React.Fragment>
-                  {orgInfo.name} 
+                  {orgInfo.name}
                 </React.Fragment>
-                {orgInfo.creator && (agent.email === orgInfo.creator.email) ?
+                {admin.isEnabled || (orgInfo.creator && (agent.email === orgInfo.creator.email)) ?
                   <React.Fragment>
                     {!editFormVisible ?
                       <Button id="edit-organization" variant="contained" color="primary" onClick={() => setEditFormVisible(true)}>
@@ -259,7 +269,7 @@ const OrganizationInfo = (props: any) => {
                 {!editFormVisible && !agentFormVisible && !teamFormVisible ?
                     <Typography variant="body2" color="textSecondary" component="p">
                       <React.Fragment>
-                        {orgInfo.creator && (agent.email === orgInfo.creator.email) ?
+                        {admin.isEnabled || (orgInfo.creator && (agent.email === orgInfo.creator.email)) ?
                           <Fab id="add-agent" color="primary" aria-label="add-agent" className={classes.margin}>
                             <PersonAddIcon onClick={() => setAgentFormVisible(true)} />
                           </Fab>
@@ -341,7 +351,7 @@ const OrganizationInfo = (props: any) => {
                   <ListItemLink href={`#agent/${member.id}`}>
                     <ListItemText primary={member.email} />
                   </ListItemLink>
-                  { orgInfo.creator.email !== member.email && (agent.email === orgInfo.creator.email) ?
+                  { orgInfo.creator.email !== member.email && (agent.email === orgInfo.creator.email || admin.isEnabled) ?
                   <DeleteForeverOutlinedIcon className="delete-member" onClick={() => handleMemberDelete(member.id)} />
                   : ''}
                 </ListItem>

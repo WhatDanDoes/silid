@@ -1,7 +1,3 @@
-// enables intelligent code completion for Cypress commands
-// https://on.cypress.io/intelligent-code-completion
-/// <reference types="Cypress" />
-
 context('Team add agent', function() {
 
   before(function() {
@@ -77,7 +73,7 @@ context('Team add agent', function() {
               cy.get('button#cancel-add-agent').click();
               cy.get('form#add-member-agent-form').should('not.exist');
             });
-  
+
             it('clears the email input field', function() {
               cy.get('input[name="email"][type="email"]').type('somenewguy@example.com');
               cy.get('button#cancel-add-agent').click();
@@ -103,7 +99,7 @@ context('Team add agent', function() {
                 expect($input[0].validationMessage).to.eq('email required')
               });
             });
-      
+
             describe('unknown agent', () => {
               it('updates the record in the database', function() {
                 cy.task('query', `SELECT * FROM "TeamMembers";`).then(([results, metadata]) => {
@@ -128,14 +124,14 @@ context('Team add agent', function() {
                   });
                 });
               });
-      
+
               it('hides the add-member-agent-form', function() {
                 cy.get('input[name="email"][type="email"]').type('somenewguy@example.com');
                 cy.get('button[type="submit"]').click();
                 cy.wait(500);
                 cy.get('form#add-member-agent-form').should('not.exist');
               });
-  
+
               it('updates the record on the interface', function() {
                 cy.get('#team-member-list').should('exist');
                 cy.get('#team-member-list').find('.list-item').its('length').should('eq', 1);
@@ -184,7 +180,7 @@ context('Team add agent', function() {
                 cy.wait(500);
                 cy.get('form#add-member-agent-form').should('not.exist');
               });
-  
+
               it('updates the record on the interface', function() {
                 cy.get('#team-member-list').find('.list-item').its('length').should('eq', 1);
                 cy.get('#team-member-list .list-item').first().contains(agent.email);

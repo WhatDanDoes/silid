@@ -5,31 +5,42 @@ const models = require('../models');
 const passport = require('passport');
 
 /* GET agent listing. */
-router.get('/', sessionAuth, function(req, res, next) {
-  res.json(req.agent);
+router.get('/admin', sessionAuth, function(req, res, next) {
+  if (!req.agent.isSuper) {
+    return res.status(403).json( { message: 'Forbidden' });
+  }
+
+  // Super agent gets entire listing
+  models.Agent.findAll().then(results => {
+    res.json(results);
+  }).catch(err => {
+    res.status(500).json(err);
+  });
 });
+
+router.get('/', sessionAuth, function(req, res, next) {
+  return res.json(req.agent);
+});
+
 
 router.get('/:id', sessionAuth, function(req, res, next) {
   models.Agent.findOne({ where: { id: req.params.id } }).then(result => {
     if (!result) {
       result = { message: 'No such agent' };
     }
+
     res.json(result);
   }).catch(err => {
-    res.json(err);
+    res.status(500).json(err);
   });
 });
 
 router.post('/', sessionAuth, function(req, res, next) {
-  let email = req.body.email;
-  if (req.body.email) {
-    email = req.body.email;
-  }
-  let agent = new models.Agent({ email: email });
+  let agent = new models.Agent({ email: req.body.email });
   agent.save().then(result => {
     res.status(201).json(result);
   }).catch(err => {
-    res.json(err);
+    res.status(500).json(err);
   });
 });
 
@@ -39,7 +50,7 @@ router.put('/', sessionAuth, function(req, res, next) {
       return res.json({ message: 'No such agent' });
     }
 
-    if (req.agent.email !== agent.email) {
+    if (!req.agent.isSuper && req.agent.email !== agent.email) {
       return res.status(401).json( { message: 'Unauthorized' });
     }
 
@@ -51,10 +62,10 @@ router.put('/', sessionAuth, function(req, res, next) {
     agent.save().then(result => {
       res.status(201).json(result);
     }).catch(err => {
-      res.json(err);
+      res.status(500).json(err);
     });
   }).catch(err => {
-    res.json(err);
+    res.status(500).json(err);
   });
 });
 
@@ -64,17 +75,17 @@ router.delete('/', sessionAuth, function(req, res, next) {
       return res.json( { message: 'No such agent' });
     }
 
-    if (req.agent.email !== agent.email) {
+    if (!req.agent.isSuper && req.agent.email !== agent.email) {
       return res.status(401).json( { message: 'Unauthorized' });
     }
 
     agent.destroy().then(results => {
       res.json( { message: 'Agent deleted' });
     }).catch(err => {
-      res.json(err);
+      res.status(500).json(err);
     });   
   }).catch(err => {
-    res.json(err);
+    res.status(500).json(err);
   });
 });
 

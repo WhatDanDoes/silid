@@ -1,4 +1,6 @@
 'use strict';
+
+require('../../app'); // Just so .env vars are loaded
 const fixtures = require('sequelize-fixtures');
 
 describe('Agent', () => {
@@ -234,6 +236,28 @@ describe('Agent', () => {
           }).catch(err => {
             done.fail(err);
           });
+        }).catch(err => {
+          done.fail(err);
+        });
+      });
+    });
+  });
+
+  describe('virtuals', () => {
+    describe('isSuper', () => {
+      it('returns true if ROOT_AGENT is set in .env', done => {
+        Agent.create({ email: process.env.ROOT_AGENT }).then(agent => {
+          expect(agent.isSuper).toBe(true);
+          done();
+        }).catch(err => {
+          done.fail(err);
+        });
+      });
+
+      it('returns false if agent email doesn\'t match ROOT_AGENT', done => {
+        agent.save().then(agent => {
+          expect(agent.isSuper).toBe(false);
+          done();
         }).catch(err => {
           done.fail(err);
         });
