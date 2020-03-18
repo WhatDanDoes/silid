@@ -28,7 +28,7 @@ if (
  * served up via proxy. In testing and production-like scenarios, the client
  * app is assembled for production and served from a static folder.
  */
-if (process.env.NODE_ENV === 'e2e') {
+if (process.env.NODE_ENV === 'e2e' || process.env.NODE_ENV === 'development') {
   /**
    * Send app to client if authenticated.
    * Render home otherwise
