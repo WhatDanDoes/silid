@@ -7,6 +7,7 @@ const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 const logger = require('morgan');
 const cors = require('cors');
+const jsonwebtoken = require('jsonwebtoken');
 
 /**
  * Routes
@@ -89,9 +90,15 @@ const strategy = new Auth0Strategy(
     callbackURL: process.env.CALLBACK_URL
   },
   function(accessToken, refreshToken, extraParams, profile, done) {
-    // accessToken is the token to call Auth0 API (not needed in the most cases)
+    // accessToken is the token to call Auth0 API (not needed in most cases)
     // extraParams.id_token has the JSON Web Token
     // profile has all the information from the user
+
+    /**
+     * 2020-3-19 https://community.auth0.com/t/how-to-check-role-of-user-in-express-application/27525/8
+     */
+    let decoded = jsonwebtoken.decode(accessToken);
+    profile.scope = decoded.permissions
     return done(null, profile);
   }
 );
