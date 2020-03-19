@@ -4,6 +4,9 @@ const sessionAuth = require('../lib/sessionAuth');
 const models = require('../models');
 const passport = require('passport');
 
+
+const jwtAuthz = require('express-jwt-authz');
+
 /* GET agent listing. */
 router.get('/admin', sessionAuth, function(req, res, next) {
   if (!req.agent.isSuper) {
@@ -18,17 +21,28 @@ router.get('/admin', sessionAuth, function(req, res, next) {
   });
 });
 
-router.get('/', sessionAuth, function(req, res, next) {
+
+function checkPermissions(required) {
+  return (req, res, next) => {
+    jwtAuthz(required, { failWithError: true, checkAllScopes: true })(req, res, err => {
+      if (err) {
+        return res.status(err.statusCode).json(err);
+      }
+      next();
+    });
+  };
+}
+
+router.get('/', sessionAuth, checkPermissions(['read:agents']), function(req, res, next) {
   return res.json(req.agent);
 });
 
 
-router.get('/:id', sessionAuth, function(req, res, next) {
+router.get('/:id', sessionAuth, checkPermissions(['read:agents']), function(req, res, next) {
   models.Agent.findOne({ where: { id: req.params.id } }).then(result => {
     if (!result) {
       result = { message: 'No such agent' };
     }
-
     res.json(result);
   }).catch(err => {
     res.status(500).json(err);
@@ -51,7 +65,7 @@ router.put('/', sessionAuth, function(req, res, next) {
     }
 
     if (!req.agent.isSuper && req.agent.email !== agent.email) {
-      return res.status(401).json( { message: 'Unauthorized' });
+      return res.status(401).json({ message: 'Unauthorized' });
     }
 
     for (let key in req.body) {
