@@ -4,6 +4,7 @@ const fixtures = require('sequelize-fixtures');
 const models = require('../../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../../support/stubAuth0Sessions');
+const scope = require('../../../config/permissions');
 
 /**
  * 2019-11-13
@@ -150,7 +151,7 @@ describe('root/agentSpec', () => {
           rootSession
             .post('/agent')
             .send({
-              email: 'someotherguy@example.com' 
+              email: 'someotherguy@example.com'
             })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
@@ -176,7 +177,7 @@ describe('root/agentSpec', () => {
         rootSession
           .post('/agent')
           .send({
-            email: agent.email 
+            email: agent.email
           })
           .set('Accept', 'application/json')
           .expect('Content-Type', /json/)
@@ -254,7 +255,7 @@ describe('root/agentSpec', () => {
           .put('/agent')
           .send({
             id: 111,
-            name: 'Some Guy' 
+            name: 'Some Guy'
           })
           .set('Accept', 'application/json')
           .expect('Content-Type', /json/)
@@ -280,12 +281,12 @@ describe('root/agentSpec', () => {
           .expect(200)
           .end(function(err, res) {
             if (err) return done.fail(err);
-  
+
             expect(res.body.message).toEqual('Agent deleted');
             done();
           });
       });
-  
+
       it('doesn\'t barf if agent doesn\'t exist', done => {
         rootSession
           .delete('/agent')
@@ -297,7 +298,7 @@ describe('root/agentSpec', () => {
           .expect(200)
           .end(function(err, res) {
             if (err) return done.fail(err);
-  
+
             expect(res.body.message).toEqual('No such agent');
             done();
           });
@@ -308,7 +309,7 @@ describe('root/agentSpec', () => {
   describe('unauthorized', () => {
     let unauthorizedSession;
     beforeEach(done => {
-      login({ ..._identity, email: agent.email }, (err, session) => {
+      login({ ..._identity, email: agent.email }, [scope.read.agents], (err, session) => {
         if (err) return done.fail(err);
         unauthorizedSession = session;
         done();
@@ -325,7 +326,7 @@ describe('root/agentSpec', () => {
             .expect(403)
             .end(function(err, res) {
               if (err) return done.fail(err);
-              expect(res.body.message).toEqual('Forbidden');
+              expect(res.body.message).toEqual('Insufficient scope');
               done();
             });
         });

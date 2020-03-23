@@ -66,7 +66,7 @@ describe('agentSpec', () => {
             authenticatedSession
               .post('/agent')
               .send({
-                email: 'someotherguy@example.com' 
+                email: 'someotherguy@example.com'
               })
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
@@ -92,7 +92,7 @@ describe('agentSpec', () => {
           authenticatedSession
             .post('/agent')
             .send({
-              email: agent.email 
+              email: agent.email
             })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
@@ -106,7 +106,7 @@ describe('agentSpec', () => {
             });
         });
       });
-  
+
       describe('read', () => {
         let authenticatedSession;
         beforeEach(done => {
@@ -145,7 +145,7 @@ describe('agentSpec', () => {
             });
         });
       });
- 
+
       describe('update', () => {
         let authenticatedSession;
         beforeEach(done => {
@@ -170,7 +170,7 @@ describe('agentSpec', () => {
               if (err) return done.fail(err);
 
               expect(res.body.name).toEqual('Some Cool Guy');
- 
+
               models.Agent.findOne({ where: { id: agent.id }}).then(results => {
                 expect(results.name).toEqual('Some Cool Guy');
                 expect(results.email).toEqual(agent.email);
@@ -218,7 +218,7 @@ describe('agentSpec', () => {
             .put('/agent')
             .send({
               id: 111,
-              name: 'Some Guy' 
+              name: 'Some Guy'
             })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
@@ -301,7 +301,7 @@ describe('agentSpec', () => {
             .expect(403)
             .end(function(err, res) {
               if (err) return done.fail(err);
-              expect(res.body.message).toEqual('Forbidden');
+              expect(res.body.message).toEqual('Insufficient scope');
               done();
             });
         });
@@ -341,7 +341,7 @@ describe('agentSpec', () => {
             .expect(403)
             .end(function(err, res) {
               if (err) done.fail(err);
-              expect(res.body.message).toEqual('Forbidden');
+              expect(res.body.message).toEqual('Insufficient scope');
               done();
             });
         });
