@@ -4,6 +4,7 @@ const fixtures = require('sequelize-fixtures');
 const models = require('../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
+const scope = require('../../config/permissions');
 
 describe('agentSpec', () => {
 
@@ -45,18 +46,19 @@ describe('agentSpec', () => {
 
   describe('authenticated', () => {
 
-    let authenticatedSession;
-    beforeEach(done => {
-      login(_identity, (err, session) => {
-        if (err) return done.fail(err);
-        authenticatedSession = session;
-        done();
-      });
-    });
-
     describe('authorized', () => {
 
       describe('create', () => {
+
+        let authenticatedSession;
+        beforeEach(done => {
+          login(_identity, [scope.create.agents], (err, session) => {
+            if (err) return done.fail(err);
+            authenticatedSession = session;
+            done();
+          });
+        });
+
         it('adds a new record to the database', done => {
           models.Agent.findAll().then(results => {
             expect(results.length).toEqual(1);
@@ -106,6 +108,15 @@ describe('agentSpec', () => {
       });
   
       describe('read', () => {
+        let authenticatedSession;
+        beforeEach(done => {
+          login(_identity, [scope.read.agents], (err, session) => {
+            if (err) return done.fail(err);
+            authenticatedSession = session;
+            done();
+          });
+        });
+
         it('retrieves an existing record from the database', done => {
           authenticatedSession
             .get(`/agent/${agent.id}`)
@@ -136,6 +147,15 @@ describe('agentSpec', () => {
       });
  
       describe('update', () => {
+        let authenticatedSession;
+        beforeEach(done => {
+          login(_identity, [scope.update.agents], (err, session) => {
+            if (err) return done.fail(err);
+            authenticatedSession = session;
+            done();
+          });
+        });
+
         it('updates an existing record in the database', done => {
           authenticatedSession
             .put('/agent')
@@ -213,6 +233,15 @@ describe('agentSpec', () => {
       });
 
       describe('delete', () => {
+        let authenticatedSession;
+        beforeEach(done => {
+          login(_identity, [scope.delete.agents], (err, session) => {
+            if (err) return done.fail(err);
+            authenticatedSession = session;
+            done();
+          });
+        });
+
         it('removes an existing record from the database', done => {
           authenticatedSession
             .delete('/agent')
@@ -249,19 +278,19 @@ describe('agentSpec', () => {
       });
     });
 
-    describe('unauthorized', () => {
-      let unauthorizedSession;
+    describe('forbidden', () => {
+      let forbiddenSession;
       beforeEach(done => {
         login({ ..._identity, email: 'someotherguy@example.com', name: 'Some Other Guy' }, (err, session) => {
           if (err) return done.fail(err);
-          unauthorizedSession = session;
+          forbiddenSession = session;
           done();
         });
       });
 
       describe('update', () => {
-        it('returns 401', done => {
-          unauthorizedSession
+        it('returns 403', done => {
+          forbiddenSession
             .put('/agent')
             .send({
               id: agent.id,
@@ -269,16 +298,16 @@ describe('agentSpec', () => {
             })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
-            .expect(401)
+            .expect(403)
             .end(function(err, res) {
               if (err) return done.fail(err);
-              expect(res.body.message).toEqual('Unauthorized');
+              expect(res.body.message).toEqual('Forbidden');
               done();
             });
         });
 
         it('does not change the record in the database', done => {
-          unauthorizedSession
+          forbiddenSession
             .put('/agent')
             .send({
               id: agent.id,
@@ -286,7 +315,7 @@ describe('agentSpec', () => {
             })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
-            .expect(401)
+            .expect(403)
             .end(function(err, res) {
               if (err) done.fail(err);
               models.Agent.findOne({ where: { id: agent.id }}).then(results => {
@@ -301,18 +330,18 @@ describe('agentSpec', () => {
       });
 
       describe('delete', () => {
-        it('returns 401', done => {
-          unauthorizedSession
+        it('returns 403', done => {
+          forbiddenSession
             .delete('/agent')
             .send({
               id: agent.id
             })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
-            .expect(401)
+            .expect(403)
             .end(function(err, res) {
               if (err) done.fail(err);
-              expect(res.body.message).toEqual('Unauthorized');
+              expect(res.body.message).toEqual('Forbidden');
               done();
             });
         });
@@ -322,14 +351,14 @@ describe('agentSpec', () => {
             // 2 because the unauthorized agent is in the database
             expect(results.length).toEqual(2);
 
-            unauthorizedSession
+            forbiddenSession
               .delete('/agent')
               .send({
                 id: agent.id
               })
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
-              .expect(401)
+              .expect(403)
               .end(function(err, res) {
                 if (err) done.fail(err);
                 models.Agent.findAll().then(results => {
@@ -347,7 +376,7 @@ describe('agentSpec', () => {
     });
   });
 
-  describe('not authenticated', () => {
+  describe('unauthenticated', () => {
 
     it('redirects to login', done => {
       request(app)

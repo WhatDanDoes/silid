@@ -3,6 +3,8 @@ const app = require('../../app');
 const request = require('supertest-session');
 const nock = require('nock');
 
+const roles = require('../../config/roles');
+
 /**
  * 2019-11-13
  * Sample tokens taken from:
@@ -35,15 +37,13 @@ module.exports = function(done) {
     let pub, prv, keystore;
     ({ pub, prv, keystore } = keyStuff);
 
-    const signedAccessToken = jwt.sign(_access, prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } });
-
     /**
      * `/authorize?...` mock
      *
      * This is called when `/login` is hit. The session is
      * created prior to redirect.
      */
-    let state, nonce; 
+    let state, nonce;
     const authorizeScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
       .log(console.log)
       .persist()
@@ -58,7 +58,12 @@ module.exports = function(done) {
     /**
      * login
      */
-    function login(idToken, done) {
+    function login(idToken, permissions, done) {
+
+      if (typeof permissions === 'function') {
+        done = permissions;
+        delete permissions;
+      }
 
       /**
        * `/userinfo` mock
@@ -73,7 +78,7 @@ module.exports = function(done) {
 
 
       /**
-       * This sets the cookie before the Auth0 redirects take over 
+       * This sets the cookie before the Auth0 redirects take over
        */
       const session = request(app);
       session
@@ -86,8 +91,9 @@ module.exports = function(done) {
                                               aud: process.env.AUTH0_CLIENT_ID,
                                               iat: Math.floor(Date.now() / 1000) - (60 * 60),
                                               nonce: nonce },
-                                           prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
- 
+                                           prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } });
+
+          const signedAccessToken = jwt.sign({..._access, permissions: permissions}, prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } });
 
           /**
            * `/oauth/token` mock
