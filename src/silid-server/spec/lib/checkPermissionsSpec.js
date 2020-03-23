@@ -258,11 +258,13 @@ describe('checkPermissions', function() {
         done.fail('Should not get here');
       });
 
-      let data = JSON.parse(response._getData());
-      expect(data.statusCode).toEqual(403);
-      expect(data.error).toEqual('Forbidden');
-      expect(data.message).toEqual('Insufficient scope');
-      done();
+      setTimeout(() => {
+        let data = JSON.parse(response._getData());
+        expect(data.statusCode).toEqual(403);
+        expect(data.error).toEqual('Forbidden');
+        expect(data.message).toEqual('Insufficient scope');
+        done();
+      }, 100); // Flaky!
     });
   });
 
