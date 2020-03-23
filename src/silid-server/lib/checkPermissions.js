@@ -15,7 +15,7 @@ const checkPermissions = function(permissions) {
 
     jwtAuthz(permissions, { failWithError: true, checkAllScopes: true })(req, res, err => {
       if (err) {
-        return res.status(err.statusCode).json(err);
+        return res.status(err.statusCode).json({...err, message: 'Forbidden' });
       }
 
       const socialProfile = req.user._json;
