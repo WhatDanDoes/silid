@@ -16,6 +16,8 @@ describe('authSpec', () => {
    * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
    */
   const _identity = require('../fixtures/sample-auth0-identity-token');
+  const _access = require('../fixtures/sample-auth0-access-token');
+  const scope = require('../../config/permissions');
 
   let pub, prv, keystore;
   beforeAll(done => {
@@ -134,7 +136,9 @@ describe('authSpec', () => {
                                     'code': 'AUTHORIZATION_CODE'
                                   })
             .reply(200, {
-              'access_token': 'SOME_MADE_UP_ACCESS_TOKEN',
+              'access_token': jwt.sign({..._access,
+                                        permissions: [scope.read.agents]},
+                                       prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } }),
               'refresh_token': 'SOME_MADE_UP_REFRESH_TOKEN',
               'id_token': jwt.sign({..._identity,
                                       aud: process.env.AUTH0_CLIENT_ID,
@@ -256,7 +260,9 @@ describe('authSpec', () => {
                                                   'code': 'AUTHORIZATION_CODE'
                                                 })
                           .reply(200, {
-                            'access_token': 'SOME_MADE_UP_ACCESS_TOKEN',
+                            'access_token': jwt.sign({..._access,
+                                                      permissions: [scope.read.agents]},
+                                                     prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } }),
                             'refresh_token': 'SOME_MADE_UP_REFRESH_TOKEN',
                             'id_token': jwt.sign({..._identity,
                                                     aud: process.env.AUTH0_CLIENT_ID,
@@ -425,7 +431,9 @@ describe('authSpec', () => {
                                       'code': 'AUTHORIZATION_CODE'
                                     })
               .reply(200, {
-                'access_token': 'SOME_MADE_UP_ACCESS_TOKEN',
+                'access_token': jwt.sign({..._access,
+                                          permissions: [scope.read.agents]},
+                                         prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } }),
                 'refresh_token': 'SOME_MADE_UP_REFRESH_TOKEN',
                 'id_token': identityToken
               });
