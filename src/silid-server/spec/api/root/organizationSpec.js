@@ -5,6 +5,7 @@ const models = require('../../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../../support/stubAuth0Sessions');
 const mailer = require('../../../mailer');
+const scope = require('../../../config/permissions');
 
 /**
  * 2019-11-13
@@ -834,13 +835,13 @@ describe('root/organizationSpec', () => {
     });
   });
 
-  describe('unauthorized', () => {
+  describe('forbidden', () => {
 
-    let unauthorizedSession;
+    let forbiddenSession;
     beforeEach(done => {
-      login({..._identity, email: agent.email}, (err, session) => {
+      login({..._identity, email: agent.email}, [scope.read.organizations], (err, session) => {
         if (err) return done.fail(err);
-        unauthorizedSession = session;
+        forbiddenSession = session;
         done();
       });
     });
@@ -851,7 +852,7 @@ describe('root/organizationSpec', () => {
           models.Organization.create({ name: 'Mr Worldwide', creatorId: root.id }).then(o => {
             models.Organization.findAll().then(results => {
               expect(results.length).toEqual(2);
-              unauthorizedSession
+              forbiddenSession
                 .get(`/organization`)
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
