@@ -5,6 +5,7 @@ const models = require('../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 const mailer = require('../../mailer');
+const scope = require('../../config/permissions');
 
 /**
  * 2019-11-13
@@ -52,17 +53,19 @@ describe('organizationSpec', () => {
 
   describe('authenticated', () => {
 
-    beforeEach(done => {
-      login(_identity, (err, session) => {
-        if (err) return done.fail(err);
-        authenticatedSession = session;
-        done();
-      });
-    });
-
     describe('authorized', () => {
 
       describe('create', () => {
+
+        let authenticatedSession;
+        beforeEach(done => {
+          login(_identity, [scope.create.organizations], (err, session) => {
+            if (err) return done.fail(err);
+            authenticatedSession = session;
+            done();
+          });
+        });
+
         it('adds a new record to the database', done => {
           models.Organization.findAll().then(results => {
             expect(results.length).toEqual(1);
@@ -70,7 +73,7 @@ describe('organizationSpec', () => {
             authenticatedSession
               .post('/organization')
               .send({
-                name: 'One Book Canada' 
+                name: 'One Book Canada'
               })
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
@@ -111,7 +114,7 @@ describe('organizationSpec', () => {
           authenticatedSession
             .post('/organization')
             .send({
-              name: organization.name 
+              name: organization.name
             })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
@@ -126,6 +129,16 @@ describe('organizationSpec', () => {
       });
 
       describe('read', () => {
+
+        let authenticatedSession;
+        beforeEach(done => {
+          login(_identity, [scope.read.organizations], (err, session) => {
+            if (err) return done.fail(err);
+            authenticatedSession = session;
+            done();
+          });
+        });
+
         it('retrieves an existing record from the database', done => {
           authenticatedSession
             .get(`/organization/${organization.id}`)
@@ -265,6 +278,15 @@ describe('organizationSpec', () => {
       });
 
       describe('update', () => {
+
+        let authenticatedSession;
+        beforeEach(done => {
+          login(_identity, [scope.update.organizations], (err, session) => {
+            if (err) return done.fail(err);
+            authenticatedSession = session;
+            done();
+          });
+        });
 
         describe('PUT', () => {
           it('updates an existing record in the database', done => {
@@ -503,7 +525,7 @@ describe('organizationSpec', () => {
               });
 
               it('doesn\'t allow a non-member agent to add a member', done => {
-                login({..._identity, email: anotherAgent.email}, (err, session) => {
+                login({..._identity, email: anotherAgent.email}, [scope.update.organizations], (err, session) => {
                   if (err) return done.fail(err);
                   session
                     .patch('/organization')
@@ -698,7 +720,7 @@ describe('organizationSpec', () => {
               });
 
               it('doesn\'t allow a non-member agent to add a member', done => {
-                login({..._identity, email: anotherAgent.email}, (err, session) => {
+                login({..._identity, email: anotherAgent.email}, [scope.update.organizations], (err, session) => {
                   if (err) return done.fail(err);
                   session
                     .patch('/organization')
@@ -820,7 +842,7 @@ describe('organizationSpec', () => {
             });
 
             it('doesn\'t allow a non-member agent to add a team', done => {
-              login({..._identity, email: anotherAgent.email}, (err, session) => {
+              login({..._identity, email: anotherAgent.email}, [scope.update.organizations], (err, session) => {
                 if (err) return done.fail(err);
                 session
                   .patch('/organization')
@@ -843,6 +865,15 @@ describe('organizationSpec', () => {
       });
 
       describe('delete', () => {
+        let authenticatedSession;
+        beforeEach(done => {
+          login(_identity, [scope.delete.organizations], (err, session) => {
+            if (err) return done.fail(err);
+            authenticatedSession = session;
+            done();
+          });
+        });
+
         it('removes an existing record from the database', done => {
           authenticatedSession
             .delete('/organization')
@@ -879,15 +910,12 @@ describe('organizationSpec', () => {
 
     describe('not verified', () => {
 
-      let unverifiedSession;
+      let invitedAgent;
       beforeEach(done => {
         models.Agent.create({ email: 'invitedagent@example.com' }).then(a => {
+          invitedAgent = a;
           models.OrganizationMember.create({ AgentId: a.id, OrganizationId: organization.id }).then(o => {
-            login({..._identity, email: a.email}, (err, session) => {
-              if (err) return done.fail(err);
-              unverifiedSession = session;
-              done();
-            });
+            done();
           }).catch(err => {
             done.fail(err);
           });
@@ -897,7 +925,18 @@ describe('organizationSpec', () => {
       });
 
       describe('update', () => {
+
         describe('PUT', () => {
+
+          let unverifiedSession;
+          beforeEach(done => {
+            login({ ..._identity, email: invitedAgent.email }, [scope.update.organizations], (err, session) => {
+              if (err) return done.fail(err);
+              unverifiedSession = session;
+              done();
+            });
+          });
+
           it('returns 403', done => {
             unverifiedSession
               .put('/organization')
@@ -939,11 +978,14 @@ describe('organizationSpec', () => {
 
         describe('PATCH', () => {
 
-          let anotherAgent;
+          let unverifiedSession, anotherAgent;
           beforeEach(done => {
             models.Agent.create({ email: 'buddy@example.com' }).then(a => {
               anotherAgent = a;
-              done();
+              login({ ..._identity, email: invitedAgent.email }, [scope.update.organizations], (err, session) => {
+                unverifiedSession = session;
+                done();
+              });
             }).catch(err => {
               done.fail(err);
             });
@@ -996,6 +1038,16 @@ describe('organizationSpec', () => {
       });
 
       describe('read', () => {
+
+        let unverifiedSession;
+        beforeEach(done => {
+          login({ ..._identity, email: invitedAgent.email }, [scope.read.organizations], (err, session) => {
+            if (err) return done.fail(err);
+            unverifiedSession = session;
+            done();
+          });
+        });
+
         it('returns 403 on organization show', done => {
           unverifiedSession
             .get(`/organization/${organization.id}`)
@@ -1011,6 +1063,16 @@ describe('organizationSpec', () => {
       });
 
       describe('delete', () => {
+
+        let unverifiedSession;
+        beforeEach(done => {
+          login({ ..._identity, email: 'someotherguy@example.com', name: 'Some Other Guy' }, [scope.delete.organizations], (err, session) => {
+            if (err) return done.fail(err);
+            unverifiedSession = session;
+            done();
+          });
+        });
+
         it('returns 401', done => {
           unverifiedSession
             .delete('/organization')
@@ -1055,12 +1117,12 @@ describe('organizationSpec', () => {
       });
     });
 
-    describe('unauthorized', () => {
+    describe('forbidden', () => {
 
       let unauthorizedSession;
       beforeEach(done => {
         models.Agent.create({ email: 'suspiciousagent@example.com' }).then(a => {
-          login({..._identity, email: a.email}, (err, session) => {
+          login({..._identity, email: a.email}, [scope.update.organizations, scope.read.organizations, scope.delete.organizations], (err, session) => {
             if (err) return done.fail(err);
             unauthorizedSession = session;
             done();

@@ -1,11 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const checkPermissions = require('../lib/checkPermissions');
 const models = require('../models');
 const passport = require('passport');
 
+/**
+ * Configs must match those defined for RBAC at Auth0
+ */
 const scope = require('../config/permissions');
 const roles = require('../config/roles');
+const checkPermissions = require('../lib/checkPermissions');
 
 /* GET agent listing. */
 router.get('/admin', checkPermissions(roles.sudo), function(req, res, next) {
