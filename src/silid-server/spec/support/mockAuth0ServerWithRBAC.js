@@ -16,31 +16,6 @@ const pem = require('pem');
 const crypto = require('crypto');
 
 /**
- * Permissions by resource
- */
-// Agents
-//const _createAgent = 'create:agents';
-//const _readAgent = 'read:agents';
-//const _updateAgent = 'update:agents';
-//const _deleteAgent = 'delete:agents';
-//// Organizations
-//const _createOrg = 'create:organizations';
-//const _readOrg = 'read:organizations';
-//const _updateOrg = 'update:organizations';
-//const _deleteOrg = 'delete:organizations';
-//// Organization membership
-//const _addOrgMember = 'add:organization-member'
-//const _deleteOrgMember = 'delete:organization-member'
-//// Teams
-//const _createTeam = 'create:teams';
-//const _readTeam = 'read:teams';
-//const _updateTeam = 'update:teams';
-//const _deleteTeam = 'delete:teams';
-//// Team membership
-//const _addTeamMember = 'add:team-member'
-//const _deleteTeamMember = 'delete:team-member'
-
-/**
  * To ensure the e2e tests are true to production, the database must
  * first be migrated (as opposed to synced).
  *
@@ -76,11 +51,12 @@ if (process.env.NODE_ENV === 'e2e') {
  * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
  */
 const _identity = require('../fixtures/sample-auth0-identity-token');
+const _access = require('../fixtures/sample-auth0-access-token');
 
 /**
  * The agent ID token "database"
  */
-const identityDb = {};
+const _identityDb = {};
 
 setupKeystore((err, keyStuff) => {
   if (err) console.log(err);
@@ -119,15 +95,17 @@ setupKeystore((err, keyStuff) => {
       })
 
       /**
-       * Pass an ID token for immediate reference during `/authorize`.  The
-       * authorize route takes a pseudo-random access code and nonce. These
+       * Pass an ID token and scoped permissions for immediate reference during
+       * `/authorize`.
+       *
+       * The authorize route takes a pseudo-random access code and nonce. These
        * are required to access and validate an ID token. The ID token
        * registered here is stored to be combined with those codes when the
        * `/authorize` endpoint is hit after the `/login` redirect. If a new
        * agent is being added, the login has to happen immediately after in
        * the tests for the new agent to be added to the "database".
        */
-      let agentIdToken;
+      let _agentIdToken, _permissions;
       server.route({
         method: 'POST',
         path: '/register',
@@ -135,14 +113,16 @@ setupKeystore((err, keyStuff) => {
           console.log('/register');
           console.log(request.payload);
 
-          agentIdToken = {...request.payload.token,
+          _agentIdToken = {...request.payload.token,
                              aud: process.env.AUTH0_CLIENT_ID,
                              iss: `https://${process.env.AUTH0_DOMAIN}/`,
-                             iat: Math.floor(Date.now() / 1000) - (60 * 60)},
+                             iat: Math.floor(Date.now() / 1000) - (60 * 60)};
+          _permissions = request.payload.permissions;
 
-          console.log(agentIdToken);
+          console.log(_agentIdToken);
+          console.log(_permissions);
 
-          return h.response(agentIdToken);
+          return h.response(_agentIdToken);
         }
       });
 
@@ -161,32 +141,37 @@ setupKeystore((err, keyStuff) => {
 
           _nonce = request.query.nonce;
           const buffer = crypto.randomBytes(12);
-          const authorizationCode = buffer.toString('hex');
+          //const authorizationCode = buffer.toString('hex');
+          const signedAccessToken = jwt.sign({..._access, permissions: _permissions}, prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } });
 
           // A test agent has been registered.
-          if (agentIdToken) {
+          if (_agentIdToken) {
 
             // Has this agent already been registered?
             // Update
-            for (let code in identityDb) {
-              if (identityDb[code].idToken.email === agentIdToken.email) {
-                delete identityDb[code];
+            for (let code in _identityDb) {
+              if (_identityDb[code].idToken.email === _agentIdToken.email) {
+                delete _identityDb[code];
               }
             }
 
             // Register agent if no auth code found
-            const idToken = { ...agentIdToken, nonce: _nonce };
+            const idToken = { ..._agentIdToken, nonce: _nonce };
             const signedToken = jwt.sign(idToken, prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } });
+//            const signedAccessToken = jwt.sign({..._access, permissions: _permissions}, prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } });
 
-            identityDb[authorizationCode] = { idToken: idToken,
-                                              count: Object.keys(identityDb).length + 1,
-                                              signedToken: signedToken };
+            _identityDb[signedAccessToken] = { idToken: idToken,
+//                                               count: Object.keys(_identityDb).length + 1,
+                                               signedToken: signedToken,
+                                               signedAccessToken: signedAccessToken };
 
             // This allows the next test to register an agent
-            agentIdToken = undefined;
+            _agentIdToken = undefined;
+            _permissions = undefined;
           }
 
-          const redirectUrl= `${process.env.SERVER_DOMAIN}/callback?code=${authorizationCode}&state=${request.query.state}`;
+          //const redirectUrl= `${process.env.SERVER_DOMAIN}/callback?code=${authorizationCode}&state=${request.query.state}`;
+          const redirectUrl= `${process.env.SERVER_DOMAIN}/callback?code=${signedAccessToken}&state=${request.query.state}`;
           console.log(`Redirecting: ${redirectUrl}`);
 
           return h.redirect(redirectUrl);
@@ -204,9 +189,10 @@ setupKeystore((err, keyStuff) => {
           console.log(request.headers);
           console.log(request.payload);
 
-          let signedIdToken;
-          if (identityDb[request.payload.code]) {
-            signedIdToken = identityDb[request.payload.code].signedToken;
+          let signedIdToken, signedAccessToken;
+          if (_identityDb[request.payload.code]) {
+            signedIdToken = _identityDb[request.payload.code].signedToken;
+            signedAccessToken = _identityDb[request.payload.code].signedAccessToken;
           }
           else {
             // This step satisfies the earliest client-side auth tests,
@@ -215,14 +201,16 @@ setupKeystore((err, keyStuff) => {
                                          aud: process.env.AUTH0_CLIENT_ID,
                                          iat: Math.floor(Date.now() / 1000) - (60 * 60),
                                          iss: `https://${process.env.AUTH0_DOMAIN}/`,
-                                         nonce: identityDb[request.payload.code] ? identityDb[request.payload.code].idToken.nonce : _nonce} , prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
+                                         nonce: _identityDb[request.payload.code] ? _identityDb[request.payload.code].idToken.nonce : _nonce} , prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
           }
 
-          // This was expedient. No problems so far
-          const pretendValidAccessToken = request.payload.code;
+          //// This was expedient. No problems so far
+          //const pretendValidAccessToken = request.payload.code;
+//          const signedAccessToken = jwt.sign({..._access, permissions: _permissions}, prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } });
 
           return h.response({
-            'access_token': pretendValidAccessToken,
+            //'access_token': pretendValidAccessToken,
+            'access_token': signedAccessToken,
             'refresh_token': 'SOME_MADE_UP_REFRESH_TOKEN',
             'id_token': signedIdToken
           });
@@ -253,8 +241,9 @@ setupKeystore((err, keyStuff) => {
           console.log('/userinfo');
           console.log(request.headers);
           console.log(request.query);
-
-          let idToken = identityDb[request.query.access_token] ? identityDb[request.query.access_token].idToken : _identity;
+console.log('WWWWWWWWWWWWWWWWWORD');
+console.log(_identityDb[request.query.access_token]);
+          let idToken = _identityDb[request.query.access_token] ? _identityDb[request.query.access_token].idToken : _identity;
           return h.response(idToken);
         }
       });
