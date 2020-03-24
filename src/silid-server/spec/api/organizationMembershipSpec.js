@@ -6,6 +6,7 @@ const request = require('supertest');
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 const mailer = require('../../mailer');
 const { uuid } = require('uuidv4');
+const scope = require('../../config/permissions');
 
 /**
  * 2019-11-13
@@ -57,17 +58,18 @@ describe('organizationMembershipSpec', () => {
 
   describe('authenticated', () => {
 
-    beforeEach(done => {
-      login(_identity, (err, session) => {
-        if (err) return done.fail(err);
-        authenticatedSession = session;
-        done();
-      });
-    });
-
     describe('authorized', () => {
 
       describe('create', () => {
+        let authenticatedSession;
+        beforeEach(done => {
+          login(_identity, [scope.create.organizationMembers], (err, session) => {
+            if (err) return done.fail(err);
+            authenticatedSession = session;
+            done();
+          });
+        });
+
         describe('unknown agent', () => {
           it('returns the agent added to the membership', done => {
             models.Organization.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
@@ -653,6 +655,15 @@ describe('organizationMembershipSpec', () => {
       });
 
       describe('delete', () => {
+        let authenticatedSession;
+        beforeEach(done => {
+          login(_identity, [scope.delete.organizationMembers], (err, session) => {
+            if (err) return done.fail(err);
+            authenticatedSession = session;
+            done();
+          });
+        });
+
         let knownAgent;
         beforeEach(done => {
           models.Agent.create({ email: 'weknowthisguy@example.com', name: 'Well-known Guy' }).then(result => {
@@ -730,16 +741,16 @@ describe('organizationMembershipSpec', () => {
       });
     });
 
-    describe('unauthorized', () => {
+    describe('forbidden', () => {
 
-      let unauthorizedSession, suspiciousAgent;
+      let forbiddenSession, suspiciousAgent;
       beforeEach(done => {
         models.Agent.create({ email: 'suspiciousagent@example.com' }).then(a => {
           suspiciousAgent = a;
 
-          login({ ..._identity, email: suspiciousAgent.email }, (err, session) => {
+          login({ ..._identity, email: suspiciousAgent.email }, [scope.create.organizationMembers], (err, session) => {
             if (err) return done.fail(err);
-            unauthorizedSession = session;
+            forbiddenSession = session;
             done();
           });
         }).catch(err => {
@@ -749,7 +760,7 @@ describe('organizationMembershipSpec', () => {
 
       describe('create', () => {
         it('doesn\'t allow a non-member agent to add a member', done => {
-          unauthorizedSession
+          forbiddenSession
             .put(`/organization/${organization.id}/agent`)
             .send({
               email: suspiciousAgent.email 
@@ -780,15 +791,15 @@ describe('organizationMembershipSpec', () => {
           });
         });
 
-        it('returns 401', done => {
-          unauthorizedSession
+        it('returns 403', done => {
+          forbiddenSession
             .delete(`/organization/${organization.id}/agent/${knownAgent.id}`)
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
-            .expect(401)
+            .expect(403)
             .end(function(err, res) {
               if (err) return done.fail(err);
-              expect(res.body.message).toEqual('Unauthorized');
+              expect(res.body.message).toEqual('Insufficient scope');
               done();
             });
         });
@@ -798,11 +809,11 @@ describe('organizationMembershipSpec', () => {
             expect(results.length).toEqual(1);
             expect(results[0].members.length).toEqual(2);
 
-            unauthorizedSession
+            forbiddenSession
               .delete(`/organization/${organization.id}/agent/${knownAgent.id}`)
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
-              .expect(401)
+              .expect(403)
               .end(function(err, res) {
                 if (err) return done.fail(err);
                 models.Organization.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
