@@ -6,6 +6,7 @@ const request = require('supertest');
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 const mailer = require('../../mailer');
 const { uuid } = require('uuidv4');
+const scope = require('../../config/permissions');
 
 /**
  * 2019-11-13
@@ -68,17 +69,20 @@ describe('teamMembershipSpec', () => {
 
 
   describe('authenticated', () => {
-    beforeEach(done => {
-      login(_identity, (err, session) => {
-        if (err) return done.fail(err);
-        authenticatedSession = session;
-        done();
-      });
-    });
 
     describe('authorized', () => {
 
       describe('create', () => {
+
+        let authenticatedSession;
+        beforeEach(done => {
+          login(_identity, [scope.create.teamMembers], (err, session) => {
+            if (err) return done.fail(err);
+            authenticatedSession = session;
+            done();
+          });
+        });
+
         describe('unknown agent', () => {
           it('returns the agent added to the membership', done => {
             models.Team.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
@@ -654,12 +658,17 @@ describe('teamMembershipSpec', () => {
       });
 
       describe('delete', () => {
-        let knownAgent;
+        let knownAgent, authenticatedSession;
         beforeEach(done => {
           models.Agent.create({ email: 'weknowthisguy@example.com', name: 'Well-known Guy' }).then(result => {
             knownAgent = result;
             team.addMember(knownAgent).then(result => {
-              done();
+
+              login(_identity, [scope.delete.teamMembers], (err, session) => {
+                if (err) return done.fail(err);
+                authenticatedSession = session;
+                done();
+              });
             }).catch(err => {
               done.fail(err);
             });
@@ -736,7 +745,7 @@ describe('teamMembershipSpec', () => {
       beforeEach(done => {
         models.Agent.create({ email: 'suspiciousagent@example.com' }).then(a => {
           suspiciousAgent = a;
-          login({ ..._identity, email: suspiciousAgent.email, name: 'Suspicious GUy' }, (err, session) => {
+          login({ ..._identity, email: suspiciousAgent.email, name: 'Suspicious GUy' }, [scope.create.teamMembers], (err, session) => {
             if (err) return done.fail(err);
             unauthorizedSession = session;
             done();
@@ -779,15 +788,15 @@ describe('teamMembershipSpec', () => {
           });
         });
 
-        it('returns 401', done => {
+        it('returns 403', done => {
           unauthorizedSession
             .delete(`/team/${team.id}/agent/${knownAgent.id}`)
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
-            .expect(401)
+            .expect(403)
             .end(function(err, res) {
               if (err) return done.fail(err);
-              expect(res.body.message).toEqual('Unauthorized');
+              expect(res.body.message).toEqual('Insufficient scope');
               done();
             });
         });
@@ -801,7 +810,7 @@ describe('teamMembershipSpec', () => {
               .delete(`/team/${team.id}/agent/${knownAgent.id}`)
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
-              .expect(401)
+              .expect(403)
               .end(function(err, res) {
                 if (err) return done.fail(err);
                 models.Team.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {

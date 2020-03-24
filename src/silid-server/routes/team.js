@@ -1,11 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const sessionAuth = require('../lib/sessionAuth');
 const models = require('../models');
 const mailer = require('../mailer');
 
+/**
+ * Configs must match those defined for RBAC at Auth0
+ */
+const scope = require('../config/permissions');
+const roles = require('../config/roles');
+const checkPermissions = require('../lib/checkPermissions');
+
 /* GET team listing. */
-router.get('/admin', sessionAuth, function(req, res, next) {
+router.get('/admin', checkPermissions(roles.sudo), function(req, res, next) {
   if (!req.agent.isSuper) {
     return res.status(403).json( { message: 'Forbidden' });
   }
@@ -18,7 +24,7 @@ router.get('/admin', sessionAuth, function(req, res, next) {
   });
 });
 
-router.get('/', sessionAuth, function(req, res, next) {
+router.get('/', checkPermissions([scope.read.teams]), function(req, res, next) {
   req.agent.getTeams().then(teams => {
     res.status(200).json(teams);
   }).catch(err => {
@@ -27,7 +33,7 @@ router.get('/', sessionAuth, function(req, res, next) {
 });
 
 
-router.get('/:id', sessionAuth, function(req, res, next) {
+router.get('/:id', checkPermissions([scope.read.teams]), function(req, res, next) {
   models.Team.findOne({ where: { id: req.params.id },
                         include: [ { model: models.Agent, as: 'creator' },
                                    { model: models.Agent, as: 'members' },
@@ -73,7 +79,7 @@ router.get('/:id', sessionAuth, function(req, res, next) {
   });
 });
 
-router.post('/', sessionAuth, function(req, res, next) {
+router.post('/', checkPermissions([scope.create.teams]), function(req, res, next) {
   if (!req.body.organizationId) {
     return res.status(400).json({ errors: [{ message: 'No organization provided' }] });
   }
@@ -116,7 +122,7 @@ router.post('/', sessionAuth, function(req, res, next) {
   });
 });
 
-router.put('/', sessionAuth, function(req, res, next) {
+router.put('/', checkPermissions([scope.update.teams]), function(req, res, next) {
   models.Team.findOne({where: {id: req.body.id}}).then(team => {
     if (!team) {
       return res.json( { message: 'No such team' });
@@ -153,7 +159,7 @@ router.put('/', sessionAuth, function(req, res, next) {
   });
 });
 
-router.delete('/:id', sessionAuth, function(req, res, next) {
+router.delete('/:id', checkPermissions([scope.delete.teams]), function(req, res, next) {
   models.Team.findOne({ where: { id: req.params.id } }).then(team => {
     if (!team) {
       return res.status(404).json( { message: 'No such team' });
@@ -252,7 +258,7 @@ const patchTeam = function(req, res, next) {
   });
 }
 
-router.patch('/', sessionAuth, function(req, res, next) {
+router.patch('/', checkPermissions([scope.update.teams]), function(req, res, next) {
   if (req.body.email) {
     models.Agent.findOne({ where: { email: req.body.email } }).then(agent => {
       if (!agent) {
@@ -277,7 +283,7 @@ router.patch('/', sessionAuth, function(req, res, next) {
   }
 });
 
-router.put('/:id/agent', sessionAuth, function(req, res, next) {
+router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(req, res, next) {
   models.Team.findOne({ where: { id: req.params.id },
                                  include: [ 'creator',
                                             { model: models.Agent, as: 'members' },
@@ -351,7 +357,7 @@ Click or copy-paste the link below to accept:
 });
 
 
-router.delete('/:id/agent/:agentId', sessionAuth, function(req, res, next) {
+router.delete('/:id/agent/:agentId', checkPermissions([scope.delete.teamMembers]), function(req, res, next) {
   models.Team.findOne({ where: { id: req.params.id },
                                  include: [ 'creator',
                                           { model: models.Agent, as: 'members' },

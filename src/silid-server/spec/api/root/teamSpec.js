@@ -5,6 +5,7 @@ const models = require('../../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../../support/stubAuth0Sessions');
 const mailer = require('../../../mailer');
+const scope = require('../../../config/permissions');
 
 /**
  * 2019-11-13
@@ -765,7 +766,7 @@ describe('root/teamSpec', () => {
   describe('non-root', () => {
     let nonRootSession;
     beforeEach(done => {
-      login({ ..._identity, email: agent.email }, (err, session) => {
+      login({ ..._identity, email: agent.email }, [scope.read.teams], (err, session) => {
         if (err) return done.fail(err);
         nonRootSession = session;
         done();

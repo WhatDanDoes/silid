@@ -5,6 +5,7 @@ const models = require('../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 const mailer = require('../../mailer');
+const scope = require('../../config/permissions');
 
 /**
  * 2019-11-13
@@ -62,17 +63,19 @@ describe('teamSpec', () => {
   });
 
   describe('authenticated', () => {
-    beforeEach(done => {
-      login(_identity, (err, session) => {
-        if (err) return done.fail(err);
-        authenticatedSession = session;
-        done();
-      });
-    });
 
     describe('authorized', () => {
 
       describe('create', () => {
+
+        let authenticatedSession;
+        beforeEach(done => {
+          login(_identity, [scope.create.teams], (err, session) => {
+            if (err) return done.fail(err);
+            authenticatedSession = session;
+            done();
+          });
+        });
 
         it('returns an error if record already exists', done => {
           authenticatedSession
@@ -168,7 +171,7 @@ describe('teamSpec', () => {
           beforeEach(done => {
             organization.getCreator().then(creator => {
               expect(creator.email).toEqual(agent.email);
-              login(_identity, (err, session) => {
+              login(_identity, [scope.create.teams], (err, session) => {
                 if (err) return done.fail(err);
                 orgCreatorSession = session;
                 done();
@@ -230,7 +233,7 @@ describe('teamSpec', () => {
             memberAgent = new models.Agent({ email: 'member-agent@example.com' });
             memberAgent.save().then(results => {
               memberAgent.addOrganization(organization).then(results => {
-                login({ ..._identity, email: memberAgent.email, name: 'Some Member Agent' }, (err, session) => {
+                login({ ..._identity, email: memberAgent.email, name: 'Some Member Agent' }, [scope.create.teams], (err, session) => {
                   if (err) return done.fail(err);
                   memberSession = session;
                   done();
@@ -292,6 +295,16 @@ describe('teamSpec', () => {
       });
 
       describe('read', () => {
+
+        let authenticatedSession;
+        beforeEach(done => {
+          login(_identity, [scope.read.teams], (err, session) => {
+            if (err) return done.fail(err);
+            authenticatedSession = session;
+            done();
+          });
+        });
+
         it('retrieves an existing record from the database', done => {
           authenticatedSession
             .get(`/team/${team.id}`)
@@ -409,13 +422,22 @@ describe('teamSpec', () => {
 
       describe('update', () => {
 
+        let authenticatedSession;
+        beforeEach(done => {
+          login(_identity, [scope.update.teams], (err, session) => {
+            if (err) return done.fail(err);
+            authenticatedSession = session;
+            done();
+          });
+        });
+
         describe('PUT', () => {
           it('allows an organization creator to update an existing team in the database', done => {
             organization.getCreator().then(creator => {
               expect(creator.email).toEqual(agent.email);
               expect(team.organizationId).toEqual(organization.id);
 
-              login({ ..._identity, email: creator.email, name: 'Some Org Creator' }, (err, session) => {
+              login({ ..._identity, email: creator.email, name: 'Some Org Creator' }, [scope.update.teams], (err, session) => {
                 if (err) return done.fail(err);
 
                 session
@@ -450,7 +472,7 @@ describe('teamSpec', () => {
               teamMember.createTeam({ name: 'Omega Team',
                                       organizationId: organization.id,
                                       creatorId: teamMember.id }).then(team => {
-                login({ ..._identity, email: teamMember.email, name: 'Some Team Creator' }, (err, session) => {
+                login({ ..._identity, email: teamMember.email, name: 'Some Team Creator' }, [scope.update.teams], (err, session) => {
                   if (err) return done.fail(err);
 
                   session
@@ -694,7 +716,7 @@ describe('teamSpec', () => {
               });
 
               it('doesn\'t allow a non-member agent to add a member', done => {
-                login({ ..._identity, email: anotherAgent.email, name: 'Another Guy' }, (err, session) => {
+                login({ ..._identity, email: anotherAgent.email, name: 'Another Guy' }, [scope.update.teams], (err, session) => {
                   session
                     .patch('/team')
                     .send({
@@ -888,7 +910,7 @@ describe('teamSpec', () => {
               });
 
               it('doesn\'t allow a non-member agent to add a member', done => {
-                login({ ..._identity, email: anotherAgent.email, name: 'Some Other Guy' }, (err, session) => {
+                login({ ..._identity, email: anotherAgent.email, name: 'Some Other Guy' }, [scope.update.teams], (err, session) => {
                   if (err) return done.fail(err);
 
                   session
@@ -913,12 +935,22 @@ describe('teamSpec', () => {
       });
 
       describe('delete', () => {
+
+        let authenticatedSession;
+        beforeEach(done => {
+          login(_identity, [scope.delete.teams], (err, session) => {
+            if (err) return done.fail(err);
+            authenticatedSession = session;
+            done();
+          });
+        });
+
         it('allows organization creator to remove an existing record from the database', done => {
           organization.getCreator().then(creator => {
             expect(creator.email).toEqual(agent.email);
             expect(team.organizationId).toEqual(organization.id);
 
-            login({ ..._identity, email: creator.email, name: 'Some Other Guy' }, (err, session) => {
+            login({ ..._identity, email: creator.email, name: 'Some Other Guy' }, [scope.delete.teams], (err, session) => {
               if (err) return done.fail(err);
 
               session
@@ -953,7 +985,7 @@ describe('teamSpec', () => {
                 expect(creator.email).toEqual(teamMember.email);
                 expect(team.organizationId).toEqual(organization.id);
 
-                login({ ..._identity, email: creator.email, name: 'Some Other Guy' }, (err, session) => {
+                login({ ..._identity, email: creator.email, name: 'Some Other Guy' }, [scope.delete.teams], (err, session) => {
                   if (err) return done.fail(err);
                   session
                     .delete(`/team/${team.id}`)
@@ -987,7 +1019,7 @@ describe('teamSpec', () => {
           memberAgent.save().then(results => {
             memberAgent.addOrganization(organization).then(results => {
 
-              login({ ..._identity, email: memberAgent.email, name: 'Some Member Guy' }, (err, session) => {
+              login({ ..._identity, email: memberAgent.email, name: 'Some Member Guy' }, [scope.delete.teams], (err, session) => {
                 if (err) return done.fail(err);
 
                 session
@@ -1018,7 +1050,7 @@ describe('teamSpec', () => {
           let memberAgent = new models.Agent({ email: 'member-agent@example.com' });
           memberAgent.save().then(results => {
             memberAgent.addTeam(team).then(results => {
-              login({ ..._identity, email: memberAgent.email, name: 'Some Member Guy' }, (err, session) => {
+              login({ ..._identity, email: memberAgent.email, name: 'Some Member Guy' }, [scope.delete.teams], (err, session) => {
                 if (err) return done.fail(err);
 
                 session
@@ -1068,7 +1100,7 @@ describe('teamSpec', () => {
         models.Agent.create({ email: 'invitedagent@example.com' }).then(a => {
           unverifiedAgent = a;
           models.TeamMember.create({ AgentId: unverifiedAgent.id, TeamId: team.id }).then(t => {
-            login({..._identity, email: a.email}, (err, session) => {
+            login({..._identity, email: a.email}, [scope.read.teams], (err, session) => {
               if (err) return done.fail(err);
               unverifiedSession = session;
               done();
@@ -1125,7 +1157,8 @@ describe('teamSpec', () => {
       beforeEach(done => {
         models.Agent.create({ email: 'unauthorizedagent@example.com' }).then(a => {
           unauthorizedAgent = a;
-          login({ ..._identity, email: unauthorizedAgent.email, name: 'Suspicious GUy' }, (err, session) => {
+          login({ ..._identity, email: unauthorizedAgent.email, name: 'Suspicious GUy' },
+              [scope.create.teams, scope.read.teams, scope.update.teams, scope.delete.teams], (err, session) => {
             if (err) return done.fail(err);
             unauthorizedSession = session;
             done();
@@ -1240,7 +1273,7 @@ describe('teamSpec', () => {
                     .expect(403)
                     .end(function(err, res) {
                       if (err) return done.fail(err);
-                      expect(res.body.message).toEqual('Unauthorized');
+                      expect(res.body.message).toEqual('Insufficient scope');
 
                       models.Team.findOne({ where: { id: team.id }}).then(results => {
                         expect(results.name).toEqual(team.name);
