@@ -2,6 +2,7 @@ context('Agent Index', function() {
 
   before(function() {
     cy.fixture('google-profile-response.json').as('profile');
+    cy.fixture('permissions.js').as('scope');
   });
 
   let _profile;
@@ -35,7 +36,7 @@ context('Agent Index', function() {
 
     context('first visit', () => {
       beforeEach(function() {
-        cy.login(_profile.email, _profile);
+        cy.login(_profile.email, _profile, [this.scope.read.agents]);
         cy.get('#app-menu-button').click();
         cy.contains('Profile').click();
         cy.wait(500);

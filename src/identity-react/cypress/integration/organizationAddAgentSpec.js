@@ -2,11 +2,11 @@ context('Organization add agent', function() {
 
   before(function() {
     cy.fixture('google-profile-response').as('profile');
+    cy.fixture('permissions.js').as('scope');
   });
 
   let _profile;
   beforeEach(function() {
-    // Why?
     _profile = {...this.profile};
   });
 
@@ -16,7 +16,7 @@ context('Organization add agent', function() {
     let organization;
     beforeEach(function() {
       // Login/create main test agent
-      cy.login(_profile.email, _profile);
+      cy.login(_profile.email, _profile, [this.scope.read.agents, this.scope.read.organizations, , this.scope.create.organizations]);
       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
         agent = results[0];
 
@@ -24,12 +24,12 @@ context('Organization add agent', function() {
           organization = org.body;
 
           // Login/create another agent
-          cy.login('someotherguy@example.com', _profile);
+          cy.login('someotherguy@example.com', _profile, [this.scope.read.agents]);
           cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
             anotherAgent = results[0];
 
             // Login main test agent again
-            cy.login(_profile.email, _profile);
+            cy.login(_profile.email, _profile, [this.scope.read.agents, this.scope.read.organizations, this.scope.update.organizations, this.scope.create.organizationMembers]);
           });
         });
       });
@@ -235,7 +235,7 @@ context('Organization add agent', function() {
           cy.task('query', `UPDATE "OrganizationMembers" SET "verificationCode"=null WHERE "AgentId"=${anotherAgent.id};`).then(([results, metadata]) => {
 
             // Login member agent (again)
-            cy.login(anotherAgent.email, _profile);
+            cy.login(anotherAgent.email, _profile, [this.scope.read.agents, this.scope.read.organizations]);
             cy.url().should('match', /\/#\/organization$/);
             cy.contains('One Book Canada').click();
           });
@@ -255,7 +255,8 @@ context('Organization add agent', function() {
         cy.request({ url: '/organization', method: 'PATCH', body: { id: organization.id, memberId: anotherAgent.id } }).then((res) => {
 
           // Login member agent (again)
-          cy.login(anotherAgent.email, _profile);
+          cy.login(anotherAgent.email, _profile, [this.scope.read.agents, this.scope.read.organizations]);
+          //cy.login(anotherAgent.email, _profile);
           cy.url().should('match', /\/#\/organization$/);
           cy.contains('One Book Canada').click();
         });

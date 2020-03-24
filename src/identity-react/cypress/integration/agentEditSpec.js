@@ -6,6 +6,7 @@ context('Agent', function() {
 
   before(function() {
     cy.fixture('google-profile-response.json').as('profile');
+    cy.fixture('permissions.js').as('scope');
   });
 
   let _profile;
@@ -22,7 +23,7 @@ context('Agent', function() {
     context('success', () => {
       let agent, token;
       beforeEach(function() {
-        cy.login(_profile.email, _profile);
+        cy.login(_profile.email, _profile, [this.scope.read.agents, this.scope.update.agents]);
         cy.get('#app-menu-button').click();
         cy.contains('Profile').click().then(() => {
           cy.wait(500); // <--- There has to be a better way!!! Cypress is going too quick for the database
