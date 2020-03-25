@@ -2,6 +2,7 @@ context('root/Team Index', function() {
 
   before(function() {
     cy.fixture('google-profile-response').as('profile');
+    cy.fixture('permissions.js').as('scope');
   });
 
   let _profile;
@@ -85,7 +86,7 @@ context('root/Team Index', function() {
             cy.request({ url: `/organization/${organization.id}/agent`, method: 'PUT', body: { email: 'someotherguy@example.com' } }).then(res => {
   
               // Create a team with another agent
-              cy.login('someotherguy@example.com', _profile);
+              cy.login('someotherguy@example.com', _profile, [this.scope.read.agents, this.scope.create.teams]);
   
               cy.request({ url: '/team',  method: 'POST', body: { organizationId: organization.id, name: 'The Mike Tyson Mystery Team' } }).then(res => {
                 team = res.body;
@@ -121,7 +122,7 @@ context('root/Team Index', function() {
           cy.request({ url: '/team',  method: 'POST', body: { organizationId: organization.id, name: 'The Mike Tyson Mystery Team' } }).then(res => {
             team = res.body;
      
-            cy.login('someotherguy@example.com', { ..._profile, name: 'Some Other Guy' });
+            cy.login('someotherguy@example.com', { ..._profile, name: 'Some Other Guy' }, [this.scope.read.agents, this.scope.create.teams]);
           });
         });
       });

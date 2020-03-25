@@ -2,6 +2,7 @@ context('root/Team add agent', function() {
 
   before(function() {
     cy.fixture('google-profile-response').as('profile');
+    cy.fixture('permissions.js').as('scope');
   });
 
   let _profile;
@@ -23,7 +24,7 @@ context('root/Team add agent', function() {
     let root, regularAgent, organization, team;
     beforeEach(function() {
       // Login/create regular agent
-      cy.login('regularguy@example.com', _profile);
+      cy.login('regularguy@example.com', _profile, [this.scope.read.agents, this.scope.create.organizations]);
       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='regularguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
         regularAgent = results[0];
         cy.request({ url: '/organization',  method: 'POST', body: { name: 'National Lacrosse League' } }).then((org) => {
@@ -41,7 +42,7 @@ context('root/Team add agent', function() {
 
       describe('when an organization member', () => {
         beforeEach(function() {
-          cy.login(regularAgent.email, _profile);
+          cy.login(regularAgent.email, _profile, [this.scope.read.agents, this.scope.create.organizations, this.scope.update.organizations]);
 
           // Add root as member
           cy.request({ url: '/organization', method: 'PATCH', body: { id: organization.id, memberId: root.id } }).then((res) => {
@@ -234,7 +235,7 @@ context('root/Team add agent', function() {
     describe('team created by a regular agent', () => {
       describe('when root is an organization member', () => {
         beforeEach(function() {
-          cy.login(regularAgent.email, _profile);
+          cy.login(regularAgent.email, _profile, [this.scope.read.agents, this.scope.update.organizations, this.scope.create.teams]);
 
           // Add root as member
           cy.request({ url: '/organization', method: 'PATCH', body: { id: organization.id, memberId: root.id } }).then((res) => {
@@ -314,7 +315,7 @@ context('root/Team add agent', function() {
 
       describe('when root is not an organization member', () => {
         beforeEach(function() {
-          cy.login(regularAgent.email, _profile);
+          cy.login(regularAgent.email, _profile, [this.scope.read.agents, this.scope.create.teams]);
 
           // Create team
           cy.request({ url: '/team',  method: 'POST',

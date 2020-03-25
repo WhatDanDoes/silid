@@ -2,6 +2,7 @@ context('root/Team edit', function() {
 
   before(function() {
     cy.fixture('google-profile-response').as('profile');
+    cy.fixture('permissions.js').as('scope');
   });
 
   afterEach(() => {
@@ -19,7 +20,7 @@ context('root/Team edit', function() {
     let root, regularAgent, organization, team;
     beforeEach(function() {
       // Login/create regular agent
-      cy.login('regularguy@example.com', _profile);
+      cy.login('regularguy@example.com', _profile, [this.scope.read.agents, this.scope.create.organizations]);//, this.scope.update.organizations, this.scope.create.organizationMembers]);
       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='regularguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
         regularAgent = results[0];
         cy.request({ url: '/organization',  method: 'POST', body: { name: 'Roots' } }).then((org) => {
@@ -37,7 +38,7 @@ context('root/Team edit', function() {
 
       describe('when an organization member', () => {
         beforeEach(function() {
-          cy.login(regularAgent.email, _profile);
+          cy.login(regularAgent.email, _profile, [this.scope.read.agents, this.scope.update.organizations, this.scope.create.organizationMembers]);
 
           // Add root as member
           cy.request({ url: '/organization', method: 'PATCH', body: { id: organization.id, memberId: root.id } }).then((res) => {
@@ -211,7 +212,7 @@ context('root/Team edit', function() {
 
       beforeEach(function() {
         // Create team with regular agent
-        cy.login(regularAgent.email, _profile);
+        cy.login(regularAgent.email, _profile, [this.scope.read.agents, this.scope.create.teams]);//, this.scope.update.organizations, this.scope.create.organizationMembers]);
         cy.request({ url: '/team', method: 'POST', body: { organizationId: organization.id, name: 'The K-Team' } }).then(res => {
           team = res.body;
         });

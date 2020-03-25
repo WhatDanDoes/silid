@@ -2,6 +2,7 @@ context('root/Organization delete agent', function() {
 
   before(function() {
     cy.fixture('google-profile-response').as('profile');
+    cy.fixture('permissions.js').as('scope');
   });
 
   let _profile;
@@ -13,7 +14,7 @@ context('root/Organization delete agent', function() {
   let root, regularAgent, organization;
   beforeEach(function() {
     // Login/create regular agent
-    cy.login('regularguy@example.com', _profile);
+    cy.login('regularguy@example.com', _profile, [this.scope.read.agents]);
     cy.task('query', `SELECT * FROM "Agents" WHERE "email"='regularguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
       regularAgent = results[0];
 
@@ -129,7 +130,7 @@ context('root/Organization delete agent', function() {
 
   describe('from an organization created by a regular agent', () => {
     beforeEach(function() {
-      cy.login(regularAgent.email, _profile);
+      cy.login(regularAgent.email, _profile, [this.scope.read.agents, this.scope.create.organizations, this.scope.create.organizationMembers]);
       cy.request({ url: '/organization', method: 'POST', body: { name: 'Regular Organization' } }).then((org) => {
         organization = org.body;
 

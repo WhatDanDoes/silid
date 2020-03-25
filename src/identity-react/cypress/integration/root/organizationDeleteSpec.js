@@ -2,6 +2,7 @@ context('root/Organization delete', function() {
 
   before(function() {
     cy.fixture('google-profile-response').as('profile');
+    cy.fixture('permissions.js').as('scope');
   });
 
   let _profile;
@@ -18,7 +19,7 @@ context('root/Organization delete', function() {
 
   let memberAgent;
   beforeEach(function() {
-    cy.login('someotherguy@example.com', _profile);
+    cy.login('someotherguy@example.com', _profile, [this.scope.read.agents, this.scope.read.organizations]);
     cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
       memberAgent = results[0];
     });
@@ -265,9 +266,13 @@ context('root/Organization delete', function() {
       describe('admin mode', () => {
 
         let regularAgent;
-        beforeEach(() => {
+        beforeEach(function() {
           // Login/create regular agent
-          cy.login('regularguy@example.com', _profile);
+          cy.login('regularguy@example.com', _profile, [this.scope.read.agents,
+                                                        this.scope.create.organizations,
+                                                        this.scope.create.teams,
+                                                        this.scope.update.organizations,
+                                                        this.scope.read.organizations]);
           cy.task('query', `SELECT * FROM "Agents" WHERE "email"='regularguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
             regularAgent = results[0];
 

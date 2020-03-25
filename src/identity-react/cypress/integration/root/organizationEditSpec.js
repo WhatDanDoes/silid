@@ -2,6 +2,7 @@ context('root/Organization edit', function() {
 
   before(function() {
     cy.fixture('google-profile-response').as('profile');
+    cy.fixture('permissions.js').as('scope');
   });
 
   afterEach(() => {
@@ -103,7 +104,7 @@ context('root/Organization edit', function() {
 
       beforeEach(function() {
         // Login/create regular agent
-        cy.login('regularguy@example.com', _profile);
+        cy.login('regularguy@example.com', _profile, [this.scope.read.agents, this.scope.create.organizations]);
         cy.request({ url: '/organization',  method: 'POST', body: { name: 'One Book Canada' } }).then(org => {
           organization = org.body;
 

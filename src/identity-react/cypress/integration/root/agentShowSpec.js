@@ -3,6 +3,7 @@ context('root/Agent show', function() {
   let memberAgent;
   before(function() {
     cy.fixture('google-profile-response').as('profile');
+    cy.fixture('permissions.js').as('scope');
   });
 
   let _profile;
@@ -42,7 +43,7 @@ context('root/Agent show', function() {
     let memberAgent;
     beforeEach(function() {
       // Just a convenient way to create a new agent
-      cy.login('someotherguy@example.com', _profile);
+      cy.login('someotherguy@example.com', _profile, [this.scope.read.agents]);
       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
         memberAgent = results[0];
       });

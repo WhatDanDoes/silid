@@ -2,6 +2,7 @@ context('root/Agent Index', function() {
 
   before(function() {
     cy.fixture('google-profile-response.json').as('profile');
+    cy.fixture('permissions.js').as('scope');
   });
 
   let _profile;
@@ -76,7 +77,7 @@ context('root/Agent Index', function() {
           let agents;
           beforeEach(function() {
             // Easy way to register a new agent
-            cy.login('someotherguy@example.com', { ..._profile, name: 'Some Other Guy' });
+            cy.login('someotherguy@example.com', { ..._profile, name: 'Some Other Guy' }, [this.scope.read.agents]);
             cy.login(_profile.email, _profile);
             cy.task('query', 'SELECT * FROM "Agents";').then(([results, metadata]) => {
               agents = results;
@@ -102,14 +103,14 @@ context('root/Agent Index', function() {
   });
 
   describe('unauthorized', done => {
-    beforeEach(() => {
-      cy.login('someotherguy@example.com', { ..._profile, name: 'Some Other Guy' });
+    beforeEach(function() {
+      cy.login('someotherguy@example.com', { ..._profile, name: 'Some Other Guy' }, [this.scope.read.agents]);
     });
 
     it('displays a friendly message', () => {
       cy.visit(`/#/agent/admin`);
       cy.wait(500);
-      cy.contains('Forbidden');
+      cy.contains('Insufficient scope');
     });
   });
 });

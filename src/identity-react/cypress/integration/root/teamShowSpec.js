@@ -2,6 +2,7 @@ context('root/Team show', function() {
 
   before(function() {
     cy.fixture('google-profile-response').as('profile');
+    cy.fixture('permissions.js').as('scope');
   });
 
   let _profile;
@@ -37,7 +38,7 @@ context('root/Team show', function() {
     let root, regularAgent, organization, team;
     beforeEach(function() {
       // Login/create another agent
-      cy.login('regularguy@example.com', _profile);
+      cy.login('regularguy@example.com', _profile, [this.scope.read.agents, this.scope.create.organizations, this.scope.create.teams]);
       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='regularguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
         regularAgent = results[0];
 

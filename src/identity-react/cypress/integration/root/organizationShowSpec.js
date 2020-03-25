@@ -2,6 +2,7 @@ context('root/Organization show', function() {
 
   before(function() {
     cy.fixture('google-profile-response').as('profile');
+    cy.fixture('permissions.js').as('scope');
   });
 
   let _profile;
@@ -37,7 +38,7 @@ context('root/Organization show', function() {
     let root, regularAgent, organization;
     beforeEach(function() {
       // Login/create regular agent
-      cy.login('regularguy@example.com', _profile);
+      cy.login('regularguy@example.com', _profile, [this.scope.read.agents, this.scope.create.organizations]);
       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='regularguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
         regularAgent = results[0];
 
