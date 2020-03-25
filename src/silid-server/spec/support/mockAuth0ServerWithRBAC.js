@@ -16,6 +16,11 @@ const pem = require('pem');
 const crypto = require('crypto');
 
 /**
+ * This must match the config at Auth0
+ */
+const scope = require('../../config/permissions');
+
+/**
  * To ensure the e2e tests are true to production, the database must
  * first be migrated (as opposed to synced).
  *
@@ -88,7 +93,6 @@ setupKeystore((err, keyStuff) => {
         }
       });
 
-
       await server.register({
         plugin: require('hapi-require-https'),
         options: {}
@@ -117,7 +121,7 @@ setupKeystore((err, keyStuff) => {
                              aud: process.env.AUTH0_CLIENT_ID,
                              iss: `https://${process.env.AUTH0_DOMAIN}/`,
                              iat: Math.floor(Date.now() / 1000) - (60 * 60)};
-          _permissions = request.payload.permissions;
+          _permissions = request.payload.permissions.length ? request.payload.permissions : [];
 
           console.log(_agentIdToken);
           console.log(_permissions);
@@ -141,7 +145,7 @@ setupKeystore((err, keyStuff) => {
 
           _nonce = request.query.nonce;
           const buffer = crypto.randomBytes(12);
-          //const authorizationCode = buffer.toString('hex');
+
           const signedAccessToken = jwt.sign({..._access, permissions: _permissions}, prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } });
 
           // A test agent has been registered.
@@ -158,10 +162,8 @@ setupKeystore((err, keyStuff) => {
             // Register agent if no auth code found
             const idToken = { ..._agentIdToken, nonce: _nonce };
             const signedToken = jwt.sign(idToken, prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } });
-//            const signedAccessToken = jwt.sign({..._access, permissions: _permissions}, prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } });
 
             _identityDb[signedAccessToken] = { idToken: idToken,
-//                                               count: Object.keys(_identityDb).length + 1,
                                                signedToken: signedToken,
                                                signedAccessToken: signedAccessToken };
 
@@ -170,7 +172,6 @@ setupKeystore((err, keyStuff) => {
             _permissions = undefined;
           }
 
-          //const redirectUrl= `${process.env.SERVER_DOMAIN}/callback?code=${authorizationCode}&state=${request.query.state}`;
           const redirectUrl= `${process.env.SERVER_DOMAIN}/callback?code=${signedAccessToken}&state=${request.query.state}`;
           console.log(`Redirecting: ${redirectUrl}`);
 
@@ -180,6 +181,8 @@ setupKeystore((err, keyStuff) => {
 
       /**
        * It's here that you kind of start to understand and appreciate OAuth...
+       *
+       * From here, the server calls `/userinfo`
        */
       server.route({
         method: 'POST',
@@ -202,11 +205,8 @@ setupKeystore((err, keyStuff) => {
                                          iat: Math.floor(Date.now() / 1000) - (60 * 60),
                                          iss: `https://${process.env.AUTH0_DOMAIN}/`,
                                          nonce: _identityDb[request.payload.code] ? _identityDb[request.payload.code].idToken.nonce : _nonce} , prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
+            signedAccessToken = request.payload.code;
           }
-
-          //// This was expedient. No problems so far
-          //const pretendValidAccessToken = request.payload.code;
-//          const signedAccessToken = jwt.sign({..._access, permissions: _permissions}, prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } });
 
           return h.response({
             //'access_token': pretendValidAccessToken,
@@ -241,8 +241,6 @@ setupKeystore((err, keyStuff) => {
           console.log('/userinfo');
           console.log(request.headers);
           console.log(request.query);
-console.log('WWWWWWWWWWWWWWWWWORD');
-console.log(_identityDb[request.query.access_token]);
           let idToken = _identityDb[request.query.access_token] ? _identityDb[request.query.access_token].idToken : _identity;
           return h.response(idToken);
         }
