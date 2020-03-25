@@ -146,6 +146,10 @@ setupKeystore((err, keyStuff) => {
           _nonce = request.query.nonce;
           const buffer = crypto.randomBytes(12);
 
+
+          if (!_permissions) {
+            _permissions = [scope.read.agents];
+          }
           const signedAccessToken = jwt.sign({..._access, permissions: _permissions}, prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } });
 
           // A test agent has been registered.
