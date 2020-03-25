@@ -14,7 +14,7 @@ context('Organization creation', function() {
 
   context('authenticated', () => {
     beforeEach(function() {
-      cy.login(_profile.email, _profile, [this.scope.read.agents, this.scope.read.organizations]);
+      cy.login(_profile.email, _profile, [this.scope.read.agents, this.scope.create.organizations, this.scope.read.organizations]);
       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
         agent = results[0];
       });
