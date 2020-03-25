@@ -2,6 +2,7 @@ context('Organization delete', function() {
 
   before(function() {
     cy.fixture('google-profile-response').as('profile');
+    cy.fixture('permissions').as('scope');
   });
 
   afterEach(() => {
@@ -14,11 +15,17 @@ context('Organization delete', function() {
   beforeEach(function() {
     _profile = {...this.profile};
 
-    cy.login('someotherguy@example.com', _profile);
+    cy.login('someotherguy@example.com', _profile, [this.scope.read.agents, this.scope.read.organizations]);
     cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
       memberAgent = results[0];
 
-      cy.login(_profile.email, _profile);
+      cy.login(_profile.email, _profile, [this.scope.read.agents,
+                                          this.scope.create.organizations,
+                                          this.scope.read.organizations,
+                                          this.scope.update.organizations,
+                                          this.scope.delete.organizations,
+                                          this.scope.create.teams]);
+
       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
         agent = results[0];
       });

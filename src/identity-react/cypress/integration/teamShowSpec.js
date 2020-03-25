@@ -2,6 +2,7 @@ context('Team show', function() {
 
   before(function() {
     cy.fixture('google-profile-response').as('profile');
+    cy.fixture('permissions').as('scope');
   });
 
   let _profile;
@@ -36,12 +37,18 @@ context('Team show', function() {
     let agent, anotherAgent, organization;
     beforeEach(function() {
       // Login/create another agent
-      cy.login('someotherguy@example.com', _profile);
+      cy.login('someotherguy@example.com', _profile, [this.scope.read.agents]);
       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
         anotherAgent = results[0];
 
         // Login/create main test agent
-        cy.login(_profile.email, _profile);
+        cy.login(_profile.email, _profile, [this.scope.read.agents,
+                                            this.scope.create.organizations,
+                                            this.scope.read.organizations,
+                                            this.scope.create.teams,
+                                            this.scope.read.teams,
+                                            this.scope.create.organizationMembers,
+                                            this.scope.create.teamMembers]);
         cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
           agent = results[0];
 
@@ -67,7 +74,14 @@ context('Team show', function() {
         cy.request({ url: '/team',  method: 'POST',
                      body: { organizationId: organization.id, name: 'Insert Funny Team Name Here' } }).then(res => {
           team = res.body;
-          cy.login(_profile.email, _profile);
+
+          // Having a hard time refreshing the screen...
+          cy.get('#app-menu-button').click();
+          cy.contains('Profile').click();
+          cy.wait(500);
+          cy.get('#app-menu-button').click();
+          cy.get('#organization-button').click();
+ 
           cy.contains('One Book Canada').click();
           cy.contains('Insert Funny Team Name Here').click();
         });
@@ -92,7 +106,10 @@ context('Team show', function() {
           // Verify agent membership in organization
           cy.task('query', `UPDATE "OrganizationMembers" SET "verificationCode"=null WHERE "AgentId"=${anotherAgent.id};`).then(([results, metadata]) => {
 
-            cy.login(anotherAgent.email, _profile);
+            cy.login(anotherAgent.email, _profile, [this.scope.read.agents,
+                                                    this.scope.read.organizations,
+                                                    this.scope.read.teams,
+                                                    this.scope.create.teams]);
             cy.request({ url: '/team',  method: 'POST',
                          body: { organizationId: organization.id, name: 'Insert Funny Team Name Here' } }).then(res => {
               team = res.body;
@@ -129,7 +146,7 @@ context('Team show', function() {
 
           cy.request({ url: `/team/${team.id}/agent`, method: 'PUT', body: { email: anotherAgent.email } }).then(res => {
 
-            cy.login(anotherAgent.email, _profile);
+            cy.login(anotherAgent.email, _profile, [this.scope.read.agents, this.scope.read.teams]);
             cy.visit(`/#/team/${team.id}`);
           });
         });
@@ -158,7 +175,7 @@ context('Team show', function() {
 
             // Verify agent membership
             cy.task('query', `UPDATE "TeamMembers" SET "verificationCode"=null WHERE "AgentId"=${anotherAgent.id};`).then(([results, metadata]) => {
-              cy.login(anotherAgent.email, _profile);
+              cy.login(anotherAgent.email, _profile, [this.scope.read.agents, this.scope.read.organizations, this.scope.read.teams]);
               cy.visit(`/#/team/${team.id}`);
             });
           });
@@ -189,7 +206,7 @@ context('Team show', function() {
             // Verify agent membership
             cy.task('query', `UPDATE "OrganizationMembers" SET "verificationCode"=null WHERE "AgentId"=${anotherAgent.id};`).then(([results, metadata]) => {
 
-              cy.login(anotherAgent.email, _profile);
+              cy.login(anotherAgent.email, _profile, [this.scope.read.agents, this.scope.read.organizations, this.scope.read.teams]);
               cy.visit('/#/').then(() => {
                 cy.get('#app-menu-button').click();
                 cy.get('#organization-button').click();
@@ -222,7 +239,7 @@ context('Team show', function() {
 
           cy.request({ url: `/organization/${organization.id}/agent`, method: 'PUT', body: { email: anotherAgent.email } }).then(res => {
 
-            cy.login(anotherAgent.email, _profile);
+            cy.login(anotherAgent.email, _profile, [this.scope.read.agents, this.scope.read.organizations, this.scope.read.teams]);
             cy.visit('/#/').then(() => {
               cy.get('#app-menu-button').click();
               cy.get('#organization-button').click();
@@ -252,7 +269,7 @@ context('Team show', function() {
                      body: { organizationId: organization.id, name: 'Insert Funny Team Name Here' } }).then(res => {
           team = res.body;
 
-          cy.login(anotherAgent.email, _profile);
+          cy.login(anotherAgent.email, _profile, [this.scope.read.agents, this.scope.read.organizations, this.scope.read.teams]);
         });
       });
 

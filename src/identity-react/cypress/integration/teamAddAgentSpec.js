@@ -2,11 +2,11 @@ context('Team add agent', function() {
 
   before(function() {
     cy.fixture('google-profile-response').as('profile');
+    cy.fixture('permissions').as('scope');
   });
 
   let _profile;
   beforeEach(function() {
-    // Why?
     _profile = {...this.profile};
   });
 
@@ -15,12 +15,18 @@ context('Team add agent', function() {
     let agent, anotherAgent;
     beforeEach(function() {
       // Login/create another agent
-      cy.login('someotherguy@example.com', _profile);
+      cy.login('someotherguy@example.com', _profile, [this.scope.read.agents]);
       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
         anotherAgent = results[0];
 
         // Login/create main test agent
-        cy.login(_profile.email, _profile);
+        cy.login(_profile.email, _profile, [this.scope.read.agents,
+                                            this.scope.create.organizations,
+                                            this.scope.read.organizations,
+                                            this.scope.update.organizations,
+                                            this.scope.create.teams,
+                                            this.scope.read.teams,
+                                            this.scope.create.teamMembers]);
         cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
           agent = results[0];
         });
@@ -246,7 +252,7 @@ context('Team add agent', function() {
                            body: { organizationId: organization.id, name: 'Calgary Roughnecks' } }).then(res => {
                 team = res.body;
 
-                cy.login(anotherAgent.email, _profile);
+                cy.login(anotherAgent.email, _profile, [this.scope.read.agents, this.scope.read.organizations]);
                 cy.visit('/#/');
                 cy.get('#app-menu-button').click();
                 cy.get('#organization-button').click();
@@ -279,7 +285,7 @@ context('Team add agent', function() {
                          body: { organizationId: organization.id, name: 'Calgary Roughnecks' } }).then(res => {
               team = res.body;
 
-              cy.login(anotherAgent.email, _profile);
+              cy.login(anotherAgent.email, _profile, [this.scope.read.agents, this.scope.read.organizations]);
               cy.visit('/#/');
               cy.get('#app-menu-button').click();
               cy.get('#organization-button').click();

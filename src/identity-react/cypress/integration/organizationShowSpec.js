@@ -2,6 +2,7 @@ context('Organization show', function() {
 
   before(function() {
     cy.fixture('google-profile-response').as('profile');
+    cy.fixture('permissions').as('scope');
   });
 
   let _profile;
@@ -36,12 +37,17 @@ context('Organization show', function() {
     let agent, anotherAgent;
     beforeEach(function() {
       // Login/create another agent
-      cy.login('someotherguy@example.com', _profile);
+      cy.login('someotherguy@example.com', _profile, [this.scope.read.agents]);
       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
         anotherAgent = results[0];
 
         // Login/create main test agent
-        cy.login(_profile.email, _profile);
+        cy.login(_profile.email, _profile, [this.scope.read.agents,
+                                            this.scope.create.organizations,
+                                            this.scope.read.organizations,
+                                            this.scope.update.organizations]);
+
+
         cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
           agent = results[0];
           cy.visit('/#/');
@@ -93,12 +99,11 @@ context('Organization show', function() {
             // Verify agent membership
             cy.task('query', `UPDATE "OrganizationMembers" SET "verificationCode"=null WHERE "AgentId"=${anotherAgent.id};`).then(([results, metadata]) => {
 
-              cy.login(anotherAgent.email, _profile);
-              cy.visit('/#/').then(() => {
-                cy.get('#app-menu-button').click();
-                cy.get('#organization-button').click();
-                cy.contains('One Book Canada').click();
-              });
+              cy.login(anotherAgent.email, _profile, [this.scope.read.agents,
+                                                      this.scope.read.organizations]);
+              cy.get('#app-menu-button').click();
+              cy.get('#organization-button').click();
+              cy.contains('One Book Canada').click();
             });
           });
         });
@@ -125,7 +130,7 @@ context('Organization show', function() {
           organization = org.body;
           cy.request({ url: '/organization',  method: 'PATCH', body: { id: organization.id, memberId: anotherAgent.id } }).then((res) => {
 
-            cy.login(anotherAgent.email, _profile);
+            cy.login(anotherAgent.email, _profile, [this.scope.read.agents, this.scope.read.organizations]);
             cy.visit('/#/').then(() => {
               cy.get('#app-menu-button').click();
               cy.get('#organization-button').click();
@@ -154,7 +159,7 @@ context('Organization show', function() {
       beforeEach(function() {
         cy.request({ url: '/organization',  method: 'POST', body: { name: 'One Book Canada' } }).then((org) => {
           organization = org.body;
-          cy.login('somenonmemberagent@example.com', _profile);
+          cy.login('somenonmemberagent@example.com', _profile, [this.scope.read.agents, this.scope.read.organizations]);
         });
       });
 

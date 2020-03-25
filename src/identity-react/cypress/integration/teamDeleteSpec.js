@@ -2,6 +2,7 @@ context('Team delete', function() {
 
   before(function() {
     cy.fixture('google-profile-response').as('profile');
+    cy.fixture('permissions').as('scope');
   });
 
   afterEach(() => {
@@ -11,19 +12,25 @@ context('Team delete', function() {
 
   let _profile;
   beforeEach(function() {
-    // Why?
     _profile = {...this.profile};
   });
 
   let agent, anotherAgent;
   beforeEach(function() {
     // Login/create another agent
-    cy.login('someotherguy@example.com', _profile);
+    cy.login('someotherguy@example.com', _profile, [this.scope.read.agents]);
     cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
       anotherAgent = results[0];
 
       // Login/create main test agent
-      cy.login(_profile.email, _profile);
+      cy.login(_profile.email, _profile, [this.scope.read.agents,
+                                          this.scope.create.organizations,
+                                          this.scope.read.organizations,
+                                          this.scope.create.teams,
+                                          this.scope.read.teams,
+                                          this.scope.update.teams,
+                                          this.scope.delete.teams,
+                                          this.scope.create.teamMembers ]);
       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
         agent = results[0];
       });

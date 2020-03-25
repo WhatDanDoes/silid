@@ -1,16 +1,12 @@
-// enables intelligent code completion for Cypress commands
-// https://on.cypress.io/intelligent-code-completion
-/// <reference types="Cypress" />
-
 context('Organization delete agent', function() {
 
   before(function() {
     cy.fixture('google-profile-response').as('profile');
+    cy.fixture('permissions').as('scope');
   });
 
   let _profile;
   beforeEach(function() {
-    // Why?
     _profile = {...this.profile};
   });
 
@@ -18,11 +14,15 @@ context('Organization delete agent', function() {
 
     let agent, memberAgent;
     beforeEach(function() {
-      cy.login('someotherguy@example.com', _profile);
+      cy.login('someotherguy@example.com', _profile, [this.scope.read.agents]);
       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
         memberAgent = results[0];
 
-        cy.login(_profile.email, _profile);
+        cy.login(_profile.email, _profile, [this.scope.read.agents,
+                                            this.scope.create.organizations,
+                                            this.scope.read.organizations,
+                                            this.scope.create.organizationMembers,
+                                            this.scope.delete.organizationMembers]);
         cy.visit('/#/').then(() => {
           cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
             agent = results[0];
@@ -118,7 +118,7 @@ context('Organization delete agent', function() {
         cy.request({ url: '/organization', method: 'POST', body: { name: 'One Book Canada' } }).then((org) => {
           organization = org.body;
           cy.request({ url: `/organization/${organization.id}/agent`, method: 'PUT', body: { email: memberAgent.email } }).then((org) => {
-            cy.login(memberAgent.email, _profile);
+            cy.login(memberAgent.email, _profile, [this.scope.read.agents, this.scope.read.organizations]);
             cy.get('#app-menu-button').click();
             cy.get('#organization-button').click();
             cy.contains('One Book Canada').click();

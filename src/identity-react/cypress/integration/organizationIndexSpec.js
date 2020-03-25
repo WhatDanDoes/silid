@@ -1,16 +1,12 @@
-// enables intelligent code completion for Cypress commands
-// https://on.cypress.io/intelligent-code-completion
-/// <reference types="Cypress" />
-
 context('Organization', function() {
 
   before(function() {
     cy.fixture('google-profile-response').as('profile');
+    cy.fixture('permissions').as('scope');
   });
 
   let _profile;
   beforeEach(function() {
-    // Why?
     _profile = {...this.profile};
   });
 
@@ -40,7 +36,10 @@ context('Organization', function() {
 
     let agent;
     beforeEach(function() {
-      cy.login(_profile.email, _profile);
+      cy.login(_profile.email, _profile, [this.scope.read.agents,
+                                          this.scope.create.organizations,
+                                          this.scope.read.organizations]);
+
       cy.get('#app-menu-button').click();
       cy.get('#organization-button').click().then(() =>  {
         cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
@@ -77,7 +76,10 @@ context('Organization', function() {
         beforeEach(function() {
 
           // Create an organization with another agent
-          cy.login('someotherguy@example.com', _profile);
+          cy.login('someotherguy@example.com', _profile, [this.scope.read.agents,
+                                                          this.scope.create.organizations,
+                                                          this.scope.update.organizations,
+                                                          this.scope.create.organizationMembers]);
           cy.request({ url: '/organization',  method: 'POST', body: { name: 'One Book Canada' } }).then(org => {
             organization = org.body;
 
@@ -85,7 +87,9 @@ context('Organization', function() {
             cy.request({ url: '/organization', method: 'PATCH', body: { id: organization.id, memberId: agent.id } }).then((res) => {
 
               // Login member agent
-              cy.login(_profile.email, _profile);
+              cy.login(_profile.email, _profile, [this.scope.read.agents,
+                                                  this.scope.read.organizations]);
+
               cy.visit('/#/');
               cy.get('#app-menu-button').click();
               cy.get('#organization-button').click();

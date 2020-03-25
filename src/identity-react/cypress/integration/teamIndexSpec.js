@@ -2,11 +2,11 @@ context('Team Index', function() {
 
   before(function() {
     cy.fixture('google-profile-response').as('profile');
+    cy.fixture('permissions').as('scope');
   });
 
   let _profile;
   beforeEach(function() {
-    // Why?
     _profile = {...this.profile};
   });
 
@@ -42,7 +42,12 @@ context('Team Index', function() {
 
     let agent, organization;
     beforeEach(function() {
-      cy.login(_profile.email, _profile);
+      cy.login(_profile.email, _profile, [this.scope.read.agents,
+                                          this.scope.create.organizations,
+                                          this.scope.create.organizationMembers,
+                                          this.scope.create.teams,
+                                          this.scope.read.teams]);
+
       cy.get('#app-menu-button').click();
       cy.get('#team-button').click().then(() =>  {
         cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
@@ -81,7 +86,10 @@ context('Team Index', function() {
           cy.request({ url: `/organization/${organization.id}/agent`, method: 'PUT', body: { email: 'someotherguy@example.com' } }).then(res => {
 
             // Create a team with another agent
-            cy.login('someotherguy@example.com', _profile);
+            cy.login('someotherguy@example.com', _profile, [this.scope.read.agents,
+                                                            this.scope.create.organizations,
+                                                            this.scope.create.teams,
+                                                            this.scope.update.teams]);
 
             cy.request({ url: '/team',  method: 'POST', body: { organizationId: organization.id, name: 'Princess Patricia\'s Light Infantry' } }).then(res => {
               team = res.body;
@@ -90,7 +98,7 @@ context('Team Index', function() {
               cy.request({ url: '/team', method: 'PATCH', body: { id: team.id, memberId: agent.id } }).then(res => {
 
                 // Login member agent
-                cy.login(_profile.email, _profile);
+                cy.login(_profile.email, _profile, [this.scope.read.agents, this.scope.read.teams]);
                 cy.visit('/#/');
                 cy.get('#app-menu-button').click();
                 cy.get('#team-button').click();

@@ -2,6 +2,7 @@ context('Organization edit', function() {
 
   before(function() {
     cy.fixture('google-profile-response').as('profile');
+    cy.fixture('permissions').as('scope');
   });
 
   afterEach(() => {
@@ -18,7 +19,11 @@ context('Organization edit', function() {
 
     let agent, organization;
     beforeEach(function() {
-      cy.login(_profile.email, _profile);
+      cy.login(_profile.email, _profile, [this.scope.read.agents,
+                                          this.scope.create.organizations,
+                                          this.scope.read.organizations,
+                                          this.scope.update.organizations]);
+
       cy.visit('/#/').then(() => {
         cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
           agent = results[0];

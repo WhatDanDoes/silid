@@ -2,6 +2,7 @@ context('Team delete agent', function() {
 
   before(function() {
     cy.fixture('google-profile-response').as('profile');
+    cy.fixture('permissions').as('scope');
   });
 
   let _profile;
@@ -14,12 +15,19 @@ context('Team delete agent', function() {
     let agent, memberAgent;
     beforeEach(function() {
       // Login/create another agent
-      cy.login('someotherguy@example.com', _profile);
+      cy.login('someotherguy@example.com', _profile, [this.scope.read.agents]);
       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
         memberAgent = results[0];
 
         // Login/create main test agent
-        cy.login(_profile.email, _profile);
+        cy.login(_profile.email, _profile, [this.scope.read.agents,
+                                            this.scope.create.organizations,
+                                            this.scope.read.organizations,
+                                            this.scope.create.teams,
+                                            this.scope.read.teams,
+                                            this.scope.update.teams,
+                                            this.scope.create.teamMembers,
+                                            this.scope.delete.teamMembers]);
         cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
           agent = results[0];
         });
@@ -43,8 +51,17 @@ context('Team delete agent', function() {
             team = res.body;
 
             cy.request({ url: `/team/${team.id}/agent`, method: 'PUT', body: { email: memberAgent.email } }).then((org) => {
-              cy.login(_profile.email, _profile);
+
+              // Having a hard time refreshing the screen...
+              cy.get('#app-menu-button').click();
+              cy.contains('Profile').click();
+              cy.wait(500);
+              cy.get('#app-menu-button').click();
+              cy.get('#organization-button').click();
+ 
+              cy.wait(500);
               cy.contains('One Book Canada').click();
+              cy.contains('Calgary Roughnecks').click();
               cy.contains('Calgary Roughnecks').click();
             });
           });
@@ -126,7 +143,7 @@ context('Team delete agent', function() {
               // Verify agent membership
               cy.task('query', `UPDATE "TeamMembers" SET "verificationCode"=null WHERE "AgentId"=${memberAgent.id};`).then(([results, metadata]) => {
 
-                cy.login('someotherguy@example.com', _profile);
+                cy.login('someotherguy@example.com', _profile, [this.scope.read.agents, this.scope.read.teams]);
                 cy.visit(`/#/team/${team.id}`);
                 cy.contains('Calgary Roughnecks');
               });

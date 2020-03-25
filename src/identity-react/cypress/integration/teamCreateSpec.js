@@ -2,6 +2,7 @@ context('Team creation', function() {
 
   before(function() {
     cy.fixture('google-profile-response').as('profile');
+    cy.fixture('permissions').as('scope');
   });
 
   let _profile;
@@ -12,7 +13,11 @@ context('Team creation', function() {
   context('authenticated', () => {
     let organization, agent;
     beforeEach(function() {
-      cy.login(_profile.email, _profile);
+      cy.login(_profile.email, _profile, [this.scope.read.agents,
+                                          this.scope.create.organizations,
+                                          this.scope.read.organizations,
+                                          this.scope.create.teams,
+                                          this.scope.read.teams]);
       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
         agent = results[0];
         cy.request({ url: '/organization',  method: 'POST', body: { name: 'One Book Canada' } }).then(org => {
