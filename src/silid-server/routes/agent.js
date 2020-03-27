@@ -10,6 +10,25 @@ const scope = require('../config/permissions');
 const roles = require('../config/roles');
 const checkPermissions = require('../lib/checkPermissions');
 
+
+/**
+ * 2020-3-27
+ *
+ * https://community.auth0.com/t/node-managementclient-getuserroles-is-not-a-function/24514
+ *
+ * @param string
+ */
+function getAuth0ManagementClient(permissions) {
+  const ManagementClient = require('auth0').ManagementClient;
+  return new ManagementClient({
+    domain: process.env.AUTH0_DOMAIN,
+    clientId: process.env.AUTH0_CLIENT_ID,
+    clientSecret: process.env.AUTH0_CLIENT_SECRET,
+    scope: permissions
+  });
+}
+
+
 /* GET agent listing. */
 router.get('/admin', checkPermissions(roles.sudo), function(req, res, next) {
   if (!req.agent.isSuper) {
@@ -42,7 +61,14 @@ router.get('/:id', checkPermissions([scope.read.agents]), function(req, res, nex
 router.post('/', checkPermissions([scope.create.agents]), function(req, res, next) {
   let agent = new models.Agent({ email: req.body.email });
   agent.save().then(result => {
-    res.status(201).json(result);
+
+    const managementClient = getAuth0ManagementClient('create:users');
+    managementClient.createUser({ email: req.body.email, connection: 'Initial-Connection' }).then(users => {
+      res.status(201).json(result);
+    })
+    .catch(err => {
+      res.status(err.statusCode).json(err.message.error_description);
+    });
   }).catch(err => {
     res.status(500).json(err);
   });
