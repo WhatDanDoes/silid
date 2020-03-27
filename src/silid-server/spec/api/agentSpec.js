@@ -5,6 +5,8 @@ const models = require('../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 const scope = require('../../config/permissions');
+const jwt = require('jsonwebtoken');
+const nock = require('nock');
 
 describe('agentSpec', () => {
 
@@ -15,9 +17,10 @@ describe('agentSpec', () => {
    * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
    */
   const _identity = require('../fixtures/sample-auth0-identity-token');
+  const _access = require('../fixtures/sample-auth0-access-token');
 
   let login, pub, prv, keystore;
-  beforeAll(done => {
+  beforeEach(done => {
     stubAuth0Sessions((err, sessionStuff) => {
       if (err) return done.fail(err);
       ({ login, pub, prv, keystore } = sessionStuff);
@@ -44,14 +47,67 @@ describe('agentSpec', () => {
     });
   });
 
+  afterEach(() => {
+    nock.cleanAll();
+  });
+
+
+
   describe('authenticated', () => {
 
     describe('authorized', () => {
 
       describe('create', () => {
 
-        let authenticatedSession;
+        let authenticatedSession, oauthTokenScope, auth0ManagementScope;
         beforeEach(done => {
+
+          /**
+           * A new agent needs some basic permissions. This endpoint is called
+           * when `silid-server` needs permission to set these permissions
+           */
+          let accessToken = jwt.sign({..._access, scope: ['create:users']},
+                                     prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
+          oauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+            .log(console.log)
+            .post(/oauth\/token/, {
+                                    'grant_type': 'client_credentials',
+                                    'client_id': process.env.AUTH0_CLIENT_ID,
+                                    'client_secret': process.env.AUTH0_CLIENT_SECRET,
+                                    'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                                    'scope': 'create:users'
+                                  })
+            .reply(200, {
+              'access_token': accessToken,
+              'token_type': 'Bearer',
+            });
+
+          /**
+           * This endpoint sets the aforementioned basic agent permissions
+           *
+           *
+           * Auth0 requires a connection. It is called `Initial-Connection`
+           * here. This setting can be configured at:
+           *
+           * https://manage.auth0.com/dashboard/us/silid/connections
+           */
+          auth0ManagementScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+            .log(console.log)
+            .post(/api\/v2\/users/, {
+                                    'email': /.+/i,
+                                    'connection': 'Initial-Connection',
+                                  })
+            .reply(201, {
+              "user_id": "auth0|507f1f77bcf86cd799439020",
+              "email": "doesnotreallymatterforthemoment@example.com",
+              "email_verified": false,
+              "identities": [
+                {
+                  "connection": "Initial-Connection",
+                }
+              ]
+            });
+
           login(_identity, [scope.create.agents], (err, session) => {
             if (err) return done.fail(err);
             authenticatedSession = session;
@@ -59,10 +115,80 @@ describe('agentSpec', () => {
           });
         });
 
-        it('adds a new record to the database', done => {
-          models.Agent.findAll().then(results => {
-            expect(results.length).toEqual(1);
 
+        describe('database', () => {
+          it('adds a new record to the database', done => {
+            models.Agent.findAll().then(results => {
+              expect(results.length).toEqual(1);
+
+              authenticatedSession
+                .post('/agent')
+                .send({
+                  email: 'someotherguy@example.com'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(res.body.email).toEqual('someotherguy@example.com');
+
+                  models.Agent.findAll().then(results => {
+                    expect(results.length).toEqual(2);
+                    done();
+                  }).catch(err => {
+                    done.fail(err);
+                  });
+                });
+            }).catch(err => {
+              done.fail(err);
+            });
+          });
+
+          it('returns an error if record already exists', done => {
+            authenticatedSession
+              .post('/agent')
+              .send({
+                email: agent.email
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(500)
+              .end(function(err, res) {
+                if (err) done.fail(err);
+
+                expect(res.body.errors.length).toEqual(1);
+                expect(res.body.errors[0].message).toEqual('That agent is already registered');
+                done();
+              });
+          });
+        });
+
+        describe('Auth0', () => {
+          it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
+            authenticatedSession
+              .post('/agent')
+              .send({
+                email: 'someotherguy@example.com'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(oauthTokenScope.isDone()).toBe(true);
+                done();
+              });
+          });
+
+          /**
+           * Auth0 requires a connection. It is called `Initial-Connection`
+           * here. This setting can be configured at:
+           *
+           * https://manage.auth0.com/dashboard/us/silid/connections
+           */
+          it('calls Auth0 to create the agent at the Auth0-defined connection', done => {
             authenticatedSession
               .post('/agent')
               .send({
@@ -74,36 +200,28 @@ describe('agentSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(res.body.email).toEqual('someotherguy@example.com');
-
-                models.Agent.findAll().then(results => {
-                  expect(results.length).toEqual(2);
-                  done();
-                }).catch(err => {
-                  done.fail(err);
-                });
+                expect(auth0ManagementScope.isDone()).toBe(true);
+                done();
               });
-          }).catch(err => {
-            done.fail(err);
           });
-        });
 
-        it('returns an error if record already exists', done => {
-          authenticatedSession
-            .post('/agent')
-            .send({
-              email: agent.email
-            })
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(500)
-            .end(function(err, res) {
-              if (err) done.fail(err);
+          it('does not call the Auth0 endpoints if record already exists', done => {
+            authenticatedSession
+              .post('/agent')
+              .send({
+                email: agent.email
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(500)
+              .end(function(err, res) {
+                if (err) done.fail(err);
 
-              expect(res.body.errors.length).toEqual(1);
-              expect(res.body.errors[0].message).toEqual('That agent is already registered');
-              done();
-            });
+                expect(oauthTokenScope.isDone()).toBe(false);
+                expect(auth0ManagementScope.isDone()).toBe(false);
+                done();
+              });
+          });
         });
       });
 
