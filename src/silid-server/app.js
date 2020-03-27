@@ -99,6 +99,7 @@ const strategy = new Auth0Strategy(
      */
     let decoded = jsonwebtoken.decode(accessToken);
     profile.scope = decoded.permissions
+
     return done(null, profile);
   }
 );
