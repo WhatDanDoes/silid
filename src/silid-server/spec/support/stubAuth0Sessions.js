@@ -1,4 +1,3 @@
-
 const app = require('../../app');
 const request = require('supertest-session');
 const nock = require('nock');
@@ -23,19 +22,15 @@ const pem2jwk = require('pem-jwk').pem2jwk
 const NodeRSA = require('node-rsa');
 const querystring = require('querystring');
 
-const setupKeystore = require('./setupKeystore');
-
 module.exports = function(done) {
 
   // Note to future self: this will probably muck things up if I
   // try to stub any other services
   nock.cleanAll();
 
-  setupKeystore((err, keyStuff) => {
-    if (err) return done(err);
+  require('./setupKeystore').then(singleton => {
+    let { pub, prv, keystore } = singleton.keyStuff;
 
-    let pub, prv, keystore;
-    ({ pub, prv, keystore } = keyStuff);
 
     /**
      * `/authorize?...` mock
@@ -82,8 +77,7 @@ module.exports = function(done) {
        */
       const session = request(app);
       session
-        .get('/login')
-        .redirects()
+        .get('/login') .redirects()
         .end(function(err, res) {
           if (err) return done(err);
 
@@ -128,5 +122,7 @@ module.exports = function(done) {
     };
 
     done(null, {login, pub, prv, keystore});
+  }).catch(err => {
+    console.error(err);
   });
 };
