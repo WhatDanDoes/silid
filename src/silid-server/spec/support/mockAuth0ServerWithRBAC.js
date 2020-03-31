@@ -10,7 +10,6 @@
  */
 require('dotenv-flow').config();
 
-const setupKeystore = require('../support/setupKeystore');
 const jwt = require('jsonwebtoken');
 const pem = require('pem');
 const crypto = require('crypto');
@@ -63,8 +62,7 @@ const _access = require('../fixtures/sample-auth0-access-token');
  */
 const _identityDb = {};
 
-setupKeystore((err, keyStuff) => {
-  if (err) console.log(err);
+require('../support/setupKeystore').then(keyStuff => {
   let { pub, prv, keystore } = keyStuff;
 
   pem.createCertificate({ days: 1, selfSigned: true }, function (err, keys) {
@@ -212,8 +210,14 @@ setupKeystore((err, keyStuff) => {
             signedAccessToken = request.payload.code;
           }
 
+          if (request.payload.grant_type === 'client_credentials') {
+            return h.response({
+              'access_token': signedAccessToken,
+              'token_type': 'Bearer'
+            });
+          }
+
           return h.response({
-            //'access_token': pretendValidAccessToken,
             'access_token': signedAccessToken,
             'refresh_token': 'SOME_MADE_UP_REFRESH_TOKEN',
             'id_token': signedIdToken
@@ -264,6 +268,46 @@ setupKeystore((err, keyStuff) => {
       });
 
 
+      /**
+       * These are the Auth0 Management API endpoints
+       * `/api/v2/*`
+       */
+
+      /**
+       * PATCH `/users`
+       */
+      server.route({
+        method: 'PATCH',
+        path: '/api/v2/users/{id}',
+        handler: (request, h) => {
+          console.log('/api/vs/users');
+          console.log(request.payload);
+
+          return h.response({
+            "user_id": "auth0|507f1f77bcf86c0000000000",
+            "email": "doesnotreallymatterforthemoment@example.com",
+            "email_verified": false,
+            "identities": [
+              {
+                "connection": "Initial-Connection",
+              }
+            ]
+          });
+        }
+      });
+
+      /**
+       * GET `/users-by-email`
+       */
+      server.route({
+        method: 'GET',
+        path: '/api/v2/users-by-email',
+        handler: (request, h) => {
+          console.log('/api/v2/users-by-email');
+          return h.response({});
+        }
+      });
+
       await server.start();
       console.log('Server running on %s', server.info.uri);
     };
@@ -275,5 +319,7 @@ setupKeystore((err, keyStuff) => {
 
     init();
   });
+}).catch(err => {
+  console.error(err);
 });
 
