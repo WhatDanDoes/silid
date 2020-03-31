@@ -16,11 +16,11 @@ export function AdminProvider({children}) {
   });
 
   function toggle() {
-    setState({...state, enabled: !state.enabled});// 'pending', err: null, agent: null});
+    setState({...state, enabled: !state.enabled});
   };
 
   function toggleCache() {
-    setState({...state, viewCache: !state.viewCache});// 'pending', err: null, agent: null});
+    setState({...state, viewCache: !state.viewCache});
   };
 
 
