@@ -31,17 +31,28 @@ function getAuth0ManagementClient(permissions) {
 
 
 /* GET agent listing. */
-router.get('/admin', checkPermissions(roles.sudo), function(req, res, next) {
+router.get('/admin/:cached?', checkPermissions(roles.sudo), function(req, res, next) {
   if (!req.agent.isSuper) {
     return res.status(403).json( { message: 'Forbidden' });
   }
 
   // Super agent gets entire listing
-  models.Agent.findAll({ order: [['name', 'ASC']] }).then(results => {
-    res.json(results);
-  }).catch(err => {
-    res.status(500).json(err);
-  });
+  if (req.params.cached) {
+    models.Agent.findAll({ order: [['name', 'ASC']] }).then(results => {
+      res.json(results);
+    }).catch(err => {
+      res.status(500).json(err);
+    });
+  }
+  else {
+    const managementClient = getAuth0ManagementClient(apiScope.read.users);
+    managementClient.getUsers().then(agents => {
+      console.log(agents);
+      res.status(200).json(agents);
+    }).catch(err => {
+      res.status(err.statusCode).json(err.message.error_description);
+    });
+  }
 });
 
 router.get('/', checkPermissions([scope.read.agents]), function(req, res, next) {

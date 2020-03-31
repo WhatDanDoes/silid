@@ -74,9 +74,11 @@ describe('root/agentSpec', () => {
 
     describe('read', () => {
 
+      let oauthTokenScope, auth0UserListScope;
       beforeEach(done => {
         stubAuth0ManagementApi([apiScope.read.users], (err, apiScopes) => {
           if (err) return done.fail(err);
+          ({auth0UserListScope, oauthTokenScope} = apiScopes);
           done();
         });
       });
@@ -99,7 +101,7 @@ describe('root/agentSpec', () => {
       });
 
       describe('/agent/admin', () => {
-        it('retrieves all the agents in the database', done => {
+        it('retrieves all the agents at Auth0', done => {
           rootSession
             .get(`/agent/admin`)
             .set('Accept', 'application/json')
@@ -108,7 +110,133 @@ describe('root/agentSpec', () => {
             .end(function(err, res) {
               if (err) return done.fail(err);
 
-              expect(res.body.length).toEqual(2);
+              let userList = require('../../fixtures/managementApi/userList');
+              expect(res.body).toEqual(userList);
+              expect(res.body.length).toEqual(userList.length);
+              done();
+            });
+        });
+
+        describe('Auth0', () => {
+          it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
+            rootSession
+              .get(`/agent/admin`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(oauthTokenScope.isDone()).toBe(true);
+                done();
+              });
+          });
+
+          it('calls Auth0 to read the agent at the Auth0-defined connection', done => {
+            rootSession
+              .get(`/agent/admin`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(auth0UserListScope.isDone()).toBe(true);
+                done();
+              });
+          });
+        });
+      });
+
+      describe('/agent/admin/cached', () => {
+        it('retrieves all the agents in the database', done => {
+          models.Agent.findAll().then(results => {
+          rootSession
+            .get(`/agent/admin/cached`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(200)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+
+              expect(res.body.length).toEqual(results.length);
+              done();
+            });
+          }).catch(err => {
+            done.fail(err);
+          });
+        });
+
+        describe('Auth0', () => {
+          it('does not call the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
+            rootSession
+              .get(`/agent/admin/cached`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(oauthTokenScope.isDone()).toBe(false);
+                done();
+              });
+          });
+
+          it('does not call Auth0 to read the agent at the Auth0-defined connection', done => {
+            rootSession
+              .get(`/agent/admin/cached`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(auth0UserListScope.isDone()).toBe(false);
+                done();
+              });
+          });
+        });
+      });
+
+      describe('/agent/:id', () => {
+        it('retrieves root agent\'s own record from the database', done => {
+          rootSession
+            .get(`/agent/${root.id}`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(200)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+
+              expect(res.body.email).toEqual(root.email);
+              expect(res.body.isSuper).toEqual(true);
+              done();
+            });
+        });
+
+        it('retrieves another agent\'s record from the database', done => {
+          rootSession
+            .get(`/agent/${agent.id}`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(200)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+
+              expect(res.body.email).toEqual(agent.email);
+              expect(res.body.isSuper).toEqual(false);
+              done();
+            });
+        });
+
+        it('doesn\'t barf if record doesn\'t exist', done => {
+          rootSession
+            .get('/agent/33')
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(404)
+            .end(function(err, res) {
+              if (err) done.fail(err);
+
+              expect(res.body.message).toEqual('No such agent');
               done();
             });
         });
