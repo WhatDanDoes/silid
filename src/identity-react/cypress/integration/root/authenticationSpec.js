@@ -94,10 +94,11 @@ context('Super Agent Authentication', function() {
       it('allows the super agent to toggle admin mode', () => {
         cy.get('#app-menu-button').click();
         cy.get('#app-menu ul div:nth-of-type(5) a').should('not.exist');
-        cy.get('#app-menu ul div:nth-of-type(4) input').check();
-        cy.get('#app-menu ul div:nth-of-type(5) a').should('have.attr', 'href', '#agent/admin').and('contain', 'Agent Directory');
-        cy.get('#app-menu ul div:nth-of-type(6) a').should('have.attr', 'href', '#organization/admin').and('contain', 'Organization Directory');
-        cy.get('#app-menu ul div:nth-of-type(7) a').should('have.attr', 'href', '#team/admin').and('contain', 'Team Directory');
+        cy.get('#app-menu ul div:nth-of-type(4) input#admin-switch').check();
+        cy.get('#app-menu ul div:nth-of-type(5) input#show-cached-switch').should('exist');
+        cy.get('#app-menu ul div:nth-of-type(6) a').should('have.attr', 'href', '#agent/admin').and('contain', 'Agent Directory');
+        cy.get('#app-menu ul div:nth-of-type(7) a').should('have.attr', 'href', '#organization/admin').and('contain', 'Organization Directory');
+        cy.get('#app-menu ul div:nth-of-type(8) a').should('have.attr', 'href', '#team/admin').and('contain', 'Team Directory');
         cy.get('#app-menu ul div:nth-of-type(4) input').uncheck();
         cy.get('#app-menu ul div:nth-of-type(5) a').should('not.exist');
       });

@@ -12,28 +12,20 @@ export function AdminProvider({children}) {
 
   const [state, setState] = React.useState({
     enabled: false,
-//    error: null,
-//    agent: null,
+    viewCache: false,
   });
 
-//  React.useEffect(() => {
-//    const headers = new Headers();
-//    fetch('/agent', {method: 'GET', headers: headers}).then(response => {
-//      return response.text();
-//    }).then(profile => {
-//      setState({status: 'success', error: null, agent: profile ? JSON.parse(profile) : {} });
-//    }).catch(error => {
-//      setState({status: 'error', error, agent: null});
-//    });
-//  }, []);
-//
   function toggle() {
-    setState({enabled: !state.enabled});// 'pending', err: null, agent: null});
-//    window.location.href = '/logout';
+    setState({...state, enabled: !state.enabled});// 'pending', err: null, agent: null});
   };
 
+  function toggleCache() {
+    setState({...state, viewCache: !state.viewCache});// 'pending', err: null, agent: null});
+  };
+
+
   return (
-    <AdminContext.Provider value={{ ...state, toggleMode: toggle}}>
+    <AdminContext.Provider value={{ ...state, toggleMode: toggle, toggleCacheMode: toggleCache}}>
       {children}
     </AdminContext.Provider>
   );
@@ -44,17 +36,12 @@ export function useAdminState() {
   const {agent} = useAuthState();
 
   const isEnabled = state.enabled && agent.isSuper;
-//  const isPending = state.status === 'pending';
-//  const isError = state.status === 'error';
-//  const isSuccess = state.status === 'success';
-//  const isAuthenticated = state.agent && isSuccess;
+  const viewingCached = state.viewCache && isEnabled;
+
   return {
     ...state,
     isEnabled,
-//    isPending,
-//    isError,
-//    isSuccess,
-//    isAuthenticated,
+    viewingCached,
   }
 }
 
