@@ -37,7 +37,7 @@ router.get('/admin', checkPermissions(roles.sudo), function(req, res, next) {
   }
 
   // Super agent gets entire listing
-  models.Agent.findAll().then(results => {
+  models.Agent.findAll({ order: [['name', 'ASC']] }).then(results => {
     res.json(results);
   }).catch(err => {
     res.status(500).json(err);
