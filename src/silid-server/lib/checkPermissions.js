@@ -13,17 +13,17 @@ const checkPermissions = function(permissions) {
       return res.redirect('/login')
     }
 
-    const socialProfile = req.user._json;
+    const socialProfile = req.user;
 
-    models.Agent.findOne({ where: { email: socialProfile.email } }).then(agent => {
+    models.Agent.findOne({ where: { email: socialProfile._json.email } }).then(agent => {
       req.agent = agent;
 
       // Fill in any blank agent columns with social profile data
       const updates = {};
       if (req.agent) {
-        for (let key in socialProfile) {
+        for (let key in socialProfile._json) {
           if (agent[key] === null) {
-            updates[key] = socialProfile[key];
+            updates[key] = socialProfile._json[key];
           }
         }
       }
@@ -31,7 +31,7 @@ const checkPermissions = function(permissions) {
       if (!req.agent || JSON.stringify(req.agent.socialProfile) !== JSON.stringify(socialProfile)) {
         models.Agent.update(
           { socialProfile: socialProfile, ...updates },
-          { returning: true, where: { email: socialProfile.email } }).then(function([rowsUpdate, [updatedAgent]]) {
+          { returning: true, where: { email: socialProfile._json.email } }).then(function([rowsUpdate, [updatedAgent]]) {
 
           if (updatedAgent) {
             req.agent = updatedAgent;
@@ -49,7 +49,7 @@ const checkPermissions = function(permissions) {
             });
           }
           else {
-            models.Agent.create({ name: socialProfile.name, email: socialProfile.email, socialProfile: socialProfile }).then(agent => {
+            models.Agent.create({ name: socialProfile._json.name, email: socialProfile._json.email, socialProfile: socialProfile }).then(agent => {
               req.agent = agent;
 
               if (req.agent.isSuper) {
