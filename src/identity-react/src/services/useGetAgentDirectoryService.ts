@@ -7,7 +7,7 @@ export interface Agents {
   message?: string;
 }
 
-const useGetAgentDirectoryService = () => {
+const useGetAgentDirectoryService = (getCached) => {
   const [result, setResult] = useState<Service<Agents>>({
     status: 'loading'
   });
@@ -16,7 +16,7 @@ const useGetAgentDirectoryService = () => {
     const headers = new Headers();
     headers.append('Content-Type', 'application/json; charset=utf-8');
 
-    fetch(`/agent/admin`, { headers, credentials: 'include', mode: 'no-cors' })
+    fetch(`/agent/admin${getCached ? '/cached' : ''}`, { headers, credentials: 'include', mode: 'no-cors' })
       .then(response => response.json())
       .then(response => {
         if (response.message) {
@@ -27,7 +27,7 @@ const useGetAgentDirectoryService = () => {
         }
       })
       .catch(error => setResult({ status: 'error', error }));
-  }, []);
+  }, [getCached]);
 
   return result;
 };
