@@ -274,6 +274,18 @@ require('../support/setupKeystore').then(keyStuff => {
        */
 
       /**
+       * GET `/users`
+       */
+      server.route({
+        method: 'GET',
+        path: '/api/v2/users',
+        handler: (request, h) => {
+          console.log('GET /api/v2/users');
+          return h.response(require('../fixtures/managementApi/userList'));
+        }
+      });
+
+      /**
        * PATCH `/users`
        */
       server.route({

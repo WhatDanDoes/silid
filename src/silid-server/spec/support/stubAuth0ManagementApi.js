@@ -48,6 +48,16 @@ module.exports = function(permissions, done) {
       });
 
     /**
+     * GET `/users`
+     */
+    const auth0UserListScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+      .log(console.log)
+      .get('/api/v2/users')
+      .reply(200, (uri, requestBody, cb) => {
+        cb(null, require('../fixtures/managementApi/userList'));
+      });
+
+    /**
      * POST `/users`
      *
      * Auth0 requires a connection for this endpoint. It is called `Initial-Connection`
@@ -74,7 +84,6 @@ module.exports = function(permissions, done) {
 
     /**
      * PATCH `/users`
-     *
      */
     const auth0UserUpdateScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .log(console.log)
@@ -128,7 +137,7 @@ module.exports = function(permissions, done) {
 
     done(null, {
                 oauthTokenScope,
-                auth0UserCreateScope, auth0UserReadScope, auth0UserUpdateScope, auth0UserDeleteScope,
+                auth0UserCreateScope, auth0UserReadScope, auth0UserUpdateScope, auth0UserDeleteScope, auth0UserListScope,
     });
   });
 };
