@@ -4,7 +4,6 @@ const request = require('supertest-session');
 const nock = require('nock');
 const querystring = require('querystring');
 const jwt = require('jsonwebtoken');
-const setupKeystore = require('../support/setupKeystore');
 const models = require('../../models');
 
 describe('authSpec', () => {
@@ -21,16 +20,18 @@ describe('authSpec', () => {
 
   let pub, prv, keystore;
   beforeAll(done => {
-    setupKeystore((err, keyStuff) => {
-      if (err) return done.fail(err);
+    require('../support/setupKeystore').then(keyStuff => {
       ({ pub, prv, keystore } = keyStuff);
       done();
+    }).catch(err => {
+      done.fail(err);
     });
   });
 
   let auth0Scope, state, nonce;
   beforeEach(done => {
     nock.cleanAll();
+
     /**
      * This is called when `/login` is hit. The session is
      * created prior to redirect.
