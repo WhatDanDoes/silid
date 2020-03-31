@@ -7,6 +7,7 @@ const passport = require('passport');
  * Configs must match those defined for RBAC at Auth0
  */
 const scope = require('../config/permissions');
+const apiScope = require('../config/apiPermissions');
 const roles = require('../config/roles');
 const checkPermissions = require('../lib/checkPermissions');
 
@@ -51,8 +52,15 @@ router.get('/:id', checkPermissions([scope.read.agents]), function(req, res, nex
   models.Agent.findOne({ where: { id: req.params.id } }).then(result => {
     if (!result) {
       result = { message: 'No such agent' };
+      return res.status(404).json(result);
     }
-    res.json(result);
+
+    const managementClient = getAuth0ManagementClient(apiScope.read.users);
+    managementClient.getUsersByEmail(result.email).then(users => {
+      res.status(200).json(result);
+    }).catch(err => {
+      res.status(err.statusCode).json(err.message.error_description);
+    });
   }).catch(err => {
     res.status(500).json(err);
   });
@@ -62,7 +70,7 @@ router.post('/', checkPermissions([scope.create.agents]), function(req, res, nex
   let agent = new models.Agent({ email: req.body.email });
   agent.save().then(result => {
 
-    const managementClient = getAuth0ManagementClient('create:users');
+    const managementClient = getAuth0ManagementClient(apiScope.create.users);
     managementClient.createUser({ email: req.body.email, connection: 'Initial-Connection' }).then(users => {
       res.status(201).json(result);
     })
@@ -77,7 +85,7 @@ router.post('/', checkPermissions([scope.create.agents]), function(req, res, nex
 router.put('/', checkPermissions([scope.update.agents]), function(req, res, next) {
   models.Agent.findOne({ where: { id: req.body.id } }).then(agent => {
     if (!agent) {
-      return res.json({ message: 'No such agent' });
+      return res.status(404).json({ message: 'No such agent' });
     }
 
     if (!req.agent.isSuper && req.agent.email !== agent.email) {
@@ -89,8 +97,21 @@ router.put('/', checkPermissions([scope.update.agents]), function(req, res, next
         agent[key] = req.body[key];
       }
     }
+
     agent.save().then(result => {
-      res.status(201).json(result);
+
+      if (result.socialProfile) {
+        const managementClient = getAuth0ManagementClient(apiScope.update.users);
+        managementClient.updateUser({ id: result.socialProfile.id }, req.body).then(users => {
+          res.status(201).json(result);
+        })
+        .catch(err => {
+          res.status(err.statusCode).json(err.message.error_description);
+        });
+      }
+      else {
+        res.status(201).json(result);
+      }
     }).catch(err => {
       res.status(500).json(err);
     });
@@ -102,7 +123,7 @@ router.put('/', checkPermissions([scope.update.agents]), function(req, res, next
 router.delete('/', checkPermissions([scope.delete.agents]), function(req, res, next) {
   models.Agent.findOne({ where: { id: req.body.id } }).then(agent => {
     if (!agent) {
-      return res.json( { message: 'No such agent' });
+      return res.status(404).json( { message: 'No such agent' });
     }
 
     if (!req.agent.isSuper && req.agent.email !== agent.email) {
@@ -110,7 +131,19 @@ router.delete('/', checkPermissions([scope.delete.agents]), function(req, res, n
     }
 
     agent.destroy().then(results => {
-      res.json( { message: 'Agent deleted' });
+
+      if (agent.socialProfile) {
+        const managementClient = getAuth0ManagementClient(apiScope.delete.users);
+        managementClient.deleteUser({ id: agent.socialProfile.id }, req.body).then(users => {
+          res.status(201).json({ message: 'Agent deleted' });
+        })
+        .catch(err => {
+          res.status(err.statusCode).json(err.message.error_description);
+        });
+      }
+      else {
+        res.status(201).json({ message: 'Agent deleted' });
+      }
     }).catch(err => {
       res.status(500).json(err);
     });

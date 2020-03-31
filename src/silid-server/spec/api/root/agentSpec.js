@@ -4,7 +4,9 @@ const fixtures = require('sequelize-fixtures');
 const models = require('../../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../../support/stubAuth0Sessions');
+const stubAuth0ManagementApi = require('../../support/stubAuth0ManagementApi');
 const scope = require('../../../config/permissions');
+const apiScope = require('../../../config/apiPermissions');
 const jwt = require('jsonwebtoken');
 const nock = require('nock');
 
@@ -36,6 +38,7 @@ describe('root/agentSpec', () => {
         models.Agent.findAll().then(results => {
           agent = results[0];
           expect(agent.isSuper).toBe(false);
+
           models.Agent.create({ email: process.env.ROOT_AGENT, name: 'Professor Fresh' }).then(results => {
             root = results;
             expect(root.isSuper).toBe(true);
@@ -70,6 +73,14 @@ describe('root/agentSpec', () => {
     });
 
     describe('read', () => {
+
+      beforeEach(done => {
+        stubAuth0ManagementApi([apiScope.read.users], (err, apiScopes) => {
+          if (err) return done.fail(err);
+          done();
+        });
+      });
+
       describe('/agent', () => {
         it('retrieves root agent\'s info from the database', done => {
           rootSession
@@ -139,7 +150,7 @@ describe('root/agentSpec', () => {
             .get('/agent/33')
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
-            .expect(200)
+            .expect(404)
             .end(function(err, res) {
               if (err) done.fail(err);
 
@@ -152,58 +163,15 @@ describe('root/agentSpec', () => {
 
     describe('create', () => {
 
-      let oauthTokenScope, auth0ManagementScope;
+      let auth0UserCreateScope, oauthTokenScope;
       beforeEach(done => {
+        stubAuth0ManagementApi([apiScope.create.users], (err, apiScopes) => {
+          if (err) return done.fail(err);
 
-        /**
-         * A new agent needs some basic permissions. This endpoint is called
-         * when `silid-server` needs permission to set these permissions
-         */
-        let accessToken = jwt.sign({..._access, scope: ['create:users']},
-                                   prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
-        oauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
-          .log(console.log)
-          .post(/oauth\/token/, {
-                                  'grant_type': 'client_credentials',
-                                  'client_id': process.env.AUTH0_CLIENT_ID,
-                                  'client_secret': process.env.AUTH0_CLIENT_SECRET,
-                                  'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
-                                  'scope': 'create:users'
-                                })
-          .reply(200, {
-            'access_token': accessToken,
-            'token_type': 'Bearer',
-          });
-
-        /**
-         * This endpoint sets the aforementioned basic agent permissions
-         *
-         *
-         * Auth0 requires a connection. It is called `Initial-Connection`
-         * here. This setting can be configured at:
-         *
-         * https://manage.auth0.com/dashboard/us/silid/connections
-         */
-        auth0ManagementScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-          .log(console.log)
-          .post(/api\/v2\/users/, {
-                                  'email': /.+/i,
-                                  'connection': 'Initial-Connection',
-                                })
-          .reply(201, {
-            "user_id": "auth0|507f1f77bcf86cd799439020",
-            "email": "doesnotreallymatterforthemoment@example.com",
-            "email_verified": false,
-            "identities": [
-              {
-                "connection": "Initial-Connection",
-              }
-            ]
-          });
-
-        done();
+          ({auth0UserCreateScope, oauthTokenScope} = apiScopes);
+          done();
+        });
       });
-
 
       describe('database', () => {
         it('adds a new record to the database', done => {
@@ -289,7 +257,7 @@ describe('root/agentSpec', () => {
             .end(function(err, res) {
               if (err) return done.fail(err);
 
-              expect(auth0ManagementScope.isDone()).toBe(true);
+              expect(auth0UserCreateScope.isDone()).toBe(true);
               done();
             });
         });
@@ -307,7 +275,7 @@ describe('root/agentSpec', () => {
               if (err) done.fail(err);
 
               expect(oauthTokenScope.isDone()).toBe(false);
-              expect(auth0ManagementScope.isDone()).toBe(false);
+              expect(auth0UserCreateScope.isDone()).toBe(false);
               done();
             });
         });
@@ -315,36 +283,24 @@ describe('root/agentSpec', () => {
     });
 
     describe('update', () => {
-      it('updates an existing record in the database', done => {
-        rootSession
-          .put('/agent')
-          .send({
-            id: agent.id,
-            name: 'Some Cool Guy'
-          })
-          .set('Accept', 'application/json')
-          .expect('Content-Type', /json/)
-          .expect(201)
-          .end(function(err, res) {
-            if (err) return done.fail(err);
 
-            expect(res.body.name).toEqual('Some Cool Guy');
-
-            models.Agent.findOne({ where: { id: agent.id }}).then(results => {
-              expect(results.name).toEqual('Some Cool Guy');
-              expect(results.email).toEqual(agent.email);
-              done();
-            }).catch(err => {
-              done.fail(err);
-            });
-          });
+      beforeEach(done => {
+        stubAuth0ManagementApi([apiScope.update.users], (err, apiScopes) => {
+          if (err) return done.fail(err);
+          done();
+        });
       });
 
-      it('allows updating null fields', done => {
-        agent.name = null;
-        agent.save().then(agent => {
-          expect(agent.name).toBeNull();
+      describe('agent who has visited', () => {
+        beforeEach(done => {
+          // This ensures agent has a socialProfile (because he's visited);
+          login({..._identity, email: agent.email}, (err, session) => {
+            if (err) return done.fail(err);
+            done();
+          });
+        });
 
+        it('updates an existing record in the database', done => {
           rootSession
             .put('/agent')
             .send({
@@ -367,63 +323,189 @@ describe('root/agentSpec', () => {
                 done.fail(err);
               });
             });
-        }).catch(err => {
-          done.fail(err);
+        });
+
+        it('allows updating null fields', done => {
+          agent.name = null;
+          agent.save().then(agent => {
+            expect(agent.name).toBeNull();
+
+            rootSession
+              .put('/agent')
+              .send({
+                id: agent.id,
+                name: 'Some Cool Guy'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(res.body.name).toEqual('Some Cool Guy');
+
+                models.Agent.findOne({ where: { id: agent.id }}).then(results => {
+                  expect(results.name).toEqual('Some Cool Guy');
+                  expect(results.email).toEqual(agent.email);
+                  done();
+                }).catch(err => {
+                  done.fail(err);
+                });
+              });
+          }).catch(err => {
+            done.fail(err);
+          });
+        });
+
+        it('doesn\'t barf if agent doesn\'t exist', done => {
+          rootSession
+            .put('/agent')
+            .send({
+              id: 111,
+              name: 'Some Guy'
+            })
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(404)
+            .end(function(err, res) {
+              if (err) done.fail(err);
+
+              expect(res.body.message).toEqual('No such agent');
+              done();
+            });
         });
       });
 
-      it('doesn\'t barf if agent doesn\'t exist', done => {
-        rootSession
-          .put('/agent')
-          .send({
-            id: 111,
-            name: 'Some Guy'
-          })
-          .set('Accept', 'application/json')
-          .expect('Content-Type', /json/)
-          .expect(200)
-          .end(function(err, res) {
-            if (err) done.fail(err);
+      describe('agent who has never visited', () => {
+        it('updates an existing record in the database', done => {
+          rootSession
+            .put('/agent')
+            .send({
+              id: agent.id,
+              name: 'Some Cool Guy'
+            })
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(201)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
 
-            expect(res.body.message).toEqual('No such agent');
-            done();
+              expect(res.body.name).toEqual('Some Cool Guy');
+
+              models.Agent.findOne({ where: { id: agent.id }}).then(results => {
+                expect(results.name).toEqual('Some Cool Guy');
+                expect(results.email).toEqual(agent.email);
+                done();
+              }).catch(err => {
+                done.fail(err);
+              });
+            });
+        });
+
+        it('allows updating null fields', done => {
+          agent.name = null;
+          agent.save().then(agent => {
+            expect(agent.name).toBeNull();
+
+            rootSession
+              .put('/agent')
+              .send({
+                id: agent.id,
+                name: 'Some Cool Guy'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(res.body.name).toEqual('Some Cool Guy');
+
+                models.Agent.findOne({ where: { id: agent.id }}).then(results => {
+                  expect(results.name).toEqual('Some Cool Guy');
+                  expect(results.email).toEqual(agent.email);
+                  done();
+                }).catch(err => {
+                  done.fail(err);
+                });
+              });
+          }).catch(err => {
+            done.fail(err);
           });
+        });
       });
     });
 
     describe('delete', () => {
-      it('removes an existing record from the database', done => {
-        rootSession
-          .delete('/agent')
-          .send({
-            id: agent.id,
-          })
-          .set('Accept', 'application/json')
-          .expect('Content-Type', /json/)
-          .expect(200)
-          .end(function(err, res) {
-            if (err) return done.fail(err);
 
-            expect(res.body.message).toEqual('Agent deleted');
-            done();
-          });
+      beforeEach(done => {
+        stubAuth0ManagementApi([apiScope.delete.users], (err, apiScopes) => {
+          if (err) return done.fail(err);
+          done();
+        });
       });
 
-      it('doesn\'t barf if agent doesn\'t exist', done => {
-        rootSession
-          .delete('/agent')
-          .send({
-            id: 111,
-          })
-          .set('Accept', 'application/json')
-          .expect('Content-Type', /json/)
-          .expect(200)
-          .end(function(err, res) {
+      describe('agent who has visited', () => {
+        beforeEach(done => {
+          // This ensures agent has a socialProfile (because he's visited);
+          login({..._identity, email: agent.email}, (err, session) => {
             if (err) return done.fail(err);
-
-            expect(res.body.message).toEqual('No such agent');
             done();
           });
+        });
+
+        it('removes an existing record from the database', done => {
+          rootSession
+            .delete('/agent')
+            .send({
+              id: agent.id,
+            })
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(201)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+
+              expect(res.body.message).toEqual('Agent deleted');
+              done();
+            });
+        });
+
+        it('doesn\'t barf if agent doesn\'t exist', done => {
+          rootSession
+            .delete('/agent')
+            .send({
+              id: 111,
+            })
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(404)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+
+              expect(res.body.message).toEqual('No such agent');
+              done();
+            });
+        });
+      });
+
+      describe('agent who has never visited', () => {
+        it('removes an existing record from the database', done => {
+          rootSession
+            .delete('/agent')
+            .send({
+              id: agent.id,
+            })
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(201)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+
+              expect(res.body.message).toEqual('Agent deleted');
+              done();
+            });
+        });
       });
     });
   });
@@ -434,7 +516,10 @@ describe('root/agentSpec', () => {
       login({ ..._identity, email: agent.email }, [scope.read.agents], (err, session) => {
         if (err) return done.fail(err);
         unauthorizedSession = session;
-        done();
+        stubAuth0ManagementApi([apiScope.read.users], (err, apiScopes) => {
+          if (err) return done.fail(err);
+          done();
+        });
       });
     });
 
