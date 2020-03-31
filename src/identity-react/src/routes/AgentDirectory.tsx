@@ -8,8 +8,10 @@ import ListItem from '@material-ui/core/ListItem';
 import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListItemText from '@material-ui/core/ListItemText';
 import Flash from '../components/Flash';
+import { useAdminState } from '../auth/Admin';
 // Remove this junk later
 import InboxIcon from '@material-ui/icons/MoveToInbox';
+
 
 import useGetAgentDirectoryService, { Agents } from '../services/useGetAgentDirectoryService';
 
@@ -40,12 +42,13 @@ const useStyles = makeStyles((theme: Theme) =>
 );
 
 const AgentDirectory = (props: any) => {
-//  const [formVisible, toggleFormVisible] = useState(false);
+  const admin = useAdminState();
+
   const [agentList, setAgentList] = useState<Agents>({ results: [] } as Agents);
   const [flashProps, setFlashProps] = useState({} as any);
 
   const classes = useStyles();
-  const service = useGetAgentDirectoryService();
+  const service = useGetAgentDirectoryService(admin.viewingCached);
 
   useEffect(() => {
     if (service.status === 'loaded') {
