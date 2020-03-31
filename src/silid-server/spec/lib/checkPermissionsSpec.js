@@ -65,7 +65,7 @@ describe('checkPermissions', function() {
       });
     });
 
-    it('saves the Identity Token in the agent\'s socialProfile', done => {
+    it('saves the Profile produced by the Identity Token in the agent\'s socialProfile', done => {
       request = httpMocks.createRequest({
         method: 'POST',
         url: '/agent',
@@ -78,7 +78,7 @@ describe('checkPermissions', function() {
         if (err) return done.fail(err);
 
         models.Agent.findOne({ where: { email: _identity.email }}).then(agent => {
-          expect(agent.socialProfile).toEqual(_identity);
+          expect(agent.socialProfile).toEqual(JSON.parse(JSON.stringify(profile)));
           done();
 
         }).catch(err => {
@@ -113,11 +113,11 @@ describe('checkPermissions', function() {
 
       checkPermissions([scope.read.agents])(request, response, err => {
         if (err) return done.fail(err);
-        Agent.findOne({ where: { id: agent.id } }).then(a => {
+        Agent.findOne({ where: { id: request.agent.id } }).then(a => {
           expect(request.agent.dataValues).toEqual(a.dataValues);
           done();
         }).catch(err => {
-          done.fail();
+          done.fail(err);
         });
       });
     });
@@ -156,7 +156,7 @@ describe('checkPermissions', function() {
 
       checkPermissions([scope.read.agents])(request, response, err => {
         if (err) return done.fail(err);
-        expect(request.agent.socialProfile).toEqual(_identity);
+        expect(request.agent.socialProfile).toEqual(JSON.parse(JSON.stringify(profile)));
         Agent.findOne({ where: { email: request.agent.email } }).then(a => {
           expect(request.agent.socialProfile).toEqual(a.socialProfile);
           done();
@@ -201,7 +201,7 @@ describe('checkPermissions', function() {
       checkPermissions([scope.read.agents])(request, response, err => {
         if (err) return done.fail(err);
         Agent.findOne({ where: { email: _identity.email } }).then(a => {
-          expect(a.socialProfile).toEqual(_identity);
+          expect(a.socialProfile).toEqual(JSON.parse(JSON.stringify(profile)));
           expect(a.email).toEqual(_identity.email);
           expect(a.name).toEqual(_identity.name);
           done();
@@ -211,7 +211,7 @@ describe('checkPermissions', function() {
       });
     });
 
-    it('populates new agent\'s fields with data from the identity token when the social profile is up to date', done => {
+    it('populates new agent\'s fields with data from the identity token-generated profile when the social profile is up to date', done => {
       invitedAgent.socialProfile = _identity;
       invitedAgent.save().then(savedAgent => {
 
@@ -226,7 +226,7 @@ describe('checkPermissions', function() {
         checkPermissions([scope.read.agents])(request, response, err => {
           if (err) return done.fail(err);
           Agent.findOne({ where: { email: _identity.email } }).then(a => {
-            expect(a.socialProfile).toEqual(_identity);
+            expect(a.socialProfile).toEqual(JSON.parse(JSON.stringify(profile)));
             expect(a.email).toEqual(_identity.email);
             expect(a.name).toEqual(_identity.name);
             done();
