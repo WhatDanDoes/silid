@@ -34,4 +34,9 @@ module.exports = {
     scope.read.teams,
     scope.read.teamMembers
   ],
+  viewer: [
+    scope.read.agents,
+    scope.read.organizations,
+    scope.read.teams,
+  ],
 };
