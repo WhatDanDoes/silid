@@ -5,6 +5,7 @@ import { useAdminState } from '../auth/Admin';
 
 export interface Organizations {
   results: Organization[];
+  error?: string;
 }
 
 const useOrganizationService = () => {

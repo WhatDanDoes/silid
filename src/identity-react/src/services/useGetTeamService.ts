@@ -5,6 +5,7 @@ import { useAdminState } from '../auth/Admin';
 
 export interface Teams {
   results: Team[];
+  error?: string;
 }
 
 const useTeamService = () => {
