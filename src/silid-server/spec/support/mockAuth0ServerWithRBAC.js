@@ -146,7 +146,7 @@ require('../support/setupKeystore').then(keyStuff => {
 
 
           if (!_permissions) {
-            _permissions = [scope.read.agents];
+            _permissions = [scope.read.agents, scope.read.organizations];
           }
           const signedAccessToken = jwt.sign({..._access, permissions: _permissions}, prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } });
 
