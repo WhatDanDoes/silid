@@ -41,14 +41,19 @@ const useStyles = makeStyles((theme: Theme) =>
 
 const Team = (props: any) => {
   const [teamList, setTeamList] = useState<Teams>({ results: [] } as Teams);
-  const [flashProps] = useState({} as any);
+  const [flashProps, setFlashProps] = useState({} as any);
 
   const classes = useStyles();
   const service = useGetTeamService();
 
   useEffect(() => {
     if (service.status === 'loaded') {
-      setTeamList(service.payload);
+      if (service.payload.error) {
+        setFlashProps({ errors: [service.payload], variant: 'error' });
+      }
+      else {
+        setTeamList(service.payload);
+      }
     }
   }, [service]);
 
