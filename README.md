@@ -159,6 +159,17 @@ Careful, you will lose all your data if you sync the database:
 docker-compose -f docker-compose.staging.yml exec app node config/seed.js
 ```
 
+
+# Development and Production Deployments
+
+## Auth0
+
+The `silid-sever` machine-to-machine application needs be granted the following permissions on the Auth0 Management API:
+
+- read:users
+- read:roles
+- update:users
+
 ## Deploy to Development (silid-dev.languagetechnology.org)
 
 Deployment is automated from an approved pull request by team members into the develop branch. Once the merge has been completed, the CI/CD
