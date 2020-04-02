@@ -142,8 +142,7 @@ module.exports = function(permissions, done) {
       .log(console.log)
       .post(/api\/v2\/users\/.+\/roles/, {
                               'roles': /.+/i,
-                            })
-
+      })
       .reply(200, { });
 
 
