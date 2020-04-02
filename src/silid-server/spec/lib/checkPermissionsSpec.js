@@ -7,6 +7,7 @@ const fixtures = require('sequelize-fixtures');
 const models = require('../../models');
 const Agent = models.Agent;
 const Profile = require('passport-auth0/lib/Profile');
+const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
 
 const checkPermissions = require('../../lib/checkPermissions');
 
@@ -19,10 +20,26 @@ const checkPermissions = require('../../lib/checkPermissions');
 const _identity = require('../fixtures/sample-auth0-identity-token');
 
 const scope = require('../../config/permissions');
+const apiScope = require('../../config/apiPermissions');
+const roles = require('../../config/roles');
 
 describe('checkPermissions', function() {
 
-  let agent, request, response;
+  let agent, request, response, auth0GetRolesScope, auth0UserAssignRolesScope;
+
+  beforeEach(done => {
+    nock.cleanAll();
+
+    /**
+     * Agents need basic viewing privileges. This stubs the
+     * role-getting and role-assigning endpoints
+     */
+    stubAuth0ManagementApi((err, apiScopes) => {
+      if (err) return done.fail(err);
+      ({auth0GetRolesScope, auth0UserAssignRolesScope} = apiScopes);
+      done();
+    });
+  });
 
   describe('returning visitor', () => {
 
@@ -83,6 +100,77 @@ describe('checkPermissions', function() {
 
         }).catch(err => {
           done.fail(err);
+        });
+      });
+    });
+
+    describe('Auth0 roles', () => {
+      it('calls the management API to retrieve all the roles', done => {
+        request = httpMocks.createRequest({
+          method: 'POST',
+          url: '/agent',
+          user: profile
+        });
+
+        checkPermissions([])(request, response, err => {
+          if (err) return done.fail(err);
+
+          expect(auth0GetRolesScope.isDone()).toBe(true);
+
+          done();
+        });
+      });
+
+
+      it('calls the management API to assign viewer role if agent not already a viewer', done => {
+        request = httpMocks.createRequest({
+          method: 'POST',
+          url: '/agent',
+          user: profile
+        });
+
+        checkPermissions([scope.read.agents])(request, response, err => {
+          if (err) return done.fail(err);
+
+          expect(auth0UserAssignRolesScope.isDone()).toBe(true);
+
+          done();
+        });
+      });
+
+
+      it('does not call the management API if agent is already a viewer', done => {
+        request = httpMocks.createRequest({
+          method: 'POST',
+          url: '/agent',
+          user: {...profile, scope: roles.viewer}
+        });
+
+        checkPermissions([])(request, response, err => {
+          if (err) return done.fail(err);
+
+          expect(auth0GetRolesScope.isDone()).toBe(false);
+          expect(auth0UserAssignRolesScope.isDone()).toBe(false);
+
+          done();
+        });
+      });
+
+      it('attaches the new scoped permissions to req.user', done => {
+        request = httpMocks.createRequest({
+          method: 'POST',
+          url: '/agent',
+          user: profile,
+        });
+
+        expect(request.user.scope).toEqual(profile.scope);
+
+        checkPermissions([])(request, response, err => {
+          if (err) return done.fail(err);
+
+          expect(request.user.scope).toEqual([...new Set(profile.scope.concat(roles.viewer))]);
+
+          done();
         });
       });
     });
@@ -165,6 +253,43 @@ describe('checkPermissions', function() {
         });
       });
     });
+
+    describe('Auth0 roles', () => {
+      it('calls the management API to retrieve all the roles and set viewer role', done => {
+        request = httpMocks.createRequest({
+          method: 'POST',
+          url: '/agent',
+          user: profile
+        });
+
+        checkPermissions([])(request, response, err => {
+          if (err) return done.fail(err);
+
+          expect(auth0GetRolesScope.isDone()).toBe(true);
+          expect(auth0UserAssignRolesScope.isDone()).toBe(true);
+
+          done();
+        });
+      });
+
+      it('attaches the new scoped permissions to req.user', done => {
+        request = httpMocks.createRequest({
+          method: 'POST',
+          url: '/agent',
+          user: profile,
+        });
+
+        expect(request.user.scope).toEqual(profile.scope);
+
+        checkPermissions([])(request, response, err => {
+          if (err) return done.fail(err);
+
+          expect(request.user.scope).toEqual([...new Set(profile.scope.concat(roles.viewer))]);
+
+          done();
+        });
+      });
+    });
   });
 
   /**
@@ -238,6 +363,43 @@ describe('checkPermissions', function() {
         done.fail(err);
       });
     });
+
+    describe('Auth0 roles', () => {
+      it('calls the management API to retrieve all the roles and set viewer role', done => {
+        request = httpMocks.createRequest({
+          method: 'POST',
+          url: '/agent',
+          user: profile
+        });
+
+        checkPermissions([])(request, response, err => {
+          if (err) return done.fail(err);
+
+          expect(auth0GetRolesScope.isDone()).toBe(true);
+          expect(auth0UserAssignRolesScope.isDone()).toBe(true);
+
+          done();
+        });
+      });
+
+      it('attaches the new scoped permissions to req.user', done => {
+        request = httpMocks.createRequest({
+          method: 'POST',
+          url: '/agent',
+          user: profile,
+        });
+
+        expect(request.user.scope).toEqual(profile.scope);
+
+        checkPermissions([])(request, response, err => {
+          if (err) return done.fail(err);
+
+          expect(request.user.scope).toEqual([...new Set(profile.scope.concat(roles.viewer))]);
+
+          done();
+        });
+      });
+    });
   });
 
   describe('unauthorized', () => {
@@ -254,7 +416,7 @@ describe('checkPermissions', function() {
 
       // This may prove a bit flaky...
       // The status code stuff happens outside anything asynchronous
-      checkPermissions([scope.read.agents])(request, response, err => {
+      checkPermissions([scope.update.agents])(request, response, err => {
         done.fail('Should not get here');
       });
 
@@ -282,7 +444,7 @@ describe('checkPermissions', function() {
 
       // This may prove a bit flaky...
       // The status code stuff happens outside anything asynchronous
-      checkPermissions()(request, response, function(err) {
+      checkPermissions([scope.read.agents])(request, response, function(err) {
         done.fail('Should not get here');
       });
 
