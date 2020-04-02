@@ -292,7 +292,7 @@ require('../support/setupKeystore').then(keyStuff => {
         method: 'PATCH',
         path: '/api/v2/users/{id}',
         handler: (request, h) => {
-          console.log('/api/vs/users');
+          console.log('/api/v2/users');
           console.log(request.payload);
 
           return h.response({
@@ -319,6 +319,19 @@ require('../support/setupKeystore').then(keyStuff => {
           return h.response({});
         }
       });
+
+      /**
+       * GET `/users/:id/roles`
+       */
+      server.route({
+        method: 'POST',
+        path: '/api/v2/users/{id}/roles',
+        handler: (request, h) => {
+          console.log('/api/v2/users/{id}/roles');
+          return h.response({});
+        }
+      });
+
 
       await server.start();
       console.log('Server running on %s', server.info.uri);
