@@ -4,6 +4,7 @@ const fixtures = require('sequelize-fixtures');
 const models = require('../../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../../support/stubAuth0Sessions');
+const stubAuth0ManagementApi = require('../../support/stubAuth0ManagementApi');
 const mailer = require('../../../mailer');
 const scope = require('../../../config/permissions');
 
@@ -65,7 +66,11 @@ describe('root/organizationSpec', () => {
       login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, (err, session) => {
         if (err) return done.fail(err);
         rootSession = session;
-        done();
+
+        stubAuth0ManagementApi((err, apiScopes) => {
+          if (err) return done.fail();
+          done();
+        });
       });
     });
 
@@ -226,7 +231,7 @@ describe('root/organizationSpec', () => {
           rootSession
             .post('/organization')
             .send({
-              name: 'One Book Canada' 
+              name: 'One Book Canada'
             })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
@@ -267,7 +272,7 @@ describe('root/organizationSpec', () => {
         rootSession
           .post('/organization')
           .send({
-            name: organization.name 
+            name: organization.name
           })
           .set('Accept', 'application/json')
           .expect('Content-Type', /json/)
@@ -539,7 +544,7 @@ describe('root/organizationSpec', () => {
                     expect(results.members.length).toEqual(2);
                     expect(results.members.find(m => m.name === anotherAgent.name)).toBeDefined();
                     expect(results.members.find(m => m.email === anotherAgent.email)).toBeDefined();
- 
+
                     done();
                   }).catch(err => {
                     done.fail(err);
@@ -842,7 +847,11 @@ describe('root/organizationSpec', () => {
       login({..._identity, email: agent.email}, [scope.read.organizations], (err, session) => {
         if (err) return done.fail(err);
         forbiddenSession = session;
-        done();
+
+        stubAuth0ManagementApi((err, apiScopes) => {
+          if (err) return done.fail();
+          done();
+        });
       });
     });
 

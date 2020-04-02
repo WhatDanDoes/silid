@@ -5,6 +5,7 @@ const models = require('../../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../../support/stubAuth0ManagementApi');
+const stubAuth0ManagementEndpoint = require('../../support/stubAuth0ManagementEndpoint');
 const scope = require('../../../config/permissions');
 const apiScope = require('../../../config/apiPermissions');
 const jwt = require('jsonwebtoken');
@@ -76,10 +77,13 @@ describe('root/agentSpec', () => {
 
       let oauthTokenScope, auth0UserListScope;
       beforeEach(done => {
-        stubAuth0ManagementApi([apiScope.read.users], (err, apiScopes) => {
+        stubAuth0ManagementApi((err, apiScopes) => {
           if (err) return done.fail(err);
-          ({auth0UserListScope, oauthTokenScope} = apiScopes);
-          done();
+          stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+            if (err) return done.fail(err);
+            ({auth0UserListScope, oauthTokenScope} = apiScopes);
+            done();
+          });
         });
       });
 
@@ -293,11 +297,15 @@ describe('root/agentSpec', () => {
 
       let auth0UserCreateScope, oauthTokenScope;
       beforeEach(done => {
-        stubAuth0ManagementApi([apiScope.create.users], (err, apiScopes) => {
-          if (err) return done.fail(err);
+        stubAuth0ManagementApi((err, apiScopes) => {
+          if (err) return done.fail();
 
-          ({auth0UserCreateScope, oauthTokenScope} = apiScopes);
-          done();
+          stubAuth0ManagementEndpoint([apiScope.create.users], (err, apiScopes) => {
+            if (err) return done.fail(err);
+
+            ({auth0UserCreateScope, oauthTokenScope} = apiScopes);
+            done();
+          });
         });
       });
 
@@ -413,9 +421,11 @@ describe('root/agentSpec', () => {
     describe('update', () => {
 
       beforeEach(done => {
-        stubAuth0ManagementApi([apiScope.update.users], (err, apiScopes) => {
-          if (err) return done.fail(err);
-          done();
+        stubAuth0ManagementApi((err, apiScopes) => {
+          stubAuth0ManagementEndpoint([apiScope.update.users], (err, apiScopes) => {
+            if (err) return done.fail(err);
+            done();
+          });
         });
       });
 
@@ -567,9 +577,12 @@ describe('root/agentSpec', () => {
     describe('delete', () => {
 
       beforeEach(done => {
-        stubAuth0ManagementApi([apiScope.delete.users], (err, apiScopes) => {
+        stubAuth0ManagementApi((err, apiScopes) => {
           if (err) return done.fail(err);
-          done();
+          stubAuth0ManagementEndpoint([apiScope.delete.users], (err, apiScopes) => {
+            if (err) return done.fail(err);
+            done();
+          });
         });
       });
 
@@ -644,9 +657,14 @@ describe('root/agentSpec', () => {
       login({ ..._identity, email: agent.email }, [scope.read.agents], (err, session) => {
         if (err) return done.fail(err);
         unauthorizedSession = session;
-        stubAuth0ManagementApi([apiScope.read.users], (err, apiScopes) => {
+
+        stubAuth0ManagementApi((err, apiScopes) => {
           if (err) return done.fail(err);
-          done();
+
+          stubAuth0ManagementEndpoint([apiScope.read.users],(err, apiScopes) => {
+            if (err) return done.fail(err);
+            done();
+          });
         });
       });
     });

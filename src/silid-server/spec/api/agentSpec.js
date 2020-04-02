@@ -5,6 +5,7 @@ const models = require('../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
+const stubAuth0ManagementEndpoint = require('../support/stubAuth0ManagementEndpoint');
 const scope = require('../../config/permissions');
 const apiScope = require('../../config/apiPermissions');
 const jwt = require('jsonwebtoken');
@@ -66,10 +67,15 @@ describe('agentSpec', () => {
             if (err) return done.fail(err);
             authenticatedSession = session;
 
-            stubAuth0ManagementApi([apiScope.create.users], (err, apiScopes) => {
-              ({auth0UserCreateScope, oauthTokenScope} = apiScopes);
+            stubAuth0ManagementApi((err, apiScopes) => {
+              if (err) return done.fail();
 
-              done();
+              stubAuth0ManagementEndpoint([apiScope.create.users], (err, apiScopes) => {
+                if (err) return done.fail();
+
+                ({auth0UserCreateScope, oauthTokenScope} = apiScopes);
+                done();
+              });
             });
           });
         });
@@ -187,12 +193,18 @@ describe('agentSpec', () => {
 
         let auth0UserReadScope;
         beforeEach(done => {
-          stubAuth0ManagementApi([apiScope.read.users], (err, apiScopes) => {
-            ({auth0UserReadScope, oauthTokenScope} = apiScopes);
-            login(_identity, [scope.read.agents], (err, session) => {
+          login(_identity, [scope.read.agents], (err, session) => {
+            if (err) return done.fail(err);
+            authenticatedSession = session;
+
+            stubAuth0ManagementApi((err, apiScopes) => {
               if (err) return done.fail(err);
-              authenticatedSession = session;
-              done();
+
+              stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+                ({auth0UserReadScope, oauthTokenScope} = apiScopes);
+
+                done();
+              });
             });
           });
         });
@@ -277,10 +289,15 @@ describe('agentSpec', () => {
             if (err) return done.fail(err);
             authenticatedSession = session;
 
-            stubAuth0ManagementApi([apiScope.update.users], (err, apiScopes) => {
-              ({auth0UserUpdateScope, oauthTokenScope} = apiScopes);
+            stubAuth0ManagementApi((err, apiScopes) => {
+              if (err) return done.fail(err);
 
-              done();
+              stubAuth0ManagementEndpoint([apiScope.update.users], (err, apiScopes) => {
+                if (err) return done.fail(err);
+                ({auth0UserUpdateScope, oauthTokenScope} = apiScopes);
+
+                done();
+              });
             });
           });
         });
@@ -426,10 +443,14 @@ describe('agentSpec', () => {
             if (err) return done.fail(err);
             authenticatedSession = session;
 
-            stubAuth0ManagementApi([apiScope.delete.users], (err, apiScopes) => {
-              ({auth0UserDeleteScope, oauthTokenScope} = apiScopes);
+            stubAuth0ManagementApi((err, apiScopes) => {
+              if (err) return done.fail(err);
 
-              done();
+              stubAuth0ManagementEndpoint([apiScope.delete.users], (err, apiScopes) => {
+                if (err) return done.fail(err);
+                ({auth0UserDeleteScope, oauthTokenScope} = apiScopes);
+                done();
+              });
             });
           });
         });
@@ -530,7 +551,11 @@ describe('agentSpec', () => {
         login({ ..._identity, email: 'someotherguy@example.com', name: 'Some Other Guy' }, (err, session) => {
           if (err) return done.fail(err);
           forbiddenSession = session;
-          done();
+
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
+            done();
+          });
         });
       });
 

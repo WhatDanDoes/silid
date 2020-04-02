@@ -4,6 +4,7 @@ const fixtures = require('sequelize-fixtures');
 const models = require('../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
+const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
 const mailer = require('../../mailer');
 const scope = require('../../config/permissions');
 
@@ -73,7 +74,11 @@ describe('teamSpec', () => {
           login(_identity, [scope.create.teams], (err, session) => {
             if (err) return done.fail(err);
             authenticatedSession = session;
-            done();
+
+            stubAuth0ManagementApi((err, apiScopes) => {
+              if (err) return done.fail();
+              done();
+            });
           });
         });
 
@@ -301,7 +306,11 @@ describe('teamSpec', () => {
           login(_identity, [scope.read.teams], (err, session) => {
             if (err) return done.fail(err);
             authenticatedSession = session;
-            done();
+
+            stubAuth0ManagementApi((err, apiScopes) => {
+              if (err) return done.fail();
+              done();
+            });
           });
         });
 
@@ -427,7 +436,11 @@ describe('teamSpec', () => {
           login(_identity, [scope.update.teams], (err, session) => {
             if (err) return done.fail(err);
             authenticatedSession = session;
-            done();
+
+            stubAuth0ManagementApi((err, apiScopes) => {
+              if (err) return done.fail();
+              done();
+            });
           });
         });
 
@@ -941,7 +954,11 @@ describe('teamSpec', () => {
           login(_identity, [scope.delete.teams], (err, session) => {
             if (err) return done.fail(err);
             authenticatedSession = session;
-            done();
+
+            stubAuth0ManagementApi((err, apiScopes) => {
+              if (err) return done.fail();
+              done();
+            });
           });
         });
 
@@ -1103,7 +1120,11 @@ describe('teamSpec', () => {
             login({..._identity, email: a.email}, [scope.read.teams], (err, session) => {
               if (err) return done.fail(err);
               unverifiedSession = session;
-              done();
+
+              stubAuth0ManagementApi((err, apiScopes) => {
+                if (err) return done.fail();
+                done();
+              });
             });
           }).catch(err => {
             done.fail(err);
@@ -1161,7 +1182,11 @@ describe('teamSpec', () => {
               [scope.create.teams, scope.read.teams, scope.update.teams, scope.delete.teams], (err, session) => {
             if (err) return done.fail(err);
             unauthorizedSession = session;
-            done();
+
+            stubAuth0ManagementApi((err, apiScopes) => {
+              if (err) return done.fail();
+              done();
+            });
           });
         }).catch(err => {
           done.fail(err);
@@ -1262,7 +1287,7 @@ describe('teamSpec', () => {
                 login({ ..._identity, email: memberAgent.email, name: 'Some Member Guy' }, (err, session) => {
                   if (err) return done.fail(err);
 
-                  session 
+                  session
                     .put('/team')
                     .send({
                       id: team.id,

@@ -4,6 +4,7 @@ const fixtures = require('sequelize-fixtures');
 const models = require('../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
+const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
 const mailer = require('../../mailer');
 const { uuid } = require('uuidv4');
 const scope = require('../../config/permissions');
@@ -79,7 +80,11 @@ describe('teamMembershipSpec', () => {
           login(_identity, [scope.create.teamMembers], (err, session) => {
             if (err) return done.fail(err);
             authenticatedSession = session;
-            done();
+
+            stubAuth0ManagementApi((err, apiScopes) => {
+              if (err) return done.fail();
+              done();
+            });
           });
         });
 
@@ -88,11 +93,11 @@ describe('teamMembershipSpec', () => {
             models.Team.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
               expect(results.length).toEqual(1);
               expect(results[0].members.length).toEqual(1);
-  
+
               authenticatedSession
                 .put(`/team/${team.id}/agent`)
                 .send({
-                  email: 'somebrandnewguy@example.com' 
+                  email: 'somebrandnewguy@example.com'
                 })
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
@@ -102,7 +107,7 @@ describe('teamMembershipSpec', () => {
                   expect(res.body.name).toEqual(null);
                   expect(res.body.email).toEqual('somebrandnewguy@example.com');
                   expect(res.body.id).toBeDefined();
-  
+
                   done();
                 });
             }).catch(err => {
@@ -118,14 +123,14 @@ describe('teamMembershipSpec', () => {
               authenticatedSession
                 .put(`/team/${team.id}/agent`)
                 .send({
-                  email: 'somebrandnewguy@example.com' 
+                  email: 'somebrandnewguy@example.com'
                 })
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(201)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
-  
+
                   models.Team.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
                     expect(results.length).toEqual(1);
                     expect(results[0].members.length).toEqual(2);
@@ -139,15 +144,15 @@ describe('teamMembershipSpec', () => {
               done.fail(err);
             });
           });
-  
+
           it('creates an agent record if the agent is not currently registered', done => {
             models.Agent.findOne({ where: { email: 'somebrandnewguy@example.com' } }).then(results => {
               expect(results).toBe(null);
-  
+
               authenticatedSession
                 .put(`/team/${team.id}/agent`)
                 .send({
-                  email: 'somebrandnewguy@example.com' 
+                  email: 'somebrandnewguy@example.com'
                 })
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
@@ -167,12 +172,12 @@ describe('teamMembershipSpec', () => {
               done.fail(err);
             });
           });
-  
+
           it('returns a friendly message if the agent is already a member', done => {
             authenticatedSession
               .put(`/team/${team.id}/agent`)
               .send({
-                email: 'somebrandnewguy@example.com' 
+                email: 'somebrandnewguy@example.com'
               })
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
@@ -183,7 +188,7 @@ describe('teamMembershipSpec', () => {
                 authenticatedSession
                   .put(`/team/${team.id}/agent`)
                   .send({
-                    email: 'somebrandnewguy@example.com' 
+                    email: 'somebrandnewguy@example.com'
                   })
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
@@ -200,7 +205,7 @@ describe('teamMembershipSpec', () => {
             authenticatedSession
               .put('/team/333/agent')
               .send({
-                email: 'somebrandnewguy@example.com' 
+                email: 'somebrandnewguy@example.com'
               })
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
@@ -402,7 +407,7 @@ describe('teamMembershipSpec', () => {
               authenticatedSession
                 .put(`/team/${team.id}/agent`)
                 .send({
-                  email: knownAgent.email 
+                  email: knownAgent.email
                 })
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
@@ -424,18 +429,18 @@ describe('teamMembershipSpec', () => {
             models.Team.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
               expect(results.length).toEqual(1);
               expect(results[0].members.length).toEqual(1);
-  
+
               authenticatedSession
                 .put(`/team/${team.id}/agent`)
                 .send({
-                  email: knownAgent.email 
+                  email: knownAgent.email
                 })
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(201)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
-  
+
                   models.Team.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
                     expect(results.length).toEqual(1);
                     expect(results[0].members.length).toEqual(2);
@@ -454,7 +459,7 @@ describe('teamMembershipSpec', () => {
             authenticatedSession
               .put(`/team/${team.id}/agent`)
               .send({
-                email: knownAgent.email 
+                email: knownAgent.email
               })
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
@@ -464,7 +469,7 @@ describe('teamMembershipSpec', () => {
                 authenticatedSession
                   .put(`/team/${team.id}/agent`)
                   .send({
-                    email: knownAgent.email 
+                    email: knownAgent.email
                   })
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
@@ -481,7 +486,7 @@ describe('teamMembershipSpec', () => {
             authenticatedSession
               .put('/team/333/agent')
               .send({
-                email: knownAgent.email 
+                email: knownAgent.email
               })
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
@@ -667,7 +672,11 @@ describe('teamMembershipSpec', () => {
               login(_identity, [scope.delete.teamMembers], (err, session) => {
                 if (err) return done.fail(err);
                 authenticatedSession = session;
-                done();
+
+                stubAuth0ManagementApi((err, apiScopes) => {
+                  if (err) return done.fail();
+                  done();
+                });
               });
             }).catch(err => {
               done.fail(err);
@@ -748,7 +757,11 @@ describe('teamMembershipSpec', () => {
           login({ ..._identity, email: suspiciousAgent.email, name: 'Suspicious GUy' }, [scope.create.teamMembers], (err, session) => {
             if (err) return done.fail(err);
             unauthorizedSession = session;
-            done();
+
+            stubAuth0ManagementApi((err, apiScopes) => {
+              if (err) return done.fail();
+              done();
+            });
           });
         }).catch(err => {
           done.fail(err);
@@ -760,7 +773,7 @@ describe('teamMembershipSpec', () => {
           unauthorizedSession
             .put(`/team/${team.id}/agent`)
             .send({
-              email: suspiciousAgent.email 
+              email: suspiciousAgent.email
             })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)

@@ -4,6 +4,7 @@ const fixtures = require('sequelize-fixtures');
 const models = require('../../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../../support/stubAuth0Sessions');
+const stubAuth0ManagementApi = require('../../support/stubAuth0ManagementApi');
 const mailer = require('../../../mailer');
 const scope = require('../../../config/permissions');
 
@@ -74,7 +75,11 @@ describe('root/teamSpec', () => {
       login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, (err, session) => {
         if (err) return done.fail(err);
         rootSession = session;
-        done();
+
+        stubAuth0ManagementApi((err, apiScopes) => {
+          if (err) return done.fail();
+          done();
+        });
       });
     });
 
@@ -85,7 +90,7 @@ describe('root/teamSpec', () => {
           models.Team.create({ name: 'The Mike Tyson Mystery Team', organizationId: organization.id, creatorId: root.id }).then(o => {
             models.Team.findAll().then(results => {
               expect(results.length).toEqual(2);
- 
+
               rootSession
                 .get('/team')
                 .set('Accept', 'application/json')
@@ -111,7 +116,7 @@ describe('root/teamSpec', () => {
           models.Team.create({ name: 'The Mike Tyson Mystery Team', organizationId: organization.id, creatorId: root.id }).then(o => {
             models.Team.findAll().then(results => {
               expect(results.length).toEqual(2);
- 
+
               rootSession
                 .get('/team/admin')
                 .set('Accept', 'application/json')
@@ -145,7 +150,7 @@ describe('root/teamSpec', () => {
               done();
             });
         });
-  
+
         it('doesn\'t barf if record doesn\'t exist', done => {
           rootSession
             .get('/team/33')
@@ -769,7 +774,11 @@ describe('root/teamSpec', () => {
       login({ ..._identity, email: agent.email }, [scope.read.teams], (err, session) => {
         if (err) return done.fail(err);
         nonRootSession = session;
-        done();
+
+        stubAuth0ManagementApi((err, apiScopes) => {
+          if (err) return done.fail();
+          done();
+        });
       });
     });
 
