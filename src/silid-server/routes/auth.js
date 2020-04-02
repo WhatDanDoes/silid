@@ -44,26 +44,7 @@ router.get('/callback', passport.authenticate('auth0'), (req, res) => {
           return res.json(err);
         }
 
-        // Make sure agent has basic viewing permissions
-        let isViewer = true;
-        for (let p of roles.viewer) {
-          if (req.user.scope.indexOf(p) < 0) {
-            isViewer = false;
-            break;
-          }
-        }
-
-        if (isViewer) {
-          return res.redirect(returnTo || '/');
-        }
-
-        // Not a viewer. Assign role
-        const managementClient = getManagementClient([apiScope.read.roles, apiScope.update.users].join(' '));
-        managementClient.users.assignRoles({ id: req.user.id }, { roles: ['viewer'] }).then(agents => {
-          res.redirect(returnTo || '/');
-        }).catch(err => {
-          res.status(err.statusCode).json(err.message.error_description);
-        });
+        res.redirect(returnTo || '/');
       });
     });
   }
