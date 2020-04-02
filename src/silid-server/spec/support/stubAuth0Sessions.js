@@ -112,7 +112,6 @@ module.exports = function(done) {
 
           session
             .get(`/callback?code=AUTHORIZATION_CODE&state=${state}`)
-            //.expect(302)
             .redirects()
             .end(function(err, res) {
               if (err) return done(err);
