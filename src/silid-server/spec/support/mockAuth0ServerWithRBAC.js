@@ -321,7 +321,7 @@ require('../support/setupKeystore').then(keyStuff => {
       });
 
       /**
-       * GET `/users/:id/roles`
+       * POST `/users/:id/roles`
        */
       server.route({
         method: 'POST',
@@ -332,6 +332,24 @@ require('../support/setupKeystore').then(keyStuff => {
         }
       });
 
+
+      /**
+       * GET `/roles`
+       */
+      server.route({
+        method: 'GET',
+        path: '/api/v2/roles',
+        handler: (request, h) => {
+          console.log('/api/v2/roles');
+          return h.response([
+            {
+              "id": "123",
+              "name": "viewer",
+              "description": "View all roles"
+            }
+          ]);
+        }
+      });
 
       await server.start();
       console.log('Server running on %s', server.info.uri);
