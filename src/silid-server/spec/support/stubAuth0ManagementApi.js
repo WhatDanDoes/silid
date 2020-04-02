@@ -135,9 +135,23 @@ module.exports = function(permissions, done) {
         ]
       });
 
+    /**
+     * GET `/users/:id/roles`
+     */
+    const auth0UserAssignRolesScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+      .log(console.log)
+      .post(/api\/v2\/users\/.+\/roles/, {
+                              'roles': /.+/i,
+                            })
+
+      .reply(200, { });
+
+
+
     done(null, {
                 oauthTokenScope,
                 auth0UserCreateScope, auth0UserReadScope, auth0UserUpdateScope, auth0UserDeleteScope, auth0UserListScope,
+                auth0UserAssignRolesScope,
     });
   });
 };

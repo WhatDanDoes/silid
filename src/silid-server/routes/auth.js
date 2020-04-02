@@ -8,6 +8,10 @@ const util = require('util');
 const querystring = require('querystring');
 const url = require('url');
 
+const apiScope = require('../config/apiPermissions');
+const roles = require('../config/roles');
+const getManagementClient = require('../lib/getManagementClient');
+
 router.get('/login', (req, res, next) => {
   const authenticator = passport.authenticate('auth0', {
     scope: 'openid email profile',
@@ -39,14 +43,34 @@ router.get('/callback', passport.authenticate('auth0'), (req, res) => {
         if (err) {
           return res.json(err);
         }
-        res.redirect(returnTo || '/');
+
+        // Make sure agent has basic viewing permissions
+        let isViewer = true;
+        for (let p of roles.viewer) {
+          if (req.user.scope.indexOf(p) < 0) {
+            isViewer = false;
+            break;
+          }
+        }
+
+        if (isViewer) {
+          return res.redirect(returnTo || '/');
+        }
+
+        // Not a viewer. Assign role
+        const managementClient = getManagementClient([apiScope.read.roles, apiScope.update.users].join(' '));
+        managementClient.users.assignRoles({ id: req.user.id }, { roles: ['viewer'] }).then(agents => {
+          res.redirect(returnTo || '/');
+        }).catch(err => {
+          res.status(err.statusCode).json(err.message.error_description);
+        });
       });
     });
   }
 
   models.Agent.findOne({ where: { email: req.user._json.email } }).then(result => {
     if (!result) {
-      let newAgent = new models.Agent({email: req.user._json.email, name: req.user._json.name});
+      let newAgent = new models.Agent({email: req.user._json.email, name: req.user._json.name, socialProfile: req.user});
 
       newAgent.save().then(result => {
         login();

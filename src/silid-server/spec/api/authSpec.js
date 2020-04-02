@@ -5,6 +5,7 @@ const nock = require('nock');
 const querystring = require('querystring');
 const jwt = require('jsonwebtoken');
 const models = require('../../models');
+const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
 
 describe('authSpec', () => {
 
@@ -16,7 +17,11 @@ describe('authSpec', () => {
    */
   const _identity = require('../fixtures/sample-auth0-identity-token');
   const _access = require('../fixtures/sample-auth0-access-token');
+
+  // Auth0 defined scopes and roles
   const scope = require('../../config/permissions');
+  const apiScope = require('../../config/apiPermissions');
+  const roles = require('../../config/roles');
 
   let pub, prv, keystore;
   beforeAll(done => {
@@ -89,7 +94,7 @@ describe('authSpec', () => {
         .redirects()
         .end(function(err, res) {
           if (err) return done.fail(err);
-          auth0Scope.isDone()
+          expect(auth0Scope.isDone()).toBe(true);
           done();
         });
     });
@@ -102,7 +107,7 @@ describe('authSpec', () => {
    */
   describe('/callback', () => {
 
-    let session, oauthTokenScope, userInfoScope;
+    let session, oauthTokenScope, userInfoScope, auth0UserAssignRolesScope;
     beforeEach(done => {
 
       /**
@@ -148,7 +153,15 @@ describe('authSpec', () => {
                                    prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
             });
 
-          done();
+          /**
+           * Agents need basic viewing privileges. This stubs the
+           * role-assigning endpoint
+           */
+          stubAuth0ManagementApi([apiScope.read.roles, apiScope.update.users], (err, apiScopes) => {
+            if (err) return done.fail(err);
+            ({auth0UserAssignRolesScope} = apiScopes);
+            done();
+          });
         });
     });
 
@@ -197,6 +210,7 @@ describe('authSpec', () => {
               if (err) return done.fail(err);
               models.Agent.findAll().then(results => {
                 expect(results.length).toEqual(1);
+                expect(results[0].socialProfile._json).toEqual(_identity);
                 done();
               }).catch(err => {
                 done.fail(err);
@@ -215,6 +229,8 @@ describe('authSpec', () => {
             if (err) return done.fail(err);
             models.Agent.findAll().then(results => {
               expect(results.length).toEqual(1);
+              expect(results[0].socialProfile._json).toEqual(_identity);
+
               results[0].socialProfile = null;
               results[0].save().then(results => {
                 expect(results.socialProfile).toBe(null);
@@ -278,27 +294,170 @@ describe('authSpec', () => {
                           .reply(200, _identity);
 
                         /**
-                         * Login again... finally
+                         * Re-stub the Auth0 management API
                          */
-                        newSession
-                          .get(`/callback?code=AUTHORIZATION_CODE&state=${state}`)
-                          .expect(302)
-                          .end(function(err, res) {
-                            if (err) return done.fail(err);
-                            models.Agent.findAll().then(results => {
-                              expect(results.length).toEqual(1);
-                              expect(results[0].socialProfile._json).toEqual(_identity);
-                              done();
-                            }).catch(err => {
-                              done.fail(err);
+                        stubAuth0ManagementApi([apiScope.read.roles, apiScope.update.users], (err, apiScopes) => {
+                          if (err) return done.fail(err);
+                          ({auth0UserAssignRolesScope} = apiScopes);
+
+                          /**
+                           * Login again... finally
+                           */
+                          newSession
+                            .get(`/callback?code=AUTHORIZATION_CODE&state=${state}`)
+                            .expect(302)
+                            .end(function(err, res) {
+                              if (err) return done.fail(err);
+                              models.Agent.findAll().then(results => {
+                                expect(results.length).toEqual(1);
+                                expect(results[0].socialProfile._json).toEqual(_identity);
+                                done();
+                              }).catch(err => {
+                                done.fail(err);
+                              });
                             });
-                          });
+                        });
                       });
                   });
               });
             }).catch(err => {
               done.fail(err);
             });
+          });
+      });
+    });
+
+    describe('Auth0 roles', () => {
+      it('calls the management API to assign viewer role if agent not previously known', done => {
+        models.Agent.findAll().then(results => {
+          expect(results.length).toEqual(0);
+
+          session
+            .get(`/callback?code=AUTHORIZATION_CODE&state=${state}`)
+            .expect(302)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(auth0UserAssignRolesScope.isDone()).toBe(true);
+              done();
+            });
+        }).catch(err => {
+          done.fail(err);
+        });
+      });
+
+      it('calls the management API to assign viewer role if agent is not currently assigned to that role', done => {
+        models.Agent.create({ email: _identity.email, name: _identity.name, socialProfile: { scope: ['no:permissions:assigned:except:for:this:one'] } }).then(result => {
+          session
+            .get(`/callback?code=AUTHORIZATION_CODE&state=${state}`)
+            .expect(302)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(auth0UserAssignRolesScope.isDone()).toBe(true);
+              done();
+            });
+        }).catch(err => {
+          done.fail(err);
+        });
+      });
+
+      it('does not call the management API if agent is already a viewer', done => {
+        session
+          .get(`/callback?code=AUTHORIZATION_CODE&state=${state}`)
+          .expect(302)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+
+            expect(auth0UserAssignRolesScope.isDone()).toBe(true);
+
+            session
+              .get('/logout')
+              .expect(302)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                /**
+                 * Blah!
+                 *
+                 * All these mocks need to be set up again for another
+                 * login.
+                 */
+                let newAuth0Scope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+                  .log(console.log)
+                  .get(/authorize*/)
+                  .reply(302, (uri, body) => {
+                    uri = uri.replace('/authorize?', '');
+                    const parsed = querystring.parse(uri);
+                    state = parsed.state;
+                    nonce = parsed.nonce;
+                  });
+
+                let newSession = request(app);
+                newSession
+                  .get('/login')
+                  .redirects()
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    /**
+                     * `/oauth/token` mock
+                     */
+                    let newOauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+                      .log(console.log)
+                      .post(/oauth\/token/, {
+                                              'grant_type': 'authorization_code',
+                                              'redirect_uri': /\/callback/,
+                                              'client_id': process.env.AUTH0_CLIENT_ID,
+                                              'client_secret': process.env.AUTH0_CLIENT_SECRET,
+                                              'code': 'AUTHORIZATION_CODE'
+                                            })
+                      .reply(200, {
+                        'access_token': jwt.sign({..._access,
+                                                  /**
+                                                   * This is the test right here!!!
+                                                   *
+                                                   * Auth0 sends the permissions.
+                                                   *
+                                                   * The viewer role is the most basic.
+                                                   */
+                                                  permissions: roles.viewer},
+                                                 prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } }),
+                        'refresh_token': 'SOME_MADE_UP_REFRESH_TOKEN',
+                        'id_token': jwt.sign({..._identity,
+                                                aud: process.env.AUTH0_CLIENT_ID,
+                                                iat: Math.floor(Date.now() / 1000) - (60 * 60),
+                                                nonce: nonce },
+                                             prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
+                      });
+
+                    let newUserInfoScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+                      .log(console.log)
+                      .get(/userinfo/)
+                      .reply(200, _identity);
+
+                    /**
+                     * Re-stub the Auth0 management API
+                     */
+                    stubAuth0ManagementApi([apiScope.read.roles, apiScope.update.users], (err, apiScopes) => {
+                      if (err) return done.fail(err);
+                      ({auth0UserAssignRolesScope} = apiScopes);
+
+                      expect(auth0UserAssignRolesScope.isDone()).toBe(false);
+
+                      /**
+                       * Login again... finally
+                       */
+                      newSession
+                        .get(`/callback?code=AUTHORIZATION_CODE&state=${state}`)
+                        .expect(302)
+                        .end(function(err, res) {
+                          if (err) return done.fail(err);
+
+                          expect(auth0UserAssignRolesScope.isDone()).toBe(false);
+                          done();
+                        });
+                    });
+                  });
+              });
           });
       });
     });
@@ -360,7 +519,7 @@ describe('authSpec', () => {
     });
     server.listen(PORT);
 
-    // Setup an configure zombie browser
+    // Setup and configure zombie browser
     const Browser = require('zombie');
     Browser.localhost('localhost', PORT);
 
@@ -439,7 +598,15 @@ describe('authSpec', () => {
                 'id_token': identityToken
               });
 
-            next(null, [302, {}, { 'Location': `https://${process.env.AUTH0_DOMAIN}/login` }]);
+            /**
+             * Auth0 management API
+             */
+            stubAuth0ManagementApi([apiScope.read.roles, apiScope.update.users], (err, apiScopes) => {
+              if (err) return done.fail(err);
+              ({auth0UserAssignRolesScope} = apiScopes);
+
+              next(null, [302, {}, { 'Location': `https://${process.env.AUTH0_DOMAIN}/login` }]);
+            });
           });
 
         /**

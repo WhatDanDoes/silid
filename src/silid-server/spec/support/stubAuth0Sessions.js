@@ -57,7 +57,7 @@ module.exports = function(done) {
 
       if (typeof permissions === 'function') {
         done = permissions;
-        delete permissions;
+        permissions = [];
       }
 
       /**
