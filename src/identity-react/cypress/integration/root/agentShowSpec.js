@@ -85,7 +85,7 @@ context('root/Agent show', function() {
             cy.login(_profile.email, _profile);
             cy.get('#app-menu-button').click();
             cy.get('#admin-switch').check();
-            cy.contains('Profile').click();
+            cy.get('#agent-button').contains('Profile').click();
             cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
               root = results[0];
               cy.visit(`/#/agent/${root.id}`);
@@ -140,7 +140,7 @@ context('root/Agent show', function() {
           cy.login(_profile.email, _profile);
           cy.get('#app-menu-button').click();
           cy.get('#admin-switch').check();
-          cy.contains('Profile').click();
+          cy.get('#agent-button').contains('Profile').click();
           cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
             root = results[0];
             cy.visit(`/#/agent/${root.id}`);
