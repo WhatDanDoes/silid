@@ -8,6 +8,7 @@ import { useAuthState } from '../auth/Auth';
 import { useAdminState } from '../auth/Admin';
 
 import Button from '@material-ui/core/Button';
+import Flash from '../components/Flash';
 import useGetAgentService from '../services/useGetAgentService';
 
 import usePutAgentService from '../services/usePutAgentService';
@@ -66,6 +67,7 @@ export interface PrevState {
 }
 
 const Agent = (props: any) => {
+
   const [formData, setFormData] = useState<FormData>({});
   const [prevState, setPrevState] = useState<PrevState>({});
   const {agent} = useAuthState();
@@ -113,6 +115,7 @@ const Agent = (props: any) => {
           <Typography variant="h5" component="h3">
             Profile
           </Typography>
+          { props.location.state ? <Flash message={props.location.state} variant="success" /> : '' }
           <Typography variant="body2" color="textSecondary" component="p">
             {service.status === 'loading' && <div>Loading...</div>}
             {service.status === 'loaded' && service.payload ?
