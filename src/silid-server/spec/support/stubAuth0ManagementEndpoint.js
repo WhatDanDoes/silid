@@ -120,7 +120,7 @@ module.exports = function(permissions, done) {
     /**
      * GET `/users-by-email`
      */
-    const auth0UserReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+    const auth0UserReadByEmailScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .log(console.log)
       .get(/api\/v2\/users-by-email/)
       .query({ 'email': /.+/i })
@@ -134,6 +134,24 @@ module.exports = function(permissions, done) {
           }
         ]
       });
+
+    /**
+     * GET `/users`. Get a single user by Auth0 ID
+     */
+    const auth0UserReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+      .log(console.log)
+      .get(/api\/v2\/users\/*/)
+      .reply(200, {
+        "user_id": "auth0|507f1f77bcf86c0000000000",
+        "email": "doesnotreallymatterforthemoment@example.com",
+        "email_verified": false,
+        "identities": [
+          {
+            "connection": "Initial-Connection",
+          }
+        ]
+      });
+
 
     /**
      * GET `/users/:id/roles`
@@ -162,7 +180,7 @@ module.exports = function(permissions, done) {
 
     done(null, {
                 oauthTokenScope,
-                auth0UserCreateScope, auth0UserReadScope, auth0UserUpdateScope, auth0UserDeleteScope, auth0UserListScope,
+                auth0UserCreateScope, auth0UserReadScope, auth0UserUpdateScope, auth0UserDeleteScope, auth0UserListScope, auth0UserReadByEmailScope,
                 auth0UserAssignRolesScope,
                 auth0GetRolesScope,
     });
