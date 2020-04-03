@@ -28,8 +28,8 @@ context('root/Agent edit', function() {
                   cy.get('#app-menu-button').click();
                   cy.get('#admin-switch').check();
                   cy.get('#show-cached-switch').check();
-                  cy.contains('Profile').click();
-                  cy.wait(500);
+                  cy.get('#agent-button').contains('Profile').click();
+                  cy.wait(300);
                 });
 
                 it('lands in the right spot', () => {
@@ -77,7 +77,7 @@ context('root/Agent edit', function() {
                 cy.get('#app-menu-button').click();
                 cy.get('#admin-switch').check();
                 cy.get('#show-cached-switch').uncheck();
-                cy.contains('Profile').click();
+                cy.get('#agent-button').contains('Profile').click();
                 cy.wait(500);
               });
 
@@ -95,9 +95,8 @@ context('root/Agent edit', function() {
               cy.login(_profile.email, _profile);
               cy.get('#app-menu-button').click();
               cy.get('#app-menu ul div:nth-of-type(4) input').should('have.attr', 'type', 'checkbox').and('not.be.checked');
-              cy.contains('Profile').click().then(() => {
-                cy.wait(500); // <--- There has to be a better way!!! Cypress is going too quick for the database
-              });
+              cy.get('#agent-button').contains('Profile').click();
+              cy.wait(300);
             });
 
             it('lands in the right spot', () => {
