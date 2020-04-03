@@ -117,6 +117,10 @@ context('root/Agent Index', function() {
           it('displays the agents', () => {
             cy.get('#agent-list').should('exist');
             cy.get('#agent-list').find('.agent-button').its('length').should('eq', 1);
+            cy.get('.agent-button a').first().should('have.attr', 'href').and('match', /\#agent\/auth0\|.+/)
+            cy.get('#agent-list .agent-button .avatar img').first().should('have.attr', 'src').and('include', `/image/photo.jpg`)
+            cy.get('#agent-list .agent-button .name-email').first().contains('John Doe')
+            cy.get('#agent-list .agent-button .name-email').first().contains('john.doe@gmail.com')
           });
         });
       });
