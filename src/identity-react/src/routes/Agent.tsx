@@ -2,57 +2,56 @@ import React, { useState, useEffect } from 'react';
 import TextField from '@material-ui/core/TextField';
 import { createStyles, makeStyles, Theme } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
-import Card from '@material-ui/core/Card';
-import CardContent from '@material-ui/core/CardContent';
 import { useAuthState } from '../auth/Auth';
 import { useAdminState } from '../auth/Admin';
-
+import ReactJson from 'react-json-view';
 import Button from '@material-ui/core/Button';
 import Flash from '../components/Flash';
-import useGetAgentService from '../services/useGetAgentService';
 
+
+import Grid from '@material-ui/core/Grid';
+
+import useGetAgentService from '../services/useGetAgentService';
 import usePutAgentService from '../services/usePutAgentService';
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
     root: {
-      padding: theme.spacing(3, 2),
+      flexGrow: 1,
     },
     button: {
-      margin: theme.spacing(1),
+      margin: theme.spacing(0.5),
     },
-    container: {
-      display: 'flex',
-      flexWrap: 'wrap',
+    header: {
+      marginTop: '1em',
+      marginBottom: '1em',
+    },
+    grid: {
+      width: '90%',
     },
     textField: {
       marginLeft: theme.spacing(1),
       marginRight: theme.spacing(1),
       width: '100%',
     },
+    json: {
+      wordWrap: 'break-word',
+      wordBreak: 'break-all',
+    },
     [theme.breakpoints.down('sm')]: {
-      card: {
-        marginTop: '4%',
-        maxWidth: 720,
+      json: {
+        maxWidth: '90%'
       },
     },
     [theme.breakpoints.up('md')]: {
-      card: {
-        marginLeft: '25%',
-        marginTop: '4%',
-        maxWidth: 720,
+      grid: {
+        maxWidth: '50%',
+      },
+      json: {
+        maxWidth: '75%'
       },
     },
-    media: {
-      height: 140,
-    },
-    error: {
-      color: 'rgba(232, 10, 10, 0.87)',
-    },
-    loaded: {
-      color: 'rgba(19, 162, 64, 0.87)',
-    },
-  })
+  } as any)
 );
 
 export interface FormData {
@@ -109,16 +108,21 @@ const Agent = (props: any) => {
   }
 
   return (
-    <div className="agent">
-      <Card className={classes.card}>
-        <CardContent>
-          <Typography variant="h5" component="h3">
-            Profile
-          </Typography>
-          { props.location.state ? <Flash message={props.location.state} variant="success" /> : '' }
+    <div className={classes.root}>
+      <Grid container direction="column" justify="center" alignItems="center">
+        <Grid item>
           <Typography variant="body2" color="textSecondary" component="p">
             {service.status === 'loading' && <div>Loading...</div>}
-            {service.status === 'loaded' && service.payload ?
+          </Typography>
+        </Grid>
+        <Grid item>
+          <Typography className={classes.header} variant="h5" component="h3">
+            Profile
+          </Typography>
+        </Grid>
+        {service.status === 'loaded' && service.payload ?
+          <>
+            <Grid item className={classes.grid}>
               <form onSubmit={handleSubmit}>
                 <TextField
                   id="email-input"
@@ -152,6 +156,7 @@ const Agent = (props: any) => {
                 />
                 { Object.keys(prevState).length ?
                   <Button id="cancel-changes"
+                    className={classes.button}
                     variant="contained" color="secondary"
                     onClick={() => {
                       setFormData({ ...formData, ...prevState });
@@ -161,19 +166,34 @@ const Agent = (props: any) => {
                   </Button> : ''
                 }
                 { formData.email === agent.email || admin.isEnabled ?
-                <Button type="submit" variant="contained" color="primary"
+                <Button className={classes.button}
+                        type="submit" variant="contained" color="primary"
                         disabled={!Object.keys(prevState).length}>
                   Save
                 </Button> : ''}
-              </form> : ''}
-            {service.status === 'error' && (
-              <div>{service.error.message}</div>
-            )}
-          </Typography>
-        </CardContent>
-      </Card>
+              </form>
+            </Grid>
+            <Grid item>
+              <Typography className={classes.header} variant="h5" component="h3">
+                Social Data
+              </Typography>
+            </Grid>
+            <Grid item className={classes.json}>
+              <ReactJson
+                src={formData.socialProfile}
+                collapsed={false}
+                collapseStringsAfterLength={80}
+                displayDataTypes={false}
+                displayObjectSize={false}
+                shouldCollapse={(field: any) => field.name[0] === '_' }
+              />
+            </Grid>
+          </>
+        : ''}
+      </Grid>
+      { props.location.state ? <Flash message={props.location.state} variant="success" /> : '' }
     </div>
-  )    
+  )
 };
 
 export default Agent;
