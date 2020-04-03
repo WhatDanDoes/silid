@@ -61,7 +61,7 @@ context('Super Agent Authentication', function() {
     });
 
     it('lands in the right place', () => {
-      cy.url().should('match', /\/#\/organization$/);
+      cy.url().should('match', /\/#\/agent$/);
     });
 
     it('does not display the login link', () => {
