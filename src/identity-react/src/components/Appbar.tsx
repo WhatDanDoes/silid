@@ -180,18 +180,22 @@ const Home = (props: IProps) => {
   return (
     <AppBar position="static">
       <Toolbar>
-        <IconButton
-          id="app-menu-button"
-          onClick={toggleDrawer('left', true)}
-          edge="start"
-          className={classes.menuButton}
-          color="inherit"
-          aria-label="menu">
-          <MenuIcon />
-        </IconButton>
-        <Drawer open={drawerPosition.left} onClose={toggleDrawer('left', false)}>
-          {sideList('left')}
-        </Drawer>
+        {agent.isSuper && (
+          <>
+            <IconButton
+              id="app-menu-button"
+              onClick={toggleDrawer('left', true)}
+              edge="start"
+              className={classes.menuButton}
+              color="inherit"
+              aria-label="menu">
+              <MenuIcon />
+            </IconButton>
+            <Drawer open={drawerPosition.left} onClose={toggleDrawer('left', false)}>
+              {sideList('left')}
+            </Drawer>
+          </>
+        )}
         <Typography variant="h6" className={classes.title}>
           Identity
         </Typography>
