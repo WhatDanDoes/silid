@@ -5,12 +5,12 @@ import Card from '@material-ui/core/Card';
 import CardContent from '@material-ui/core/CardContent';
 import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
-import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListItemText from '@material-ui/core/ListItemText';
 import Flash from '../components/Flash';
 import { useAdminState } from '../auth/Admin';
-// Remove this junk later
-import InboxIcon from '@material-ui/icons/MoveToInbox';
+
+import ListItemAvatar from '@material-ui/core/ListItemAvatar';
+import Avatar from '@material-ui/core/Avatar';
 
 
 import useGetAgentDirectoryService, { Agents } from '../services/useGetAgentDirectoryService';
@@ -77,10 +77,12 @@ const AgentDirectory = (props: any) => {
           {service.status === 'loaded' && agentList.results.length ?
             <List id="agent-list">
               { agentList.results.map(a => (
-                <ListItem button className='agent-button' key={`Agents-${a.id}`}>
-                  <ListItemIcon><InboxIcon /></ListItemIcon>
-                  <ListItemLink href={`#agent/${a.id}`}>
-                    <ListItemText primary={a.name} />
+                <ListItem className='agent-button' key={`Agents-${a.id}`}>
+                  <ListItemLink href={`#agent/${admin.viewingCached ? a.id : a.user_id}`}>
+                    <ListItemAvatar>
+                      <Avatar className="avatar" alt={a.name} src={a.picture} />
+                    </ListItemAvatar>
+                    <ListItemText className="name-email" primary={a.name} secondary={a.email} />
                   </ListItemLink>
                 </ListItem>
               ))}
