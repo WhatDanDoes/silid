@@ -209,38 +209,10 @@ describe('agentSpec', () => {
           });
         });
 
-        it('retrieves an existing record from the database', done => {
-          authenticatedSession
-            .get(`/agent/${agent.id}`)
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(200)
-            .end(function(err, res) {
-              if (err) return done.fail(err);
-
-              expect(res.body.email).toEqual(agent.email);
-              done();
-            });
-        });
-
-        it('doesn\'t barf if record doesn\'t exist', done => {
-          authenticatedSession
-            .get('/agent/33')
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(404)
-            .end(function(err, res) {
-              if (err) done.fail(err);
-
-              expect(res.body.message).toEqual('No such agent');
-              done();
-            });
-        });
-
         describe('Auth0', () => {
           it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
             authenticatedSession
-              .get(`/agent/${agent.id}`)
+              .get(`/agent/${_identity.sub}`)
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(200)
@@ -253,7 +225,7 @@ describe('agentSpec', () => {
 
           it('calls Auth0 to read the agent at the Auth0-defined connection', done => {
             authenticatedSession
-              .get(`/agent/${agent.id}`)
+              .get(`/agent/${_identity.sub}`)
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(200)
@@ -265,17 +237,16 @@ describe('agentSpec', () => {
               });
           });
 
-          it('does not call the Auth0 endpoints if record doesn\'t  exists', done => {
+          it('retrieves a record from Auth0', done => {
             authenticatedSession
-              .get('/agent/33')
+              .get(`/agent/${agent.id}`)
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
-              .expect(404)
+              .expect(200)
               .end(function(err, res) {
-                if (err) done.fail(err);
+                if (err) return done.fail(err);
 
-                expect(oauthTokenScope.isDone()).toBe(false);
-                expect(auth0UserReadScope.isDone()).toBe(false);
+                expect(res.body.email).toBeDefined();
                 done();
               });
           });

@@ -47,7 +47,6 @@ router.get('/admin/:cached?', checkPermissions(roles.sudo), function(req, res, n
   else {
     const managementClient = getAuth0ManagementClient(apiScope.read.users);
     managementClient.getUsers().then(agents => {
-      console.log(agents);
       res.status(200).json(agents);
     }).catch(err => {
       res.status(err.statusCode).json(err.message.error_description);
@@ -59,22 +58,36 @@ router.get('/', checkPermissions([scope.read.agents]), function(req, res, next) 
   return res.json(req.agent);
 });
 
-router.get('/:id', checkPermissions([scope.read.agents]), function(req, res, next) {
-  models.Agent.findOne({ where: { id: req.params.id } }).then(result => {
-    if (!result) {
-      result = { message: 'No such agent' };
-      return res.status(404).json(result);
-    }
+router.get('/:id/:cached?', checkPermissions([scope.read.agents]), function(req, res, next) {
 
+  if (req.params.cached && req.agent.isSuper) {
+    models.Agent.findOne({ where: { id: req.params.id } }).then(result => {
+      if (!result) {
+        result = { message: 'No such agent' };
+        return res.status(404).json(result);
+      }
+
+      const managementClient = getAuth0ManagementClient(apiScope.read.users);
+      managementClient.getUsersByEmail(result.email).then(users => {
+        res.status(200).json(result);
+      }).catch(err => {
+        res.status(err.statusCode).json(err.message.error_description);
+      });
+    }).catch(err => {
+      res.status(500).json(err);
+    });
+  }
+  else if (req.params.cached && !req.agent.isSuper) {
+    return res.status(403).json( { message: 'Forbidden' });
+  }
+  else {
     const managementClient = getAuth0ManagementClient(apiScope.read.users);
-    managementClient.getUsersByEmail(result.email).then(users => {
-      res.status(200).json(result);
+    managementClient.getUser({id: req.params.id}).then(agent => {
+      res.status(200).json(agent);
     }).catch(err => {
       res.status(err.statusCode).json(err.message.error_description);
     });
-  }).catch(err => {
-    res.status(500).json(err);
-  });
+  }
 });
 
 router.post('/', checkPermissions([scope.create.agents]), function(req, res, next) {

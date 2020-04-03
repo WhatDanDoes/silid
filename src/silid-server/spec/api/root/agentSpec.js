@@ -75,13 +75,13 @@ describe('root/agentSpec', () => {
 
     describe('read', () => {
 
-      let oauthTokenScope, auth0UserListScope;
+      let oauthTokenScope, auth0UserListScope, auth0UserReadScope;
       beforeEach(done => {
         stubAuth0ManagementApi((err, apiScopes) => {
           if (err) return done.fail(err);
           stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
             if (err) return done.fail(err);
-            ({auth0UserListScope, oauthTokenScope} = apiScopes);
+            ({auth0UserListScope, auth0UserReadScope, oauthTokenScope} = apiScopes);
             done();
           });
         });
@@ -201,55 +201,54 @@ describe('root/agentSpec', () => {
       });
 
       describe('/agent/:id', () => {
-        it('retrieves root agent\'s own record from the database', done => {
-          rootSession
-            .get(`/agent/${root.id}`)
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(200)
-            .end(function(err, res) {
-              if (err) return done.fail(err);
+        describe('Auth0', () => {
+          it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
+            rootSession
+              .get(`/agent/${_identity.sub}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(oauthTokenScope.isDone()).toBe(true);
+                done();
+              });
+          });
 
-              expect(res.body.email).toEqual(root.email);
-              expect(res.body.isSuper).toEqual(true);
-              done();
-            });
-        });
+          it('calls Auth0 to read the agent at the Auth0-defined connection', done => {
+            rootSession
+              .get(`/agent/${_identity.sub}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
 
-        it('retrieves another agent\'s record from the database', done => {
-          rootSession
-            .get(`/agent/${agent.id}`)
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(200)
-            .end(function(err, res) {
-              if (err) return done.fail(err);
+                expect(auth0UserReadScope.isDone()).toBe(true);
+                done();
+              });
+          });
 
-              expect(res.body.email).toEqual(agent.email);
-              expect(res.body.isSuper).toEqual(false);
-              done();
-            });
-        });
+          it('retrieves a record from Auth0', done => {
+            rootSession
+              .get(`/agent/${agent.id}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
 
-        it('doesn\'t barf if record doesn\'t exist', done => {
-          rootSession
-            .get('/agent/33')
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(404)
-            .end(function(err, res) {
-              if (err) done.fail(err);
-
-              expect(res.body.message).toEqual('No such agent');
-              done();
-            });
+                expect(res.body.email).toBeDefined();
+                done();
+              });
+          });
         });
       });
 
-      describe('/agent/:id', () => {
+      describe('/agent/:id/cached', () => {
         it('retrieves root agent\'s own record from the database', done => {
           rootSession
-            .get(`/agent/${root.id}`)
+            .get(`/agent/${root.id}/cached`)
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(200)
@@ -264,7 +263,7 @@ describe('root/agentSpec', () => {
 
         it('retrieves another agent\'s record from the database', done => {
           rootSession
-            .get(`/agent/${agent.id}`)
+            .get(`/agent/${agent.id}/cached`)
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(200)
@@ -279,7 +278,7 @@ describe('root/agentSpec', () => {
 
         it('doesn\'t barf if record doesn\'t exist', done => {
           rootSession
-            .get('/agent/33')
+            .get('/agent/33/cached')
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(404)
@@ -685,17 +684,16 @@ describe('root/agentSpec', () => {
         });
       });
 
-      describe('/agent/:id', () => {
-        it('retrieves root agent\'s record', done => {
+      describe('/agent/:id/cached', () => {
+        it('returns 403 with message', done => {
           unauthorizedSession
-            .get(`/agent/${root.id}`)
+            .get(`/agent/${root.id}/cached`)
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
-            .expect(200)
+            .expect(403)
             .end(function(err, res) {
               if (err) return done.fail(err);
-              expect(res.body.email).toEqual(process.env.ROOT_AGENT);
-              expect(res.body.name).toEqual('Professor Fresh');
+              expect(res.body.message).toEqual('Forbidden');
 
               done();
             });
