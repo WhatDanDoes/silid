@@ -98,29 +98,40 @@ context('root/Agent Index', function() {
                 cy.get('#agent-list').should('exist');
                 cy.get('#agent-list').find('.agent-button').its('length').should('eq', 2);
                 cy.get('.agent-button').first().contains(agents[0].name);
-                cy.get('.agent-button a').first().should('have.attr', 'href').and('include', `#agent/${agents[0].id}`)
+                cy.get('.agent-button a').first().should('have.attr', 'href').and('include', `#agent/${agents[0].id}`);
                 cy.get('.agent-button').last().contains(agents[1].name);
-                cy.get('.agent-button a').last().should('have.attr', 'href').and('include', `#agent/${agents[1].id}`)
+                cy.get('.agent-button a').last().should('have.attr', 'href').and('include', `#agent/${agents[1].id}`);
               });
             });
           });
         });
 
         context('switched off', () => {
+          let agents;
           beforeEach(function() {
-            cy.get('#app-menu-button').click();
-            cy.get('#admin-switch').check();
-            cy.get('#show-cached-switch').uncheck();
-            cy.contains('Agent Directory').click();
+            // Easy way to register a new agent
+            cy.login('someotherguy@example.com', { ..._profile, name: 'Some Other Guy' }, [this.scope.read.agents]);
+
+            cy.login(_profile.email, _profile);
+            cy.task('query', 'SELECT * FROM "Agents";').then(([results, metadata]) => {
+              agents = results;
+
+              cy.get('#app-menu-button').click();
+              cy.get('#admin-switch').check();
+              cy.get('#show-cached-switch').uncheck();
+              cy.contains('Agent Directory').click();
+            });
           });
 
           it('displays the agents', () => {
             cy.get('#agent-list').should('exist');
-            cy.get('#agent-list').find('.agent-button').its('length').should('eq', 1);
-            cy.get('.agent-button a').first().should('have.attr', 'href').and('match', /\#agent\/auth0\|.+/)
-            cy.get('#agent-list .agent-button .avatar img').first().should('have.attr', 'src').and('include', `/image/photo.jpg`)
-            cy.get('#agent-list .agent-button .name-email').first().contains('John Doe')
-            cy.get('#agent-list .agent-button .name-email').first().contains('john.doe@gmail.com')
+            cy.get('#agent-list').find('.agent-button').its('length').should('eq', 2);
+            cy.get('.agent-button').first().contains(agents[0].name);
+            cy.get('.agent-button').first().contains(agents[0].email);
+            cy.get('.agent-button a').first().should('have.attr', 'href').and('include', `#agent/${agents[0].socialProfile.id}`);
+            cy.get('.agent-button').last().contains(agents[1].name);
+            cy.get('.agent-button').last().contains(agents[1].email);
+            cy.get('.agent-button a').last().should('have.attr', 'href').and('include', `#agent/${agents[1].socialProfile.id}`);
           });
         });
       });
