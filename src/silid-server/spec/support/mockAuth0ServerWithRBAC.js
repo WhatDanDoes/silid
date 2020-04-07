@@ -35,9 +35,10 @@ const scope = require('../../config/permissions');
  *
  * The following runs the migrations when the tests are started.
  */
+const models =  require('../../models');
+
 if (process.env.NODE_ENV === 'e2e') {
   const exec = require('child_process').execSync;
-  const models =  require('../../models');
 
   models.sequelize.drop().then(() => {
     console.log('Database dropped');
@@ -107,6 +108,10 @@ require('../support/setupKeystore').then(keyStuff => {
        * agent is being added, the login has to happen immediately after in
        * the tests for the new agent to be added to the "database".
        */
+
+      // Ensures every agent has a unique `user_id`
+      let subIndex = 0;
+
       let _agentIdToken, _permissions;
       server.route({
         method: 'POST',
@@ -117,6 +122,7 @@ require('../support/setupKeystore').then(keyStuff => {
 
           _agentIdToken = {...request.payload.token,
                              aud: process.env.AUTH0_CLIENT_ID,
+                             sub: request.payload.token.sub + subIndex++,
                              iss: `https://${process.env.AUTH0_DOMAIN}/`,
                              iat: Math.floor(Date.now() / 1000) - (60 * 60)};
           _permissions = request.payload.permissions.length ? request.payload.permissions : [];
@@ -279,11 +285,49 @@ require('../support/setupKeystore').then(keyStuff => {
       server.route({
         method: 'GET',
         path: '/api/v2/users',
-        handler: (request, h) => {
+        handler: async function(request, h) {
           console.log('GET /api/v2/users');
-          return h.response(require('../fixtures/managementApi/userList'));
+
+          /**
+           * Testing has revealed that names and fields aren't always consistent
+           * between profile data and that returned by queries to Auth0.
+           *
+           * E.g., `user_id` vs. `sub` (perhaps not a _fair_ example given the role of `sub`)
+           */
+          const results = await models.Agent.findAll({ attributes: ['socialProfile'] });
+          const profiles = results.map(p => { return {...p.socialProfile._json, user_id: p.socialProfile._json.sub } });
+
+          console.log(profiles);
+          return h.response(profiles);
         }
       });
+
+
+      /**
+       * GET `/users/:id`
+       */
+      server.route({
+        method: 'GET',
+        path: '/api/v2/users/{id}',
+        handler: async function(request, h) {
+          console.log('GET /api/v2/users/{id}');
+
+          /**
+           * Testing has revealed that names and fields aren't always consistent
+           * between profile data and that returned by queries to Auth0.
+           *
+           * E.g., `user_id` vs. `sub` (perhaps not a _fair_ example given the role of `sub`)
+           */
+          const results = await models.Agent.findOne({ where: {
+                                                                socialProfile: {
+                                                                  '"user_id"': request.params.id
+                                                                }
+                                                            }, attributes: ['socialProfile'] });
+
+          return h.response({...results.socialProfile._json, user_id: results.socialProfile._json.sub });
+        }
+      });
+
 
       /**
        * PATCH `/users`
