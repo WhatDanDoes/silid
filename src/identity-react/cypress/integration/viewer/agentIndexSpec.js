@@ -47,6 +47,10 @@ context('viewer/Agent Index', function() {
       describe('social profile data', () => {
         it('displays JSON', () => {
           cy.get('.react-json-view').its('length').should('eq', 1);
+          cy.get('.react-json-view').contains('locale');
+          cy.get('.react-json-view').contains('picture');
+          cy.get('.react-json-view').contains('user_id');
+          cy.get('.react-json-view').contains('displayName');
         });
       });
 
