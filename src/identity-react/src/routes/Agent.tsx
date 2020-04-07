@@ -114,9 +114,7 @@ const Agent = (props: any) => {
           <Typography variant="body2" color="textSecondary" component="p">
             {service.status === 'loading' && <div>Loading...</div>}
           </Typography>
-        </Grid>
-        <Grid item>
-          <Typography className={classes.header} variant="h5" component="h3">
+        </Grid> <Grid item> <Typography className={classes.header} variant="h5" component="h3">
             Profile
           </Typography>
         </Grid>
@@ -180,7 +178,7 @@ const Agent = (props: any) => {
             </Grid>
             <Grid item className={classes.json}>
               <ReactJson
-                src={formData.socialProfile}
+                src={formData}
                 collapsed={false}
                 collapseStringsAfterLength={80}
                 displayDataTypes={false}
