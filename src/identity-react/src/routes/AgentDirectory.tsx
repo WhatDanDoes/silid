@@ -77,7 +77,7 @@ const AgentDirectory = (props: any) => {
           {service.status === 'loaded' && agentList.results.length ?
             <List id="agent-list">
               { agentList.results.map(a => (
-                <ListItem className='agent-button' key={`Agents-${a.id}`}>
+                <ListItem className='agent-button' key={`Agents-${admin.viewingCached ? a.id : a.user_id}`}>
                   <ListItemLink href={`#agent/${admin.viewingCached ? a.id : a.user_id}`}>
                     <ListItemAvatar>
                       <Avatar className="avatar" alt={a.name} src={a.picture} />
