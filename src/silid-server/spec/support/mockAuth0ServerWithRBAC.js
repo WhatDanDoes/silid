@@ -298,6 +298,15 @@ require('../support/setupKeystore').then(keyStuff => {
           const results = await models.Agent.findAll({ attributes: ['socialProfile'] });
           const profiles = results.map(p => { return {...p.socialProfile._json, user_id: p.socialProfile._json.sub } });
 
+          profiles.sort((a, b) => {
+            if (a.name < b.name) {
+              return -1;
+            }
+            if (a.name > b.name) {
+              return 1;
+            }
+            return 0;
+          });
           console.log(profiles);
           return h.response(profiles);
         }
