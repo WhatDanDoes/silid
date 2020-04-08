@@ -29,7 +29,7 @@ router.get('/admin/:cached?', checkPermissions(roles.sudo), function(req, res, n
   }
   else {
     const managementClient = getManagementClient(apiScope.read.users);
-    managementClient.getUsers().then(agents => {
+    managementClient.getUsers({ per_page: 30 }).then(agents => {
       res.status(200).json(agents);
     }).catch(err => {
       res.status(err.statusCode).json(err.message.error_description);
