@@ -218,9 +218,8 @@ context('root/Agent edit', function() {
                 });
 
                 it('lands in the right spot', () => {
-                  cy.url().should('contain', `/#/agent/${memberAgent.id}`);
+                  cy.url().should('contain', `/#/agent/${memberAgent.socialProfile.user_id}`);
                 });
-
               });
             });
           });
@@ -241,7 +240,7 @@ context('root/Agent edit', function() {
             });
 
             it('lands in the right spot', () => {
-              cy.url().should('contain', `/#/agent/${memberAgent.id}`);
+              cy.url().should('contain', `/#/agent/${memberAgent.socialProfile.user_id}`);
             });
 
             it('displays agent social profile info in form', function() {
