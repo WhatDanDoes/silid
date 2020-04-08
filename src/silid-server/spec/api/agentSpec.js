@@ -348,8 +348,10 @@ describe('agentSpec', () => {
             });
         });
 
+// 2020-4-8 Maybe useful later...
 //        describe('Auth0', () => {
-//          it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => { //            authenticatedSession
+//          it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
+//            authenticatedSession
 //              .put('/agent')
 //              .send({
 //                id: agent.id,
