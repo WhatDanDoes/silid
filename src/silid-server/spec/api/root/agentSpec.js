@@ -308,54 +308,55 @@ describe('root/agentSpec', () => {
         });
       });
 
-      describe('database', () => {
-        it('adds a new record to the database', done => {
-          models.Agent.findAll().then(results => {
-            expect(results.length).toEqual(2);
-
-            rootSession
-              .post('/agent')
-              .send({
-                email: 'someotherguy@example.com'
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(201)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-
-                expect(res.body.email).toEqual('someotherguy@example.com');
-
-                models.Agent.findAll().then(results => {
-                  expect(results.length).toEqual(3);
-                  done();
-                }).catch(err => {
-                  done.fail(err);
-                });
-              });
-          }).catch(err => {
-            done.fail(err);
-          });
-        });
-
-        it('returns an error if record already exists', done => {
-          rootSession
-            .post('/agent')
-            .send({
-              email: agent.email
-            })
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(500)
-            .end(function(err, res) {
-              if (err) done.fail(err);
-
-              expect(res.body.errors.length).toEqual(1);
-              expect(res.body.errors[0].message).toEqual('That agent is already registered');
-              done();
-            });
-        });
-      });
+// 2020-4-8
+//      describe('database', () => {
+//        it('adds a new record to the database', done => {
+//          models.Agent.findAll().then(results => {
+//            expect(results.length).toEqual(2);
+//
+//            rootSession
+//              .post('/agent')
+//              .send({
+//                email: 'someotherguy@example.com'
+//              })
+//              .set('Accept', 'application/json')
+//              .expect('Content-Type', /json/)
+//              .expect(201)
+//              .end(function(err, res) {
+//                if (err) return done.fail(err);
+//
+//                expect(res.body.email).toEqual('someotherguy@example.com');
+//
+//                models.Agent.findAll().then(results => {
+//                  expect(results.length).toEqual(3);
+//                  done();
+//                }).catch(err => {
+//                  done.fail(err);
+//                });
+//              });
+//          }).catch(err => {
+//            done.fail(err);
+//          });
+//        });
+//
+//        it('returns an error if record already exists', done => {
+//          rootSession
+//            .post('/agent')
+//            .send({
+//              email: agent.email
+//            })
+//            .set('Accept', 'application/json')
+//            .expect('Content-Type', /json/)
+//            .expect(500)
+//            .end(function(err, res) {
+//              if (err) done.fail(err);
+//
+//              expect(res.body.errors.length).toEqual(1);
+//              expect(res.body.errors[0].message).toEqual('That agent is already registered');
+//              done();
+//            });
+//        });
+//      });
 
       describe('Auth0', () => {
         it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
@@ -397,23 +398,23 @@ describe('root/agentSpec', () => {
             });
         });
 
-        it('does not call the Auth0 endpoints if record already exists', done => {
-          rootSession
-            .post('/agent')
-            .send({
-              email: agent.email
-            })
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(500)
-            .end(function(err, res) {
-              if (err) done.fail(err);
-
-              expect(oauthTokenScope.isDone()).toBe(false);
-              expect(auth0UserCreateScope.isDone()).toBe(false);
-              done();
-            });
-        });
+//        it('does not call the Auth0 endpoints if record already exists', done => {
+//          rootSession
+//            .post('/agent')
+//            .send({
+//              email: agent.email
+//            })
+//            .set('Accept', 'application/json')
+//            .expect('Content-Type', /json/)
+//            .expect(500)
+//            .end(function(err, res) {
+//              if (err) done.fail(err);
+//
+//              expect(oauthTokenScope.isDone()).toBe(false);
+//              expect(auth0UserCreateScope.isDone()).toBe(false);
+//              done();
+//            });
+//        });
       });
     });
 

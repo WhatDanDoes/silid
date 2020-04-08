@@ -91,19 +91,22 @@ router.get('/:id/:cached?', checkPermissions([scope.read.agents]), function(req,
 });
 
 router.post('/', checkPermissions([scope.create.agents]), function(req, res, next) {
-  let agent = new models.Agent({ email: req.body.email });
-  agent.save().then(result => {
+//2020-4-8 
+//  let agent = new models.Agent({ email: req.body.email });
+//  agent.save().then(result => {
 
-    const managementClient = getAuth0ManagementClient(apiScope.create.users);
-    managementClient.createUser({ email: req.body.email, connection: 'Initial-Connection' }).then(users => {
-      res.status(201).json(result);
-    })
-    .catch(err => {
-      res.status(err.statusCode).json(err.message.error_description);
-    });
-  }).catch(err => {
-    res.status(500).json(err);
+  const managementClient = getAuth0ManagementClient(apiScope.create.users);
+  managementClient.createUser({ ...req.body, connection: 'Initial-Connection' }).then(result => {
+    res.status(201).json(result);
+  })
+  .catch(err => {
+    res.status(err.statusCode).json(err.message.error_description);
   });
+
+
+//  }).catch(err => {
+//    res.status(500).json(err);
+//  });
 });
 
 router.put('/', checkPermissions([scope.update.agents]), function(req, res, next) {
