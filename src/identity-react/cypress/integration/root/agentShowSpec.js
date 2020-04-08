@@ -69,14 +69,10 @@ context('root/Agent show', function() {
           it('displays agent\'s editable info in form', function() {
             cy.get('h3').contains('Profile');
             cy.get('input[name="name"][type="text"]').should('have.value', memberAgent.name);
-            cy.get('input[name="name"][type="text"]').should('not.be.disabled');
+            cy.get('input[name="name"][type="text"]').should('be.disabled');
             cy.get('input[name="email"][type="email"]').should('have.value', memberAgent.email);
             cy.get('input[name="email"][type="email"]').should('be.disabled');
-            cy.get('button[type="submit"]').should('exist');
-          });
-
-          it('disables the Save button', () => {
-            cy.get('button[type="submit"]').should('be.disabled');
+            cy.get('button[type="submit"]').should('not.exist');
           });
 
           describe('social profile data', () => {

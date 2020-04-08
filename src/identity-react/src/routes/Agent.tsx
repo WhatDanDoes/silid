@@ -147,7 +147,7 @@ const Agent = (props: any) => {
                   margin="normal"
                   name="name"
                   required
-                  disabled={formData.email !== agent.email && !admin.isEnabled}
+                  disabled={formData.email !== agent.email && !admin.viewingCached}
                   value={formData.name}
                   onChange={onChange}
                   onInvalid={customMessage}
@@ -163,7 +163,7 @@ const Agent = (props: any) => {
                       Cancel
                   </Button> : ''
                 }
-                { formData.email === agent.email || admin.isEnabled ?
+                { formData.email === agent.email || (admin.isEnabled && admin.viewingCached) ?
                 <Button className={classes.button}
                         type="submit" variant="contained" color="primary"
                         disabled={!Object.keys(prevState).length}>

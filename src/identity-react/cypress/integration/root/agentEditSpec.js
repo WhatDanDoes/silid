@@ -212,13 +212,22 @@ context('root/Agent edit', function() {
                   cy.get('#admin-switch').check();
                   cy.get('#show-cached-switch').uncheck();
                   cy.contains('Agent Directory').click();
-                  cy.wait(500);
+                  cy.wait(300);
                   cy.contains(memberAgent.name).click();
-                  cy.wait(500);
+                  cy.wait(300);
                 });
 
                 it('lands in the right spot', () => {
                   cy.url().should('contain', `/#/agent/${memberAgent.socialProfile.user_id}`);
+                });
+
+                it('disables the form', () => {
+                  cy.get('h3').contains('Profile');
+                  cy.get('input[name="name"][type="text"]').should('have.value', memberAgent.name);
+                  cy.get('input[name="name"][type="text"]').should('be.disabled');
+                  cy.get('input[name="email"][type="email"]').should('have.value', memberAgent.email);
+                  cy.get('input[name="email"][type="email"]').should('be.disabled');
+                  cy.get('button[type="submit"]').should('not.exist');
                 });
               });
             });
