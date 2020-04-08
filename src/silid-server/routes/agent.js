@@ -11,24 +11,7 @@ const apiScope = require('../config/apiPermissions');
 const roles = require('../config/roles');
 const checkPermissions = require('../lib/checkPermissions');
 
-
-/**
- * 2020-3-27
- *
- * https://community.auth0.com/t/node-managementclient-getuserroles-is-not-a-function/24514
- *
- * @param string
- */
-function getAuth0ManagementClient(permissions) {
-  const ManagementClient = require('auth0').ManagementClient;
-  return new ManagementClient({
-    domain: process.env.AUTH0_DOMAIN,
-    clientId: process.env.AUTH0_CLIENT_ID,
-    clientSecret: process.env.AUTH0_CLIENT_SECRET,
-    scope: permissions
-  });
-}
-
+const getManagementClient = require('../lib/getManagementClient');
 
 /* GET agent listing. */
 router.get('/admin/:cached?', checkPermissions(roles.sudo), function(req, res, next) {
@@ -45,7 +28,7 @@ router.get('/admin/:cached?', checkPermissions(roles.sudo), function(req, res, n
     });
   }
   else {
-    const managementClient = getAuth0ManagementClient(apiScope.read.users);
+    const managementClient = getManagementClient(apiScope.read.users);
     managementClient.getUsers().then(agents => {
       res.status(200).json(agents);
     }).catch(err => {
@@ -67,7 +50,7 @@ router.get('/:id/:cached?', checkPermissions([scope.read.agents]), function(req,
         return res.status(404).json(result);
       }
 
-      const managementClient = getAuth0ManagementClient(apiScope.read.users);
+      const managementClient = getManagementClient(apiScope.read.users);
       managementClient.getUsersByEmail(result.email).then(users => {
         res.status(200).json(result);
       }).catch(err => {
@@ -81,7 +64,7 @@ router.get('/:id/:cached?', checkPermissions([scope.read.agents]), function(req,
     return res.status(403).json( { message: 'Forbidden' });
   }
   else {
-    const managementClient = getAuth0ManagementClient(apiScope.read.users);
+    const managementClient = getManagementClient(apiScope.read.users);
     managementClient.getUser({id: req.params.id}).then(agent => {
       res.status(200).json(agent);
     }).catch(err => {
@@ -95,7 +78,7 @@ router.post('/', checkPermissions([scope.create.agents]), function(req, res, nex
 //  let agent = new models.Agent({ email: req.body.email });
 //  agent.save().then(result => {
 
-  const managementClient = getAuth0ManagementClient(apiScope.create.users);
+  const managementClient = getManagementClient(apiScope.create.users);
   managementClient.createUser({ ...req.body, connection: 'Initial-Connection' }).then(result => {
     res.status(201).json(result);
   })
@@ -129,7 +112,7 @@ router.put('/', checkPermissions([scope.update.agents]), function(req, res, next
 
 // 2020-4-8 Saving for later. Cf., `spec/agentSpec`
 //      if (result.socialProfile) {
-//        const managementClient = getAuth0ManagementClient(apiScope.update.users);
+//        const managementClient = getManagementClient(apiScope.update.users);
 //        managementClient.updateUser({ id: result.socialProfile.id }, req.body).then(users => {
           res.status(201).json(result);
 //        })
@@ -161,7 +144,7 @@ router.delete('/', checkPermissions([scope.delete.agents]), function(req, res, n
     agent.destroy().then(results => {
 
       if (agent.socialProfile) {
-        const managementClient = getAuth0ManagementClient(apiScope.delete.users);
+        const managementClient = getManagementClient(apiScope.delete.users);
         managementClient.deleteUser({ id: agent.socialProfile.id }, req.body).then(users => {
           res.status(201).json({ message: 'Agent deleted' });
         })

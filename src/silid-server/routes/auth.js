@@ -10,7 +10,6 @@ const url = require('url');
 
 const apiScope = require('../config/apiPermissions');
 const roles = require('../config/roles');
-const getManagementClient = require('../lib/getManagementClient');
 
 router.get('/login', (req, res, next) => {
   const authenticator = passport.authenticate('auth0', {
