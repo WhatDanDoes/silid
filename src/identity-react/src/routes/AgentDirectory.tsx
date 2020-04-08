@@ -11,6 +11,7 @@ import { useAdminState } from '../auth/Admin';
 
 import ListItemAvatar from '@material-ui/core/ListItemAvatar';
 import Avatar from '@material-ui/core/Avatar';
+import Pagination from '@material-ui/lab/Pagination';
 
 
 import useGetAgentDirectoryService, { Agents } from '../services/useGetAgentDirectoryService';
@@ -75,18 +76,26 @@ const AgentDirectory = (props: any) => {
           <Typography variant="body2" color="textSecondary" component="div">
           {service.status === 'loading' && <div>Loading...</div>}
           {service.status === 'loaded' && agentList.results.length ?
-            <List id="agent-list">
-              { agentList.results.map(a => (
-                <ListItem className='agent-button' key={`Agents-${admin.viewingCached ? a.id : a.user_id}`}>
-                  <ListItemLink href={`#agent/${admin.viewingCached ? a.id : a.user_id}`}>
-                    <ListItemAvatar>
-                      <Avatar className="avatar" alt={a.name} src={a.picture} />
-                    </ListItemAvatar>
-                    <ListItemText className="name-email" primary={a.name} secondary={a.email} />
-                  </ListItemLink>
-                </ListItem>
-              ))}
-            </List> : ''}
+            <>
+              { agentList.results.length >= 30 ?
+                <Pagination className="pager" count={-1} size="large" />
+              : ''}
+              <List id="agent-list">
+                { agentList.results.map(a => (
+                  <ListItem className='agent-button' key={`Agents-${admin.viewingCached ? a.id : a.user_id}`}>
+                    <ListItemLink href={`#agent/${admin.viewingCached ? a.id : a.user_id}`}>
+                      <ListItemAvatar>
+                        <Avatar className="avatar" alt={a.name} src={a.picture} />
+                      </ListItemAvatar>
+                      <ListItemText className="name-email" primary={a.name} secondary={a.email} />
+                    </ListItemLink>
+                  </ListItem>
+                ))}
+              </List>
+              { agentList.results.length >= 30 ?
+                <Pagination className="pager" count={-1} size="large" />
+              : ''}
+            </> : ''}
           </Typography>
           {service.status === 'error' && (
             <div>Error, the backend moved to the dark side.</div>
