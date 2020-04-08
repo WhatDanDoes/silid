@@ -133,6 +133,10 @@ context('root/Agent Index', function() {
             cy.get('.agent-button').last().contains(agents[1].email);
             cy.get('.agent-button a').last().should('have.attr', 'href').and('include', `#agent/${agents[1].socialProfile.id}`);
           });
+
+          it('does not display the paging button', () => {
+            cy.get('.pager').should('not.exist');
+          });
         });
       });
     });
