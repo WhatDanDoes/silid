@@ -73,7 +73,7 @@ const Agent = (props: any) => {
   const admin = useAdminState();
 
   const classes = useStyles();
-  const service = useGetAgentService(props.match.params.id);
+  const service = useGetAgentService(props.match.params.id, admin.viewingCached);
 
   let { publishAgent } = usePutAgentService();
 

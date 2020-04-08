@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Service } from '../types/Service';
 import { Agent } from '../types/Agent';
 
-const useAgentService = (id: number) => {
+const useAgentService = (id: number, getCached: boolean) => {
   const [result, setResult] = useState<Service<Agent>>({
     status: 'loading'
   });
@@ -10,7 +10,7 @@ const useAgentService = (id: number) => {
   useEffect(() => {
     let url = '/agent';
     if (id) {
-      url = `${url}/${id}`;
+      url = `${url}/${id}${getCached ? '/cached' : ''}`;
     }
 
     const headers = new Headers();
@@ -20,7 +20,7 @@ const useAgentService = (id: number) => {
       .then(response => response.json())
       .then(response => setResult({ status: 'loaded', payload: response }))
       .catch(error => setResult({ status: 'error', error }));
-  }, [id]);
+  }, [id, getCached]);
 
   return result;
 };
