@@ -348,62 +348,60 @@ describe('agentSpec', () => {
             });
         });
 
-
-        describe('Auth0', () => {
-          it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
-            authenticatedSession
-              .put('/agent')
-              .send({
-                id: agent.id,
-                name: 'Some Cool Guy'
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(201)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-                expect(oauthTokenScope.isDone()).toBe(true);
-                done();
-              });
-          });
-
-          it('calls Auth0 to update the agent at the Auth0-defined connection', done => {
-            authenticatedSession
-              .put('/agent')
-              .send({
-                id: agent.id,
-                name: 'Some Cool Guy'
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(201)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-
-                expect(auth0UserUpdateScope.isDone()).toBe(true);
-                done();
-              });
-          });
-
-          it('does not call the Auth0 endpoints if record doesn\'t  exists', done => {
-            authenticatedSession
-              .put('/agent')
-              .send({
-                id: 333,
-                name: 'Some Cool Guy'
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(404)
-              .end(function(err, res) {
-                if (err) done.fail(err);
-
-                expect(oauthTokenScope.isDone()).toBe(false);
-                expect(auth0UserUpdateScope.isDone()).toBe(false);
-                done();
-              });
-          });
-        });
+//        describe('Auth0', () => {
+//          it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => { //            authenticatedSession
+//              .put('/agent')
+//              .send({
+//                id: agent.id,
+//                name: 'Some Cool Guy'
+//              })
+//              .set('Accept', 'application/json')
+//              .expect('Content-Type', /json/)
+//              .expect(201)
+//              .end(function(err, res) {
+//                if (err) return done.fail(err);
+//                expect(oauthTokenScope.isDone()).toBe(true);
+//                done();
+//              });
+//          });
+//
+//          it('calls Auth0 to update the agent at the Auth0-defined connection', done => {
+//            authenticatedSession
+//              .put('/agent')
+//              .send({
+//                id: agent.id,
+//                name: 'Some Cool Guy'
+//              })
+//              .set('Accept', 'application/json')
+//              .expect('Content-Type', /json/)
+//              .expect(201)
+//              .end(function(err, res) {
+//                if (err) return done.fail(err);
+//
+//                expect(auth0UserUpdateScope.isDone()).toBe(true);
+//                done();
+//              });
+//          });
+//
+//          it('does not call the Auth0 endpoints if record doesn\'t  exists', done => {
+//            authenticatedSession
+//              .put('/agent')
+//              .send({
+//                id: 333,
+//                name: 'Some Cool Guy'
+//              })
+//              .set('Accept', 'application/json')
+//              .expect('Content-Type', /json/)
+//              .expect(404)
+//              .end(function(err, res) {
+//                if (err) done.fail(err);
+//
+//                expect(oauthTokenScope.isDone()).toBe(false);
+//                expect(auth0UserUpdateScope.isDone()).toBe(false);
+//                done();
+//              });
+//          });
+//        });
       });
 
       describe('delete', () => {

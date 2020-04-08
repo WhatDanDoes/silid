@@ -124,18 +124,19 @@ router.put('/', checkPermissions([scope.update.agents]), function(req, res, next
 
     agent.save().then(result => {
 
-      if (result.socialProfile) {
-        const managementClient = getAuth0ManagementClient(apiScope.update.users);
-        managementClient.updateUser({ id: result.socialProfile.id }, req.body).then(users => {
+// 2020-4-8 Saving for later. Cf., `spec/agentSpec`
+//      if (result.socialProfile) {
+//        const managementClient = getAuth0ManagementClient(apiScope.update.users);
+//        managementClient.updateUser({ id: result.socialProfile.id }, req.body).then(users => {
           res.status(201).json(result);
-        })
-        .catch(err => {
-          res.status(err.statusCode).json(err.message.error_description);
-        });
-      }
-      else {
-        res.status(201).json(result);
-      }
+//        })
+//        .catch(err => {
+//          res.status(err.statusCode).json(err.message.error_description);
+//        });
+//      }
+//      else {
+//        res.status(201).json(result);
+//      }
     }).catch(err => {
       res.status(500).json(err);
     });
