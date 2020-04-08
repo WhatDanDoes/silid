@@ -57,6 +57,7 @@ if (process.env.NODE_ENV === 'e2e') {
  */
 const _identity = require('../fixtures/sample-auth0-identity-token');
 const _access = require('../fixtures/sample-auth0-access-token');
+const _profile = require('../fixtures/sample-auth0-profile-response');
 
 /**
  * The agent ID token "database"
@@ -299,6 +300,37 @@ require('../support/setupKeystore').then(keyStuff => {
 
           console.log(profiles);
           return h.response(profiles);
+        }
+      });
+
+      /**
+       * POST `/users`
+       */
+      server.route({
+        method: 'POST',
+        path: '/api/v2/users',
+        handler: async function(request, h) {
+          console.log('POST /api/v2/users');
+          console.log(request.payload);
+
+          try {
+            let userId = _profile.user_id + subIndex++;
+            let agent = new models.Agent({ ...request.payload,
+                                           socialProfile: {
+                                             ..._profile,
+                                             ...request.payload,
+                                             _json: { ..._profile, ...request.payload, sub: userId },
+                                             user_id: userId
+                                           }
+                                         });
+            let result = await agent.save();
+            console.log(result);
+
+            return h.response().code(201);
+          } catch(err) {
+            console.error(err);
+            return h.response(err).code(500);
+          }
         }
       });
 
