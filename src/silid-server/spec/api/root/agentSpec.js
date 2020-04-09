@@ -114,9 +114,67 @@ describe('root/agentSpec', () => {
             .end(function(err, res) {
               if (err) return done.fail(err);
 
+              /**
+               * For the purpose of documenting expected fields
+               */
               let userList = require('../../fixtures/managementApi/userList');
               expect(res.body).toEqual(userList);
-              expect(res.body.length).toEqual(userList.length);
+              expect(res.body.start).toEqual(0);
+              expect(res.body.limit).toEqual(30);
+              expect(res.body.length).toEqual(1);
+              expect(res.body.users.length).toEqual(userList.length);
+              done();
+            });
+        });
+
+        describe('Auth0', () => {
+          it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
+            rootSession
+              .get(`/agent/admin`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(oauthTokenScope.isDone()).toBe(true);
+                done();
+              });
+          });
+
+          it('calls Auth0 to read the agent at the Auth0-defined connection', done => {
+            rootSession
+              .get(`/agent/admin`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(auth0UserListScope.isDone()).toBe(true);
+                done();
+              });
+          });
+        });
+      });
+
+      describe('/agent/admin/:page', () => {
+        it('retrieves all the agents at Auth0', done => {
+          rootSession
+            .get(`/agent/admin/5`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(200)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+
+              /**
+               * For the purpose of documenting expected fields
+               */
+              let userList = require('../../fixtures/managementApi/userList');
+              expect(res.body.start).toEqual(5);
+              expect(res.body.limit).toEqual(30);
+              expect(res.body.length).toEqual(1);
+              expect(res.body.users.length).toEqual(userList.length);
               done();
             });
         });
@@ -187,6 +245,73 @@ describe('root/agentSpec', () => {
           it('does not call Auth0 to read the agent at the Auth0-defined connection', done => {
             rootSession
               .get(`/agent/admin/cached`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(auth0UserListScope.isDone()).toBe(false);
+                done();
+              });
+          });
+        });
+      });
+
+      describe('/agent/admin/:page/cached', () => {
+        it('retrieves all the agents in the database', done => {
+          models.Agent.findAll().then(results => {
+          rootSession
+            .get(`/agent/admin/0/cached`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(200)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+
+              expect(res.body.length).toEqual(results.length);
+              done();
+            });
+          }).catch(err => {
+            done.fail(err);
+          });
+        });
+
+        it('retrieves an empty array when out of range', done => {
+          models.Agent.findAll().then(results => {
+          rootSession
+            .get(`/agent/admin/100/cached`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(200)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+
+              expect(res.body.length).toEqual(0);
+              done();
+            });
+          }).catch(err => {
+            done.fail(err);
+          });
+        });
+
+        describe('Auth0', () => {
+          it('does not call the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
+            rootSession
+              .get(`/agent/admin/0/cached`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(oauthTokenScope.isDone()).toBe(false);
+                done();
+              });
+          });
+
+          it('does not call Auth0 to read the agent at the Auth0-defined connection', done => {
+            rootSession
+              .get(`/agent/admin/0/cached`)
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(200)

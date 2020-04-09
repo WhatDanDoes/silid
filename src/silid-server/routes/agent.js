@@ -14,14 +14,25 @@ const checkPermissions = require('../lib/checkPermissions');
 const getManagementClient = require('../lib/getManagementClient');
 
 /* GET agent listing. */
-router.get('/admin/:cached?', checkPermissions(roles.sudo), function(req, res, next) {
+router.get('/admin/:page?/:cached?', checkPermissions(roles.sudo), function(req, res, next) {
   if (!req.agent.isSuper) {
     return res.status(403).json( { message: 'Forbidden' });
   }
 
+  let viewCached = false;
+  let page = 0;
+  if (req.params.page) {
+    if (req.params.page === 'cached') {
+      viewCached = true;
+    }
+    else {
+      page = parseInt(req.params.page);
+    }
+  }
+
   // Super agent gets entire listing
-  if (req.params.cached) {
-    models.Agent.findAll({ order: [['name', 'ASC']] }).then(results => {
+  if (req.params.cached || viewCached) {
+    models.Agent.findAll({ order: [['name', 'ASC']], limit: 30, offset: page * 30 }).then(results => {
       res.json(results);
     }).catch(err => {
       res.status(500).json(err);
@@ -29,7 +40,7 @@ router.get('/admin/:cached?', checkPermissions(roles.sudo), function(req, res, n
   }
   else {
     const managementClient = getManagementClient(apiScope.read.users);
-    managementClient.getUsers({ per_page: 30 }).then(agents => {
+    managementClient.getUsers({ page: page, per_page: 30, include_totals: true }).then(agents => {
       res.status(200).json(agents);
     }).catch(err => {
       res.status(err.statusCode).json(err.message.error_description);

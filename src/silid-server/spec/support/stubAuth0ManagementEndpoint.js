@@ -1,4 +1,5 @@
 const nock = require('nock');
+const querystring = require('querystring');
 
 /**
  * 2019-11-13
@@ -53,9 +54,10 @@ module.exports = function(permissions, done) {
     const auth0UserListScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .log(console.log)
       .get(/api\/v2\/users/)
-      .query({ per_page: 30 })
+      .query({ per_page: 30, include_totals: true, page: /\d+/ })
       .reply(200, (uri, requestBody, cb) => {
-        cb(null, require('../fixtures/managementApi/userList'));
+        let q = querystring.parse(uri.split('?')[1]);
+        cb(null, {...require('../fixtures/managementApi/userList'), start: parseInt(q.page) });
       });
 
     /**
