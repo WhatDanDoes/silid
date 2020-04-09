@@ -2,6 +2,7 @@
   "start": 0,
   "limit": 30,
   "length": 1,
+  "total": 100,
   "users": [
     {
       "user_id": "auth0|507f1f77bcf86cd799439020",
