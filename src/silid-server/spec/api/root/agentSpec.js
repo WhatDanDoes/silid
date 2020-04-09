@@ -122,6 +122,7 @@ describe('root/agentSpec', () => {
               expect(res.body.start).toEqual(0);
               expect(res.body.limit).toEqual(30);
               expect(res.body.length).toEqual(1);
+              expect(res.body.total).toEqual(100);
               expect(res.body.users.length).toEqual(userList.length);
               done();
             });
@@ -174,6 +175,7 @@ describe('root/agentSpec', () => {
               expect(res.body.start).toEqual(5);
               expect(res.body.limit).toEqual(30);
               expect(res.body.length).toEqual(1);
+              expect(res.body.total).toEqual(100);
               expect(res.body.users.length).toEqual(userList.length);
               done();
             });
@@ -210,19 +212,29 @@ describe('root/agentSpec', () => {
       });
 
       describe('/agent/admin/cached', () => {
-        it('retrieves all the agents in the database', done => {
-          models.Agent.findAll().then(results => {
-          rootSession
-            .get(`/agent/admin/cached`)
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(200)
-            .end(function(err, res) {
-              if (err) return done.fail(err);
 
-              expect(res.body.length).toEqual(results.length);
-              done();
-            });
+        it('retrieves all the agents in the database', done => {
+          models.Agent.findAll({ where: { socialProfile: { [models.Sequelize.Op.ne]: null} } }).then(results => {
+            rootSession
+              .get(`/agent/admin/cached`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                /**
+                 * For the purpose of documenting expected fields
+                 */
+                expect(res.body.start).toEqual(0);
+                expect(res.body.limit).toEqual(30);
+                expect(res.body.length).toEqual(results.length);
+                expect(res.body.total).toEqual(results.length);
+                expect(res.body.users.length).toEqual(results.length);
+                expect(res.body.users[0].given_name).toBeDefined();
+
+                done();
+              });
           }).catch(err => {
             done.fail(err);
           });
@@ -260,7 +272,7 @@ describe('root/agentSpec', () => {
 
       describe('/agent/admin/:page/cached', () => {
         it('retrieves all the agents in the database', done => {
-          models.Agent.findAll().then(results => {
+          models.Agent.findAll({ where: { socialProfile: { [models.Sequelize.Op.ne]: null} } }).then(results => {
           rootSession
             .get(`/agent/admin/0/cached`)
             .set('Accept', 'application/json')
@@ -269,7 +281,17 @@ describe('root/agentSpec', () => {
             .end(function(err, res) {
               if (err) return done.fail(err);
 
+              /**
+               * For the purpose of documenting expected fields
+               */
+              let userList = require('../../fixtures/managementApi/userList');
+              expect(res.body.start).toEqual(0);
+              expect(res.body.limit).toEqual(30);
               expect(res.body.length).toEqual(results.length);
+              expect(res.body.total).toEqual(results.length);
+              expect(res.body.users.length).toEqual(results.length);
+              expect(res.body.users[0].given_name).toBeDefined();
+
               done();
             });
           }).catch(err => {
