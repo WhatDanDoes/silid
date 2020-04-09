@@ -55,6 +55,23 @@ context('root/Agent Index Paging', function() {
             it('displays 30 agent entries', () => {
               cy.get('#agent-list').find('.agent-button').its('length').should('eq', 30);
             });
+
+            it('displays 4 page buttons for 91 agent entries', () => {
+              cy.get('.pager').first().find('ul li').its('length').should('eq', 6);
+              cy.get('.pager').first().find('ul li:nth-child(2)').contains('1');
+              cy.get('.pager').first().find('ul li:nth-child(3)').contains('2');
+              cy.get('.pager').first().find('ul li:nth-child(4)').contains('3');
+              cy.get('.pager').first().find('ul li:nth-child(5)').contains('4');
+              cy.get('.pager').last().find('ul li').its('length').should('eq', 6);
+              cy.get('.pager').last().find('ul li:nth-child(2)').contains('1');
+              cy.get('.pager').last().find('ul li:nth-child(3)').contains('2');
+              cy.get('.pager').last().find('ul li:nth-child(4)').contains('3');
+              cy.get('.pager').last().find('ul li:nth-child(5)').contains('4');
+            });
+
+            describe('paging forward', () => {
+
+            });
           });
         });
       });

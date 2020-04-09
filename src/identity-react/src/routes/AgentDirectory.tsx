@@ -78,10 +78,10 @@ const AgentDirectory = (props: any) => {
           {service.status === 'loaded' && agentList.results.length ?
             <>
               { agentList.results.length >= 30 ?
-                <Pagination className="pager" count={-1} size="large" />
+                <Pagination className="pager" count={Math.ceil(agentList.results.total / agentList.results.limit)} size="large" />
               : ''}
               <List id="agent-list">
-                { agentList.results.map(a => (
+                { agentList.results.users.map(a => (
                   <ListItem className='agent-button' key={`Agents-${admin.viewingCached ? a.id : a.user_id}`}>
                     <ListItemLink href={`#agent/${admin.viewingCached ? a.id : a.user_id}`}>
                       <ListItemAvatar>
@@ -93,7 +93,7 @@ const AgentDirectory = (props: any) => {
                 ))}
               </List>
               { agentList.results.length >= 30 ?
-                <Pagination className="pager" count={-1} size="large" />
+                <Pagination className="pager" count={Math.ceil(agentList.results.total / agentList.results.limit)} size="large" />
               : ''}
             </> : ''}
           </Typography>
