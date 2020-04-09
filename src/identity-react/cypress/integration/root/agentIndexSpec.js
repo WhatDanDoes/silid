@@ -83,7 +83,7 @@ context('root/Agent Index', function() {
                 // Easy way to register a new agent
                 cy.login('someotherguy@example.com', { ..._profile, name: 'Some Other Guy' }, [this.scope.read.agents]);
                 cy.login(_profile.email, _profile);
-                cy.task('query', 'SELECT * FROM "Agents";').then(([results, metadata]) => {
+                cy.task('query', 'SELECT * FROM "Agents" ORDER BY "name";').then(([results, metadata]) => {
                   agents = results;
                   expect(agents.length).to.equal(2);
 
