@@ -232,6 +232,7 @@ describe('root/agentSpec', () => {
                 expect(res.body.total).toEqual(results.length);
                 expect(res.body.users.length).toEqual(results.length);
                 expect(res.body.users[0].given_name).toBeDefined();
+                expect(res.body.users[0].id).toEqual(results[0].id);
 
                 done();
               });
@@ -291,6 +292,7 @@ describe('root/agentSpec', () => {
               expect(res.body.total).toEqual(results.length);
               expect(res.body.users.length).toEqual(results.length);
               expect(res.body.users[0].given_name).toBeDefined();
+              expect(res.body.users[0].id).toEqual(results[0].id);
 
               done();
             });

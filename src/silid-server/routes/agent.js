@@ -32,13 +32,13 @@ router.get('/admin/:page?/:cached?', checkPermissions(roles.sudo), function(req,
 
   // Super agent gets entire listing
   if (req.params.cached || viewCached) {
-    models.Agent.findAll({ attributes: ['socialProfile'],
+    models.Agent.findAll({ attributes: ['socialProfile', 'id'],
                            where: { socialProfile: { [models.Sequelize.Op.ne]: null} },
                            order: [['name', 'ASC']],
                            limit: 30,
                            offset: page * 30 }).
                         then(results => {
-      const profiles = results.map(p => p.socialProfile._json);
+      const profiles = results.map(p => { return {...p.socialProfile._json, id: p.id }; });
       models.Agent.count({ where: { socialProfile: { [models.Sequelize.Op.ne]: null} } }).then(count => {
         res.json({ users: profiles, start: page, limit: 30, length: profiles.length, total: count });
       }).catch(err => {
