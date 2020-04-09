@@ -295,7 +295,11 @@ require('../support/setupKeystore').then(keyStuff => {
            *
            * E.g., `user_id` vs. `sub` (perhaps not a _fair_ example given the role of `sub`)
            */
-          const results = await models.Agent.findAll({ attributes: ['socialProfile'], limit: request.query.per_page });
+          const results = await models.Agent.findAll({
+            attributes: ['socialProfile'],
+            offset: request.query.page * request.query.per_page,
+            limit: request.query.per_page
+          });
           const profiles = results.map(p => { return {...p.socialProfile._json, user_id: p.socialProfile._json.sub } });
 
           profiles.sort((a, b) => {
@@ -308,7 +312,10 @@ require('../support/setupKeystore').then(keyStuff => {
             return 0;
           });
           console.log(profiles);
-          return h.response(profiles);
+
+          const count = await models.Agent.count();
+
+          return h.response({ users: profiles, start: request.query.page, limit: request.query.per_page, length: profiles.length, total: count });
         }
       });
 
