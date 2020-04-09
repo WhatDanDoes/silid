@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createStyles, makeStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
-import Card from '@material-ui/core/Card';
-import CardContent from '@material-ui/core/CardContent';
 import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
 import ListItemText from '@material-ui/core/ListItemText';
@@ -13,31 +11,21 @@ import ListItemAvatar from '@material-ui/core/ListItemAvatar';
 import Avatar from '@material-ui/core/Avatar';
 import Pagination from '@material-ui/lab/Pagination';
 
+import Grid from '@material-ui/core/Grid';
 
 import useGetAgentDirectoryService from '../services/useGetAgentDirectoryService';
 
 const useStyles = makeStyles((theme) =>
   createStyles({
-    margin: {
-      margin: theme.spacing(1),
+    root: {
+      flexGrow: 1,
     },
-    textField: {
-      marginLeft: theme.spacing(1),
-      marginRight: theme.spacing(1),
-      width: '100%',
+    header: {
+      marginTop: '1em',
+      marginBottom: '1em',
     },
-    [theme.breakpoints.down('sm')]: {
-      card: {
-        marginTop: '4%',
-        maxWidth: 720,
-      },
-    },
-    [theme.breakpoints.up('md')]: {
-      card: {
-        marginLeft: '25%',
-        marginTop: '4%',
-        maxWidth: 720,
-      },
+    grid: {
+      width: '90%',
     },
   }),
 );
@@ -75,13 +63,14 @@ const AgentDirectory = (props) => {
   }
 
   return (
-    <div className="agent-directory">
-      <Card className={classes.card}>
-        <CardContent>
-          <Typography variant="h5" component="h3">
+    <div className={classes.root}>
+      <Grid container direction="column" justify="center" alignItems="center">
+        <Grid item>
+          <Typography className={classes.header} variant="h5" component="h3">
             Directory
           </Typography>
-          <Typography variant="body2" color="textSecondary" component="div">
+        </Grid>
+        <Grid item>
           {service.status === 'loading' && <div>Loading...</div>}
           {service.status === 'loaded' && agentList.results.length ?
             <>
@@ -104,12 +93,11 @@ const AgentDirectory = (props) => {
                 <Pagination className="pager" page={page} count={Math.ceil(agentList.results.total / agentList.results.limit)} size="large" onChange={handlePage} />
               : ''}
             </> : ''}
-          </Typography>
           {service.status === 'error' && (
             <div>Error, the backend moved to the dark side.</div>
           )}
-        </CardContent>
-      </Card>
+        </Grid>
+      </Grid>
       { flashProps.message ? <Flash message={flashProps.message} variant={flashProps.variant} /> : '' }
       { flashProps.errors ? flashProps.errors.map((error, index) => <Flash message={error.message} variant={flashProps.variant} key={`flash-${index}`} />) : '' }
     </div>
