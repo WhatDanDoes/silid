@@ -15,7 +15,7 @@
   "locale": "en",
   "name": "Some Guy",
   "nickname": "someguy",
-  "picture": "/images/photo.jpg",
+  "picture": "/image/photo.jpg",
   "updated_at": "2020-04-08T16:11:38.833Z",
   "user_id": "google-oauth2|117550430000000000000",
   "last_ip": "192.167.0.1",
