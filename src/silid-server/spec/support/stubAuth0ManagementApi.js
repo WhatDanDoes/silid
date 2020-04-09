@@ -1,6 +1,9 @@
 /**
  * Stub all the commonly used Auth0 Management API endpoints
  *
+ * The real functionality is embodied in `stubAuth0ManagementEndpoint` This
+ * function simply wraps frequent stubbing requirements
+ *
  * @param function
  */
 const apiScope = require('../../config/apiPermissions');
