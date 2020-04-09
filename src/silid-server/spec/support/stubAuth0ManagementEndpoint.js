@@ -52,7 +52,8 @@ module.exports = function(permissions, done) {
      */
     const auth0UserListScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .log(console.log)
-      .get('/api/v2/users')
+      .get(/api\/v2\/users/)
+      .query({ per_page: 30 })
       .reply(200, (uri, requestBody, cb) => {
         cb(null, require('../fixtures/managementApi/userList'));
       });
