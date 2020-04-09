@@ -113,13 +113,14 @@ context('root/Agent Index', function() {
             cy.login('someotherguy@example.com', { ..._profile, name: 'Some Other Guy' }, [this.scope.read.agents]);
 
             cy.login(_profile.email, _profile);
-            cy.task('query', 'SELECT * FROM "Agents";').then(([results, metadata]) => {
+            cy.task('query', 'SELECT * FROM "Agents" ORDER BY "name";').then(([results, metadata]) => {
               agents = results;
 
               cy.get('#app-menu-button').click();
               cy.get('#admin-switch').check();
               cy.get('#show-cached-switch').uncheck();
               cy.contains('Agent Directory').click();
+              cy.wait(200);
             });
           });
 
