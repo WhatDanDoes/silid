@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { createStyles, makeStyles, Theme } from '@material-ui/core/styles';
+import { createStyles, makeStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import Card from '@material-ui/core/Card';
 import CardContent from '@material-ui/core/CardContent';
@@ -14,9 +14,9 @@ import Avatar from '@material-ui/core/Avatar';
 import Pagination from '@material-ui/lab/Pagination';
 
 
-import useGetAgentDirectoryService, { Agents } from '../services/useGetAgentDirectoryService';
+import useGetAgentDirectoryService from '../services/useGetAgentDirectoryService';
 
-const useStyles = makeStyles((theme: Theme) =>
+const useStyles = makeStyles((theme) =>
   createStyles({
     margin: {
       margin: theme.spacing(1),
@@ -42,15 +42,23 @@ const useStyles = makeStyles((theme: Theme) =>
   }),
 );
 
-const AgentDirectory = (props: any) => {
+const AgentDirectory = (props) => {
   const admin = useAdminState();
 
-  const [agentList, setAgentList] = useState<Agents>({ results: [] } as Agents);
-  const [flashProps, setFlashProps] = useState({} as any);
+  const [agentList, setAgentList] = useState({ results: [] });
+  const [flashProps, setFlashProps] = useState({});
 
   const classes = useStyles();
-  const service = useGetAgentDirectoryService(admin.viewingCached);
 
+  /**
+   * Pager handler
+   */
+  const [page, setPage] = useState(1);
+  const handlePage = (event, value) => {
+    setPage(value);
+  }
+
+  const service = useGetAgentDirectoryService(page, admin.viewingCached);
   useEffect(() => {
     if (service.status === 'loaded') {
       if (service.payload.message) {
@@ -62,7 +70,7 @@ const AgentDirectory = (props: any) => {
     }
   }, [service]);
 
-  function ListItemLink(props:any) {
+  function ListItemLink(props) {
     return <ListItem className='list-item' button component="a" {...props} />;
   }
 
@@ -77,8 +85,8 @@ const AgentDirectory = (props: any) => {
           {service.status === 'loading' && <div>Loading...</div>}
           {service.status === 'loaded' && agentList.results.length ?
             <>
-              { agentList.results.length >= 30 ?
-                <Pagination className="pager" count={Math.ceil(agentList.results.total / agentList.results.limit)} size="large" />
+              { agentList.results.length < agentList.results.total ?
+                <Pagination className="pager" page={page} count={Math.ceil(agentList.results.total / agentList.results.limit)} size="large" onChange={handlePage} />
               : ''}
               <List id="agent-list">
                 { agentList.results.users.map(a => (
@@ -92,8 +100,8 @@ const AgentDirectory = (props: any) => {
                   </ListItem>
                 ))}
               </List>
-              { agentList.results.length >= 30 ?
-                <Pagination className="pager" count={Math.ceil(agentList.results.total / agentList.results.limit)} size="large" />
+              { agentList.results.length < agentList.results.total ?
+                <Pagination className="pager" page={page} count={Math.ceil(agentList.results.total / agentList.results.limit)} size="large" onChange={handlePage} />
               : ''}
             </> : ''}
           </Typography>
