@@ -92,7 +92,17 @@ module.exports = function(permissions, done) {
      */
     const createTeamScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .log(console.log)
-      .patch(/api\/v2\/users\/*/, body => body.id && body.user_metadata)
+      .patch(/api\/v2\/users\/*/, body => {
+        if (body.user_metadata) {
+          for(let team of body.user_metadata.teams) {
+            if(!team.name || !team.leader || !team.members || !team.id) {
+              return false;
+            }
+          }
+          return true;
+        }
+        return false;
+      })
       .reply(201, {});
 
     /**
@@ -132,22 +142,13 @@ module.exports = function(permissions, done) {
       });
 
     /**
-     * GET `/users`. Get a single user by Auth0 ID
+     * GET `/users/:id`. Get a single user by Auth0 ID
      */
+    const _profile = require('../fixtures/sample-auth0-profile-response');
     const userReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .log(console.log)
       .get(/api\/v2\/users\/*/)
-      .reply(200, {
-        "user_id": "auth0|507f1f77bcf86c0000000000",
-        "email": "doesnotreallymatterforthemoment@example.com",
-        "email_verified": false,
-        "identities": [
-          {
-            "connection": "Initial-Connection",
-          }
-        ]
-      });
-
+      .reply(200, _profile);
 
     /**
      * GET `/users/:id/roles`
