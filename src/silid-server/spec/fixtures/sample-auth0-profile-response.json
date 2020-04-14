@@ -3,7 +3,7 @@
   "email": "someguy@example.com",
   "email_verified": true,
   "family_name": "Guy",
-  "given_name": "SOme",
+  "given_name": "Some",
   "identities": [
     {
       "provider": "google-oauth2",
