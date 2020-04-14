@@ -12,6 +12,7 @@ const querystring = require('querystring');
  */
 const _access = require('../fixtures/sample-auth0-access-token');
 _access.iss = `http://${process.env.AUTH0_DOMAIN}/`;
+const _profile = require('../fixtures/sample-auth0-profile-response');
 
 const jwt = require('jsonwebtoken');
 
@@ -103,7 +104,9 @@ module.exports = function(permissions, done) {
         }
         return false;
       })
-      .reply(201, {});
+      .reply(201, (uri, requestBody) => {
+        return {..._profile, user_metadata: {..._profile.user_metadata, ...requestBody.user_metadata} };
+      });
 
     /**
      * DELETE `/users`
@@ -144,7 +147,6 @@ module.exports = function(permissions, done) {
     /**
      * GET `/users/:id`. Get a single user by Auth0 ID
      */
-    const _profile = require('../fixtures/sample-auth0-profile-response');
     const userReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .log(console.log)
       .get(/api\/v2\/users\/*/)
