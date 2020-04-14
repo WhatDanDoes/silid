@@ -51,7 +51,7 @@ module.exports = function(permissions, done) {
     /**
      * GET `/users`
      */
-    const auth0UserListScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+    const userListScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .log(console.log)
       .get(/api\/v2\/users/)
       .query({ per_page: 30, include_totals: true, page: /\d+/ })
@@ -68,7 +68,7 @@ module.exports = function(permissions, done) {
      *
      * https://manage.auth0.com/dashboard/us/silid/connections
      */
-    const auth0UserCreateScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+    const userCreateScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .log(console.log)
       .post(/api\/v2\/users/, {
                               'email': /.+/i,
@@ -86,27 +86,20 @@ module.exports = function(permissions, done) {
       });
 
     /**
+     * Create a team
+     *
      * PATCH `/users`
      */
-    const auth0UserUpdateScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+    const createTeamScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .log(console.log)
-      .patch(/api\/v2\/users\/*/)
-      .reply(201, {
-        "user_id": "auth0|507f1f77bcf86c0000000000",
-        "email": "doesnotreallymatterforthemoment@example.com",
-        "email_verified": false,
-        "identities": [
-          {
-            "connection": "Initial-Connection",
-          }
-        ]
-      });
+      .patch(/api\/v2\/users\/*/, body => body.id && body.user_metadata)
+      .reply(201, {});
 
     /**
      * DELETE `/users`
      *
      */
-    const auth0UserDeleteScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+    const userDeleteScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .log(console.log)
       .delete(/api\/v2\/users\/*/)
       .reply(201, {
@@ -123,7 +116,7 @@ module.exports = function(permissions, done) {
     /**
      * GET `/users-by-email`
      */
-    const auth0UserReadByEmailScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+    const userReadByEmailScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .log(console.log)
       .get(/api\/v2\/users-by-email/)
       .query({ 'email': /.+/i })
@@ -141,7 +134,7 @@ module.exports = function(permissions, done) {
     /**
      * GET `/users`. Get a single user by Auth0 ID
      */
-    const auth0UserReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+    const userReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .log(console.log)
       .get(/api\/v2\/users\/*/)
       .reply(200, {
@@ -159,7 +152,7 @@ module.exports = function(permissions, done) {
     /**
      * GET `/users/:id/roles`
      */
-    const auth0UserAssignRolesScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+    const userAssignRolesScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .log(console.log)
       .post(/api\/v2\/users\/.+\/roles/, {
                               'roles': /.+/i,
@@ -169,7 +162,7 @@ module.exports = function(permissions, done) {
     /**
      * GET `/roles`
      */
-    const auth0GetRolesScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+    const getRolesScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .log(console.log)
       .get('/api/v2/roles')
       .reply(200, [
@@ -183,9 +176,10 @@ module.exports = function(permissions, done) {
 
     done(null, {
                 oauthTokenScope,
-                auth0UserCreateScope, auth0UserReadScope, auth0UserUpdateScope, auth0UserDeleteScope, auth0UserListScope, auth0UserReadByEmailScope,
-                auth0UserAssignRolesScope,
-                auth0GetRolesScope,
+                userCreateScope, userReadScope, userDeleteScope, userListScope, userReadByEmailScope,
+                userAssignRolesScope,
+                getRolesScope,
+                createTeamScope,
     });
   });
 };

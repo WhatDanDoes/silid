@@ -19,13 +19,13 @@ module.exports = function(done) {
    */
   stubAuth0ManagementEndpoint([apiScope.read.roles], (err, apiScopes) => {
     if (err) return done(err);
-    ({auth0GetRolesScope} = apiScopes);
+    ({getRolesScope} = apiScopes);
 
     stubAuth0ManagementEndpoint([apiScope.read.roles, apiScope.update.users], (err, apiScopes) => {
       if (err) return done(err);
-      ({auth0UserAssignRolesScope, oauthTokenScope} = apiScopes);
+      ({userAssignRolesScope, oauthTokenScope} = apiScopes);
 
-      done(null, {auth0GetRolesScope, auth0UserAssignRolesScope, oauthTokenScope});
+      done(null, {getRolesScope, userAssignRolesScope, oauthTokenScope});
     });
   });
 };
