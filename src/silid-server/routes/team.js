@@ -38,49 +38,64 @@ router.get('/', checkPermissions([scope.read.teams]), function(req, res, next) {
 
 
 router.get('/:id', checkPermissions([scope.read.teams]), function(req, res, next) {
-  models.Team.findOne({ where: { id: req.params.id },
-                        include: [ { model: models.Agent, as: 'creator' },
-                                   { model: models.Agent, as: 'members' },
-                                   'organization'] }).then(team => {
-    if (!team) {
-      return res.status(404).json({ message: 'No such team' });
-    }
-
-    team.getOrganization().then(org => {
-      org.getMembers().then(organizationMembers => {
-        const orgMembers = organizationMembers.map(agent => agent.email);
-        const orgMemberIndex = orgMembers.indexOf(req.agent.email);
-
-        let teamMembers = team.members.map(agent => agent.email);
-        const teamMemberIndex = teamMembers.indexOf(req.agent.email);
-
-        // Super agent gets an all-access pass
-        if (!req.agent.isSuper) {
-          if (!orgMembers.includes(req.agent.email)) {
-            if (teamMemberIndex < 0) {
-              return res.status(403).json({ message: 'You are not a member of that team' });
-            }
-
-            // Make sure agent is email verified
-            if (team.members[teamMemberIndex].TeamMember.verificationCode) {
-              return res.status(403).json({ message: 'You have not verified your invitation to this team. Check your email.' });
-            }
-          }
-          else if (organizationMembers[orgMemberIndex].OrganizationMember.verificationCode) {
-            return res.status(403).json({ message: 'You have not verified your invitation to this team or its organization. Check your email.' });
-          }
+  const managementClient = getManagementClient(apiScope.read.usersAppMetadata);
+  managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.id}"` }).then(agents => {
+    // There should only ever be one agent given the application of UUIDs
+    for (let agent of agents) {
+      for (let team of agent.user_metadata.teams) {
+        if (team.id === req.params.id) {
+          return res.status(200).json(team);
         }
-
-        res.status(200).json(team);
-      }).catch(err => {
-        res.status(500).json(err);
-      });
-    }).catch(err => {
-      res.status(500).json(err);
-    });
+      }
+    }
+    res.status(404).json({ message: 'No such team' });
   }).catch(err => {
-    res.status(500).json(err);
+    res.status(err.statusCode).json(err.message.error_description);
   });
+
+//  models.Team.findOne({ where: { id: req.params.id },
+//                        include: [ { model: models.Agent, as: 'creator' },
+//                                   { model: models.Agent, as: 'members' },
+//                                   'organization'] }).then(team => {
+//    if (!team) {
+//      return res.status(404).json({ message: 'No such team' });
+//    }
+//
+//    team.getOrganization().then(org => {
+//      org.getMembers().then(organizationMembers => {
+//        const orgMembers = organizationMembers.map(agent => agent.email);
+//        const orgMemberIndex = orgMembers.indexOf(req.agent.email);
+//
+//        let teamMembers = team.members.map(agent => agent.email);
+//        const teamMemberIndex = teamMembers.indexOf(req.agent.email);
+//
+//        // Super agent gets an all-access pass
+//        if (!req.agent.isSuper) {
+//          if (!orgMembers.includes(req.agent.email)) {
+//            if (teamMemberIndex < 0) {
+//              return res.status(403).json({ message: 'You are not a member of that team' });
+//            }
+//
+//            // Make sure agent is email verified
+//            if (team.members[teamMemberIndex].TeamMember.verificationCode) {
+//              return res.status(403).json({ message: 'You have not verified your invitation to this team. Check your email.' });
+//            }
+//          }
+//          else if (organizationMembers[orgMemberIndex].OrganizationMember.verificationCode) {
+//            return res.status(403).json({ message: 'You have not verified your invitation to this team or its organization. Check your email.' });
+//          }
+//        }
+//
+//        res.status(200).json(team);
+//      }).catch(err => {
+//        res.status(500).json(err);
+//      });
+//    }).catch(err => {
+//      res.status(500).json(err);
+//    });
+//  }).catch(err => {
+//    res.status(500).json(err);
+//  });
 });
 
 router.post('/', checkPermissions([scope.create.teams]), function(req, res, next) {
