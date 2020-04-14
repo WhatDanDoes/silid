@@ -75,13 +75,13 @@ describe('root/agentSpec', () => {
 
     describe('read', () => {
 
-      let oauthTokenScope, auth0UserListScope, auth0UserReadScope;
+      let oauthTokenScope, userListScope, userReadScope;
       beforeEach(done => {
         stubAuth0ManagementApi((err, apiScopes) => {
           if (err) return done.fail(err);
           stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
             if (err) return done.fail(err);
-            ({auth0UserListScope, auth0UserReadScope, oauthTokenScope} = apiScopes);
+            ({userListScope, userReadScope, oauthTokenScope} = apiScopes);
             done();
           });
         });
@@ -151,7 +151,7 @@ describe('root/agentSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(auth0UserListScope.isDone()).toBe(true);
+                expect(userListScope.isDone()).toBe(true);
                 done();
               });
           });
@@ -204,7 +204,7 @@ describe('root/agentSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(auth0UserListScope.isDone()).toBe(true);
+                expect(userListScope.isDone()).toBe(true);
                 done();
               });
           });
@@ -264,7 +264,7 @@ describe('root/agentSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(auth0UserListScope.isDone()).toBe(false);
+                expect(userListScope.isDone()).toBe(false);
                 done();
               });
           });
@@ -342,7 +342,7 @@ describe('root/agentSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(auth0UserListScope.isDone()).toBe(false);
+                expect(userListScope.isDone()).toBe(false);
                 done();
               });
           });
@@ -373,7 +373,7 @@ describe('root/agentSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(auth0UserReadScope.isDone()).toBe(true);
+                expect(userReadScope.isDone()).toBe(true);
                 done();
               });
           });
@@ -443,7 +443,7 @@ describe('root/agentSpec', () => {
 
     describe('create', () => {
 
-      let auth0UserCreateScope, oauthTokenScope;
+      let userCreateScope, oauthTokenScope;
       beforeEach(done => {
         stubAuth0ManagementApi((err, apiScopes) => {
           if (err) return done.fail();
@@ -451,7 +451,7 @@ describe('root/agentSpec', () => {
           stubAuth0ManagementEndpoint([apiScope.create.users], (err, apiScopes) => {
             if (err) return done.fail(err);
 
-            ({auth0UserCreateScope, oauthTokenScope} = apiScopes);
+            ({userCreateScope, oauthTokenScope} = apiScopes);
             done();
           });
         });
@@ -542,7 +542,7 @@ describe('root/agentSpec', () => {
             .end(function(err, res) {
               if (err) return done.fail(err);
 
-              expect(auth0UserCreateScope.isDone()).toBe(true);
+              expect(userCreateScope.isDone()).toBe(true);
               done();
             });
         });
@@ -560,7 +560,7 @@ describe('root/agentSpec', () => {
 //              if (err) done.fail(err);
 //
 //              expect(oauthTokenScope.isDone()).toBe(false);
-//              expect(auth0UserCreateScope.isDone()).toBe(false);
+//              expect(userCreateScope.isDone()).toBe(false);
 //              done();
 //            });
 //        });

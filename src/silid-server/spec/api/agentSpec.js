@@ -73,14 +73,14 @@ describe('agentSpec', () => {
               stubAuth0ManagementEndpoint([apiScope.create.users], (err, apiScopes) => {
                 if (err) return done.fail();
 
-                ({auth0UserCreateScope, oauthTokenScope} = apiScopes);
+                ({userCreateScope, oauthTokenScope} = apiScopes);
                 done();
               });
             });
           });
         });
 
-//2020-4-8 
+//2020-4-8
 //        describe('database', () => {
 //          it('adds a new record to the database', done => {
 //            models.Agent.findAll().then(results => {
@@ -165,12 +165,12 @@ describe('agentSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(auth0UserCreateScope.isDone()).toBe(true);
+                expect(userCreateScope.isDone()).toBe(true);
                 done();
               });
           });
 
-//2020-4-8 
+//2020-4-8
 //          it('does not call the Auth0 endpoints if record already exists', done => {
 //            authenticatedSession
 //              .post('/agent')
@@ -184,7 +184,7 @@ describe('agentSpec', () => {
 //                if (err) done.fail(err);
 //
 //                expect(oauthTokenScope.isDone()).toBe(false);
-//                expect(auth0UserCreateScope.isDone()).toBe(false);
+//                expect(userCreateScope.isDone()).toBe(false);
 //                done();
 //              });
 //          });
@@ -193,7 +193,7 @@ describe('agentSpec', () => {
 
       describe('read', () => {
 
-        let auth0UserReadScope;
+        let userReadScope;
         beforeEach(done => {
           login(_identity, [scope.read.agents], (err, session) => {
             if (err) return done.fail(err);
@@ -203,7 +203,7 @@ describe('agentSpec', () => {
               if (err) return done.fail(err);
 
               stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
-                ({auth0UserReadScope, oauthTokenScope} = apiScopes);
+                ({userReadScope, oauthTokenScope} = apiScopes);
 
                 done();
               });
@@ -234,7 +234,7 @@ describe('agentSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(auth0UserReadScope.isDone()).toBe(true);
+                expect(userReadScope.isDone()).toBe(true);
                 done();
               });
           });
@@ -256,7 +256,7 @@ describe('agentSpec', () => {
       });
 
       describe('update', () => {
-        let auth0UserUpdateScope;
+//        let userUpdateScope;
         beforeEach(done => {
           login(_identity, [scope.update.agents], (err, session) => {
             if (err) return done.fail(err);
@@ -267,7 +267,8 @@ describe('agentSpec', () => {
 
               stubAuth0ManagementEndpoint([apiScope.update.users], (err, apiScopes) => {
                 if (err) return done.fail(err);
-                ({auth0UserUpdateScope, oauthTokenScope} = apiScopes);
+                //({userUpdateScope, oauthTokenScope} = apiScopes);
+                ({oauthTokenScope} = apiScopes);
 
                 done();
               });
@@ -382,7 +383,7 @@ describe('agentSpec', () => {
 //              .end(function(err, res) {
 //                if (err) return done.fail(err);
 //
-//                expect(auth0UserUpdateScope.isDone()).toBe(true);
+//                expect(userUpdateScope.isDone()).toBe(true);
 //                done();
 //              });
 //          });
@@ -401,7 +402,7 @@ describe('agentSpec', () => {
 //                if (err) done.fail(err);
 //
 //                expect(oauthTokenScope.isDone()).toBe(false);
-//                expect(auth0UserUpdateScope.isDone()).toBe(false);
+//                expect(userUpdateScope.isDone()).toBe(false);
 //                done();
 //              });
 //          });
@@ -410,7 +411,7 @@ describe('agentSpec', () => {
 
       describe('delete', () => {
 
-        let auth0UserDeleteScope;
+        let userDeleteScope;
         beforeEach(done => {
           login(_identity, [scope.delete.agents], (err, session) => {
             if (err) return done.fail(err);
@@ -421,7 +422,7 @@ describe('agentSpec', () => {
 
               stubAuth0ManagementEndpoint([apiScope.delete.users], (err, apiScopes) => {
                 if (err) return done.fail(err);
-                ({auth0UserDeleteScope, oauthTokenScope} = apiScopes);
+                ({userDeleteScope, oauthTokenScope} = apiScopes);
                 done();
               });
             });
@@ -492,7 +493,7 @@ describe('agentSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(auth0UserDeleteScope.isDone()).toBe(true);
+                expect(userDeleteScope.isDone()).toBe(true);
                 done();
               });
           });
@@ -510,7 +511,7 @@ describe('agentSpec', () => {
                 if (err) done.fail(err);
 
                 expect(oauthTokenScope.isDone()).toBe(false);
-                expect(auth0UserDeleteScope.isDone()).toBe(false);
+                expect(userDeleteScope.isDone()).toBe(false);
                 done();
               });
           });
