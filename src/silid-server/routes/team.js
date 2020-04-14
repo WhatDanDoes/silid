@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const models = require('../models');
 const mailer = require('../mailer');
+const uuid = require('uuid');
 
 /**
  * Configs must match those defined for RBAC at Auth0
@@ -9,6 +10,9 @@ const mailer = require('../mailer');
 const scope = require('../config/permissions');
 const roles = require('../config/roles');
 const checkPermissions = require('../lib/checkPermissions');
+
+const apiScope = require('../config/apiPermissions');
+const getManagementClient = require('../lib/getManagementClient');
 
 /* GET team listing. */
 router.get('/admin', checkPermissions(roles.sudo), function(req, res, next) {
@@ -80,45 +84,44 @@ router.get('/:id', checkPermissions([scope.read.teams]), function(req, res, next
 });
 
 router.post('/', checkPermissions([scope.create.teams]), function(req, res, next) {
-  if (!req.body.organizationId) {
-    return res.status(400).json({ errors: [{ message: 'No organization provided' }] });
-  }
+  const managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+  managementClient.getUser({id: req.user.user_id}).then(agent => {
 
-  models.Organization.findOne({ where: { id: req.body.organizationId } }).then(organization => {
-
-    if (!organization) {
-      return res.status(404).json({ errors: [{ message: 'That organization doesn\'t exist' }] });
+    // No duplicate team names
+    if (agent.user_metadata) {
+      let teams = agent.user_metadata.teams.map(team => team.name);
+      if (teams.includes(req.body.name)) {
+        return res.status(400).json({ errors: [{ message: 'That team is already registered' }] });
+      }
     }
 
-    organization.getMembers({attributes: ['email']}).then(agents => {
-      // 2019-11-1 https://github.com/sequelize/sequelize/issues/6950#issuecomment-373937803
-      // Sequelize doesn't return a flat array
-      agents = agents.map(agent => agent.email);
-      organization.getCreator().then(creator => {
+    // Make sure incoming data is legit
+    let teamName = req.body.name;
+    if (teamName) {
+      teamName = teamName.trim();
+    }
+    if (!teamName) {
+      return res.status(400).json({ errors: [{ message: 'Team requires a name' }] });
+    }
 
-        if (!req.agent.isSuper && creator.email !== req.agent.email && !agents.includes(req.agent.email)) {
-          return res.status(401).json( { message: 'Unauthorized' });
-        }
-        req.body.creatorId = req.agent.id;
-
-        let team = new models.Team(req.body);
-        team.save().then(result => {
-          res.status(201).json(result);
-        }).catch(err => {
-          let status = 500;
-          if (err instanceof models.Sequelize.UniqueConstraintError) {
-            status = 200;
-          }
-          res.status(status).json(err);
-        });
-      }).catch(err => {
-        res.status(500).json(err);
-      });
+    managementClient.updateUser({id: req.user.user_id}, {
+                                                          user_metadata: {
+                                                            teams: [
+                                                              {
+                                                                id: uuid.v4(),
+                                                                name: req.body.name,
+                                                                leader: req.user._json.email,
+                                                                members: [req.user._json.email],
+                                                              }
+                                                            ]
+                                                          }
+                                                        }).then(result => {
+      res.status(201).json(result);
     }).catch(err => {
-      res.status(500).json(err);
+      res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
     });
   }).catch(err => {
-    res.status(500).json(err);
+    res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
   });
 });
 
