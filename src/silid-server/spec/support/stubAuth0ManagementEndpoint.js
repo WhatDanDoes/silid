@@ -50,6 +50,8 @@ module.exports = function(permissions, done) {
       });
 
     /**
+     * Get a list of Auth0 users
+     *
      * GET `/users`
      */
     const userListScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
@@ -60,6 +62,37 @@ module.exports = function(permissions, done) {
         let q = querystring.parse(uri.split('?')[1]);
         cb(null, {...require('../fixtures/managementApi/userList'), start: parseInt(q.page) });
       });
+
+    /**
+     * GET `/users/:id`. Get a single user by Auth0 ID
+     */
+    const userReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+      .log(console.log)
+      .get(/api\/v2\/users\/*/)
+      .query({})
+      .reply(200, _profile);
+
+
+    /**
+     * Search for a team by ID
+     *
+     * GET `/users`
+     */
+    const teamReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+      .log(console.log)
+      .get(/api\/v2\/users\/*/)
+      .query({ search_engine: 'v3', q: /.+/ })
+      .reply(200, (uri, requestBody) => {
+        let qs = querystring.parse(uri.split('?')[1]);
+        for (let team of _profile.user_metadata.teams) {
+          let regex = new RegExp(team.id);
+          if (regex.test(qs.q)) {
+            return [_profile];
+          }
+        }
+        return [];
+      });
+
 
     /**
      * POST `/users`
@@ -145,14 +178,6 @@ module.exports = function(permissions, done) {
       });
 
     /**
-     * GET `/users/:id`. Get a single user by Auth0 ID
-     */
-    const userReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-      .log(console.log)
-      .get(/api\/v2\/users\/*/)
-      .reply(200, _profile);
-
-    /**
      * GET `/users/:id/roles`
      */
     const userAssignRolesScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
@@ -182,7 +207,7 @@ module.exports = function(permissions, done) {
                 userCreateScope, userReadScope, userDeleteScope, userListScope, userReadByEmailScope,
                 userAssignRolesScope,
                 getRolesScope,
-                createTeamScope,
+                createTeamScope, teamReadScope,
     });
   });
 };
