@@ -25,7 +25,7 @@ const roles = require('../../config/roles');
 
 describe('checkPermissions', function() {
 
-  let agent, request, response, auth0GetRolesScope, auth0UserAssignRolesScope;
+  let agent, request, response, getRolesScope, userAssignRolesScope;
 
   beforeEach(done => {
     nock.cleanAll();
@@ -36,7 +36,7 @@ describe('checkPermissions', function() {
      */
     stubAuth0ManagementApi((err, apiScopes) => {
       if (err) return done.fail(err);
-      ({auth0GetRolesScope, auth0UserAssignRolesScope} = apiScopes);
+      ({getRolesScope, userAssignRolesScope} = apiScopes);
       done();
     });
   });
@@ -115,12 +115,11 @@ describe('checkPermissions', function() {
         checkPermissions([])(request, response, err => {
           if (err) return done.fail(err);
 
-          expect(auth0GetRolesScope.isDone()).toBe(true);
+          expect(getRolesScope.isDone()).toBe(true);
 
           done();
         });
       });
-
 
       it('calls the management API to assign viewer role if agent not already a viewer', done => {
         request = httpMocks.createRequest({
@@ -132,7 +131,7 @@ describe('checkPermissions', function() {
         checkPermissions([scope.read.agents])(request, response, err => {
           if (err) return done.fail(err);
 
-          expect(auth0UserAssignRolesScope.isDone()).toBe(true);
+          expect(userAssignRolesScope.isDone()).toBe(true);
 
           done();
         });
@@ -149,8 +148,8 @@ describe('checkPermissions', function() {
         checkPermissions([])(request, response, err => {
           if (err) return done.fail(err);
 
-          expect(auth0GetRolesScope.isDone()).toBe(false);
-          expect(auth0UserAssignRolesScope.isDone()).toBe(false);
+          expect(getRolesScope.isDone()).toBe(false);
+          expect(userAssignRolesScope.isDone()).toBe(false);
 
           done();
         });
@@ -265,8 +264,8 @@ describe('checkPermissions', function() {
         checkPermissions([])(request, response, err => {
           if (err) return done.fail(err);
 
-          expect(auth0GetRolesScope.isDone()).toBe(true);
-          expect(auth0UserAssignRolesScope.isDone()).toBe(true);
+          expect(getRolesScope.isDone()).toBe(true);
+          expect(userAssignRolesScope.isDone()).toBe(true);
 
           done();
         });
@@ -375,8 +374,8 @@ describe('checkPermissions', function() {
         checkPermissions([])(request, response, err => {
           if (err) return done.fail(err);
 
-          expect(auth0GetRolesScope.isDone()).toBe(true);
-          expect(auth0UserAssignRolesScope.isDone()).toBe(true);
+          expect(getRolesScope.isDone()).toBe(true);
+          expect(userAssignRolesScope.isDone()).toBe(true);
 
           done();
         });
