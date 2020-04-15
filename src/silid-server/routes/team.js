@@ -157,7 +157,7 @@ router.delete('/:id', checkPermissions([scope.delete.teams]), function(req, res,
         return res.status(404).json({ message: 'No such team' });
       }
 
-      if (req.user._json.email !== agent.user_metadata.teams[teamIndex].leader) {
+      if (!req.agent.isSuper && req.user._json.email !== agent.user_metadata.teams[teamIndex].leader) {
         return res.status(403).json({ message: 'Unauthorized' });
       }
 
