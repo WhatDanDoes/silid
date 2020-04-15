@@ -9,7 +9,6 @@ const stubAuth0ManagementEndpoint = require('../support/stubAuth0ManagementEndpo
 const scope = require('../../config/permissions');
 const apiScope = require('../../config/apiPermissions');
 const jwt = require('jsonwebtoken');
-const nock = require('nock');
 
 describe('agentSpec', () => {
 
@@ -48,10 +47,6 @@ describe('agentSpec', () => {
     }).catch(err => {
       done.fail(err);
     });
-  });
-
-  afterEach(() => {
-    nock.cleanAll();
   });
 
   describe('authenticated', () => {
@@ -241,7 +236,7 @@ describe('agentSpec', () => {
 
           it('retrieves a record from Auth0', done => {
             authenticatedSession
-              .get(`/agent/${agent.id}`)
+              .get(`/agent/${_identity.sub}`)
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(200)
