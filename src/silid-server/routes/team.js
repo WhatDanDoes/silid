@@ -29,13 +29,13 @@ router.get('/admin', checkPermissions(roles.sudo), function(req, res, next) {
 });
 
 router.get('/', checkPermissions([scope.read.teams]), function(req, res, next) {
-  req.agent.getTeams().then(teams => {
-    res.status(200).json(teams);
+  const managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
+  managementClient.getUser({id: req.user.user_id}).then(agent => {
+    res.status(200).json(agent.user_metadata.teams);
   }).catch(err => {
-    res.status(500).json(err);
+    res.status(err.statusCode).json(err.message.error_description);
   });
 });
-
 
 router.get('/:id', checkPermissions([scope.read.teams]), function(req, res, next) {
   const managementClient = getManagementClient(apiScope.read.usersAppMetadata);
@@ -52,50 +52,6 @@ router.get('/:id', checkPermissions([scope.read.teams]), function(req, res, next
   }).catch(err => {
     res.status(err.statusCode).json(err.message.error_description);
   });
-
-//  models.Team.findOne({ where: { id: req.params.id },
-//                        include: [ { model: models.Agent, as: 'creator' },
-//                                   { model: models.Agent, as: 'members' },
-//                                   'organization'] }).then(team => {
-//    if (!team) {
-//      return res.status(404).json({ message: 'No such team' });
-//    }
-//
-//    team.getOrganization().then(org => {
-//      org.getMembers().then(organizationMembers => {
-//        const orgMembers = organizationMembers.map(agent => agent.email);
-//        const orgMemberIndex = orgMembers.indexOf(req.agent.email);
-//
-//        let teamMembers = team.members.map(agent => agent.email);
-//        const teamMemberIndex = teamMembers.indexOf(req.agent.email);
-//
-//        // Super agent gets an all-access pass
-//        if (!req.agent.isSuper) {
-//          if (!orgMembers.includes(req.agent.email)) {
-//            if (teamMemberIndex < 0) {
-//              return res.status(403).json({ message: 'You are not a member of that team' });
-//            }
-//
-//            // Make sure agent is email verified
-//            if (team.members[teamMemberIndex].TeamMember.verificationCode) {
-//              return res.status(403).json({ message: 'You have not verified your invitation to this team. Check your email.' });
-//            }
-//          }
-//          else if (organizationMembers[orgMemberIndex].OrganizationMember.verificationCode) {
-//            return res.status(403).json({ message: 'You have not verified your invitation to this team or its organization. Check your email.' });
-//          }
-//        }
-//
-//        res.status(200).json(team);
-//      }).catch(err => {
-//        res.status(500).json(err);
-//      });
-//    }).catch(err => {
-//      res.status(500).json(err);
-//    });
-//  }).catch(err => {
-//    res.status(500).json(err);
-//  });
 });
 
 router.post('/', checkPermissions([scope.create.teams]), function(req, res, next) {
@@ -140,75 +96,81 @@ router.post('/', checkPermissions([scope.create.teams]), function(req, res, next
   });
 });
 
-router.put('/', checkPermissions([scope.update.teams]), function(req, res, next) {
-  models.Team.findOne({where: {id: req.body.id}}).then(team => {
-    if (!team) {
-      return res.json( { message: 'No such team' });
+router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, next) {
+  const managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+  managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.id}"` }).then(agents => {
+    if (!agents.length) {
+      return res.status(404).json({ message: 'No such team' });
     }
-    team.getOrganization().then(organization => {
-      team.getCreator().then(teamCreator => {
-        organization.getCreator().then(creator => {
 
-          if (!req.agent.isSuper && creator.email !== req.agent.email && teamCreator.email !== req.agent.email) {
-            return res.status(403).json( { message: 'Unauthorized' });
-          }
-          for (let key in req.body) {
-            if (team[key]) {
-              team[key] = req.body[key];
-            }
-          }
+    // There should only ever be one agent given the application of UUIDs
+    let teamIndex = 0;
+    for (let agent of agents) {
+      for (let team of agent.user_metadata.teams) {
+        if (team.id === req.params.id) {
+          break;
+        }
+        teamIndex++;
+      }
+      if (teamIndex === agent.user_metadata.teams.length) {
+        return res.status(404).json({ message: 'No such team' });
+      }
 
-          team.save().then(result => {
-            res.status(201).json(result);
-          }).catch(err => {
-            res.status(500).json(err);
-          });
-        }).catch(err => {
-          res.status(500).json(err);
-        });
+      if (req.user._json.email !== agent.user_metadata.teams[teamIndex].leader) {
+        return res.status(403).json({ message: 'Unauthorized' });
+      }
+
+      for (let p in req.body) {
+        if (agent.user_metadata.teams[teamIndex][p]) {
+          agent.user_metadata.teams[teamIndex][p] = req.body[p];
+        }
+      }
+
+      managementClient.updateUserMetadata({id: req.user.user_id}, agent.user_metadata).then(agent => {
+        res.status(201).json({ message: 'Team updated', agent: agent });
       }).catch(err => {
-        res.status(500).json(err);
+        res.status(err.statusCode).json(err.message.error_description);
       });
-    }).catch(err => {
-      res.json(err);
-    });
+    }
   }).catch(err => {
-    res.json(err);
+    res.status(err.statusCode).json(err.message.error_description);
   });
 });
 
 router.delete('/:id', checkPermissions([scope.delete.teams]), function(req, res, next) {
-  models.Team.findOne({ where: { id: req.params.id } }).then(team => {
-    if (!team) {
-      return res.status(404).json( { message: 'No such team' });
+  const managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+  managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.id}"` }).then(agents => {
+    if (!agents.length) {
+      return res.status(404).json({ message: 'No such team' });
     }
 
-    team.getCreator().then(teamCreator => {
+    // There should only ever be one agent given the application of UUIDs
+    let teamIndex = 0;
+    for (let agent of agents) {
+      for (let team of agent.user_metadata.teams) {
+        if (team.id === req.params.id) {
+          break;
+        }
+        teamIndex++;
+      }
+      if (teamIndex === agent.user_metadata.teams.length) {
+        return res.status(404).json({ message: 'No such team' });
+      }
 
-      team.getOrganization().then(organization => {
+      if (req.user._json.email !== agent.user_metadata.teams[teamIndex].leader) {
+        return res.status(403).json({ message: 'Unauthorized' });
+      }
 
-        organization.getCreator().then(creator => {
+      agent.user_metadata.teams.splice(teamIndex, 1);
 
-          if (!req.agent.isSuper && creator.email !== req.agent.email && teamCreator.email !== req.agent.email) {
-            return res.status(403).json( { message: 'Unauthorized' });
-          }
-
-          team.destroy().then(results => {
-            res.status(201).json({ message: 'Team deleted' });
-          }).catch(err => {
-            res.status(500).json(err);
-          });
-        }).catch(err => {
-          res.status(500).json(err);
-        });
+      managementClient.updateUserMetadata({id: req.user.user_id}, agent.user_metadata).then(agent => {
+        res.status(201).json({ message: 'Team deleted', agent: agent });
       }).catch(err => {
-        res.status(500).json(err);
+        res.status(err.statusCode).json(err.message.error_description);
       });
-    }).catch(err => {
-      res.status(500).json(err);
-    });
+    }
   }).catch(err => {
-    res.status(500).json(err);
+    res.status(err.statusCode).json(err.message.error_description);
   });
 });
 

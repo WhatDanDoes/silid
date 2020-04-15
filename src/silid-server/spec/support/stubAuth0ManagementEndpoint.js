@@ -56,7 +56,7 @@ module.exports = function(permissions, done) {
      */
     const userListScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .log(console.log)
-      .get(/api\/v2\/users/)
+      .get('/api/v2/users')
       .query({ per_page: 30, include_totals: true, page: /\d+/ })
       .reply(200, (uri, requestBody, cb) => {
         let q = querystring.parse(uri.split('?')[1]);
@@ -68,10 +68,9 @@ module.exports = function(permissions, done) {
      */
     const userReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .log(console.log)
-      .get(/api\/v2\/users\/*/)
+      .get(/api\/v2\/users\/.+/)
       .query({})
       .reply(200, _profile);
-
 
     /**
      * Search for a team by ID
@@ -80,7 +79,7 @@ module.exports = function(permissions, done) {
      */
     const teamReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .log(console.log)
-      .get(/api\/v2\/users\/*/)
+      .get(/api\/v2\/users/)
       .query({ search_engine: 'v3', q: /.+/ })
       .reply(200, (uri, requestBody) => {
         let qs = querystring.parse(uri.split('?')[1]);
@@ -124,9 +123,9 @@ module.exports = function(permissions, done) {
      *
      * PATCH `/users`
      */
-    const createTeamScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+    const updateTeamScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .log(console.log)
-      .patch(/api\/v2\/users\/*/, body => {
+      .patch(/api\/v2\/users\/.+/, body => {
         if (body.user_metadata) {
           for(let team of body.user_metadata.teams) {
             if(!team.name || !team.leader || !team.members || !team.id) {
@@ -138,7 +137,7 @@ module.exports = function(permissions, done) {
         return false;
       })
       .reply(201, (uri, requestBody) => {
-        return {..._profile, user_metadata: {..._profile.user_metadata, ...requestBody.user_metadata} };
+        return {..._profile, user_metadata: {...requestBody.user_metadata} };
       });
 
     /**
@@ -207,7 +206,7 @@ module.exports = function(permissions, done) {
                 userCreateScope, userReadScope, userDeleteScope, userListScope, userReadByEmailScope,
                 userAssignRolesScope,
                 getRolesScope,
-                createTeamScope, teamReadScope,
+                updateTeamScope, teamReadScope,
     });
   });
 };

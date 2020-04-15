@@ -23,7 +23,7 @@ const _profile = require('../fixtures/sample-auth0-profile-response');
 describe('teamSpec', () => {
 
   let login, pub, prv, keystore, originalProfile;
-  beforeAll(done => {
+  beforeEach(done => {
     orginalProfile = { ..._profile };
 
     stubAuth0Sessions((err, sessionStuff) => {
@@ -35,7 +35,9 @@ describe('teamSpec', () => {
 
   afterEach(() => {
     // Through the magic of node I am able to adjust the profile data returned.
-    _profile.user_metadata = undefined;
+    // This resets the default values
+    _profile.email_verified = true;
+    delete _profile.user_metadata;
   });
 
   let team, organization, agent;
@@ -56,6 +58,7 @@ describe('teamSpec', () => {
     });
   });
 
+  let userReadScope, updateTeamScope, oauthTokenScope, authenticatedSession;
   describe('authenticated', () => {
 
     describe('authorized', () => {
@@ -63,7 +66,6 @@ describe('teamSpec', () => {
       describe('create', () => {
 
         describe('successfully', () =>{
-          let authenticatedSession;
           beforeEach(done => {
             login(_identity, [scope.create.teams], (err, session) => {
 
@@ -76,7 +78,7 @@ describe('teamSpec', () => {
                 stubAuth0ManagementEndpoint([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
                   if (err) return done.fail();
 
-                  ({userReadScope, createTeamScope, oauthTokenScope} = apiScopes);
+                  ({userReadScope, updateTeamScope, oauthTokenScope} = apiScopes);
                   done();
                 });
               });
@@ -146,7 +148,7 @@ describe('teamSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  expect(createTeamScope.isDone()).toBe(true);
+                  expect(updateTeamScope.isDone()).toBe(true);
                   done();
                 });
             });
@@ -154,7 +156,6 @@ describe('teamSpec', () => {
         });
 
         describe('unsuccessfully', () =>{
-          let authenticatedSession;
           beforeEach(done => {
             // Witness node module caching magic
             _profile.user_metadata = { teams: [ {name: 'The Calgary Roughnecks', leader: _profile.email, members: [_profile.email] } ] };
@@ -170,7 +171,7 @@ describe('teamSpec', () => {
                 stubAuth0ManagementEndpoint([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
                   if (err) return done.fail();
 
-                  ({userReadScope, createTeamScope, oauthTokenScope} = apiScopes);
+                  ({userReadScope, updateTeamScope, oauthTokenScope} = apiScopes);
                   done();
                 });
               });
@@ -229,7 +230,7 @@ describe('teamSpec', () => {
                   });
               });
 
-              it('does not call Auth0 to update the agent', done => {
+              it('does not call Auth0 to update the agent user_metadata', done => {
                 authenticatedSession
                   .post('/team')
                   .send({
@@ -241,7 +242,7 @@ describe('teamSpec', () => {
                   .end(function(err, res) {
                     if (err) return done.fail(err);
 
-                    expect(createTeamScope.isDone()).toBe(false);
+                    expect(updateTeamScope.isDone()).toBe(false);
                     done();
                   });
               });
@@ -284,13 +285,172 @@ describe('teamSpec', () => {
 
       describe('read', () => {
 
-        let authenticatedSession, teamId;
+        describe('GET /team/:id', () => {
+          let teamId;
+          beforeEach(done => {
+            teamId = uuid.v4();
+
+            _profile.user_metadata = { teams: [{ name: 'The Calgary Roughnecks', leader: _profile.email, members: [_profile.email], id: teamId }] };
+
+            login(_identity, [scope.create.teams], (err, session) => {
+
+              if (err) return done.fail(err);
+              authenticatedSession = session;
+
+              stubAuth0ManagementApi((err, apiScopes) => {
+                if (err) return done.fail();
+
+                stubAuth0ManagementEndpoint([apiScope.read.usersAppMetadata], (err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  ({teamReadScope, oauthTokenScope} = apiScopes);
+                  done();
+                });
+              });
+            });
+          });
+
+          it('retrieves an existing record from Auth0', done => {
+            authenticatedSession
+              .get(`/team/${teamId}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.name).toEqual('The Calgary Roughnecks');
+                expect(res.body.leader).toEqual(_profile.email);
+                expect(res.body.id).toEqual(teamId);
+                expect(res.body.members).toEqual([_profile.email]);
+                done();
+              });
+          });
+
+          it('doesn\'t barf if record doesn\'t exist', done => {
+            authenticatedSession
+              .get('/team/33')
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(404)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.message).toEqual('No such team');
+                done();
+              });
+          });
+
+          describe('Auth0', () => {
+            it('calls /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
+              authenticatedSession
+                .get(`/team/${teamId}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+                  expect(oauthTokenScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+
+            it('calls Auth0 to retrieve the team data', done => {
+              authenticatedSession
+                .get(`/team/${teamId}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(teamReadScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+          });
+        });
+
+        describe('GET /team', () => {
+          let teamId;
+          beforeEach(done => {
+            teamId = uuid.v4();
+
+            _profile.user_metadata = { teams: [{ name: 'The Halifax Thunderbirds', leader: _profile.email, members: [_profile.email], id: teamId }] };
+            // Add another team just for fun
+            _profile.user_metadata.teams.push({ name: 'The Rochester Knighthawks', leader: 'someotherguy@example.com',
+                                                members: ['someotherguy@example.com', _profile.email], id: uuid.v4() });
+
+            login(_identity, [scope.create.teams], (err, session) => {
+
+              if (err) return done.fail(err);
+              authenticatedSession = session;
+
+              stubAuth0ManagementApi((err, apiScopes) => {
+                if (err) return done.fail();
+
+                stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata], (err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  ({userReadScope, oauthTokenScope} = apiScopes);
+                  done();
+                });
+              });
+            });
+          });
+
+          it('retrieves all team memberships for the agent', done => {
+            expect(_profile.user_metadata.teams.length).toEqual(2);
+            authenticatedSession
+              .get(`/team`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.length).toEqual(2);
+                done();
+              });
+          });
+
+          describe('Auth0', () => {
+            it('calls /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
+              authenticatedSession
+                .get('/team')
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+                  expect(oauthTokenScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+
+            it('calls Auth0 to retrieve the team data (from the agent\'s metadata)', done => {
+              authenticatedSession
+                .get('/team')
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(userReadScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+          });
+        });
+      });
+
+      describe('update', () => {
+        let teamId;
         beforeEach(done => {
           teamId = uuid.v4();
+          _profile.user_metadata = { teams: [{ name: 'Vancouver Warriors', leader: _profile.email, members: [_profile.email], id: teamId }] };
+          _profile.user_metadata.teams.push({ name: 'Georgia Swarm', leader: 'someotherguy@example.com',
+                                              members: ['someotherguy@example.com', _profile.email], id: uuid.v4() });
 
-          _profile.user_metadata = { teams: [{ name: 'The Calgary Roughnecks', leader: _profile.email, members: [_profile.email], id: teamId }] };
-
-          login(_identity, [scope.create.teams], (err, session) => {
+          login(_identity, [scope.update.teams], (err, session) => {
 
             if (err) return done.fail(err);
             authenticatedSession = session;
@@ -298,64 +458,39 @@ describe('teamSpec', () => {
             stubAuth0ManagementApi((err, apiScopes) => {
               if (err) return done.fail();
 
-              stubAuth0ManagementEndpoint([apiScope.read.usersAppMetadata], (err, apiScopes) => {
+              stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
                 if (err) return done.fail();
 
-                ({teamReadScope, oauthTokenScope} = apiScopes);
+                ({teamReadScope, updateTeamScope, oauthTokenScope} = apiScopes);
                 done();
               });
             });
           });
         });
 
-        it('retrieves an existing record from Auth0', done => {
+        it('allows a team creator to update an existing record in the database', done => {
           authenticatedSession
-            .get(`/team/${teamId}`)
+            .put(`/team/${teamId}`)
+            .send({
+              name: 'Vancouver Riot'
+            })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
-            .expect(200)
+            .expect(201)
             .end(function(err, res) {
               if (err) return done.fail(err);
-              expect(res.body.name).toEqual('The Calgary Roughnecks');
-              expect(res.body.leader).toEqual(_profile.email);
-              expect(res.body.id).toEqual(teamId);
-              expect(res.body.members).toEqual([_profile.email]);
+              expect(res.body.message).toEqual('Team updated');
+              expect(res.body.agent.user_metadata.teams[0].name).toEqual('Vancouver Riot');
               done();
             });
         });
 
-        describe('Auth0', () => {
-          it('calls /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
-            authenticatedSession
-              .get(`/team/${teamId}`)
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(200)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-                expect(oauthTokenScope.isDone()).toBe(true);
-                done();
-              });
-          });
-
-          it('calls Auth0 to retrieve the team data', done => {
-            authenticatedSession
-              .get(`/team/${teamId}`)
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(200)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-
-                expect(teamReadScope.isDone()).toBe(true);
-                done();
-              });
-          });
-        });
-
-        it('doesn\'t barf if record doesn\'t exist', done => {
+        it('doesn\'t barf if team doesn\'t exist', done => {
           authenticatedSession
-            .get('/team/33')
+            .put('/team/333')
+            .send({
+              name: 'Vancouver Riot'
+            })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(404)
@@ -366,110 +501,58 @@ describe('teamSpec', () => {
             });
         });
 
-//        it('retrieves all team memberships for the agent', done => {
-//          agent.getTeams().then(results => {
-//            expect(results.length).toEqual(1);
-//            authenticatedSession
-//              .get(`/team`)
-//              .set('Accept', 'application/json')
-//              .expect('Content-Type', /json/)
-//              .expect(200)
-//              .end(function(err, res) {
-//                if (err) return done.fail(err);
-//                expect(res.body.length).toEqual(1);
-//                done();
-//              });
-//          }).catch(err => {
-//            done.fail(err);
-//          });
-//        });
-//
-//        it('retrieves all teams created by the agent in addition to memberships', done => {
-//          agent.getTeams().then(results => {
-//            expect(results.length).toEqual(1);
-//
-//            models.Team.create({ name: 'Alpha Squadron',
-//                                 creatorId: agent.id,
-//                                 organizationId: organization.id }).then(res => {
-//
-//              authenticatedSession
-//                .get(`/team`)
-//                .set('Accept', 'application/json')
-//                .expect('Content-Type', /json/)
-//                .expect(200)
-//                .end(function(err, res) {
-//                  if (err) return done.fail(err);
-//                  expect(res.body.length).toEqual(2);
-//                  done();
-//                });
-//             }).catch(err => {
-//               done.fail(err);
-//             });
-//          }).catch(err => {
-//            done.fail(err);
-//          });
-//        });
-//
-//        it('populates the team creator field', done => {
-//          authenticatedSession
-//            .get(`/team/${team.id}`)
-//            .set('Accept', 'application/json')
-//            .expect('Content-Type', /json/)
-//            .expect(200)
-//            .end(function(err, res) {
-//              if (err) return done.fail(err);
-//              expect(res.body.creator).toBeDefined();
-//              expect(res.body.creator.email).toEqual(agent.email);
-//              done();
-//            });
-//        });
-//
-//        it('populates the owner organization', done => {
-//          authenticatedSession
-//            .get(`/team/${team.id}`)
-//            .set('Accept', 'application/json')
-//            .expect('Content-Type', /json/)
-//            .expect(200)
-//            .end(function(err, res) {
-//              if (err) return done.fail(err);
-//              expect(res.body.organization).toBeDefined();
-//              expect(res.body.organization.id).toEqual(organization.id);
-//              expect(res.body.organization.name).toEqual(organization.name);
-//              done();
-//            });
-//        });
-//
-//        it('populates the membership', done => {
-//          authenticatedSession
-//            .get(`/team/${team.id}`)
-//            .set('Accept', 'application/json')
-//            .expect('Content-Type', /json/)
-//            .expect(200)
-//            .end(function(err, res) {
-//              if (err) return done.fail(err);
-//              expect(res.body.members).toBeDefined();
-//              expect(res.body.members.length).toEqual(1);
-//              expect(res.body.members[0].id).toEqual(agent.id);
-//              done();
-//            });
-//        });
-      });
+        describe('Auth0', () => {
+          it('calls /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
+            authenticatedSession
+              .put(`/team/${teamId}`)
+              .send({
+                name: 'Vancouver Riot'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(oauthTokenScope.isDone()).toBe(true);
+                done();
+              });
+          });
 
-//      describe('update', () => {
-//
-//        let authenticatedSession;
-//        beforeEach(done => {
-//          login(_identity, [scope.update.teams], (err, session) => {
-//            if (err) return done.fail(err);
-//            authenticatedSession = session;
-//
-//            stubAuth0ManagementApi((err, apiScopes) => {
-//              if (err) return done.fail();
-//              done();
-//            });
-//          });
-//        });
-//
+          it('is called to retrieve the agent user_metadata', done => {
+            authenticatedSession
+              .put(`/team/${teamId}`)
+              .send({
+                name: 'Vancouver Riot'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(teamReadScope.isDone()).toBe(true);
+                done();
+              });
+          });
+
+          it('is called to update the agent user_metadata', done => {
+            authenticatedSession
+              .put(`/team/${teamId}`)
+              .send({
+                name: 'Vancouver Riot'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(updateTeamScope.isDone()).toBe(true);
+                done();
+              });
+          });
+        });
+
 //        describe('PUT', () => {
 //          it('allows an organization creator to update an existing team in the database', done => {
 //            organization.getCreator().then(creator => {
@@ -971,302 +1054,227 @@ describe('teamSpec', () => {
 //            });
 //          });
 //        });
-//      });
-//
-//      describe('delete', () => {
-//
-//        let authenticatedSession;
-//        beforeEach(done => {
-//          login(_identity, [scope.delete.teams], (err, session) => {
-//            if (err) return done.fail(err);
-//            authenticatedSession = session;
-//
-//            stubAuth0ManagementApi((err, apiScopes) => {
-//              if (err) return done.fail();
-//              done();
-//            });
-//          });
-//        });
-//
-//        it('allows organization creator to remove an existing record from the database', done => {
-//          organization.getCreator().then(creator => {
-//            expect(creator.email).toEqual(agent.email);
-//            expect(team.organizationId).toEqual(organization.id);
-//
-//            login({ ..._identity, email: creator.email, name: 'Some Other Guy' }, [scope.delete.teams], (err, session) => {
-//              if (err) return done.fail(err);
-//
-//              session
-//                .delete(`/team/${team.id}`)
-//                .set('Accept', 'application/json')
-//                .expect('Content-Type', /json/)
-//                .expect(201)
-//                .end(function(err, res) {
-//                  if (err) return done.fail(err);
-//                  expect(res.body.message).toEqual('Team deleted');
-//                  models.Team.findAll().then(results => {
-//                    expect(results.length).toEqual(0);
-//                    done();
-//                  }).catch(err => {
-//                    done.fail(err);
-//                  });
-//                });
-//            });
-//          }).catch(err => {
-//            done.fail(err);
-//          });
-//        });
-//
-//        it('allows team creator to remove team from the database', done => {
-//          let teamMember = new models.Agent({ email: 'member-agent@example.com' });
-//          teamMember.save().then(results => {
-//            teamMember.createTeam({ name: 'Omega Team',
-//                                    organizationId: organization.id,
-//                                    creatorId: teamMember.id }).then(team => {
-//
-//              team.getCreator().then(creator => {
-//                expect(creator.email).toEqual(teamMember.email);
-//                expect(team.organizationId).toEqual(organization.id);
-//
-//                login({ ..._identity, email: creator.email, name: 'Some Other Guy' }, [scope.delete.teams], (err, session) => {
-//                  if (err) return done.fail(err);
-//                  session
-//                    .delete(`/team/${team.id}`)
-//                    .set('Accept', 'application/json')
-//                    .expect('Content-Type', /json/)
-//                    .expect(201)
-//                    .end(function(err, res) {
-//                      if (err) return done.fail(err);
-//                      expect(res.body.message).toEqual('Team deleted');
-//                      models.Team.findOne({where: {id: team.id}}).then(results => {
-//                        expect(results).toBe(null);
-//                        done();
-//                      }).catch(err => {
-//                        done.fail(err);
-//                      });
-//                    });
-//                });
-//              }).catch(err => {
-//                done.fail(err);
-//              });
-//            }).catch(err => {
-//              done.fail(err);
-//            });
-//          }).catch(err => {
-//            done.fail(err);
-//          });
-//        });
-//
-//        it('does not allow organization member to remove an existing record from the database', done => {
-//          let memberAgent = new models.Agent({ email: 'member-agent@example.com' });
-//          memberAgent.save().then(results => {
-//            memberAgent.addOrganization(organization).then(results => {
-//
-//              login({ ..._identity, email: memberAgent.email, name: 'Some Member Guy' }, [scope.delete.teams], (err, session) => {
-//                if (err) return done.fail(err);
-//
-//                session
-//                  .delete(`/team/${team.id}`)
-//                  .set('Accept', 'application/json')
-//                  .expect('Content-Type', /json/)
-//                  .expect(403)
-//                  .end(function(err, res) {
-//                    if (err) return done.fail(err);
-//                    expect(res.body.message).toEqual('Unauthorized');
-//                    models.Team.findAll().then(results => {
-//                      expect(results.length).toEqual(1);
-//                      done();
-//                    }).catch(err => {
-//                      done.fail(err);
-//                    });
-//                  });
-//              });
-//            }).catch(err => {
-//              done.fail(err);
-//            });
-//          }).catch(err => {
-//            done.fail(err);
-//          });
-//        });
-//
-//        it('does not allow organization member to remove an existing record from the database', done => {
-//          let memberAgent = new models.Agent({ email: 'member-agent@example.com' });
-//          memberAgent.save().then(results => {
-//            memberAgent.addTeam(team).then(results => {
-//              login({ ..._identity, email: memberAgent.email, name: 'Some Member Guy' }, [scope.delete.teams], (err, session) => {
-//                if (err) return done.fail(err);
-//
-//                session
-//                  .delete(`/team/${team.id}`)
-//                  .set('Accept', 'application/json')
-//                  .expect('Content-Type', /json/)
-//                  .expect(403)
-//                  .end(function(err, res) {
-//                    if (err) return done.fail(err);
-//                    expect(res.body.message).toEqual('Unauthorized');
-//                    models.Team.findAll().then(results => {
-//                      expect(results.length).toEqual(1);
-//                      done();
-//                    }).catch(err => {
-//                      done.fail(err);
-//                    });
-//                  });
-//              });
-//            }).catch(err => {
-//              done.fail(err);
-//            });
-//          }).catch(err => {
-//            done.fail(err);
-//          });
-//        });
-//
-//        it('doesn\'t barf if team doesn\'t exist', done => {
-//          authenticatedSession
-//            .delete(`/team/333`)
-//            .set('Accept', 'application/json')
-//            .expect('Content-Type', /json/)
-//            .expect(404)
-//            .end(function(err, res) {
-//              if (err) return done.fail(err);
-//              expect(res.body.message).toEqual('No such team');
-//              done();
-//            });
-//        });
-//      });
+      });
+
+      describe('delete', () => {
+        let teamId;
+        beforeEach(done => {
+          teamId = uuid.v4();
+
+          _profile.user_metadata = { teams: [{ name: 'Saskatchewan Rush', leader: _profile.email, members: [_profile.email], id: teamId }] };
+          // Add another team just for fun
+          _profile.user_metadata.teams.push({ name: 'Philadelphia Wings', leader: 'someotherguy@example.com',
+                                              members: ['someotherguy@example.com', _profile.email], id: uuid.v4() });
+
+          login(_identity, [scope.delete.teams], (err, session) => {
+
+            if (err) return done.fail(err);
+            authenticatedSession = session;
+
+            stubAuth0ManagementApi((err, apiScopes) => {
+              if (err) return done.fail();
+
+              stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
+                if (err) return done.fail();
+
+                ({teamReadScope, updateTeamScope, oauthTokenScope} = apiScopes);
+                done();
+              });
+            });
+          });
+        });
+
+        describe('by team leader', () => {
+          it('removes team from Auth0', done => {
+            expect(_profile.user_metadata.teams.length).toEqual(2);
+            authenticatedSession
+              .delete(`/team/${teamId}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.message).toEqual('Team deleted');
+                expect(res.body.agent.user_metadata.teams.length).toEqual(1);
+                done();
+              });
+          });
+
+          describe('Auth0', () => {
+            it('calls /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
+              authenticatedSession
+                .delete(`/team/${teamId}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+                  expect(oauthTokenScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+
+            it('is called to retrieve the agent user_metadata', done => {
+              authenticatedSession
+                .delete(`/team/${teamId}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(teamReadScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+
+            it('is called to update the agent', done => {
+              authenticatedSession
+                .delete(`/team/${teamId}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(updateTeamScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+          });
+        });
+
+        it('doesn\'t barf if team doesn\'t exist', done => {
+          authenticatedSession
+            .delete('/team/333')
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(404)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(res.body.message).toEqual('No such team');
+              done();
+            });
+        });
+      });
     });
 
-
-//    describe('not verified', () => {
-//
-//      let unverifiedSession, unverifiedAgent;
-//      beforeEach(done => {
-//        models.Agent.create({ email: 'invitedagent@example.com' }).then(a => {
-//          unverifiedAgent = a;
-//          models.TeamMember.create({ AgentId: unverifiedAgent.id, TeamId: team.id }).then(t => {
-//            login({..._identity, email: a.email}, [scope.read.teams], (err, session) => {
-//              if (err) return done.fail(err);
-//              unverifiedSession = session;
-//
-//              stubAuth0ManagementApi((err, apiScopes) => {
-//                if (err) return done.fail();
-//                done();
-//              });
-//            });
-//          }).catch(err => {
-//            done.fail(err);
-//          });
-//        }).catch(err => {
-//          done.fail(err);
-//        });
-//      });
-//
-//      describe('read', () => {
-//        it('returns 403 on team show', done => {
-//          unverifiedSession
-//            .get(`/team/${team.id}`)
-//            .set('Accept', 'application/json')
-//            .expect('Content-Type', /json/)
-//            .expect(403)
-//            .end(function(err, res) {
-//              if (err) return done.fail(err);
-//              expect(res.body.message).toEqual('You have not verified your invitation to this team. Check your email.');
-//              done();
-//            });
-//        });
-//
-//        describe('agent is also unverified organization member', () => {
-//          beforeEach(done => {
-//            models.OrganizationMember.create({ AgentId: unverifiedAgent.id, OrganizationId: organization.id }).then(t => {
-//              done();
-//            }).catch(err => {
-//              done.fail(err);
-//            });
-//          });
-//
-//          it('returns 403 on team show', done => {
-//            unverifiedSession
-//              .get(`/team/${team.id}`)
-//              .set('Accept', 'application/json')
-//              .expect('Content-Type', /json/)
-//              .expect(403)
-//              .end(function(err, res) {
-//                if (err) return done.fail(err);
-//                expect(res.body.message).toEqual('You have not verified your invitation to this team or its organization. Check your email.');
-//                done();
-//              });
-//          });
-//        });
-//      });
-//    });
-
     describe('unauthorized', () => {
-//      let unauthorizedSession, unauthorizedAgent;
-//      beforeEach(done => {
-//        models.Agent.create({ email: 'unauthorizedagent@example.com' }).then(a => {
-//          unauthorizedAgent = a;
-//          login({ ..._identity, email: unauthorizedAgent.email, name: 'Suspicious GUy' },
-//              [scope.create.teams, scope.read.teams, scope.update.teams, scope.delete.teams], (err, session) => {
-//            if (err) return done.fail(err);
-//            unauthorizedSession = session;
-//
-//            stubAuth0ManagementApi((err, apiScopes) => {
-//              if (err) return done.fail();
-//              done();
-//            });
-//          });
-//        }).catch(err => {
-//          done.fail(err);
-//        });
-//      });
-//
-//      describe('create', () => {
-//        it('returns 401', done => {
-//          unauthorizedSession
-//            .post('/team')
-//            .send({
-//              organizationId: organization.id,
-//              name: 'Cree Translation Team'
-//            })
-//            .set('Accept', 'application/json')
-//            .expect('Content-Type', /json/)
-//            .expect(401)
-//            .end(function(err, res) {
-//              if (err) return done.fail(err);
-//              expect(res.body.message).toEqual('Unauthorized');
-//
-//              done();
-//            });
-//        });
-//
-//        it('does not add a new record to the database', done => {
-//          models.Team.findAll().then(results => {
-//            expect(results.length).toEqual(1);
-//
-//            unauthorizedSession
-//              .post('/team')
-//              .send({
-//                organizationId: organization.id,
-//                name: 'Cree Translation Team'
-//              })
-//              .set('Accept', 'application/json')
-//              .expect('Content-Type', /json/)
-//              .expect(401)
-//              .end(function(err, res) {
-//                if (err) return done.fail(err);
-//                models.Team.findAll().then(results => {
-//                  expect(results.length).toEqual(1);
-//                  done();
-//                }).catch(err => {
-//                  done.fail(err);
-//                });
-//              });
-//          }).catch(err => {
-//            done.fail(err);
-//          });
-//        });
-//      });
-//
-//      describe('update', () => {
+
+      let unauthorizedSession, unauthorizedAgent, teamId;
+      beforeEach(done => {
+
+        // This is fine for testing, but does not reflect reality (because all
+        // the team data looks like it belongs to unauthorized agent
+        teamId = uuid.v4();
+        _profile.user_metadata = { teams: [{ name: 'Saskatchewan Rush', leader: _profile.email, members: [_profile.email], id: teamId }] };
+        _profile.user_metadata.teams.push({ name: 'Philadelphia Wings', leader: 'someotherguy@example.com',
+                                            members: ['someotherguy@example.com', _profile.email], id: uuid.v4() });
+
+        login({ ..._identity, email: 'unauthorizedagent@example.com', name: 'Suspicious GUy' },
+            [scope.create.teams, scope.read.teams, scope.update.teams, scope.delete.teams], (err, session) => {
+          if (err) return done.fail(err);
+          unauthorizedSession = session;
+
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
+
+            stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
+              if (err) return done.fail();
+
+              ({teamReadScope, updateTeamScope, oauthTokenScope} = apiScopes);
+              done();
+            });
+          });
+        });
+      });
+
+      describe('update', () => {
+        it('returns friendly message', done => {
+          unauthorizedSession
+            .put(`/team/${teamId}`)
+            .send({
+              name: 'Vancouver Riot'
+            })
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(403)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(res.body.message).toEqual('Unauthorized');
+              done();
+            });
+        });
+
+        it('doesn\'t barf if team doesn\'t exist', done => {
+          unauthorizedSession
+            .put('/team/333')
+            .send({
+              name: 'Vancouver Riot'
+            })
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(404)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(res.body.message).toEqual('No such team');
+              done();
+            });
+        });
+
+        describe('Auth0', () => {
+          it('calls /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
+            unauthorizedSession
+              .put(`/team/${teamId}`)
+              .send({
+                name: 'Vancouver Riot'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(403)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(oauthTokenScope.isDone()).toBe(true);
+                done();
+              });
+          });
+
+          it('is called to retrieve the agent user_metadata', done => {
+            unauthorizedSession
+              .put(`/team/${teamId}`)
+              .send({
+                name: 'Vancouver Riot'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(403)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(teamReadScope.isDone()).toBe(true);
+                done();
+              });
+          });
+
+          it('is not called to update the agent user_metadata', done => {
+            unauthorizedSession
+              .put(`/team/${teamId}`)
+              .send({
+                name: 'Vancouver Riot'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(403)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(updateTeamScope.isDone()).toBe(false);
+                done();
+              });
+          });
+        });
+
+
 //        describe('PUT', () => {
 //          it('returns 403', done => {
 //            unauthorizedSession
@@ -1382,8 +1390,8 @@ describe('teamSpec', () => {
 //              });
 //          });
 //        });
-//      });
-//
+      });
+
 //      describe('read', () => {
 //        it('returns 403 on organization show', done => {
 //          unauthorizedSession
@@ -1398,44 +1406,64 @@ describe('teamSpec', () => {
 //            });
 //        });
 //      });
-//
-//      describe('delete', () => {
-//        it('returns 403', done => {
-//          unauthorizedSession
-//            .delete(`/team/${team.id}`)
-//            .set('Accept', 'application/json')
-//            .expect('Content-Type', /json/)
-//            .expect(403)
-//            .end(function(err, res) {
-//              if (err) return done.fail(err);
-//              expect(res.body.message).toEqual('Unauthorized');
-//              done();
-//            });
-//        });
-//
-//        it('does not remove the record from the database', done => {
-//          models.Team.findAll().then(results => {
-//            expect(results.length).toEqual(1);
-//
-//            unauthorizedSession
-//              .delete(`/team/${team.id}`)
-//              .set('Accept', 'application/json')
-//              .expect('Content-Type', /json/)
-//              .expect(403)
-//              .end(function(err, res) {
-//                if (err) return done.fail(err);
-//                models.Team.findAll().then(results => {
-//                  expect(results.length).toEqual(1);
-//                  done();
-//                }).catch(err => {
-//                  done.fail(err);
-//                });
-//              });
-//          }).catch(err => {
-//            done.fail(err);
-//          });
-//        });
-//      });
+
+      describe('delete', () => {
+        it('returns 403', done => {
+          unauthorizedSession
+            .delete(`/team/${teamId}`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(403)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(res.body.message).toEqual('Unauthorized');
+              done();
+            });
+        });
+
+        describe('Auth0', () => {
+          it('calls /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
+            unauthorizedSession
+              .delete(`/team/${teamId}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(403)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(oauthTokenScope.isDone()).toBe(true);
+                done();
+              });
+          });
+
+          it('is called to retrieve the agent user_metadata', done => {
+            unauthorizedSession
+              .delete(`/team/${teamId}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(403)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(teamReadScope.isDone()).toBe(true);
+                done();
+              });
+          });
+
+          it('is not called to update the agent', done => {
+            unauthorizedSession
+              .delete(`/team/${teamId}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(403)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(updateTeamScope.isDone()).toBe(false);
+                done();
+              });
+          });
+        });
+      });
     });
   });
 
