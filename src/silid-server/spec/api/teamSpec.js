@@ -40,7 +40,7 @@ describe('teamSpec', () => {
     delete _profile.user_metadata;
   });
 
-  let team, organization, agent;
+  let agent;
   beforeEach(done => {
     models.sequelize.sync({force: true}).then(() => {
       fixtures.loadFile(`${__dirname}/../fixtures/agents.json`, models).then(() => {
