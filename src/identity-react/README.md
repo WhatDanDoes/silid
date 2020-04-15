@@ -40,7 +40,7 @@ npm start
 Execute `cypress` tests:
 
 ```
-npx cypress run
+npx cypress open
 ```
 
 ### Headless
