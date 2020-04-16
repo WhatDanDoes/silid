@@ -45,12 +45,28 @@ context('viewer/Agent Index', function() {
       });
 
       describe('social profile data', () => {
-        it('displays JSON', () => {
+        it('toggles JSON display', () => {
           cy.get('.react-json-view').its('length').should('eq', 1);
+
+          // Toggle closed
+          cy.get('.react-json-view .icon-container .collapsed-icon').should('exist');
+          cy.get('.react-json-view .icon-container .expanded-icon').should('not.exist');
+          cy.get('.react-json-view').contains('displayName').should('not.exist');
+
+          // Toggle open
+          cy.get('.react-json-view .icon-container .collapsed-icon').click();
+          cy.get('.react-json-view .icon-container .expanded-icon').should('exist');
+
           cy.get('.react-json-view').contains('locale');
           cy.get('.react-json-view').contains('picture');
           cy.get('.react-json-view').contains('user_id');
           cy.get('.react-json-view').contains('displayName');
+
+          // Toggle closed again
+          cy.get('.react-json-view .icon-container .expanded-icon').click();
+          cy.get('.react-json-view .icon-container .collapsed-icon').should('exist');
+          cy.get('.react-json-view .icon-container .expanded-icon').should('not.exist');
+          cy.get('.react-json-view').contains('displayName').should('not.exist');
         });
       });
 

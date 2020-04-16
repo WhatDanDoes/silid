@@ -180,8 +180,9 @@ const Agent = (props: any) => {
             </Grid>
             <Grid item className={classes.json}>
               <ReactJson
-                src={formData}
-                collapsed={false}
+                src={formData.socialProfile}
+                name={null}
+                collapsed={true}
                 collapseStringsAfterLength={80}
                 displayDataTypes={false}
                 displayObjectSize={false}
