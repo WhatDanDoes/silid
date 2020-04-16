@@ -70,62 +70,15 @@ context('viewer/Agent Index', function() {
         });
       });
 
-      describe('editable content form', () => {
-        it('displays fields in a form', function() {
+      describe('profile highlights', () => {
+        it('displays fields in a table', function() {
           cy.get('h3').contains('Profile');
-          cy.get('input[name="name"][type="text"]').should('have.value', this.profile.name);
-          cy.get('input[name="email"][type="email"]').should('have.value', this.profile.email);
-          cy.get('button[type="submit"]').should('exist');
-        });
-
-        it('disables the Save button', () => {
-          cy.get('button[type="submit"]').should('be.disabled');
-        });
-
-        // This is not superfluous
-        it('allows user input', () => {
-          cy.get('input[name="name"][type="text"]').clear().type('Some Radical Dude');
-          cy.get('input[name="name"][type="text"]').should('have.value', 'Some Radical Dude');
-        });
-
-        it('enables Save button when Name field changes', () => {
-          cy.get('button[type="submit"]').should('be.disabled');
-          cy.get('input[name="name"][type="text"]').clear().type('Some Radical Dude');
-          cy.get('button[type="submit"]').should('not.be.disabled');
-        });
-
-        it('permanently disables the Email field', () => {
-          cy.get('input[name="email"][type="email"]').should('be.disabled');
-        });
-
-        describe('Cancel button', () => {
-          it('displays on form change', function() {
-            cy.get('input[name="name"][type="text"]').should('have.value', this.profile.name);
-            cy.get('button#cancel-changes').should('not.exist');
-            cy.get('input[name="name"][type="text"]').clear().type('Some Radical Dude');
-            cy.get('button#cancel-changes').should('exist');
-          });
-
-          it('resets changes to the form', function() {
-            cy.get('input[name="name"][type="text"]').should('have.value', this.profile.name);
-            cy.get('input[name="name"][type="text"]').clear().type('Some Radical Dude');
-            cy.get('button#cancel-changes').click();
-            cy.get('input[name="name"][type="text"]').should('have.value', this.profile.name);
-          });
-
-          it('hides on click', () => {
-            cy.get('input[name="name"][type="text"]').clear().type('Some Radical Dude');
-            cy.get('button#cancel-changes').should('exist');
-            cy.get('button#cancel-changes').click();
-            cy.get('button#cancel-changes').should('not.exist');
-          });
-
-          it('disables Save button on click', () => {
-            cy.get('input[name="name"][type="text"]').clear().type('Some Radical Dude');
-            cy.get('button[type="submit"]').should('not.be.disabled');
-            cy.get('button#cancel-changes').click();
-            cy.get('button[type="submit"]').should('be.disabled');
-          });
+          cy.get('table tbody tr th').contains('Display Name:');
+          cy.get('table tbody tr td').contains(this.profile.name);
+          cy.get('table tbody tr th').contains('Email:');
+          cy.get('table tbody tr td').contains(this.profile.email);
+          cy.get('table tbody tr th').contains('Locale:');
+          cy.get('table tbody tr td').contains(this.profile.locale);
         });
       });
     });
