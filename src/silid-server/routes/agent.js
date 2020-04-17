@@ -59,21 +59,12 @@ router.get('/admin/:page?/:cached?', checkPermissions(roles.sudo), function(req,
 });
 
 router.get('/', checkPermissions([scope.read.agents]), function(req, res, next) {
-  const managementClient = getManagementClient(apiScope.read.users);
-  managementClient.getUser({id: req.user.user_id}).then(agent => {
+  // Attach isSuper status for configured root agent
+  if (req.agent.isSuper) {
+    req.user.user_metadata.isSuper = true;
+  }
 
-    // Attach isSuper status for configured root agent
-    if (req.agent.isSuper) {
-      if (!agent.user_metadata) {
-        agent.user_metadata = {};
-      }
-      agent.user_metadata.isSuper = true;
-    }
-
-    res.status(200).json(agent);
-  }).catch(err => {
-    res.status(err.statusCode).json(err.message.error_description);
-  });
+  res.status(200).json(req.user);
 });
 
 router.get('/:id/:cached?', checkPermissions([scope.read.agents]), function(req, res, next) {
