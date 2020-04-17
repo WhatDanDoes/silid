@@ -44,6 +44,24 @@ context('viewer/Agent Index', function() {
         cy.url().should('contain', '/#/agent');
       });
 
+      describe('profile highlights', () => {
+        it('displays fields in a table', function() {
+          cy.get('h3').contains('Profile');
+          cy.get('table tbody tr th').contains('Display Name:');
+          cy.get('table tbody tr td').contains(this.profile.name);
+          cy.get('table tbody tr th').contains('Email:');
+          cy.get('table tbody tr td').contains(this.profile.email);
+          cy.get('table tbody tr th').contains('Locale:');
+          cy.get('table tbody tr td').contains(this.profile.locale);
+        });
+      });
+
+      describe('teams', () => {
+        it('displays teams in a table', function() {
+          cy.get('h6').contains('Teams');
+        });
+      });
+
       describe('social profile data', () => {
         it('toggles JSON display', () => {
           cy.get('.react-json-view').its('length').should('eq', 1);
@@ -70,17 +88,7 @@ context('viewer/Agent Index', function() {
         });
       });
 
-      describe('profile highlights', () => {
-        it('displays fields in a table', function() {
-          cy.get('h3').contains('Profile');
-          cy.get('table tbody tr th').contains('Display Name:');
-          cy.get('table tbody tr td').contains(this.profile.name);
-          cy.get('table tbody tr th').contains('Email:');
-          cy.get('table tbody tr td').contains(this.profile.email);
-          cy.get('table tbody tr th').contains('Locale:');
-          cy.get('table tbody tr td').contains(this.profile.locale);
-        });
-      });
+
     });
   });
 });

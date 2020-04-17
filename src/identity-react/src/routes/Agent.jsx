@@ -22,6 +22,10 @@ import TableContainer from '@material-ui/core/TableContainer';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 
+/**
+ * For profile data display
+ */
+import MaterialTable from 'material-table';
 
 import useGetAgentService from '../services/useGetAgentService';
 //import usePutAgentService from '../services/usePutAgentService';
@@ -140,26 +144,27 @@ console.log(JSON.stringify(service.payload));
         {service.status === 'loaded' && service.payload ?
           <>
             <Grid item className={classes.grid}>
-
               <TableContainer component={Paper}>
                 <Table className={classes.table} aria-label="Agent profile info">
                   <TableBody>
                     <TableRow>
-                      <TableCell component="th" scope="row">Display Name:</TableCell>
+                      <TableCell align="right" component="th" scope="row">Display Name:</TableCell>
                       <TableCell align="left">{profileData.displayName}</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell component="th" scope="row">Email:</TableCell>
+                      <TableCell align="right" component="th" scope="row">Email:</TableCell>
                       <TableCell align="left">{profileData._json ? profileData._json.email : ''}</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell component="th" scope="row">Locale:</TableCell>
+                      <TableCell align="right" component="th" scope="row">Locale:</TableCell>
                       <TableCell align="left">{profileData.locale}</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
               </TableContainer>
-
+            </Grid>
+            <Grid item className={classes.grid}>
+              <MaterialTable title='Teams' />
             </Grid>
             <Grid item>
               <Typography className={classes.header} variant="h5" component="h3">
