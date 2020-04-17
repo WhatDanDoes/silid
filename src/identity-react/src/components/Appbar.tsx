@@ -203,10 +203,10 @@ const Home = (props: IProps) => {
         {agent && (
           <>
             <Grid container justify="flex-end" alignItems="flex-start">
-              {agent.socialProfile.picture ? (
+              {agent.picture ? (
                 <Avatar
                   alt="avatar"
-                  src={agent.socialProfile.picture}
+                  src={agent.picture}
                   className={classes.avatar}
                 />
               ) : (
