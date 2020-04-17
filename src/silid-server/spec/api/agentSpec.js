@@ -179,6 +179,20 @@ describe('agentSpec', () => {
                   done();
                 });
             });
+
+            it('does not attach isSuper status to a regular agent', done => {
+              authenticatedSession
+                .get(`/agent`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(res.body.user_metadata).toBeUndefined();
+                  done();
+                });
+            });
           });
         });
 

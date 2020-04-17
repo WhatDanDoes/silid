@@ -61,6 +61,15 @@ router.get('/admin/:page?/:cached?', checkPermissions(roles.sudo), function(req,
 router.get('/', checkPermissions([scope.read.agents]), function(req, res, next) {
   const managementClient = getManagementClient(apiScope.read.users);
   managementClient.getUser({id: req.user.user_id}).then(agent => {
+
+    // Attach isSuper status for configured root agent
+    if (req.agent.isSuper) {
+      if (!agent.user_metadata) {
+        agent.user_metadata = {};
+      }
+      agent.user_metadata.isSuper = true;
+    }
+
     res.status(200).json(agent);
   }).catch(err => {
     res.status(err.statusCode).json(err.message.error_description);
@@ -100,10 +109,6 @@ router.get('/:id/:cached?', checkPermissions([scope.read.agents]), function(req,
 });
 
 router.post('/', checkPermissions([scope.create.agents]), function(req, res, next) {
-//2020-4-8
-//  let agent = new models.Agent({ email: req.body.email });
-//  agent.save().then(result => {
-
   const managementClient = getManagementClient(apiScope.create.users);
   managementClient.createUser({ ...req.body, connection: 'Initial-Connection' }).then(result => {
     res.status(201).json(result);
@@ -111,11 +116,6 @@ router.post('/', checkPermissions([scope.create.agents]), function(req, res, nex
   .catch(err => {
     res.status(err.statusCode).json(err.message.error_description);
   });
-
-
-//  }).catch(err => {
-//    res.status(500).json(err);
-//  });
 });
 
 router.put('/', checkPermissions([scope.update.agents]), function(req, res, next) {
@@ -135,20 +135,7 @@ router.put('/', checkPermissions([scope.update.agents]), function(req, res, next
     }
 
     agent.save().then(result => {
-
-// 2020-4-8 Saving for later. Cf., `spec/agentSpec`
-//      if (result.socialProfile) {
-//        const managementClient = getManagementClient(apiScope.update.users);
-//        managementClient.updateUser({ id: result.socialProfile.id }, req.body).then(users => {
-          res.status(201).json(result);
-//        })
-//        .catch(err => {
-//          res.status(err.statusCode).json(err.message.error_description);
-//        });
-//      }
-//      else {
-//        res.status(201).json(result);
-//      }
+      res.status(201).json(result);
     }).catch(err => {
       res.status(500).json(err);
     });

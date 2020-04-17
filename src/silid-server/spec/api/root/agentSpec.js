@@ -88,19 +88,52 @@ describe('root/agentSpec', () => {
       });
 
       describe('/agent', () => {
-        it('retrieves root agent\'s info from the database', done => {
-          rootSession
-            .get('/agent')
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(200)
-            .end(function(err, res) {
-              if (err) return done.fail(err);
+        describe('Auth0', () => {
+          it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
+            rootSession
+              .get('/agent')
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(oauthTokenScope.isDone()).toBe(true);
+                done();
+              });
+          });
 
-              expect(res.body.email).toEqual(process.env.ROOT_AGENT);
-              expect(res.body.name).toEqual('Professor Fresh');
-              done();
-            });
+          it('calls Auth0 to read the agent at the Auth0-defined connection', done => {
+            rootSession
+              .get('/agent')
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(userReadScope.isDone()).toBe(true);
+                done();
+              });
+          });
+
+          it('attaches isSuper flag to user_metadata for app-configured root agent', done => {
+            rootSession
+              .get('/agent')
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                // This is just returning whatever is in
+                // `fixtures/sample-auth0-profile-response`.
+                // Don't be alarmed when the emails don't match
+                expect(res.body.email).toBeDefined();
+
+                expect(res.body.user_metadata.isSuper).toBe(true);
+                done();
+              });
+          });
         });
       });
 
