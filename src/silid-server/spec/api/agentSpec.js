@@ -75,56 +75,6 @@ describe('agentSpec', () => {
           });
         });
 
-//2020-4-8
-//        describe('database', () => {
-//          it('adds a new record to the database', done => {
-//            models.Agent.findAll().then(results => {
-//              expect(results.length).toEqual(1);
-//
-//              authenticatedSession
-//                .post('/agent')
-//                .send({
-//                  email: 'someotherguy@example.com'
-//                })
-//                .set('Accept', 'application/json')
-//                .expect('Content-Type', /json/)
-//                .expect(201)
-//                .end(function(err, res) {
-//                  if (err) return done.fail(err);
-//
-//                  expect(res.body.email).toEqual('someotherguy@example.com');
-//
-//                  models.Agent.findAll().then(results => {
-//                    expect(results.length).toEqual(2);
-//                    done();
-//                  }).catch(err => {
-//                    done.fail(err);
-//                  });
-//                });
-//            }).catch(err => {
-//              done.fail(err);
-//            });
-//          });
-//
-//          it('returns an error if record already exists', done => {
-//            authenticatedSession
-//              .post('/agent')
-//              .send({
-//                email: agent.email
-//              })
-//              .set('Accept', 'application/json')
-//              .expect('Content-Type', /json/)
-//              .expect(500)
-//              .end(function(err, res) {
-//                if (err) done.fail(err);
-//
-//                expect(res.body.errors.length).toEqual(1);
-//                expect(res.body.errors[0].message).toEqual('That agent is already registered');
-//                done();
-//              });
-//          });
-//        });
-
         describe('Auth0', () => {
           it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
             authenticatedSession
@@ -164,25 +114,6 @@ describe('agentSpec', () => {
                 done();
               });
           });
-
-//2020-4-8
-//          it('does not call the Auth0 endpoints if record already exists', done => {
-//            authenticatedSession
-//              .post('/agent')
-//              .send({
-//                email: agent.email
-//              })
-//              .set('Accept', 'application/json')
-//              .expect('Content-Type', /json/)
-//              .expect(500)
-//              .end(function(err, res) {
-//                if (err) done.fail(err);
-//
-//                expect(oauthTokenScope.isDone()).toBe(false);
-//                expect(userCreateScope.isDone()).toBe(false);
-//                done();
-//              });
-//          });
         });
       });
 
@@ -206,52 +137,98 @@ describe('agentSpec', () => {
           });
         });
 
-        describe('Auth0', () => {
-          it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
-            authenticatedSession
-              .get(`/agent/${_identity.sub}`)
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(200)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-                expect(oauthTokenScope.isDone()).toBe(true);
-                done();
-              });
+        describe('/agent', () => {
+          describe('Auth0', () => {
+            it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
+              authenticatedSession
+                .get(`/agent`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+                  expect(oauthTokenScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+
+            it('calls Auth0 to read the agent at the Auth0-defined connection', done => {
+              authenticatedSession
+                .get(`/agent`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(userReadScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+
+            it('retrieves a record from Auth0', done => {
+              authenticatedSession
+                .get(`/agent`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(res.body.email).toBeDefined();
+                  done();
+                });
+            });
           });
+        });
 
-          it('calls Auth0 to read the agent at the Auth0-defined connection', done => {
-            authenticatedSession
-              .get(`/agent/${_identity.sub}`)
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(200)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
+        describe('/agent/:id', () => {
+          describe('Auth0', () => {
+            it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
+              authenticatedSession
+                .get(`/agent/${_identity.sub}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+                  expect(oauthTokenScope.isDone()).toBe(true);
+                  done();
+                });
+            });
 
-                expect(userReadScope.isDone()).toBe(true);
-                done();
-              });
-          });
+            it('calls Auth0 to read the agent at the Auth0-defined connection', done => {
+              authenticatedSession
+                .get(`/agent/${_identity.sub}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
 
-          it('retrieves a record from Auth0', done => {
-            authenticatedSession
-              .get(`/agent/${_identity.sub}`)
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(200)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
+                  expect(userReadScope.isDone()).toBe(true);
+                  done();
+                });
+            });
 
-                expect(res.body.email).toBeDefined();
-                done();
-              });
+            it('retrieves a record from Auth0', done => {
+              authenticatedSession
+                .get(`/agent/${_identity.sub}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(res.body.email).toBeDefined();
+                  done();
+                });
+            });
           });
         });
       });
 
       describe('update', () => {
-//        let userUpdateScope;
         beforeEach(done => {
           login(_identity, [scope.update.agents], (err, session) => {
             if (err) return done.fail(err);
@@ -262,7 +239,6 @@ describe('agentSpec', () => {
 
               stubAuth0ManagementEndpoint([apiScope.update.users], (err, apiScopes) => {
                 if (err) return done.fail(err);
-                //({userUpdateScope, oauthTokenScope} = apiScopes);
                 ({oauthTokenScope} = apiScopes);
 
                 done();
@@ -345,63 +321,6 @@ describe('agentSpec', () => {
               done();
             });
         });
-
-// 2020-4-8 Maybe useful later...
-//        describe('Auth0', () => {
-//          it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
-//            authenticatedSession
-//              .put('/agent')
-//              .send({
-//                id: agent.id,
-//                name: 'Some Cool Guy'
-//              })
-//              .set('Accept', 'application/json')
-//              .expect('Content-Type', /json/)
-//              .expect(201)
-//              .end(function(err, res) {
-//                if (err) return done.fail(err);
-//                expect(oauthTokenScope.isDone()).toBe(true);
-//                done();
-//              });
-//          });
-//
-//          it('calls Auth0 to update the agent at the Auth0-defined connection', done => {
-//            authenticatedSession
-//              .put('/agent')
-//              .send({
-//                id: agent.id,
-//                name: 'Some Cool Guy'
-//              })
-//              .set('Accept', 'application/json')
-//              .expect('Content-Type', /json/)
-//              .expect(201)
-//              .end(function(err, res) {
-//                if (err) return done.fail(err);
-//
-//                expect(userUpdateScope.isDone()).toBe(true);
-//                done();
-//              });
-//          });
-//
-//          it('does not call the Auth0 endpoints if record doesn\'t  exists', done => {
-//            authenticatedSession
-//              .put('/agent')
-//              .send({
-//                id: 333,
-//                name: 'Some Cool Guy'
-//              })
-//              .set('Accept', 'application/json')
-//              .expect('Content-Type', /json/)
-//              .expect(404)
-//              .end(function(err, res) {
-//                if (err) done.fail(err);
-//
-//                expect(oauthTokenScope.isDone()).toBe(false);
-//                expect(userUpdateScope.isDone()).toBe(false);
-//                done();
-//              });
-//          });
-//        });
       });
 
       describe('delete', () => {
