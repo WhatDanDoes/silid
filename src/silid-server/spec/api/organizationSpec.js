@@ -60,13 +60,14 @@ describe('organizationSpec', () => {
 
         let authenticatedSession;
         beforeEach(done => {
-          login(_identity, [scope.create.organizations], (err, session) => {
-            if (err) return done.fail(err);
-            authenticatedSession = session;
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
 
-            stubAuth0ManagementApi((err, apiScopes) => {
-              if (err) return done.fail();
-              done();
+            login(_identity, [scope.create.organizations], (err, session) => {
+              if (err) return done.fail(err);
+              authenticatedSession = session;
+
+             done();
             });
           });
         });
@@ -137,12 +138,13 @@ describe('organizationSpec', () => {
 
         let authenticatedSession;
         beforeEach(done => {
-          login(_identity, [scope.read.organizations], (err, session) => {
-            if (err) return done.fail(err);
-            authenticatedSession = session;
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
 
-            stubAuth0ManagementApi((err, apiScopes) => {
-              if (err) return done.fail();
+            login(_identity, [scope.read.organizations], (err, session) => {
+              if (err) return done.fail(err);
+              authenticatedSession = session;
+
               done();
             });
           });
@@ -290,12 +292,13 @@ describe('organizationSpec', () => {
 
         let authenticatedSession;
         beforeEach(done => {
-          login(_identity, [scope.update.organizations], (err, session) => {
-            if (err) return done.fail(err);
-            authenticatedSession = session;
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
 
-            stubAuth0ManagementApi((err, apiScopes) => {
-              if (err) return done.fail();
+            login(_identity, [scope.update.organizations], (err, session) => {
+              if (err) return done.fail(err);
+              authenticatedSession = session;
+
               done();
             });
           });
@@ -538,22 +541,26 @@ describe('organizationSpec', () => {
               });
 
               it('doesn\'t allow a non-member agent to add a member', done => {
-                login({..._identity, email: anotherAgent.email}, [scope.update.organizations], (err, session) => {
-                  if (err) return done.fail(err);
-                  session
-                    .patch('/organization')
-                    .send({
-                      id: organization.id,
-                      memberId: anotherAgent.id
-                    })
-                    .set('Accept', 'application/json')
-                    .expect('Content-Type', /json/)
-                    .expect(403)
-                    .end(function(err, res) {
-                      if (err) return done.fail(err);
-                      expect(res.body.message).toEqual('You are not a member of this organization');
-                      done();
-                    });
+                stubAuth0ManagementApi((err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  login({..._identity, email: anotherAgent.email}, [scope.update.organizations], (err, session) => {
+                    if (err) return done.fail(err);
+                    session
+                      .patch('/organization')
+                      .send({
+                        id: organization.id,
+                        memberId: anotherAgent.id
+                      })
+                      .set('Accept', 'application/json')
+                      .expect('Content-Type', /json/)
+                      .expect(403)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+                        expect(res.body.message).toEqual('You are not a member of this organization');
+                        done();
+                      });
+                  });
                 });
               });
             });
@@ -733,22 +740,26 @@ describe('organizationSpec', () => {
               });
 
               it('doesn\'t allow a non-member agent to add a member', done => {
-                login({..._identity, email: anotherAgent.email}, [scope.update.organizations], (err, session) => {
-                  if (err) return done.fail(err);
-                  session
-                    .patch('/organization')
-                    .send({
-                      id: organization.id,
-                      email: anotherAgent.email
-                    })
-                    .set('Accept', 'application/json')
-                    .expect('Content-Type', /json/)
-                    .expect(403)
-                    .end(function(err, res) {
-                      if (err) return done.fail(err);
-                      expect(res.body.message).toEqual('You are not a member of this organization');
-                      done();
-                    });
+                stubAuth0ManagementApi((err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  login({..._identity, email: anotherAgent.email}, [scope.update.organizations], (err, session) => {
+                    if (err) return done.fail(err);
+                    session
+                      .patch('/organization')
+                      .send({
+                        id: organization.id,
+                        email: anotherAgent.email
+                      })
+                      .set('Accept', 'application/json')
+                      .expect('Content-Type', /json/)
+                      .expect(403)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+                        expect(res.body.message).toEqual('You are not a member of this organization');
+                        done();
+                      });
+                  });
                 });
               });
             });
@@ -855,22 +866,26 @@ describe('organizationSpec', () => {
             });
 
             it('doesn\'t allow a non-member agent to add a team', done => {
-              login({..._identity, email: anotherAgent.email}, [scope.update.organizations], (err, session) => {
-                if (err) return done.fail(err);
-                session
-                  .patch('/organization')
-                  .send({
-                    id: organization.id,
-                    teamId: newTeam.id
-                  })
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(403)
-                  .end(function(err, res) {
-                    if (err) done.fail(err);
-                    expect(res.body.message).toEqual('You are not a member of this organization');
-                    done();
-                  });
+              stubAuth0ManagementApi((err, apiScopes) => {
+                if (err) return done.fail();
+
+                login({..._identity, email: anotherAgent.email}, [scope.update.organizations], (err, session) => {
+                  if (err) return done.fail(err);
+                  session
+                    .patch('/organization')
+                    .send({
+                      id: organization.id,
+                      teamId: newTeam.id
+                    })
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(403)
+                    .end(function(err, res) {
+                      if (err) done.fail(err);
+                      expect(res.body.message).toEqual('You are not a member of this organization');
+                      done();
+                    });
+                });
               });
             });
           });
@@ -880,12 +895,13 @@ describe('organizationSpec', () => {
       describe('delete', () => {
         let authenticatedSession;
         beforeEach(done => {
-          login(_identity, [scope.delete.organizations], (err, session) => {
-            if (err) return done.fail(err);
-            authenticatedSession = session;
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
 
-            stubAuth0ManagementApi((err, apiScopes) => {
-              if (err) return done.fail();
+            login(_identity, [scope.delete.organizations], (err, session) => {
+              if (err) return done.fail(err);
+              authenticatedSession = session;
+
               done();
             });
           });
@@ -947,12 +963,13 @@ describe('organizationSpec', () => {
 
           let unverifiedSession;
           beforeEach(done => {
-            login({ ..._identity, email: invitedAgent.email }, [scope.update.organizations], (err, session) => {
-              if (err) return done.fail(err);
-              unverifiedSession = session;
+            stubAuth0ManagementApi((err, apiScopes) => {
+              if (err) return done.fail();
 
-              stubAuth0ManagementApi((err, apiScopes) => {
-                if (err) return done.fail();
+              login({ ..._identity, email: invitedAgent.email }, [scope.update.organizations], (err, session) => {
+                if (err) return done.fail(err);
+                unverifiedSession = session;
+
                 done();
               });
             });
@@ -1003,11 +1020,12 @@ describe('organizationSpec', () => {
           beforeEach(done => {
             models.Agent.create({ email: 'buddy@example.com' }).then(a => {
               anotherAgent = a;
-              login({ ..._identity, email: invitedAgent.email }, [scope.update.organizations], (err, session) => {
-                unverifiedSession = session;
+              stubAuth0ManagementApi((err, apiScopes) => {
+                if (err) return done.fail();
 
-                stubAuth0ManagementApi((err, apiScopes) => {
-                  if (err) return done.fail();
+                login({ ..._identity, email: invitedAgent.email }, [scope.update.organizations], (err, session) => {
+                  unverifiedSession = session;
+
                   done();
                 });
               });
@@ -1066,11 +1084,13 @@ describe('organizationSpec', () => {
 
         let unverifiedSession;
         beforeEach(done => {
-          login({ ..._identity, email: invitedAgent.email }, [scope.read.organizations], (err, session) => {
-            if (err) return done.fail(err);
-            unverifiedSession = session;
-            stubAuth0ManagementApi((err, apiScopes) => {
-              if (err) return done.fail();
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
+
+            login({ ..._identity, email: invitedAgent.email }, [scope.read.organizations], (err, session) => {
+              if (err) return done.fail(err);
+              unverifiedSession = session;
+
               done();
             });
           });
@@ -1094,12 +1114,13 @@ describe('organizationSpec', () => {
 
         let unverifiedSession;
         beforeEach(done => {
-          login({ ..._identity, email: 'someotherguy@example.com', name: 'Some Other Guy' }, [scope.delete.organizations], (err, session) => {
-            if (err) return done.fail(err);
-            unverifiedSession = session;
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
 
-            stubAuth0ManagementApi((err, apiScopes) => {
-              if (err) return done.fail();
+            login({ ..._identity, email: 'someotherguy@example.com', name: 'Some Other Guy' }, [scope.delete.organizations], (err, session) => {
+              if (err) return done.fail(err);
+              unverifiedSession = session;
+
               done();
             });
           });
@@ -1154,12 +1175,13 @@ describe('organizationSpec', () => {
       let unauthorizedSession;
       beforeEach(done => {
         models.Agent.create({ email: 'suspiciousagent@example.com' }).then(a => {
-          login({..._identity, email: a.email}, [scope.update.organizations, scope.read.organizations, scope.delete.organizations], (err, session) => {
-            if (err) return done.fail(err);
-            unauthorizedSession = session;
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
 
-            stubAuth0ManagementApi((err, apiScopes) => {
-              if (err) return done.fail();
+            login({..._identity, email: a.email}, [scope.update.organizations, scope.read.organizations, scope.delete.organizations], (err, session) => {
+              if (err) return done.fail(err);
+              unauthorizedSession = session;
+
               done();
             });
           });

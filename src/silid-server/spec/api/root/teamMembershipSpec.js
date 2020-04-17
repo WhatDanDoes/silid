@@ -77,13 +77,14 @@ describe('root/teamMembershipSpec', () => {
 
     let rootSession;
     beforeEach(done => {
-      login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, (err, session) => {
-        if (err) return done.fail(err);
-        rootSession = session;
+      stubAuth0ManagementApi((err, apiScopes) => {
+        if (err) return done.fail();
 
-        stubAuth0ManagementApi((err, apiScopes) => {
-          if (err) return done.fail();
-          done();
+        login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, (err, session) => {
+          if (err) return done.fail(err);
+          rootSession = session;
+
+         done();
         });
       });
     });

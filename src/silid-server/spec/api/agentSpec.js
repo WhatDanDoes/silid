@@ -58,13 +58,13 @@ describe('agentSpec', () => {
 
         let auth0UserCreateScope;
         beforeEach(done => {
-          login(_identity, [scope.create.agents], (err, session) => {
+          stubAuth0ManagementApi((err, apiScopes) => {
             if (err) return done.fail(err);
-            authenticatedSession = session;
-
-            stubAuth0ManagementApi((err, apiScopes) => {
-              if (err) return done.fail();
-
+  
+            login(_identity, [scope.create.agents], (err, session) => {
+              if (err) return done.fail(err);
+              authenticatedSession = session;
+  
               stubAuth0ManagementEndpoint([apiScope.create.users], (err, apiScopes) => {
                 if (err) return done.fail();
 
@@ -119,84 +119,89 @@ describe('agentSpec', () => {
 
       describe('read', () => {
 
-        let userReadScope;
-        beforeEach(done => {
-          login(_identity, [scope.read.agents], (err, session) => {
-            if (err) return done.fail(err);
-            authenticatedSession = session;
-
+        describe('/agent', () => {
+          let userReadScope;
+          beforeEach(done => {
             stubAuth0ManagementApi((err, apiScopes) => {
               if (err) return done.fail(err);
-
-              stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
-                ({userReadScope, oauthTokenScope} = apiScopes);
-
+  
+              ({userReadScope, oauthTokenScope} = apiScopes);
+  
+              login(_identity, [scope.read.agents], (err, session) => {
+                if (err) return done.fail(err);
+                authenticatedSession = session;
+  
                 done();
               });
             });
           });
-        });
 
-        describe('/agent', () => {
-          describe('Auth0', () => {
-            it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
-              authenticatedSession
-                .get(`/agent`)
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(200)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-                  expect(oauthTokenScope.isDone()).toBe(true);
-                  done();
-                });
-            });
+          it('returns the info attached to the req.user object', done => {
+            authenticatedSession
+              .get(`/agent`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
 
-            it('calls Auth0 to read the agent at the Auth0-defined connection', done => {
-              authenticatedSession
-                .get(`/agent`)
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(200)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
+                expect(res.body.emails.length).toEqual(1);
+                // The `req.user` `Profile` object adds an `id`
+                expect(res.body.user_id).toEqual(res.body.id);
+                done();
+              });
+          });
 
-                  expect(userReadScope.isDone()).toBe(true);
-                  done();
-                });
-            });
+          it('has the agent metadata set', done => {
+            authenticatedSession
+              .get(`/agent`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.user_metadata).toBeDefined();
+                done();
+              });
+          });
 
-            it('retrieves a record from Auth0', done => {
-              authenticatedSession
-                .get(`/agent`)
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(200)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
 
-                  expect(res.body.email).toBeDefined();
-                  done();
-                });
-            });
+          it('does not attach isSuper status to a regular agent', done => {
+            authenticatedSession
+              .get(`/agent`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
 
-            it('does not attach isSuper status to a regular agent', done => {
-              authenticatedSession
-                .get(`/agent`)
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(200)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-
-                  expect(res.body.user_metadata).toBeUndefined();
-                  done();
-                });
-            });
+                expect(res.body.isSuper).toBeUndefined();
+                done();
+              });
           });
         });
 
         describe('/agent/:id', () => {
+
+          let userReadScope;
+          beforeEach(done => {
+            stubAuth0ManagementApi((err, apiScopes) => {
+              if (err) return done.fail(err);
+  
+              login(_identity, [scope.read.agents], (err, session) => {
+                if (err) return done.fail(err);
+                authenticatedSession = session;
+  
+                stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+                  if (err) return done.fail(err);
+                  ({userReadScope, oauthTokenScope} = apiScopes);
+
+                  done();
+                });
+              });
+            });
+          });
+
           describe('Auth0', () => {
             it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
               authenticatedSession
@@ -244,17 +249,17 @@ describe('agentSpec', () => {
 
       describe('update', () => {
         beforeEach(done => {
-          login(_identity, [scope.update.agents], (err, session) => {
+          stubAuth0ManagementApi((err, apiScopes) => {
             if (err) return done.fail(err);
-            authenticatedSession = session;
 
-            stubAuth0ManagementApi((err, apiScopes) => {
+            login(_identity, [scope.update.agents], (err, session) => {
               if (err) return done.fail(err);
-
+              authenticatedSession = session;
+  
               stubAuth0ManagementEndpoint([apiScope.update.users], (err, apiScopes) => {
                 if (err) return done.fail(err);
                 ({oauthTokenScope} = apiScopes);
-
+  
                 done();
               });
             });
@@ -341,13 +346,13 @@ describe('agentSpec', () => {
 
         let userDeleteScope;
         beforeEach(done => {
-          login(_identity, [scope.delete.agents], (err, session) => {
+          stubAuth0ManagementApi((err, apiScopes) => {
             if (err) return done.fail(err);
-            authenticatedSession = session;
 
-            stubAuth0ManagementApi((err, apiScopes) => {
+            login(_identity, [scope.delete.agents], (err, session) => {
               if (err) return done.fail(err);
-
+              authenticatedSession = session;
+  
               stubAuth0ManagementEndpoint([apiScope.delete.users], (err, apiScopes) => {
                 if (err) return done.fail(err);
                 ({userDeleteScope, oauthTokenScope} = apiScopes);
@@ -450,12 +455,13 @@ describe('agentSpec', () => {
     describe('forbidden', () => {
       let forbiddenSession;
       beforeEach(done => {
-        login({ ..._identity, email: 'someotherguy@example.com', name: 'Some Other Guy' }, (err, session) => {
+        stubAuth0ManagementApi((err, apiScopes) => {
           if (err) return done.fail(err);
-          forbiddenSession = session;
 
-          stubAuth0ManagementApi((err, apiScopes) => {
-            if (err) return done.fail();
+          login({ ..._identity, email: 'someotherguy@example.com', name: 'Some Other Guy' }, (err, session) => {
+            if (err) return done.fail(err);
+            forbiddenSession = session;
+
             done();
           });
         });

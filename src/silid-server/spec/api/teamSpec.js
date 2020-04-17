@@ -67,13 +67,13 @@ describe('teamSpec', () => {
 
         describe('successfully', () =>{
           beforeEach(done => {
-            login(_identity, [scope.create.teams], (err, session) => {
+            stubAuth0ManagementApi((err, apiScopes) => {
+              if (err) return done.fail();
 
-              if (err) return done.fail(err);
-              authenticatedSession = session;
-
-              stubAuth0ManagementApi((err, apiScopes) => {
-                if (err) return done.fail();
+              login(_identity, [scope.create.teams], (err, session) => {
+  
+                if (err) return done.fail(err);
+                authenticatedSession = session;
 
                 stubAuth0ManagementEndpoint([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
                   if (err) return done.fail();
@@ -159,14 +159,13 @@ describe('teamSpec', () => {
           beforeEach(done => {
             // Witness node module caching magic
             _profile.user_metadata = { teams: [ {name: 'The Calgary Roughnecks', leader: _profile.email, members: [_profile.email] } ] };
+            stubAuth0ManagementApi((err, apiScopes) => {
+              if (err) return done.fail();
 
-            login(_identity, [scope.create.teams], (err, session) => {
-
-              if (err) return done.fail(err);
-              authenticatedSession = session;
-
-              stubAuth0ManagementApi((err, apiScopes) => {
-                if (err) return done.fail();
+              login(_identity, [scope.create.teams], (err, session) => {
+  
+                if (err) return done.fail(err);
+                authenticatedSession = session;
 
                 stubAuth0ManagementEndpoint([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
                   if (err) return done.fail();
@@ -291,14 +290,13 @@ describe('teamSpec', () => {
             teamId = uuid.v4();
 
             _profile.user_metadata = { teams: [{ name: 'The Calgary Roughnecks', leader: _profile.email, members: [_profile.email], id: teamId }] };
+            stubAuth0ManagementApi((err, apiScopes) => {
+              if (err) return done.fail();
 
-            login(_identity, [scope.create.teams], (err, session) => {
-
-              if (err) return done.fail(err);
-              authenticatedSession = session;
-
-              stubAuth0ManagementApi((err, apiScopes) => {
-                if (err) return done.fail();
+              login(_identity, [scope.create.teams], (err, session) => {
+  
+                if (err) return done.fail(err);
+                authenticatedSession = session;
 
                 stubAuth0ManagementEndpoint([apiScope.read.usersAppMetadata], (err, apiScopes) => {
                   if (err) return done.fail();
@@ -379,13 +377,13 @@ describe('teamSpec', () => {
             _profile.user_metadata.teams.push({ name: 'The Rochester Knighthawks', leader: 'someotherguy@example.com',
                                                 members: ['someotherguy@example.com', _profile.email], id: uuid.v4() });
 
-            login(_identity, [scope.create.teams], (err, session) => {
+            stubAuth0ManagementApi((err, apiScopes) => {
+              if (err) return done.fail();
 
-              if (err) return done.fail(err);
-              authenticatedSession = session;
-
-              stubAuth0ManagementApi((err, apiScopes) => {
-                if (err) return done.fail();
+              login(_identity, [scope.create.teams], (err, session) => {
+  
+                if (err) return done.fail(err);
+                authenticatedSession = session;
 
                 stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata], (err, apiScopes) => {
                   if (err) return done.fail();
@@ -450,13 +448,13 @@ describe('teamSpec', () => {
           _profile.user_metadata.teams.push({ name: 'Georgia Swarm', leader: 'someotherguy@example.com',
                                               members: ['someotherguy@example.com', _profile.email], id: uuid.v4() });
 
-          login(_identity, [scope.update.teams], (err, session) => {
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
 
-            if (err) return done.fail(err);
-            authenticatedSession = session;
-
-            stubAuth0ManagementApi((err, apiScopes) => {
-              if (err) return done.fail();
+            login(_identity, [scope.update.teams], (err, session) => {
+  
+              if (err) return done.fail(err);
+              authenticatedSession = session;
 
               stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
                 if (err) return done.fail();
@@ -1066,13 +1064,13 @@ describe('teamSpec', () => {
           _profile.user_metadata.teams.push({ name: 'Philadelphia Wings', leader: 'someotherguy@example.com',
                                               members: ['someotherguy@example.com', _profile.email], id: uuid.v4() });
 
-          login(_identity, [scope.delete.teams], (err, session) => {
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
 
-            if (err) return done.fail(err);
-            authenticatedSession = session;
-
-            stubAuth0ManagementApi((err, apiScopes) => {
-              if (err) return done.fail();
+            login(_identity, [scope.delete.teams], (err, session) => {
+  
+              if (err) return done.fail(err);
+              authenticatedSession = session;
 
               stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
                 if (err) return done.fail();
@@ -1171,13 +1169,13 @@ describe('teamSpec', () => {
         _profile.user_metadata.teams.push({ name: 'Philadelphia Wings', leader: 'someotherguy@example.com',
                                             members: ['someotherguy@example.com', _profile.email], id: uuid.v4() });
 
-        login({ ..._identity, email: 'unauthorizedagent@example.com', name: 'Suspicious GUy' },
-            [scope.create.teams, scope.read.teams, scope.update.teams, scope.delete.teams], (err, session) => {
-          if (err) return done.fail(err);
-          unauthorizedSession = session;
+        stubAuth0ManagementApi((err, apiScopes) => {
+          if (err) return done.fail();
 
-          stubAuth0ManagementApi((err, apiScopes) => {
-            if (err) return done.fail();
+          login({ ..._identity, email: 'unauthorizedagent@example.com', name: 'Suspicious GUy' },
+              [scope.create.teams, scope.read.teams, scope.update.teams, scope.delete.teams], (err, session) => {
+            if (err) return done.fail(err);
+            unauthorizedSession = session;
 
             stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
               if (err) return done.fail();

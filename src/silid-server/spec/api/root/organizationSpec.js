@@ -63,12 +63,13 @@ describe('root/organizationSpec', () => {
   describe('authorized', () => {
     let rootSession;
     beforeEach(done => {
-      login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, (err, session) => {
-        if (err) return done.fail(err);
-        rootSession = session;
+      stubAuth0ManagementApi((err, apiScopes) => {
+        if (err) return done.fail();
 
-        stubAuth0ManagementApi((err, apiScopes) => {
-          if (err) return done.fail();
+        login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, (err, session) => {
+          if (err) return done.fail(err);
+          rootSession = session;
+
           done();
         });
       });
@@ -844,12 +845,13 @@ describe('root/organizationSpec', () => {
 
     let forbiddenSession;
     beforeEach(done => {
-      login({..._identity, email: agent.email}, [scope.read.organizations], (err, session) => {
-        if (err) return done.fail(err);
-        forbiddenSession = session;
+      stubAuth0ManagementApi((err, apiScopes) => {
+        if (err) return done.fail();
 
-        stubAuth0ManagementApi((err, apiScopes) => {
-          if (err) return done.fail();
+        login({..._identity, email: agent.email}, [scope.read.organizations], (err, session) => {
+          if (err) return done.fail(err);
+          forbiddenSession = session;
+
           done();
         });
       });

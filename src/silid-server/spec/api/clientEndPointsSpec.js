@@ -3,6 +3,7 @@ const app = require('../../app');
 const request = require('supertest');
 
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
+const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
 
 /**
  * 2019-11-13
@@ -41,10 +42,14 @@ describe('client end points', () => {
 
       let authenticatedSession;
       beforeEach(done => {
-        login(_identity, (err, session) => {
+        stubAuth0ManagementApi((err, apiScopes) => {
           if (err) return done.fail(err);
-          authenticatedSession = session;
-          done();
+
+          login(_identity, (err, session) => {
+            if (err) return done.fail(err);
+            authenticatedSession = session;
+            done();
+          });
         });
       });
 

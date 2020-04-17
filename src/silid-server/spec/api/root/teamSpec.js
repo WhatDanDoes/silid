@@ -66,14 +66,13 @@ describe('root/teamSpec', () => {
           teamId = uuid.v4();
 
           _profile.user_metadata = { teams: [{ name: 'The Calgary Roughnecks', leader: _profile.email, members: [_profile.email], id: teamId }] };
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
 
-          login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, [scope.create.teams], (err, session) => {
+            login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, [scope.create.teams], (err, session) => {
 
-            if (err) return done.fail(err);
-            rootSession = session;
-
-            stubAuth0ManagementApi((err, apiScopes) => {
-              if (err) return done.fail();
+              if (err) return done.fail(err);
+              rootSession = session;
 
               stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata], (err, apiScopes) => {
                 if (err) return done.fail();
@@ -160,13 +159,13 @@ describe('root/teamSpec', () => {
 
           _profile.user_metadata = { teams: [{ name: 'The Calgary Roughnecks', leader: _profile.email, members: [_profile.email], id: teamId }] };
 
-          login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, [scope.create.teams], (err, session) => {
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
 
-            if (err) return done.fail(err);
-            rootSession = session;
+            login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, [scope.create.teams], (err, session) => {
 
-            stubAuth0ManagementApi((err, apiScopes) => {
-              if (err) return done.fail();
+              if (err) return done.fail(err);
+              rootSession = session;
 
               stubAuth0ManagementEndpoint([apiScope.read.usersAppMetadata], (err, apiScopes) => {
                 if (err) return done.fail();
@@ -240,13 +239,13 @@ describe('root/teamSpec', () => {
 
       describe('successfully', () => {
         beforeEach(done => {
-          login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, [scope.create.teams], (err, session) => {
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
 
-            if (err) return done.fail(err);
-            rootSession = session;
+            login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, [scope.create.teams], (err, session) => {
 
-            stubAuth0ManagementApi((err, apiScopes) => {
-              if (err) return done.fail();
+              if (err) return done.fail(err);
+              rootSession = session;
 
               stubAuth0ManagementEndpoint([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
                 if (err) return done.fail();
@@ -333,13 +332,13 @@ describe('root/teamSpec', () => {
           // Witness node module caching magic
           _profile.user_metadata = { teams: [ {name: 'The Calgary Roughnecks', leader: _profile.email, members: [_profile.email] } ] };
 
-          login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, [scope.create.teams], (err, session) => {
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
 
-            if (err) return done.fail(err);
-            rootSession = session;
+            login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, [scope.create.teams], (err, session) => {
 
-            stubAuth0ManagementApi((err, apiScopes) => {
-              if (err) return done.fail();
+              if (err) return done.fail(err);
+              rootSession = session;
 
               stubAuth0ManagementEndpoint([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
                 if (err) return done.fail();
@@ -464,13 +463,13 @@ describe('root/teamSpec', () => {
         _profile.user_metadata.teams.push({ name: 'Georgia Swarm', leader: 'someotherguy@example.com',
                                             members: ['someotherguy@example.com', _profile.email], id: uuid.v4() });
 
-        login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, [scope.update.teams], (err, session) => {
+        stubAuth0ManagementApi((err, apiScopes) => {
+          if (err) return done.fail();
 
-          if (err) return done.fail(err);
-          rootSession = session;
+          login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, [scope.update.teams], (err, session) => {
 
-          stubAuth0ManagementApi((err, apiScopes) => {
-            if (err) return done.fail();
+            if (err) return done.fail(err);
+            rootSession = session;
 
             stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
               if (err) return done.fail();
@@ -944,13 +943,13 @@ describe('root/teamSpec', () => {
         _profile.user_metadata.teams.push({ name: 'Philadelphia Wings', leader: 'someotherguy@example.com',
                                             members: ['someotherguy@example.com', _profile.email], id: nonRootTeamId });
 
-        login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, [scope.delete.teams], (err, session) => {
+        stubAuth0ManagementApi((err, apiScopes) => {
+          if (err) return done.fail();
 
-          if (err) return done.fail(err);
-          rootSession = session;
+          login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, [scope.delete.teams], (err, session) => {
 
-          stubAuth0ManagementApi((err, apiScopes) => {
-            if (err) return done.fail();
+            if (err) return done.fail(err);
+            rootSession = session;
 
             stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
               if (err) return done.fail();

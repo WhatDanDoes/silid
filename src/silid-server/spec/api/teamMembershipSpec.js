@@ -77,13 +77,14 @@ describe('teamMembershipSpec', () => {
 
         let authenticatedSession;
         beforeEach(done => {
-          login(_identity, [scope.create.teamMembers], (err, session) => {
-            if (err) return done.fail(err);
-            authenticatedSession = session;
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
+ 
+            login(_identity, [scope.create.teamMembers], (err, session) => {
+              if (err) return done.fail(err);
+              authenticatedSession = session;
 
-            stubAuth0ManagementApi((err, apiScopes) => {
-              if (err) return done.fail();
-              done();
+             done();
             });
           });
         });
@@ -669,12 +670,13 @@ describe('teamMembershipSpec', () => {
             knownAgent = result;
             team.addMember(knownAgent).then(result => {
 
-              login(_identity, [scope.delete.teamMembers], (err, session) => {
-                if (err) return done.fail(err);
-                authenticatedSession = session;
+              stubAuth0ManagementApi((err, apiScopes) => {
+                if (err) return done.fail();
+   
+                login(_identity, [scope.delete.teamMembers], (err, session) => {
+                  if (err) return done.fail(err);
+                  authenticatedSession = session;
 
-                stubAuth0ManagementApi((err, apiScopes) => {
-                  if (err) return done.fail();
                   done();
                 });
               });
@@ -754,12 +756,13 @@ describe('teamMembershipSpec', () => {
       beforeEach(done => {
         models.Agent.create({ email: 'suspiciousagent@example.com' }).then(a => {
           suspiciousAgent = a;
-          login({ ..._identity, email: suspiciousAgent.email, name: 'Suspicious GUy' }, [scope.create.teamMembers], (err, session) => {
-            if (err) return done.fail(err);
-            unauthorizedSession = session;
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
+ 
+            login({ ..._identity, email: suspiciousAgent.email, name: 'Suspicious GUy' }, [scope.create.teamMembers], (err, session) => {
+              if (err) return done.fail(err);
+              unauthorizedSession = session;
 
-            stubAuth0ManagementApi((err, apiScopes) => {
-              if (err) return done.fail();
               done();
             });
           });
