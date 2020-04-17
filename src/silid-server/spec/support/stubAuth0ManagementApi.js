@@ -11,21 +11,30 @@ const stubAuth0ManagementEndpoint = require('../support/stubAuth0ManagementEndpo
 
 module.exports = function(done) {
 
-  let auth0GetRolesScope, auth0UserAssignRolesScope, oauthTokenScope;
+  let userReadScope, getRolesScope, userAssignRolesScope, tokenScope;
 
   /**
-   * The top two layers account stub the endpoints required for the `viewer`
-   * role check in `lib/checkPermissions`
+   * This layer stubs the endpoints required for the retrieving the agent's
+   * metadata on login
    */
-  stubAuth0ManagementEndpoint([apiScope.read.roles], (err, apiScopes) => {
+  stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
     if (err) return done(err);
-    ({getRolesScope} = apiScopes);
+    ({userReadScope, oauthTokenScope} = apiScopes);
 
-    stubAuth0ManagementEndpoint([apiScope.read.roles, apiScope.update.users], (err, apiScopes) => {
+    /**
+     * The following two layers stub the endpoints required for the
+     * `viewer` role-check in `lib/checkPermissions`
+     */
+    stubAuth0ManagementEndpoint([apiScope.read.roles], (err, apiScopes) => {
       if (err) return done(err);
-      ({userAssignRolesScope, oauthTokenScope} = apiScopes);
+      ({getRolesScope} = apiScopes);
 
-      done(null, {getRolesScope, userAssignRolesScope, oauthTokenScope});
+      stubAuth0ManagementEndpoint([apiScope.read.roles, apiScope.update.users], (err, apiScopes) => {
+        if (err) return done(err);
+        ({userAssignRolesScope, oauthTokenScope} = apiScopes);
+
+        done(null, {userReadScope, getRolesScope, userAssignRolesScope, oauthTokenScope});
+      });
     });
   });
 };
