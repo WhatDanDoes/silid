@@ -9,6 +9,9 @@ const logger = require('morgan');
 const cors = require('cors');
 const jsonwebtoken = require('jsonwebtoken');
 
+const getManagementClient = require('./lib/getManagementClient');
+const apiScope = require('./config/apiPermissions');
+
 /**
  * Routes
  */
@@ -100,7 +103,18 @@ const strategy = new Auth0Strategy(
     let decoded = jsonwebtoken.decode(accessToken);
     profile.scope = decoded.permissions
 
-    return done(null, profile);
+    const managementClient = getManagementClient(apiScope.read.users);
+    managementClient.getUser({id: profile.user_id}).then(agent => {
+
+      if (!agent.user_metadata) {
+        agent.user_metadata = {};
+      }
+      profile.user_metadata = agent.user_metadata;
+
+      return done(null, profile);
+    }).catch(err => {
+      return done(err);
+    });
   }
 );
 
