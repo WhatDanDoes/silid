@@ -97,7 +97,6 @@ describe('checkPermissions', function() {
         models.Agent.findOne({ where: { email: _identity.email }}).then(agent => {
           expect(agent.socialProfile).toEqual(JSON.parse(JSON.stringify(profile)));
           done();
-
         }).catch(err => {
           done.fail(err);
         });
