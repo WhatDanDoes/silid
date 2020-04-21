@@ -60,11 +60,11 @@ describe('agentSpec', () => {
         beforeEach(done => {
           stubAuth0ManagementApi((err, apiScopes) => {
             if (err) return done.fail(err);
-  
+
             login(_identity, [scope.create.agents], (err, session) => {
               if (err) return done.fail(err);
               authenticatedSession = session;
-  
+
               stubAuth0ManagementEndpoint([apiScope.create.users], (err, apiScopes) => {
                 if (err) return done.fail();
 
@@ -124,13 +124,13 @@ describe('agentSpec', () => {
           beforeEach(done => {
             stubAuth0ManagementApi((err, apiScopes) => {
               if (err) return done.fail(err);
-  
+
               ({userReadScope, oauthTokenScope} = apiScopes);
-  
+
               login(_identity, [scope.read.agents], (err, session) => {
                 if (err) return done.fail(err);
                 authenticatedSession = session;
-  
+
                 done();
               });
             });
@@ -187,11 +187,11 @@ describe('agentSpec', () => {
           beforeEach(done => {
             stubAuth0ManagementApi((err, apiScopes) => {
               if (err) return done.fail(err);
-  
+
               login(_identity, [scope.read.agents], (err, session) => {
                 if (err) return done.fail(err);
                 authenticatedSession = session;
-  
+
                 stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
                   if (err) return done.fail(err);
                   ({userReadScope, oauthTokenScope} = apiScopes);
@@ -255,11 +255,11 @@ describe('agentSpec', () => {
             login(_identity, [scope.update.agents], (err, session) => {
               if (err) return done.fail(err);
               authenticatedSession = session;
-  
+
               stubAuth0ManagementEndpoint([apiScope.update.users], (err, apiScopes) => {
                 if (err) return done.fail(err);
                 ({oauthTokenScope} = apiScopes);
-  
+
                 done();
               });
             });
@@ -352,7 +352,7 @@ describe('agentSpec', () => {
             login(_identity, [scope.delete.agents], (err, session) => {
               if (err) return done.fail(err);
               authenticatedSession = session;
-  
+
               stubAuth0ManagementEndpoint([apiScope.delete.users], (err, apiScopes) => {
                 if (err) return done.fail(err);
                 ({userDeleteScope, oauthTokenScope} = apiScopes);
