@@ -34,7 +34,7 @@ module.exports = function(permissions, done) {
      * when `silid-server` needs permission to set these permissions
      */
     let accessToken = jwt.sign({..._access, scope: permissions},
-                               prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
+                               prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } });
     const oauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
       .log(console.log)
       .post(/oauth\/token/, {
@@ -47,20 +47,6 @@ module.exports = function(permissions, done) {
       .reply(200, {
         'access_token': accessToken,
         'token_type': 'Bearer',
-      });
-
-    /**
-     * Get a list of Auth0 users
-     *
-     * GET `/users`
-     */
-    const userListScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-      .log(console.log)
-      .get('/api/v2/users')
-      .query({ per_page: 30, include_totals: true, page: /\d+/ })
-      .reply(200, (uri, requestBody, cb) => {
-        let q = querystring.parse(uri.split('?')[1]);
-        cb(null, {...require('../fixtures/managementApi/userList'), start: parseInt(q.page) });
       });
 
     /**
@@ -203,7 +189,7 @@ module.exports = function(permissions, done) {
 
     done(null, {
                 oauthTokenScope,
-                userCreateScope, userReadScope, userDeleteScope, userListScope, userReadByEmailScope,
+                userCreateScope, userReadScope, userDeleteScope, userReadByEmailScope,
                 userAssignRolesScope,
                 getRolesScope,
                 updateTeamScope, teamReadScope,
