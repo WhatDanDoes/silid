@@ -16,6 +16,7 @@ describe('authSpec', () => {
    */
   const _identity = require('../fixtures/sample-auth0-identity-token');
   const _access = require('../fixtures/sample-auth0-access-token');
+  const _profile = require('../fixtures/sample-auth0-profile-response');
 
   // Auth0 defined scopes and roles
   const scope = require('../../config/permissions');
@@ -107,6 +108,8 @@ describe('authSpec', () => {
   describe('/callback', () => {
 
     let session, oauthTokenScope, userInfoScope, auth0UserAssignRolesScope, auth0GetRolesScope;
+    // Added for when agent info is requested immediately after authentication
+    let anotherOauthTokenScope, userReadScope;
     beforeEach(done => {
 
       /**
@@ -130,6 +133,8 @@ describe('authSpec', () => {
 
           /**
            * `/oauth/token` mock
+           *
+           * This is called when first authenticating
            */
           oauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
             .log(console.log)
@@ -151,6 +156,37 @@ describe('authSpec', () => {
                                       nonce: nonce },
                                    prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
             });
+
+          /**
+           * This is called when the agent has authenticated and silid
+           * needs to retreive the non-OIDC-compliant metadata, etc.
+           */
+          const accessToken = jwt.sign({..._access, scope: [apiScope.read.users]},
+                                        prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
+          anotherOauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+            .log(console.log)
+            .post(/oauth\/token/, {
+                                    'grant_type': 'client_credentials',
+                                    'client_id': process.env.AUTH0_CLIENT_ID,
+                                    'client_secret': process.env.AUTH0_CLIENT_SECRET,
+                                    'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                                    'scope': apiScope.read.users
+                                  })
+            .reply(200, {
+              'access_token': accessToken,
+              'token_type': 'Bearer',
+            });
+
+          /**
+           * The token retrieved above is used to get the
+           * non-OIDC-compliant metadata, etc.
+           */
+          userReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+            .log(console.log)
+            .get(/api\/v2\/users\/.+/)
+            .query({})
+            .reply(200, _profile);
+
 
           done();
         });
@@ -187,6 +223,30 @@ describe('authSpec', () => {
           expect(res.headers.location).toEqual('/');
           done();
         });
+    });
+
+    describe('request for non-OIDC-compliant agent info', () => {
+      it('calls the `/oauth/token` endpoint', done => {
+        session
+          .get(`/callback?code=AUTHORIZATION_CODE&state=${state}`)
+          .expect(302)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(anotherOauthTokenScope.isDone()).toBe(true);
+            done();
+          });
+      });
+
+      it('calls the `/users/:id` endpoint', done => {
+        session
+          .get(`/callback?code=AUTHORIZATION_CODE&state=${state}`)
+          .expect(302)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            userReadScope.done();
+            done();
+          });
+      });
     });
 
     describe('database', () => {
@@ -283,6 +343,39 @@ describe('authSpec', () => {
                           .log(console.log)
                           .get(/userinfo/)
                           .reply(200, _identity);
+
+
+                        /**
+                         * This is so gross...
+                         *
+                         * This is called when the agent has authenticated and silid
+                         * needs to retreive the non-OIDC-compliant metadata, etc.
+                         */
+                        const accessToken = jwt.sign({..._access, scope: [apiScope.read.users]},
+                                                      prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
+                        let anotherOauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+                          .log(console.log)
+                          .post(/oauth\/token/, {
+                                                  'grant_type': 'client_credentials',
+                                                  'client_id': process.env.AUTH0_CLIENT_ID,
+                                                  'client_secret': process.env.AUTH0_CLIENT_SECRET,
+                                                  'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                                                  'scope': apiScope.read.users
+                                                })
+                          .reply(200, {
+                            'access_token': accessToken,
+                            'token_type': 'Bearer',
+                          });
+
+                        /**
+                         * The token retrieved above is used to get the
+                         * non-OIDC-compliant metadata, etc.
+                         */
+                        let userReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+                          .log(console.log)
+                          .get(/api\/v2\/users\/.+/)
+                          .query({})
+                          .reply(200, _profile);
 
 
                         /**
@@ -447,6 +540,37 @@ describe('authSpec', () => {
                 'refresh_token': 'SOME_MADE_UP_REFRESH_TOKEN',
                 'id_token': identityToken
               });
+
+            /**
+             * This is called when the agent has authenticated and silid
+             * needs to retreive the non-OIDC-compliant metadata, etc.
+             */
+            const accessToken = jwt.sign({..._access, scope: [apiScope.read.users]},
+                                          prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
+            const anotherOauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+              .log(console.log)
+              .post(/oauth\/token/, {
+                                      'grant_type': 'client_credentials',
+                                      'client_id': process.env.AUTH0_CLIENT_ID,
+                                      'client_secret': process.env.AUTH0_CLIENT_SECRET,
+                                      'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                                      'scope': apiScope.read.users
+                                    })
+              .reply(200, {
+                'access_token': accessToken,
+                'token_type': 'Bearer',
+              });
+
+            /**
+             * The token retrieved above is used to get the
+             * non-OIDC-compliant metadata, etc.
+             */
+            const userReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+              .log(console.log)
+              .get(/api\/v2\/users\/.+/)
+              .query({})
+              .reply(200, _profile);
+
 
             next(null, [302, {}, { 'Location': `https://${process.env.AUTH0_DOMAIN}/login` }]);
           });
