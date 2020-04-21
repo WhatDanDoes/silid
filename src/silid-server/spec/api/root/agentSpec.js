@@ -79,16 +79,8 @@ describe('root/agentSpec', () => {
 
     describe('read', () => {
 
-      let oauthTokenScope, userListScope, userReadScope;
-      beforeEach(done => {
-        stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
-          if (err) return done.fail(err);
-          ({userListScope, userReadScope, oauthTokenScope} = apiScopes);
-          done();
-        });
-      });
-
       describe('/agent', () => {
+
         describe('Auth0', () => {
 //          fit('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
 //            rootSession
@@ -139,13 +131,22 @@ describe('root/agentSpec', () => {
       });
 
       describe('/agent/admin', () => {
+        let oauthTokenScope, userListScope;
+        beforeEach(done => {
+          const stubUserList = require('../../support/auth0Endpoints/stubUserList');
+
+          stubUserList((err, apiScopes) => {
+            if (err) return done.fail(err);
+            ({userListScope, oauthTokenScope} = apiScopes);
+            done();
+          });
+        });
+
         it('retrieves all the agents at Auth0', done => {
           rootSession
             .get('/agent/admin')
             .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(200)
-            .end(function(err, res) {
+            .expect('Content-Type', /json/) .expect(200) .end(function(err, res) {
               if (err) return done.fail(err);
 
               /**
@@ -163,7 +164,7 @@ describe('root/agentSpec', () => {
         });
 
         describe('Auth0', () => {
-          it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
+          it('calls the /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
             rootSession
               .get('/agent/admin')
               .set('Accept', 'application/json')
@@ -185,7 +186,6 @@ describe('root/agentSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-console.log(res.body);
                 expect(userListScope.isDone()).toBe(true);
                 done();
               });
@@ -194,6 +194,17 @@ console.log(res.body);
       });
 
       describe('/agent/admin/:page', () => {
+        let oauthTokenScope, userListScope;
+        beforeEach(done => {
+          const stubUserList = require('../../support/auth0Endpoints/stubUserList');
+
+          stubUserList((err, apiScopes) => {
+            if (err) return done.fail(err);
+            ({userListScope, oauthTokenScope} = apiScopes);
+            done();
+          });
+        });
+
         it('retrieves all the agents at Auth0', done => {
           rootSession
             .get(`/agent/admin/5`)
@@ -247,6 +258,17 @@ console.log(res.body);
       });
 
       describe('/agent/admin/cached', () => {
+        let oauthTokenScope, userListScope;
+        beforeEach(done => {
+          const stubUserList = require('../../support/auth0Endpoints/stubUserList');
+
+          stubUserList((err, apiScopes) => {
+            if (err) return done.fail(err);
+            ({userListScope, oauthTokenScope} = apiScopes);
+            done();
+          });
+        });
+
 
         it('retrieves all the agents in the database', done => {
           models.Agent.findAll({ where: { socialProfile: { [models.Sequelize.Op.ne]: null} } }).then(results => {
@@ -277,7 +299,7 @@ console.log(res.body);
         });
 
         describe('Auth0', () => {
-          it('does not call the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
+          it('does not call the /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
             rootSession
               .get(`/agent/admin/cached`)
               .set('Accept', 'application/json')
@@ -307,6 +329,18 @@ console.log(res.body);
       });
 
       describe('/agent/admin/:page/cached', () => {
+
+        let oauthTokenScope, userListScope;
+        beforeEach(done => {
+          const stubUserList = require('../../support/auth0Endpoints/stubUserList');
+
+          stubUserList((err, apiScopes) => {
+            if (err) return done.fail(err);
+            ({userListScope, oauthTokenScope} = apiScopes);
+            done();
+          });
+        });
+
         it('retrieves all the agents in the database', done => {
           models.Agent.findAll({ where: { socialProfile: { [models.Sequelize.Op.ne]: null} } }).then(results => {
           rootSession
@@ -385,6 +419,18 @@ console.log(res.body);
       });
 
       describe('/agent/:id', () => {
+        let oauthTokenScope, userReadScope;
+        beforeEach(done => {
+          const stubUserRead = require('../../support/auth0Endpoints/stubUserRead');
+
+          stubUserRead((err, apiScopes) => {
+            if (err) return done.fail(err);
+            ({userReadScope, oauthTokenScope} = apiScopes);
+            done();
+          });
+        });
+
+
         describe('Auth0', () => {
           it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
             rootSession
@@ -430,6 +476,18 @@ console.log(res.body);
       });
 
       describe('/agent/:id/cached', () => {
+        let oauthTokenScope, userReadScope;
+        beforeEach(done => {
+          const stubUserRead = require('../../support/auth0Endpoints/stubUserRead');
+
+          stubUserRead((err, apiScopes) => {
+            if (err) return done.fail(err);
+            ({userReadScope, oauthTokenScope} = apiScopes);
+            done();
+          });
+        });
+
+
         it('retrieves root agent\'s own record from the database', done => {
           rootSession
             .get(`/agent/${root.id}/cached`)
