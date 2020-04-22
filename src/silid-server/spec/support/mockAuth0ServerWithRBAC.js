@@ -117,13 +117,47 @@ require('../support/setupKeystore').then(keyStuff => {
       server.route({
         method: 'POST',
         path: '/register',
-        handler: (request, h) => {
+        handler: async function(request, h) {
           console.log('/register');
           console.log(request.payload);
 
+
+          /**
+           * Add agent to the _Auth0 database_
+           */
+
+          // Has this agent already been registed?
+          let agent = await models.Agent.findOne({ where: {email: request.payload.token.email}});
+          console.log('AGENT');
+          console.log(agent);
+
+          //let socialProfile = { ..._profile, ...request.payload.token, _json: { ..._profile, ...request.payload.token, sub: userId }, user_id: userId };
+          let socialProfile = { ..._profile, ...request.payload.token, _json: { ..._profile, ...request.payload.token } };
+          if (agent) {
+            console.log('Agent found. Updating...');
+
+            socialProfile._json.sub = agent.socialProfile.user_id;
+            socialProfile.user_id = agent.socialProfile.user_id;
+            agent.socialProfile = socialProfile;
+
+            await agent.save();
+          }
+          else {
+            console.log('No agent found. Creating...');
+
+            let userId = request.payload.token.sub + ++subIndex;
+            socialProfile._json.sub = userId;
+            socialProfile.user_id = userId;
+
+            await models.Agent.create({
+              email: request.payload.token.email,
+              socialProfile: socialProfile
+            });
+          }
+
           _agentIdToken = {...request.payload.token,
                              aud: process.env.AUTH0_CLIENT_ID,
-                             sub: request.payload.token.sub + subIndex++,
+                             sub: request.payload.token.sub + subIndex,
                              iss: `https://${process.env.AUTH0_DOMAIN}/`,
                              iat: Math.floor(Date.now() / 1000) - (60 * 60)};
           _permissions = request.payload.permissions.length ? request.payload.permissions : [];
@@ -150,7 +184,6 @@ require('../support/setupKeystore').then(keyStuff => {
 
           _nonce = request.query.nonce;
           const buffer = crypto.randomBytes(12);
-
 
           if (!_permissions) {
             _permissions = [scope.read.agents, scope.read.organizations];
@@ -196,7 +229,7 @@ require('../support/setupKeystore').then(keyStuff => {
       server.route({
         method: 'POST',
         path: '/oauth/token',
-        handler: (request, h) => {
+        handler: async function(request, h) {
           console.log('/oauth/token...');
           console.log(request.headers);
           console.log(request.payload);
@@ -213,8 +246,20 @@ require('../support/setupKeystore').then(keyStuff => {
                                          aud: process.env.AUTH0_CLIENT_ID,
                                          iat: Math.floor(Date.now() / 1000) - (60 * 60),
                                          iss: `https://${process.env.AUTH0_DOMAIN}/`,
-                                         nonce: _identityDb[request.payload.code] ? _identityDb[request.payload.code].idToken.nonce : _nonce} , prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
+                                         nonce: _identityDb[request.payload.code] ? _identityDb[request.payload.code].idToken.nonce : _nonce},
+                                     prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
+
             signedAccessToken = request.payload.code;
+
+            let userId = _profile.user_id;
+            await models.Agent.create({ email: _profile.email,
+                                       socialProfile: {
+                                         ..._profile,
+                                         ...request.payload,
+                                         _json: { ..._profile, ...request.payload, sub: userId },
+                                         user_id: userId
+                                       }
+                                     });
           }
 
           if (request.payload.grant_type === 'client_credentials') {
@@ -329,9 +374,12 @@ require('../support/setupKeystore').then(keyStuff => {
           console.log('POST /api/v2/users');
           console.log(request.payload);
 
+          // Has this agent already been registed?
+          let agent = await models.Agent.findOne({ where: {email: request.payload.token.email}});
+
           try {
-            let userId = _profile.user_id + subIndex++;
-            let agent = new models.Agent({ ...request.payload,
+            let userId = request.payload.token.sub + ++subIndex;
+            let agent = new models.Agent({ email: request.payload.token.email,
                                            socialProfile: {
                                              ..._profile,
                                              ...request.payload,
@@ -339,6 +387,7 @@ require('../support/setupKeystore').then(keyStuff => {
                                              user_id: userId
                                            }
                                          });
+
             let result = await agent.save();
             console.log(result);
 
@@ -350,7 +399,6 @@ require('../support/setupKeystore').then(keyStuff => {
         }
       });
 
-
       /**
        * GET `/users/:id`
        */
@@ -358,8 +406,13 @@ require('../support/setupKeystore').then(keyStuff => {
         method: 'GET',
         path: '/api/v2/users/{id}',
         handler: async function(request, h) {
+          console.log('\n*\n*\n*\n*\n*');
           console.log('GET /api/v2/users/{id}');
 
+          console.log('All agents');
+          console.log(request.params);
+          const allAgents = await models.Agent.findAll({});
+          console.log(allAgents[0]);
           /**
            * Testing has revealed that names and fields aren't always consistent
            * between profile data and that returned by queries to Auth0.
@@ -372,10 +425,9 @@ require('../support/setupKeystore').then(keyStuff => {
                                                                 }
                                                             }, attributes: ['socialProfile'] });
 
-          return h.response({...results.socialProfile._json, user_id: results.socialProfile._json.sub });
+          return h.response({...results.socialProfile, user_id: results.socialProfile._json.sub });
         }
       });
-
 
       /**
        * PATCH `/users`
