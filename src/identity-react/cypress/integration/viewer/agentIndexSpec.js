@@ -10,6 +10,10 @@ context('viewer/Agent Index', function() {
     _profile = {...this.profile};
   });
 
+  afterEach(() => {
+    cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
+  });
+
   describe('unauthenticated', done => {
     beforeEach(() => {
       cy.visit('/#/agent');
@@ -37,7 +41,6 @@ context('viewer/Agent Index', function() {
     context('first visit', () => {
       beforeEach(function() {
         cy.login(_profile.email, _profile, [this.scope.read.agents]);
-        cy.wait(300);
       });
 
       it('lands in the right spot', () => {
@@ -57,8 +60,39 @@ context('viewer/Agent Index', function() {
       });
 
       describe('teams', () => {
-        it('displays teams in a table', function() {
-          cy.get('h6').contains('Teams');
+        describe('none created', () => {
+          it('displays teams table', function() {
+            cy.get('h6').contains('Teams');
+            cy.get('table tbody tr td').contains('No records to display');
+          });
+        });
+
+        describe('some created', () => {
+          let agent;
+          beforeEach(function() {
+            cy.login(_profile.email, {..._profile, user_metadata: {
+                                                     teams: [{name: 'The Calgary Roughnecks', leader: 'someguy@example.com', members: ['someguy@example.com']}]
+                                                   } }, [this.scope.read.agents]);
+
+            cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
+              agent = results[0];
+              cy.reload(true);
+              cy.wait(300);
+            });
+          });
+
+          it('displays teams in a table', function() {
+            cy.get('h6').contains('Teams');
+            cy.get('table tbody tr td').contains('No records to display').should('not.exist');
+            cy.get('button span span').contains('add_box');
+            cy.get('table thead tr th').contains('Actions');
+            cy.get('table tbody tr td button span').contains('edit');
+            cy.get('table tbody tr td button span').contains('delete_outline');
+            cy.get('table thead tr th').contains('Name');
+            cy.get('table tbody tr td').contains(agent.socialProfile.user_metadata.teams[0].name);
+            cy.get('table thead tr th').contains('Leader');
+            cy.get('table tbody tr td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+          });
         });
       });
 
@@ -87,8 +121,6 @@ context('viewer/Agent Index', function() {
           cy.get('.react-json-view').contains('displayName').should('not.exist');
         });
       });
-
-
     });
   });
 });
