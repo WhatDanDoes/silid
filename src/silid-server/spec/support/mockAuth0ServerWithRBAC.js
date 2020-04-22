@@ -327,12 +327,15 @@ require('../support/setupKeystore').then(keyStuff => {
 
       /**
        * GET `/users`
+       *
+       * This endpoint gets hit a lot.
        */
       server.route({
         method: 'GET',
         path: '/api/v2/users',
         handler: async function(request, h) {
           console.log('GET /api/v2/users');
+          console.log(request.query)
 
           /**
            * Testing has revealed that names and fields aren't always consistent
@@ -340,27 +343,49 @@ require('../support/setupKeystore').then(keyStuff => {
            *
            * E.g., `user_id` vs. `sub` (perhaps not a _fair_ example given the role of `sub`)
            */
-          const results = await models.Agent.findAll({
+          const searchParams = {
             attributes: ['socialProfile'],
-            offset: request.query.page * request.query.per_page,
-            limit: request.query.per_page
-          });
-          const profiles = results.map(p => { return {...p.socialProfile._json, user_id: p.socialProfile._json.sub } });
+          };
 
-          profiles.sort((a, b) => {
-            if (a.name < b.name) {
-              return -1;
-            }
-            if (a.name > b.name) {
-              return 1;
-            }
-            return 0;
-          });
-          console.log(profiles);
+          // For paging `/agents`
+          if (request.query.page && request.query.per_page) {
+            searchParams.offset = request.query.page * request.query.per_page,
+            searchParams.limit = request.query.per_page
+            const results = await models.Agent.findAll(searchParams);
 
-          const count = await models.Agent.count();
+            const profiles = results.map(p => { return {...p.socialProfile._json, user_id: p.socialProfile._json.sub } });
 
-          return h.response({ users: profiles, start: request.query.page, limit: request.query.per_page, length: profiles.length, total: count });
+            profiles.sort((a, b) => {
+              if (a.name < b.name) {
+                return -1;
+              }
+              if (a.name > b.name) {
+                return 1;
+              }
+              return 0;
+            });
+            console.log(profiles);
+
+            const count = await models.Agent.count();
+
+            return h.response({ users: profiles, start: request.query.page, limit: request.query.per_page, length: profiles.length, total: count });
+          }
+
+          // For retrieving team info `/team`
+          if (request.query.q && /user_metadata\.teams\.id/.test(request.query.q)) {
+            const results = await models.Agent.findAll(searchParams);
+
+            // Get team ID from search string
+            const teamId = request.query.q.match(/(?<=(["']\b))(?:(?=(\\?))\2.)*?(?=\1)/)[0];
+
+            let data = results.filter(agent => {
+              if (agent.socialProfile.user_metadata && agent.socialProfile.user_metadata.teams) {
+                return agent.socialProfile.user_metadata.teams.find(team => team.id === teamId);
+              }
+            });
+
+            return h.response(data);
+          }
         }
       });
 
