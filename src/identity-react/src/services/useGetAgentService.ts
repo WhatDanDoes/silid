@@ -18,7 +18,7 @@ const useAgentService = (id: number, getCached: boolean) => {
 
     fetch(url, { headers })
       .then(response => response.json())
-      .then(response => setResult({ status: 'loaded', payload: response.socialProfile }))
+      .then(response => setResult({ status: 'loaded', payload: response }))
       .catch(error => setResult({ status: 'error', error }));
   }, [id, getCached]);
 
