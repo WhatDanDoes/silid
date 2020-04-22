@@ -7,7 +7,7 @@
   "identities": [
     {
       "provider": "google-oauth2",
-      "user_id": "117550430000000000000",
+      "user_id": "117550400000000000000",
       "connection": "google-oauth2",
       "isSocial": true
     }
@@ -17,7 +17,7 @@
   "nickname": "someguy",
   "picture": "/image/photo.jpg",
   "updated_at": "2020-04-08T16:11:38.833Z",
-  "user_id": "google-oauth2|117550430000000000000",
+  "user_id": "google-oauth2|117550400000000000000",
   "last_ip": "192.167.0.1",
   "last_login": "2020-04-08T16:11:38.833Z",
   "logins_count": 389
