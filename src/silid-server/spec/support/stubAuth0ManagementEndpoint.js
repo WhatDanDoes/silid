@@ -114,7 +114,7 @@ module.exports = function(permissions, done) {
       .patch(/api\/v2\/users\/.+/, body => {
         if (body.user_metadata) {
           for(let team of body.user_metadata.teams) {
-            if(!team.name || !team.leader || !team.members || !team.id) {
+            if(!team.name || !team.leader || !team.id) {
               return false;
             }
           }

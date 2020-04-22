@@ -289,7 +289,7 @@ describe('teamSpec', () => {
           beforeEach(done => {
             teamId = uuid.v4();
 
-            _profile.user_metadata = { teams: [{ name: 'The Calgary Roughnecks', leader: _profile.email, members: [_profile.email], id: teamId }] };
+            _profile.user_metadata = { teams: [{ name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId }] };
             stubAuth0ManagementApi((err, apiScopes) => {
               if (err) return done.fail();
 
@@ -316,10 +316,14 @@ describe('teamSpec', () => {
               .expect(200)
               .end(function(err, res) {
                 if (err) return done.fail(err);
-                expect(res.body.name).toEqual('The Calgary Roughnecks');
-                expect(res.body.leader).toEqual(_profile.email);
-                expect(res.body.id).toEqual(teamId);
-                expect(res.body.members).toEqual([_profile.email]);
+                expect(res.body.length).toEqual(1);
+                expect(res.body[0].email).toEqual(_profile.email);
+                expect(res.body[0].user_metadata).toBeDefined();
+                expect(res.body[0].user_metadata.teams.length).toEqual(1);
+                expect(res.body[0].user_metadata.teams[0].name).toEqual('The Calgary Roughnecks');
+                expect(res.body[0].user_metadata.teams[0].leader).toEqual(_profile.email);
+                expect(res.body[0].user_metadata.teams[0].id).toEqual(teamId);
+                expect(res.body[0].user_metadata.teams[0].members).toBeUndefined();
                 done();
               });
           });

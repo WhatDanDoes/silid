@@ -40,13 +40,8 @@ router.get('/', checkPermissions([scope.read.teams]), function(req, res, next) {
 router.get('/:id', checkPermissions([scope.read.teams]), function(req, res, next) {
   const managementClient = getManagementClient(apiScope.read.usersAppMetadata);
   managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.id}"` }).then(agents => {
-    // There should only ever be one agent given the application of UUIDs
-    for (let agent of agents) {
-      for (let team of agent.user_metadata.teams) {
-        if (team.id === req.params.id) {
-          return res.status(200).json(team);
-        }
-      }
+    if (agents.length) {
+      return res.status(200).json(agents);
     }
     res.status(404).json({ message: 'No such team' });
   }).catch(err => {
@@ -82,7 +77,6 @@ router.post('/', checkPermissions([scope.create.teams]), function(req, res, next
                                                                 id: uuid.v4(),
                                                                 name: req.body.name,
                                                                 leader: req.user._json.email,
-                                                                members: [req.user._json.email],
                                                               }
                                                             ]
                                                           }
