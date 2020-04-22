@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createStyles, makeStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 //import { useAuthState } from '../auth/Auth';
+import Link from '@material-ui/core/Link';
 import { useAdminState } from '../auth/Admin';
 import ReactJson from 'react-json-view';
 import Flash from '../components/Flash';
@@ -118,7 +119,10 @@ const Agent = (props) => {
             <Grid item className={classes.grid}>
               <MaterialTable
                 title='Teams'
-                columns={[{ title: 'Name', field: 'name'}, { title: 'Leader', field: 'leader'}]}
+                columns={[
+                  { title: 'Name', field: 'name', render: rowData => <Link href={`#team/${rowData.id}`}>{rowData.name}</Link> },
+                  { title: 'Leader', field: 'leader'}
+                ]}
                 data={profileData.user_metadata ? profileData.user_metadata.teams : []}
                 options={{ search: false }}
                 editable={{
