@@ -20,7 +20,7 @@ Cypress.Commands.add('login', function(email, profile, permissions = []) {
             }).then(function(res) {
     cy.visit('/');
     cy.contains('Login').click();
-    cy.wait(500);
+    cy.wait(300);
   });
 });
 
