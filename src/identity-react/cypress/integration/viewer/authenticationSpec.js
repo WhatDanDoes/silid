@@ -4,6 +4,10 @@ context('viewer/Authentication', function() {
     cy.fixture('google-profile-response.json').as('profile');
   });
 
+  afterEach(() => {
+    cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
+  });
+
   describe('browser behaviour', () => {
     it('sets a cookie on first visit', () => {
       cy.clearCookies();
