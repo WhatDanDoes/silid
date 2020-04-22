@@ -71,7 +71,14 @@ context('viewer/Agent Index', function() {
           let agent;
           beforeEach(function() {
             cy.login(_profile.email, {..._profile, user_metadata: {
-                                                     teams: [{name: 'The Calgary Roughnecks', leader: 'someguy@example.com', members: ['someguy@example.com']}]
+                                                     teams: [
+                                                       {
+                                                         id: 'some-uuid-v4',
+                                                         name: 'The Calgary Roughnecks',
+                                                         leader: 'someguy@example.com',
+                                                         members: ['someguy@example.com']
+                                                       }
+                                                     ]
                                                    } }, [this.scope.read.agents]);
 
             cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
