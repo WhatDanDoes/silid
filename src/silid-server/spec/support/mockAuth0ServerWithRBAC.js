@@ -139,17 +139,17 @@ require('../support/setupKeystore').then(keyStuff => {
             socialProfile._json.sub = agent.socialProfile.user_id;
             socialProfile.user_id = agent.socialProfile.user_id;
             agent.socialProfile = socialProfile;
-
             await agent.save();
           }
           else {
             console.log('No agent found. Creating...');
-
             let userId = request.payload.token.sub + ++subIndex;
             socialProfile._json.sub = userId;
+            delete socialProfile._json.user_id;
             socialProfile.user_id = userId;
+            delete socialProfile.sub;
 
-            await models.Agent.create({
+            agent = await models.Agent.create({
               email: request.payload.token.email,
               socialProfile: socialProfile
             });
@@ -157,9 +157,11 @@ require('../support/setupKeystore').then(keyStuff => {
 
           _agentIdToken = {...request.payload.token,
                              aud: process.env.AUTH0_CLIENT_ID,
-                             sub: request.payload.token.sub + subIndex,
+                             sub: agent.socialProfile.user_id,
                              iss: `https://${process.env.AUTH0_DOMAIN}/`,
                              iat: Math.floor(Date.now() / 1000) - (60 * 60)};
+
+          console.log('_agentIdToken');
           _permissions = request.payload.permissions.length ? request.payload.permissions : [];
 
           console.log(_agentIdToken);
@@ -251,15 +253,19 @@ require('../support/setupKeystore').then(keyStuff => {
 
             signedAccessToken = request.payload.code;
 
-            let userId = _profile.user_id;
-            await models.Agent.create({ email: _profile.email,
-                                       socialProfile: {
-                                         ..._profile,
-                                         ...request.payload,
-                                         _json: { ..._profile, ...request.payload, sub: userId },
-                                         user_id: userId
-                                       }
-                                     });
+            let agent = await models.Agent.findOne({ where: { email: _profile.email } });
+            if (!agent) {
+              await models.Agent.create({
+                email: _profile.email,
+                socialProfile: {
+                  ..._profile,
+                  ...request.payload,
+                  _json: { ..._profile, ...request.payload, sub: _profile.user_id },
+                  user_id: _profile.user_id
+                }
+              });
+
+            }
           }
 
           if (request.payload.grant_type === 'client_credentials') {
@@ -382,6 +388,7 @@ require('../support/setupKeystore').then(keyStuff => {
               if (agent.socialProfile.user_metadata && agent.socialProfile.user_metadata.teams) {
                 return agent.socialProfile.user_metadata.teams.find(team => team.id === teamId);
               }
+              return false;
             });
 
             return h.response(data);
@@ -431,13 +438,8 @@ require('../support/setupKeystore').then(keyStuff => {
         method: 'GET',
         path: '/api/v2/users/{id}',
         handler: async function(request, h) {
-          console.log('\n*\n*\n*\n*\n*');
           console.log('GET /api/v2/users/{id}');
 
-          console.log('All agents');
-          console.log(request.params);
-          const allAgents = await models.Agent.findAll({});
-          console.log(allAgents[0]);
           /**
            * Testing has revealed that names and fields aren't always consistent
            * between profile data and that returned by queries to Auth0.
@@ -461,7 +463,7 @@ require('../support/setupKeystore').then(keyStuff => {
         method: 'PATCH',
         path: '/api/v2/users/{id}',
         handler: (request, h) => {
-          console.log('/api/v2/users');
+          console.log('PATCH /api/v2/users');
           console.log(request.payload);
 
           return h.response({
