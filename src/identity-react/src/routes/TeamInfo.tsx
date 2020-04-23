@@ -15,6 +15,8 @@ import ListItemText from '@material-ui/core/ListItemText';
 import DeleteForeverOutlinedIcon from '@material-ui/icons/DeleteForeverOutlined';
 import InboxIcon from '@material-ui/icons/MoveToInbox';
 
+import Grid from '@material-ui/core/Grid';
+
 import { Team } from '../types/Team';
 import Flash from '../components/Flash';
 
@@ -26,6 +28,21 @@ import usePutTeamService from '../services/usePutTeamService';
 import useDeleteTeamService from '../services/useDeleteTeamService';
 import usePutTeamMemberService from '../services/usePutTeamMemberService';
 import useDeleteTeamMemberService from '../services/useDeleteTeamMemberService';
+
+/**
+ * For profile data display
+ */
+import Table from '@material-ui/core/Table';
+import TableBody from '@material-ui/core/TableBody';
+import TableCell from '@material-ui/core/TableCell';
+import TableContainer from '@material-ui/core/TableContainer';
+import TableRow from '@material-ui/core/TableRow';
+import Paper from '@material-ui/core/Paper';
+import MaterialTable from 'material-table';
+
+import Link from '@material-ui/core/Link';
+
+
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -194,142 +211,204 @@ const TeamInfo = (props: any) => {
   }
 
   return (
-    <div className="team">
-      <Card className={classes.card}>
-        <CardContent>
-          <Typography variant="h5" component="h3">
-            {service.status === 'loading' && <div>Loading...</div>}
-            {service.status === 'loaded' ?
-              <React.Fragment>
-                <React.Fragment>
-                  {teamInfo.name}
-                </React.Fragment>
-                {admin.isEnabled || (teamInfo.creator && (agent.email === teamInfo.creator.email)) ?
-                  <React.Fragment>
-                    {!editFormVisible ?
-                      <Button id="edit-team" variant="contained" color="primary" onClick={() => setEditFormVisible(true)}>
-                        Edit
-                      </Button>
-                    :
-                      <React.Fragment>
-                        <form id="edit-team-form" onSubmit={handleSubmit}>
-                          <input type="hidden" name="id" value={teamInfo.id} />
-                          <TextField
-                            id="name-input"
-                            label="Name"
-                            type="text"
-                            className={classes.textField}
-                            InputLabelProps={{
-                              shrink: true,
-                            }}
-                            margin="normal"
-                            name="name"
-                            required
-                            value={teamInfo.name}
-                            onChange={onChange}
-                            onInvalid={customMessage}
-                          />
-                          <Button id="cancel-changes"
-                            variant="contained" color="secondary"
-                            onClick={() => {
-                              setTeamInfo({ ...teamInfo, ...prevFormState });
-                              setEditFormVisible(false);
-                            }}>
-                              Cancel
-                          </Button>
-                          <Button id="save-team-button"
-                                  type="submit" variant="contained" color="primary"
-                                  disabled={!Object.keys(prevFormState).length}>
-                            Save
-                          </Button>
-                        </form>
-                        <Button id="delete-team" variant="contained" color="secondary" onClick={handleDelete}>
-                          Delete
-                        </Button>
-                      </React.Fragment>
-                    }
-                  </React.Fragment>
-                : ''}
-                {!editFormVisible && !agentFormVisible ?
-                  <Typography variant="body2" color="textSecondary" component="p">
-                    <React.Fragment>
-                      {admin.isEnabled || (teamInfo.creator && (agent.email === teamInfo.creator.email)) ?
-                        <Fab id="add-agent" color="primary" aria-label="add-agent" className={classes.margin}>
-                          <PersonAddIcon onClick={() => setAgentFormVisible(true)} />
-                        </Fab>
-                      : '' }
-                    </React.Fragment>
-                  </Typography>
-                : ''}
-                {agentFormVisible ?
-                  <form id="add-member-agent-form" onSubmit={handleMembershipChange}>
-                    <input type="hidden" name="id" value={teamInfo.id} />
-                    <TextField
-                      id="email-input"
-                      label="New Member Email"
-                      type="email"
-                      className={classes.textField}
-                      InputLabelProps={{
-                        shrink: true,
-                      }}
-                      margin="normal"
-                      name="email"
-                      required
-                      onChange={onChange}
-                      onInvalid={customMessage}
-                    />
-                    <Button id="cancel-add-agent"
-                      variant="contained" color="secondary"
-                      onClick={() => {
-                        setTeamInfo({ ...teamInfo, ...prevFormState });
-                        setAgentFormVisible(false);
-                      }}>
-                        Cancel
-                    </Button>
-                    <Button id="add-member-agent-button"
-                            type="submit" variant="contained" color="primary"
-                            disabled={!Object.keys(prevFormState).length}>
-                      Add
-                    </Button>
-                  </form>
-                : ''}
-
-              </React.Fragment>
-            : ''}
+    <div className={classes.root}>
+      <Grid container direction="column" justify="center" alignItems="center">
+        <Grid item>
+          <Typography variant="body2" color="textSecondary" component="p">
+            {service.status === 'loading' && <span>Loading...</span>}
           </Typography>
-
-          {service.status === 'loading' && <div>Loading...</div>}
-          {service.status === 'loaded' && teamInfo.members && teamInfo.members.length ?
-            <List id="team-member-list">
-              <Typography variant="h5" component="h3">
-                <React.Fragment>
-                  Members
-                </React.Fragment>
+        </Grid>
+        {service.status === 'loaded' && service.payload ?
+          <>
+            <Grid item>
+              <Typography className={classes.header} variant="h5" component="h3">
+                Team
               </Typography>
-              { teamInfo.members.map(member => (
-                <ListItem button className='team-button' key={`agent-${agent.id}`}>
-                  <ListItemIcon><InboxIcon /></ListItemIcon>
-                  <ListItemLink href={`#agent/${member.id}`}>
-                    <ListItemText primary={member.email} />
-                  </ListItemLink>
-                  { teamInfo.creator.email !== member.email && (agent.email === teamInfo.creator.email || admin.isEnabled) ?
-                  <DeleteForeverOutlinedIcon className="delete-member" onClick={() => handleMemberDelete(member.id)} />
-                  : ''}
-                </ListItem>
-              ))}
-            </List> : ''}
+            </Grid>
+            <Grid item className={classes.grid}>
+              <TableContainer component={Paper}>
+                <Table className={classes.table} aria-label="Team profile info">
+                  <TableBody>
+                    <TableRow>
+                      <TableCell align="right" component="th" scope="row">Name:</TableCell>
+                      <TableCell align="left">{teamInfo.name}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell align="right" component="th" scope="row">Email:</TableCell>
+                      <TableCell align="left">{teamInfo.leader}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Grid>
+            <Grid item className={classes.grid}>
+              <MaterialTable
+                title='Members'
+                columns={[
+                  { title: 'Name', field: 'name', render: rowData => <Link href={`#agent/${rowData.user_id}`}>{rowData.name}</Link> },
+                  { title: 'Email', field: 'email'}
+                ]}
+                data={teamInfo.members ? teamInfo.members : []}
+                options={{ search: false }}
+                editable={{
+                  onRowDelete: (oldData) => {
 
-          {service.status === 'error' && (
-            <Typography id="error-message" variant="h5" component="h3">
-              {service.error}
-            </Typography>
-          )}
-        </CardContent>
-      </Card>
+                  }
+                }}
+              />
+            </Grid>
+          </>
+        : ''}
+        {service.status === 'error' && (
+          <Typography id="error-message" variant="h5" component="h3">
+            {service.error}
+          </Typography>
+        )}
+      </Grid>
+
       { flashProps.message ? <Flash message={flashProps.message} variant={flashProps.variant} /> : '' }
       { flashProps.errors ? flashProps.errors.map(error => <Flash message={error.message} variant={flashProps.variant} />) : '' }
     </div>
   );
 };
+
+
+//  return (
+//    <div className="team">
+//      <Card className={classes.card}>
+//        <CardContent>
+//          <Typography variant="h5" component="h3">
+//            {service.status === 'loading' && <div>Loading...</div>}
+//            {service.status === 'loaded' ?
+//              <React.Fragment>
+//                <React.Fragment>
+//                  {teamInfo.name}
+//                </React.Fragment>
+//                {admin.isEnabled || (teamInfo.creator && (agent.email === teamInfo.creator.email)) ?
+//                  <React.Fragment>
+//                    {!editFormVisible ?
+//                      <Button id="edit-team" variant="contained" color="primary" onClick={() => setEditFormVisible(true)}>
+//                        Edit
+//                      </Button>
+//                    :
+//                      <React.Fragment>
+//                        <form id="edit-team-form" onSubmit={handleSubmit}>
+//                          <input type="hidden" name="id" value={teamInfo.id} />
+//                          <TextField
+//                            id="name-input"
+//                            label="Name"
+//                            type="text"
+//                            className={classes.textField}
+//                            InputLabelProps={{
+//                              shrink: true,
+//                            }}
+//                            margin="normal"
+//                            name="name"
+//                            required
+//                            value={teamInfo.name}
+//                            onChange={onChange}
+//                            onInvalid={customMessage}
+//                          />
+//                          <Button id="cancel-changes"
+//                            variant="contained" color="secondary"
+//                            onClick={() => {
+//                              setTeamInfo({ ...teamInfo, ...prevFormState });
+//                              setEditFormVisible(false);
+//                            }}>
+//                              Cancel
+//                          </Button>
+//                          <Button id="save-team-button"
+//                                  type="submit" variant="contained" color="primary"
+//                                  disabled={!Object.keys(prevFormState).length}>
+//                            Save
+//                          </Button>
+//                        </form>
+//                        <Button id="delete-team" variant="contained" color="secondary" onClick={handleDelete}>
+//                          Delete
+//                        </Button>
+//                      </React.Fragment>
+//                    }
+//                  </React.Fragment>
+//                : ''}
+//                {!editFormVisible && !agentFormVisible ?
+//                  <Typography variant="body2" color="textSecondary" component="p">
+//                    <React.Fragment>
+//                      {admin.isEnabled || (teamInfo.creator && (agent.email === teamInfo.creator.email)) ?
+//                        <Fab id="add-agent" color="primary" aria-label="add-agent" className={classes.margin}>
+//                          <PersonAddIcon onClick={() => setAgentFormVisible(true)} />
+//                        </Fab>
+//                      : '' }
+//                    </React.Fragment>
+//                  </Typography>
+//                : ''}
+//                {agentFormVisible ?
+//                  <form id="add-member-agent-form" onSubmit={handleMembershipChange}>
+//                    <input type="hidden" name="id" value={teamInfo.id} />
+//                    <TextField
+//                      id="email-input"
+//                      label="New Member Email"
+//                      type="email"
+//                      className={classes.textField}
+//                      InputLabelProps={{
+//                        shrink: true,
+//                      }}
+//                      margin="normal"
+//                      name="email"
+//                      required
+//                      onChange={onChange}
+//                      onInvalid={customMessage}
+//                    />
+//                    <Button id="cancel-add-agent"
+//                      variant="contained" color="secondary"
+//                      onClick={() => {
+//                        setTeamInfo({ ...teamInfo, ...prevFormState });
+//                        setAgentFormVisible(false);
+//                      }}>
+//                        Cancel
+//                    </Button>
+//                    <Button id="add-member-agent-button"
+//                            type="submit" variant="contained" color="primary"
+//                            disabled={!Object.keys(prevFormState).length}>
+//                      Add
+//                    </Button>
+//                  </form>
+//                : ''}
+//
+//              </React.Fragment>
+//            : ''}
+//          </Typography>
+//
+//          {service.status === 'loading' && <div>Loading...</div>}
+//          {service.status === 'loaded' && teamInfo.members && teamInfo.members.length ?
+//            <List id="team-member-list">
+//              <Typography variant="h5" component="h3">
+//                <React.Fragment>
+//                  Members
+//                </React.Fragment>
+//              </Typography>
+//              { teamInfo.members.map(member => (
+//                <ListItem button className='team-button' key={`agent-${agent.id}`}>
+//                  <ListItemIcon><InboxIcon /></ListItemIcon>
+//                  <ListItemLink href={`#agent/${member.id}`}>
+//                    <ListItemText primary={member.email} />
+//                  </ListItemLink>
+//                  { teamInfo.creator.email !== member.email && (agent.email === teamInfo.creator.email || admin.isEnabled) ?
+//                  <DeleteForeverOutlinedIcon className="delete-member" onClick={() => handleMemberDelete(member.id)} />
+//                  : ''}
+//                </ListItem>
+//              ))}
+//            </List> : ''}
+//
+//          {service.status === 'error' && (
+//            <Typography id="error-message" variant="h5" component="h3">
+//              {service.error}
+//            </Typography>
+//          )}
+//        </CardContent>
+//      </Card>
+//      { flashProps.message ? <Flash message={flashProps.message} variant={flashProps.variant} /> : '' }
+//      { flashProps.errors ? flashProps.errors.map(error => <Flash message={error.message} variant={flashProps.variant} />) : '' }
+//    </div>
+//  );
 
 export default TeamInfo;

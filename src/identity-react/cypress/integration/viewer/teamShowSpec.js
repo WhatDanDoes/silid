@@ -96,6 +96,7 @@ context('viewer/Team show', function() {
         cy.visit('/#/agent');
         cy.wait(300);
         cy.contains('The Calgary Roughnecks').click();
+        cy.wait(300);
       });
 
       it('lands in the right spot', () => {
@@ -103,9 +104,26 @@ context('viewer/Team show', function() {
       });
 
       it('displays appropriate Team interface elements', function() {
-        cy.get('h3').contains('The Calgary Roughnecks');
-        cy.get('button#add-agent').should('exist');
-        cy.get('button#edit-team').should('exist');
+        cy.get('table tbody tr td').contains('The Calgary Roughnecks');
+        cy.get('table tbody tr td').contains(_profile.email);
+//        cy.get('button#edit-team').should('exist');
+
+//        cy.get('button#add-agent').should('exist');
+      });
+
+      it('displays team members in a table', function() {
+        cy.get('h6').contains('Members');
+        cy.get('table tbody tr td').contains('No records to display').should('not.exist');
+        cy.get('button span span').contains('add_box').should('not.exist');
+        cy.get('table thead tr th').contains('Actions');
+        cy.get('table tbody tr td button span').contains('edit').should('not.exist');
+        cy.get('table tbody tr td button span').contains('delete_outline');
+        cy.get('table thead tr th').contains('Name');
+        cy.get('table tbody tr td').contains(agent.socialProfile.user_metadata.teams[0].name);
+        cy.get('table tbody tr td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
+
+        cy.get('table thead tr th').contains('Email');
+        cy.get('table tbody tr td').contains(agent.socialProfile.user_metadata.teams[0].leader);
       });
     });
 
