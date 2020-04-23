@@ -41,7 +41,19 @@ router.get('/:id', checkPermissions([scope.read.teams]), function(req, res, next
   const managementClient = getManagementClient(apiScope.read.usersAppMetadata);
   managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.id}"` }).then(agents => {
     if (agents.length) {
-      return res.status(200).json(agents);
+
+      let teams = {
+        id: agents[0].user_metadata.teams[0].id,
+        name: agents[0].user_metadata.teams[0].name,
+        leader: agents[0].user_metadata.teams[0].leader,
+        members: [],
+      };
+
+      agents.map(agent => {
+        teams.members.push({ name: agent.name, email: agent.email, user_id: agent.user_id });
+      });
+
+      return res.status(200).json(teams);
     }
     res.status(404).json({ message: 'No such team' });
   }).catch(err => {

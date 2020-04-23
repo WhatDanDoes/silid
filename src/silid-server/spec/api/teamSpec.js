@@ -308,7 +308,7 @@ describe('teamSpec', () => {
             });
           });
 
-          it('retrieves an existing record from Auth0', done => {
+          it('collates agent data into team data', done => {
             authenticatedSession
               .get(`/team/${teamId}`)
               .set('Accept', 'application/json')
@@ -316,14 +316,11 @@ describe('teamSpec', () => {
               .expect(200)
               .end(function(err, res) {
                 if (err) return done.fail(err);
-                expect(res.body.length).toEqual(1);
-                expect(res.body[0].email).toEqual(_profile.email);
-                expect(res.body[0].user_metadata).toBeDefined();
-                expect(res.body[0].user_metadata.teams.length).toEqual(1);
-                expect(res.body[0].user_metadata.teams[0].name).toEqual('The Calgary Roughnecks');
-                expect(res.body[0].user_metadata.teams[0].leader).toEqual(_profile.email);
-                expect(res.body[0].user_metadata.teams[0].id).toEqual(teamId);
-                expect(res.body[0].user_metadata.teams[0].members).toBeUndefined();
+                expect(res.body.name).toEqual('The Calgary Roughnecks');
+                expect(res.body.leader).toEqual(_profile.email);
+                expect(res.body.id).toEqual(teamId);
+                expect(res.body.members).toEqual([{ name: _profile.name, email: _profile.email, user_id: _profile.user_id }]);
+
                 done();
               });
           });
