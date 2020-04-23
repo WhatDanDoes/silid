@@ -30,7 +30,7 @@ module.exports = (on, config) => {
    *
    * I want to refer to these old tests without executing them
    */
-  config.ignoreTestFiles = "**/archive/*Spec.js";
+  config.ignoreTestFiles = "**/archive/**/*Spec.js";
 
   config.env = {...config.env, ...process.env};
 
