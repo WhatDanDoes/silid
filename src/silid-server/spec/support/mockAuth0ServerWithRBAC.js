@@ -353,7 +353,9 @@ require('../support/setupKeystore').then(keyStuff => {
             attributes: ['socialProfile'],
           };
 
-          // For paging `/agents`
+          /**
+           * For paging `/agents`
+           */
           if (request.query.page && request.query.per_page) {
             searchParams.offset = request.query.page * request.query.per_page,
             searchParams.limit = request.query.per_page
@@ -377,7 +379,9 @@ require('../support/setupKeystore').then(keyStuff => {
             return h.response({ users: profiles, start: request.query.page, limit: request.query.per_page, length: profiles.length, total: count });
           }
 
-          // For retrieving team info `/team`
+          /**
+           * For retrieving team info `/team`
+           */
           if (request.query.q && /user_metadata\.teams\.id/.test(request.query.q)) {
             const results = await models.Agent.findAll(searchParams);
 
@@ -390,6 +394,8 @@ require('../support/setupKeystore').then(keyStuff => {
               }
               return false;
             });
+
+            data = data.map(d => d.socialProfile);
 
             return h.response(data);
           }
