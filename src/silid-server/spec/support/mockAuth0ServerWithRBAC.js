@@ -395,7 +395,18 @@ require('../support/setupKeystore').then(keyStuff => {
               return false;
             });
 
-            data = data.map(d => d.socialProfile);
+            /**
+             * **WARNING**
+             *
+             * Note to future self:
+             *
+             * The data structure returned here is completely contrived. The mock
+             * depends on the database. Incoming Auth0 data is shoe-horned into
+             * their `Profile` object. A `Profile` instance is very different than the
+             * social data actually provided by Auth0. This makes it look like mock
+             * data is Auth0 data for the purpose of testing.
+             */
+            data = data.map(d => ({...d.socialProfile, email: d.socialProfile._json.email, name: d.socialProfile._json.name }));
 
             return h.response(data);
           }
