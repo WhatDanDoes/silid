@@ -97,6 +97,8 @@ context('viewer/Agent Index', function() {
             cy.get('table tbody tr td button span').contains('delete_outline');
             cy.get('table thead tr th').contains('Name');
             cy.get('table tbody tr td').contains(agent.socialProfile.user_metadata.teams[0].name);
+            cy.get('table tbody tr td a').should('contain', agent.socialProfile.user_metadata.teams[0].name).
+              and('have.attr', 'href').and('equal', `#team/${agent.socialProfile.user_metadata.teams[0].id}`);
             cy.get('table thead tr th').contains('Leader');
             cy.get('table tbody tr td').contains(agent.socialProfile.user_metadata.teams[0].leader);
           });
