@@ -71,7 +71,7 @@ describe('teamSpec', () => {
               if (err) return done.fail();
 
               login(_identity, [scope.create.teams], (err, session) => {
-  
+
                 if (err) return done.fail(err);
                 authenticatedSession = session;
 
@@ -163,7 +163,7 @@ describe('teamSpec', () => {
               if (err) return done.fail();
 
               login(_identity, [scope.create.teams], (err, session) => {
-  
+
                 if (err) return done.fail(err);
                 authenticatedSession = session;
 
@@ -294,7 +294,7 @@ describe('teamSpec', () => {
               if (err) return done.fail();
 
               login(_identity, [scope.create.teams], (err, session) => {
-  
+
                 if (err) return done.fail(err);
                 authenticatedSession = session;
 
@@ -382,7 +382,7 @@ describe('teamSpec', () => {
               if (err) return done.fail();
 
               login(_identity, [scope.create.teams], (err, session) => {
-  
+
                 if (err) return done.fail(err);
                 authenticatedSession = session;
 
@@ -453,7 +453,7 @@ describe('teamSpec', () => {
             if (err) return done.fail();
 
             login(_identity, [scope.update.teams], (err, session) => {
-  
+
               if (err) return done.fail(err);
               authenticatedSession = session;
 
@@ -1069,7 +1069,7 @@ describe('teamSpec', () => {
             if (err) return done.fail();
 
             login(_identity, [scope.delete.teams], (err, session) => {
-  
+
               if (err) return done.fail(err);
               authenticatedSession = session;
 

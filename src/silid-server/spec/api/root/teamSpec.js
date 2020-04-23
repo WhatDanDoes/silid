@@ -177,7 +177,6 @@ describe('root/teamSpec', () => {
           });
         });
 
-
         it('collates agent data into team data', done => {
           rootSession
             .get(`/team/${teamId}`)
