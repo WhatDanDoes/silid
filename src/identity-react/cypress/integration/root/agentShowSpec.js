@@ -76,24 +76,70 @@ context('root/Agent show', function() {
             cy.get('table tbody tr td').contains(memberAgent.socialProfile.locale);
           });
 
+          describe('teams', () => {
+            describe('none created', () => {
+              it('displays teams table', function() {
+                cy.get('h6').contains('Teams');
+                cy.get('table tbody tr td').contains('No records to display');
+              });
+            });
+
+            describe('some created', () => {
+              let agent;
+              beforeEach(function() {
+                cy.login(memberAgent.socialProfile._json.email, {..._profile, user_metadata: {
+                                                         teams: [
+                                                           {
+                                                             id: 'some-uuid-v4',
+                                                             name: 'The Calgary Roughnecks',
+                                                             leader: 'someguy@example.com',
+                                                             members: [memberAgent.socialProfile._json.email]
+                                                           }
+                                                         ]
+                                                       } }, [this.scope.read.agents]);
+
+                cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${memberAgent.socialProfile._json.email}' LIMIT 1;`).then(([results, metadata]) => {
+                  memberAgent = results[0];
+                  cy.login(_profile.email, _profile);
+                  cy.visit(`/#/agent/${memberAgent.socialProfile.user_id}`);
+                });
+              });
+
+              it('displays teams in a table', function() {
+                cy.get('h6').contains('Teams');
+                cy.get('table tbody tr td').contains('No records to display').should('not.exist');
+                cy.get('button span span').contains('add_box');
+                cy.get('table thead tr th').contains('Actions');
+                cy.get('table tbody tr td button span').contains('edit');
+                cy.get('table tbody tr td button span').contains('delete_outline');
+                cy.get('table thead tr th').contains('Name');
+                cy.get('table tbody tr td').contains(memberAgent.socialProfile.user_metadata.teams[0].name);
+                cy.get('table tbody tr td a').should('contain', memberAgent.socialProfile.user_metadata.teams[0].name).
+                  and('have.attr', 'href').and('equal', `#team/${memberAgent.socialProfile.user_metadata.teams[0].id}`);
+                cy.get('table thead tr th').contains('Leader');
+                cy.get('table tbody tr td').contains(memberAgent.socialProfile.user_metadata.teams[0].leader);
+              });
+            });
+          });
+
           describe('social profile data', () => {
             it('toggles JSON display', () => {
               cy.get('.react-json-view').its('length').should('eq', 1);
-    
+
               // Toggle closed
               cy.get('.react-json-view .icon-container .collapsed-icon').should('exist');
               cy.get('.react-json-view .icon-container .expanded-icon').should('not.exist');
               cy.get('.react-json-view').contains('displayName').should('not.exist');
-    
+
               // Toggle open
               cy.get('.react-json-view .icon-container .collapsed-icon').click();
               cy.get('.react-json-view .icon-container .expanded-icon').should('exist');
-    
+
               cy.get('.react-json-view').contains('locale');
               cy.get('.react-json-view').contains('picture');
               cy.get('.react-json-view').contains('user_id');
               cy.get('.react-json-view').contains('displayName');
-    
+
               // Toggle closed again
               cy.get('.react-json-view .icon-container .expanded-icon').click();
               cy.get('.react-json-view .icon-container .collapsed-icon').should('exist');
@@ -134,24 +180,70 @@ context('root/Agent show', function() {
             cy.get('table tbody tr td').contains(root.socialProfile.locale);
           });
 
+          describe('teams', () => {
+            describe('none created', () => {
+              it('displays teams table', function() {
+                cy.get('h6').contains('Teams');
+                cy.get('table tbody tr td').contains('No records to display');
+              });
+            });
+
+            describe('some created', () => {
+              let agent;
+              beforeEach(function() {
+                cy.login(_profile.email, {..._profile, user_metadata: {
+                                                         teams: [
+                                                           {
+                                                             id: 'some-uuid-v4',
+                                                             name: 'The Calgary Roughnecks',
+                                                             leader: 'root@example.com',
+                                                             members: ['root@example.com']
+                                                           }
+                                                         ]
+                                                       } }, [this.scope.read.agents]);
+
+                cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
+                  root = results[0];
+                  cy.reload(true);
+                  cy.wait(300);
+                });
+              });
+
+              it('displays teams in a table', function() {
+                cy.get('h6').contains('Teams');
+                cy.get('table tbody tr td').contains('No records to display').should('not.exist');
+                cy.get('button span span').contains('add_box');
+                cy.get('table thead tr th').contains('Actions');
+                cy.get('table tbody tr td button span').contains('edit');
+                cy.get('table tbody tr td button span').contains('delete_outline');
+                cy.get('table thead tr th').contains('Name');
+                cy.get('table tbody tr td').contains(root.socialProfile.user_metadata.teams[0].name);
+                cy.get('table tbody tr td a').should('contain', root.socialProfile.user_metadata.teams[0].name).
+                  and('have.attr', 'href').and('equal', `#team/${root.socialProfile.user_metadata.teams[0].id}`);
+                cy.get('table thead tr th').contains('Leader');
+                cy.get('table tbody tr td').contains(root.socialProfile.user_metadata.teams[0].leader);
+              });
+            });
+          });
+
           describe('social profile data', () => {
             it('toggles JSON display', () => {
               cy.get('.react-json-view').its('length').should('eq', 1);
-    
+
               // Toggle closed
               cy.get('.react-json-view .icon-container .collapsed-icon').should('exist');
               cy.get('.react-json-view .icon-container .expanded-icon').should('not.exist');
               cy.get('.react-json-view').contains('displayName').should('not.exist');
-    
+
               // Toggle open
               cy.get('.react-json-view .icon-container .collapsed-icon').click();
               cy.get('.react-json-view .icon-container .expanded-icon').should('exist');
-    
+
               cy.get('.react-json-view').contains('locale');
               cy.get('.react-json-view').contains('picture');
               cy.get('.react-json-view').contains('user_id');
               cy.get('.react-json-view').contains('displayName');
-    
+
               // Toggle closed again
               cy.get('.react-json-view .icon-container .expanded-icon').click();
               cy.get('.react-json-view .icon-container .collapsed-icon').should('exist');
@@ -189,24 +281,70 @@ context('root/Agent show', function() {
           cy.get('table tbody tr td').contains(memberAgent.socialProfile.locale);
         });
 
+        describe('teams', () => {
+          describe('none created', () => {
+            it('displays teams table', function() {
+              cy.get('h6').contains('Teams');
+              cy.get('table tbody tr td').contains('No records to display');
+            });
+          });
+
+          describe('some created', () => {
+            let agent;
+            beforeEach(function() {
+              cy.login(memberAgent.socialProfile._json.email, {..._profile, user_metadata: {
+                                                       teams: [
+                                                         {
+                                                           id: 'some-uuid-v4',
+                                                           name: 'The Calgary Roughnecks',
+                                                           leader: 'someguy@example.com',
+                                                           members: [memberAgent.socialProfile._json.email]
+                                                         }
+                                                       ]
+                                                     } }, [this.scope.read.agents]);
+
+              cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${memberAgent.socialProfile._json.email}' LIMIT 1;`).then(([results, metadata]) => {
+                memberAgent = results[0];
+                cy.login(_profile.email, _profile);
+                cy.visit(`/#/agent/${memberAgent.socialProfile.user_id}`);
+              });
+            });
+
+            it('displays teams in a table', function() {
+              cy.get('h6').contains('Teams');
+              cy.get('table tbody tr td').contains('No records to display').should('not.exist');
+              cy.get('button span span').contains('add_box');
+              cy.get('table thead tr th').contains('Actions');
+              cy.get('table tbody tr td button span').contains('edit');
+              cy.get('table tbody tr td button span').contains('delete_outline');
+              cy.get('table thead tr th').contains('Name');
+              cy.get('table tbody tr td').contains(memberAgent.socialProfile.user_metadata.teams[0].name);
+              cy.get('table tbody tr td a').should('contain', memberAgent.socialProfile.user_metadata.teams[0].name).
+                and('have.attr', 'href').and('equal', `#team/${memberAgent.socialProfile.user_metadata.teams[0].id}`);
+              cy.get('table thead tr th').contains('Leader');
+              cy.get('table tbody tr td').contains(memberAgent.socialProfile.user_metadata.teams[0].leader);
+            });
+          });
+        });
+
         describe('social profile data', () => {
           it('toggles JSON display', () => {
             cy.get('.react-json-view').its('length').should('eq', 1);
-  
+
             // Toggle closed
             cy.get('.react-json-view .icon-container .collapsed-icon').should('exist');
             cy.get('.react-json-view .icon-container .expanded-icon').should('not.exist');
             cy.get('.react-json-view').contains('displayName').should('not.exist');
-  
+
             // Toggle open
             cy.get('.react-json-view .icon-container .collapsed-icon').click();
             cy.get('.react-json-view .icon-container .expanded-icon').should('exist');
-  
+
             cy.get('.react-json-view').contains('locale');
             cy.get('.react-json-view').contains('picture');
             cy.get('.react-json-view').contains('user_id');
             cy.get('.react-json-view').contains('displayName');
-  
+
             // Toggle closed again
             cy.get('.react-json-view .icon-container .expanded-icon').click();
             cy.get('.react-json-view .icon-container .collapsed-icon').should('exist');
@@ -245,24 +383,70 @@ context('root/Agent show', function() {
           cy.get('table tbody tr td').contains(root.socialProfile.locale);
         });
 
+        describe('teams', () => {
+          describe('none created', () => {
+            it('displays teams table', function() {
+              cy.get('h6').contains('Teams');
+              cy.get('table tbody tr td').contains('No records to display');
+            });
+          });
+
+          describe('some created', () => {
+            let agent;
+            beforeEach(function() {
+              cy.login(_profile.email, {..._profile, user_metadata: {
+                                                       teams: [
+                                                         {
+                                                           id: 'some-uuid-v4',
+                                                           name: 'The Calgary Roughnecks',
+                                                           leader: 'root@example.com',
+                                                           members: ['root@example.com']
+                                                         }
+                                                       ]
+                                                     } }, [this.scope.read.agents]);
+
+              cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
+                root = results[0];
+                cy.reload(true);
+                cy.wait(300);
+              });
+            });
+
+            it('displays teams in a table', function() {
+              cy.get('h6').contains('Teams');
+              cy.get('table tbody tr td').contains('No records to display').should('not.exist');
+              cy.get('button span span').contains('add_box');
+              cy.get('table thead tr th').contains('Actions');
+              cy.get('table tbody tr td button span').contains('edit');
+              cy.get('table tbody tr td button span').contains('delete_outline');
+              cy.get('table thead tr th').contains('Name');
+              cy.get('table tbody tr td').contains(root.socialProfile.user_metadata.teams[0].name);
+              cy.get('table tbody tr td a').should('contain', root.socialProfile.user_metadata.teams[0].name).
+                and('have.attr', 'href').and('equal', `#team/${root.socialProfile.user_metadata.teams[0].id}`);
+              cy.get('table thead tr th').contains('Leader');
+              cy.get('table tbody tr td').contains(root.socialProfile.user_metadata.teams[0].leader);
+            });
+          });
+        });
+
         describe('social profile data', () => {
           it('toggles JSON display', () => {
             cy.get('.react-json-view').its('length').should('eq', 1);
-  
+
             // Toggle closed
             cy.get('.react-json-view .icon-container .collapsed-icon').should('exist');
             cy.get('.react-json-view .icon-container .expanded-icon').should('not.exist');
             cy.get('.react-json-view').contains('displayName').should('not.exist');
-  
+
             // Toggle open
             cy.get('.react-json-view .icon-container .collapsed-icon').click();
             cy.get('.react-json-view .icon-container .expanded-icon').should('exist');
-  
+
             cy.get('.react-json-view').contains('locale');
             cy.get('.react-json-view').contains('picture');
             cy.get('.react-json-view').contains('user_id');
             cy.get('.react-json-view').contains('displayName');
-  
+
             // Toggle closed again
             cy.get('.react-json-view .icon-container .expanded-icon').click();
             cy.get('.react-json-view .icon-container .collapsed-icon').should('exist');
