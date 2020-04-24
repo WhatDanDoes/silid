@@ -21,6 +21,7 @@ import Paper from '@material-ui/core/Paper';
 import MaterialTable from 'material-table';
 
 import useGetAgentService from '../services/useGetAgentService';
+import usePostTeamService from '../services/usePostTeamService';
 
 const useStyles = makeStyles(theme =>
   createStyles({
@@ -65,11 +66,13 @@ const useStyles = makeStyles(theme =>
 const Agent = (props) => {
 
   const [profileData, setProfileData] = useState({});
+  const [flashProps, setFlashProps] = useState({});
 
   const admin = useAdminState();
 
   const classes = useStyles();
   const service = useGetAgentService(props.match.params.id, admin.viewingCached);
+  const { publishTeam } = usePostTeamService();
 
   useEffect(() => {
     if (service.status === 'loaded') {
@@ -116,14 +119,28 @@ const Agent = (props) => {
               <MaterialTable
                 title='Teams'
                 columns={[
-                  { title: 'Name', field: 'name', render: rowData => <Link href={`#team/${rowData.id}`}>{rowData.name}</Link> },
+                  {
+                    title: 'Name',
+                    field: 'name',
+                    render: rowData => <Link href={`#team/${rowData.id}`}>{rowData.name}</Link>,
+                  },
                   { title: 'Leader', field: 'leader', editable: 'never' }
                 ]}
                 data={profileData.user_metadata ? profileData.user_metadata.teams : []}
                 options={{ search: false }}
                 editable={{
                   onRowAdd: (newData) => new Promise((resolve, reject) => {
-                    resolve();
+                    newData.name = newData.name.trim();
+                    if (!newData.name.length) {
+                      setFlashProps({ message: 'Team name can\'t be blank', variant: 'error' });
+                      reject();
+                    }
+                    else {
+                      publishTeam(newData).then(profile => {;
+                        setProfileData(profile);
+                        resolve();
+                      }).catch(reject);
+                    }
                   }),
                 }}
               />
@@ -148,6 +165,7 @@ const Agent = (props) => {
         : ''}
       </Grid>
       { props.location.state ? <Flash message={props.location.state} variant="success" /> : '' }
+      { flashProps.message ? <Flash message={flashProps.message} variant={flashProps.variant} /> : '' }
     </div>
   )
 };
