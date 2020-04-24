@@ -486,20 +486,23 @@ require('../support/setupKeystore').then(keyStuff => {
       server.route({
         method: 'PATCH',
         path: '/api/v2/users/{id}',
-        handler: (request, h) => {
+        handler: async function(request, h) {
           console.log('PATCH /api/v2/users');
+          console.log(request.params);
           console.log(request.payload);
 
-          return h.response({
-            "user_id": "auth0|507f1f77bcf86c0000000000",
-            "email": "doesnotreallymatterforthemoment@example.com",
-            "email_verified": false,
-            "identities": [
-              {
-                "connection": "Initial-Connection",
-              }
-            ]
-          });
+          const results = await models.Agent.findOne({ where: {
+                                                                socialProfile: {
+                                                                  '"user_id"': request.params.id
+                                                                }
+                                                              }
+                                                     });
+
+          results.socialProfile.user_metadata = request.payload.user_metadata;
+
+          let agent = await results.save();
+
+          return h.response({...agent.socialProfile, user_id: agent.socialProfile._json.sub });
         }
       });
 
