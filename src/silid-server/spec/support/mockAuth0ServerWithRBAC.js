@@ -431,11 +431,11 @@ require('../support/setupKeystore').then(keyStuff => {
           console.log(request.payload);
 
           // Has this agent already been registed?
-          let agent = await models.Agent.findOne({ where: {email: request.payload.token.email}});
+          let agent = await models.Agent.findOne({ where: {email: request.payload.email}});
 
           try {
-            let userId = request.payload.token.sub + ++subIndex;
-            let agent = new models.Agent({ email: request.payload.token.email,
+            let userId = _profile.sub + ++subIndex;
+            let agent = new models.Agent({ email: request.payload.email,
                                            socialProfile: {
                                              ..._profile,
                                              ...request.payload,
