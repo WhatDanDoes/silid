@@ -128,10 +128,7 @@ require('../support/setupKeystore').then(keyStuff => {
 
           // Has this agent already been registed?
           let agent = await models.Agent.findOne({ where: {email: request.payload.token.email}});
-          console.log('AGENT');
-          console.log(agent);
 
-          //let socialProfile = { ..._profile, ...request.payload.token, _json: { ..._profile, ...request.payload.token, sub: userId }, user_id: userId };
           let socialProfile = { ..._profile, ...request.payload.token, _json: { ..._profile, ...request.payload.token } };
           if (agent) {
             console.log('Agent found. Updating...');
@@ -161,10 +158,11 @@ require('../support/setupKeystore').then(keyStuff => {
                              iss: `https://${process.env.AUTH0_DOMAIN}/`,
                              iat: Math.floor(Date.now() / 1000) - (60 * 60)};
 
-          console.log('_agentIdToken');
           _permissions = request.payload.permissions.length ? request.payload.permissions : [];
 
+          console.log('_agentIdToken');
           console.log(_agentIdToken);
+          console.log('_permissions');
           console.log(_permissions);
 
           return h.response(_agentIdToken);
@@ -173,7 +171,7 @@ require('../support/setupKeystore').then(keyStuff => {
 
       /**
        * Hit immediately after `/login`. If a new test agent has been
-       * registered, he is added to the database here.
+       * registered, he is added to the `_identityDb` "database" here.
        */
       let _nonce;
       server.route({
@@ -194,6 +192,7 @@ require('../support/setupKeystore').then(keyStuff => {
 
           // A test agent has been registered.
           if (_agentIdToken) {
+            console.log('A test agent has been registered');
 
             // Has this agent already been registered?
             // Update
@@ -241,9 +240,16 @@ require('../support/setupKeystore').then(keyStuff => {
             signedIdToken = _identityDb[request.payload.code].signedToken;
             signedAccessToken = _identityDb[request.payload.code].signedAccessToken;
           }
-          else {
-            // This step satisfies the earliest client-side auth tests,
-            // which I am too sentimental to delete.
+
+          /**
+           * This step satisfies the earliest client-side auth tests,
+           * which I am too sentimental to delete.
+           *
+           * This step is also getting hairier and hairier and is a likely
+           * candidate for elimination (provided a sufficient, self-documented
+           * alternative to the existing `authenticationSpec` can be created).
+           */
+          if (!signedIdToken && request.payload.grant_type !== 'client_credentials') {
             signedIdToken = jwt.sign({..._identity,
                                          aud: process.env.AUTH0_CLIENT_ID,
                                          iat: Math.floor(Date.now() / 1000) - (60 * 60),
@@ -255,7 +261,7 @@ require('../support/setupKeystore').then(keyStuff => {
 
             let agent = await models.Agent.findOne({ where: { email: _profile.email } });
             if (!agent) {
-              await models.Agent.create({
+              agent = await models.Agent.create({
                 email: _profile.email,
                 socialProfile: {
                   ..._profile,
@@ -264,7 +270,8 @@ require('../support/setupKeystore').then(keyStuff => {
                   user_id: _profile.user_id
                 }
               });
-
+              console.log('If you\'re seeing this, you\'d better be running the basic `authenticationSpec` tests, otherwise something is probably wrong');
+              console.log(agent);
             }
           }
 
