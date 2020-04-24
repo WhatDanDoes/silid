@@ -66,11 +66,17 @@ router.post('/', checkPermissions([scope.create.teams]), function(req, res, next
   managementClient.getUser({id: req.user.user_id}).then(agent => {
 
     // No duplicate team names
-    if (agent.user_metadata) {
+    if (agent.user_metadata && agent.user_metadata.teams) {
       let teams = agent.user_metadata.teams.map(team => team.name);
       if (teams.includes(req.body.name)) {
         return res.status(400).json({ errors: [{ message: 'That team is already registered' }] });
       }
+    }
+    else if (agent.user_metadata) {
+      agent.user_metadata.teams = [];
+    }
+    else {
+      agent.user_metadata = { teams: [] };
     }
 
     // Make sure incoming data is legit
@@ -82,17 +88,13 @@ router.post('/', checkPermissions([scope.create.teams]), function(req, res, next
       return res.status(400).json({ errors: [{ message: 'Team requires a name' }] });
     }
 
-    managementClient.updateUser({id: req.user.user_id}, {
-                                                          user_metadata: {
-                                                            teams: [
-                                                              {
-                                                                id: uuid.v4(),
-                                                                name: req.body.name,
-                                                                leader: req.user._json.email,
-                                                              }
-                                                            ]
-                                                          }
-                                                        }).then(result => {
+    agent.user_metadata.teams.push({
+      id: uuid.v4(),
+      name: teamName,
+      leader: req.user._json.email,
+    });
+
+    managementClient.updateUser({id: req.user.user_id}, { user_metadata: agent.user_metadata }).then(result => {
       res.status(201).json(result);
     }).catch(err => {
       res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
