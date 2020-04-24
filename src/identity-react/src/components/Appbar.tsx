@@ -144,14 +144,6 @@ const Home = (props: IProps) => {
         )}
         {admin.isEnabled && (
           <>
-            <ListItem button key='CacheToggle'>
-              <FormControlLabel
-                control={
-                  <Switch id='show-cached-switch' checked={admin.viewingCached} onChange={toggleCacheMode} value="cache" />
-                }
-                label="Show Cached Data"
-              />
-            </ListItem>
             <ListItem button id='directory-button' key='Directory'>
               <ListItemIcon><InboxIcon /></ListItemIcon>
               <ListItemLink href='#agent/admin'>
