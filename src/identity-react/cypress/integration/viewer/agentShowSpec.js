@@ -88,7 +88,6 @@ context('viewer/Agent show', function() {
 
             cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
               memberAgent = results[0];
-             // cy.reload(true);
               cy.login('someguy@example.com', _profile, [this.scope.read.agents]);
               cy.visit(`/#/agent/${memberAgent.socialProfile.user_id}`);
               cy.wait(300);
@@ -99,9 +98,6 @@ context('viewer/Agent show', function() {
             cy.get('h6').contains('Teams');
             cy.get('table tbody tr td').contains('No records to display').should('not.exist');
             cy.get('button span span').contains('add_box');
-            cy.get('table thead tr th').contains('Actions');
-            cy.get('table tbody tr td button span').contains('edit');
-            cy.get('table tbody tr td button span').contains('delete_outline');
             cy.get('table thead tr th').contains('Name');
             cy.get('table tbody tr td').contains(memberAgent.socialProfile.user_metadata.teams[0].name);
             cy.get('table tbody tr td a').should('contain', memberAgent.socialProfile.user_metadata.teams[0].name).
@@ -198,9 +194,6 @@ context('viewer/Agent show', function() {
             cy.get('h6').contains('Teams');
             cy.get('table tbody tr td').contains('No records to display').should('not.exist');
             cy.get('button span span').contains('add_box');
-            cy.get('table thead tr th').contains('Actions');
-            cy.get('table tbody tr td button span').contains('edit');
-            cy.get('table tbody tr td button span').contains('delete_outline');
             cy.get('table thead tr th').contains('Name');
             cy.get('table tbody tr td').contains(agent.socialProfile.user_metadata.teams[0].name);
             cy.get('table tbody tr td a').should('contain', agent.socialProfile.user_metadata.teams[0].name).

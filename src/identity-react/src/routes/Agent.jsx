@@ -117,20 +117,14 @@ const Agent = (props) => {
                 title='Teams'
                 columns={[
                   { title: 'Name', field: 'name', render: rowData => <Link href={`#team/${rowData.id}`}>{rowData.name}</Link> },
-                  { title: 'Leader', field: 'leader'}
+                  { title: 'Leader', field: 'leader', editable: 'never' }
                 ]}
                 data={profileData.user_metadata ? profileData.user_metadata.teams : []}
                 options={{ search: false }}
                 editable={{
-                  onRowAdd: (newData) => {
-
-                  },
-                  onRowUpdate: (newData, oldData) => {
-
-                  },
-                  onRowDelete: (oldData) => {
-
-                  }
+                  onRowAdd: (newData) => new Promise((resolve, reject) => {
+                    resolve();
+                  }),
                 }}
               />
             </Grid>

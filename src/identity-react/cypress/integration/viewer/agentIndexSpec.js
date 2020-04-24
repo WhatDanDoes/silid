@@ -92,9 +92,6 @@ context('viewer/Agent Index', function() {
             cy.get('h6').contains('Teams');
             cy.get('table tbody tr td').contains('No records to display').should('not.exist');
             cy.get('button span span').contains('add_box');
-            cy.get('table thead tr th').contains('Actions');
-            cy.get('table tbody tr td button span').contains('edit');
-            cy.get('table tbody tr td button span').contains('delete_outline');
             cy.get('table thead tr th').contains('Name');
             cy.get('table tbody tr td').contains(agent.socialProfile.user_metadata.teams[0].name);
             cy.get('table tbody tr td a').should('contain', agent.socialProfile.user_metadata.teams[0].name).
