@@ -77,6 +77,9 @@ context('root/Agent Index Paging', function() {
             });
 
             it('allows navigation to the end of the directory', () => {
+              // Page 1
+              cy.get('#agent-list').find('.agent-button').its('length').should('eq', 30);
+
               // Page 2
               cy.get('.pager').last().find('ul li:nth-child(6) button').click();
               cy.wait(300);
