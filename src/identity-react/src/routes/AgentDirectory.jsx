@@ -49,6 +49,7 @@ const AgentDirectory = (props) => {
   const service = useGetAgentDirectoryService(page, admin.viewingCached);
   useEffect(() => {
     if (service.status === 'loaded') {
+
       if (service.payload.message) {
         setFlashProps({ message: service.payload.message, variant: 'error' });
       }
@@ -79,8 +80,8 @@ const AgentDirectory = (props) => {
               : ''}
               <List id="agent-list">
                 { agentList.results.users.map(a => (
-                  <ListItem className='agent-button' key={`Agents-${admin.viewingCached ? a.id : a.user_id}`}>
-                    <ListItemLink href={`#agent/${admin.viewingCached ? a.id : a.user_id}`}>
+                  <ListItem className='agent-button' key={`Agents-${a.user_id}`}>
+                    <ListItemLink href={`#agent/${a.user_id}`}>
                       <ListItemAvatar>
                         <Avatar className="avatar" alt={a.name} src={a.picture} />
                       </ListItemAvatar>

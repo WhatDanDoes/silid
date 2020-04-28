@@ -97,6 +97,7 @@ router.post('/', checkPermissions([scope.create.teams]), function(req, res, next
     });
 
     managementClient.updateUser({id: req.user.user_id}, { user_metadata: agent.user_metadata }).then(result => {
+
       res.status(201).json(result);
     }).catch(err => {
       res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);

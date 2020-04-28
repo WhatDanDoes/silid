@@ -110,65 +110,53 @@ context('viewer/Team creation', function() {
                   cy.contains('Team name can\'t be blank');
                 });
 
-                it.only('does not allow a duplicate team', function() {
+                it('does not allow a duplicate team', function() {
                   // TODO count and test team rows
                   cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').type('Team Copycat');
                   cy.get('div div div div div div table tbody tr td div button[title="Save"]').click();
                   cy.wait(300);
                   cy.get('table tbody tr td').contains('Team Copycat');
+
                   cy.get('button span span').contains('add_box').click();
                   cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').type('Team Copycat');
                   cy.get('div div div div div div table tbody tr td div button[title="Save"]').click();
                   cy.wait(300);
                   cy.contains('That team is already registered');
-
-//                  cy.get('input[name="name"][type="text"]').type('Team Copycat');
-//                  cy.get('button[type="submit"]').click();
-//                  cy.wait(500);
-//                  cy.get('button#add-team').click();
-//                  cy.get('#organization-team-list .list-item').first().contains('Team Copycat');
-//                  cy.get('input[name="name"][type="text"]').type('Team Copycat');
-//                  cy.get('button[type="submit"]').click();
-//                  cy.wait(500);
-//                  cy.get('#organization-team-list').find('.list-item').its('length').should('eq', 1);
-//                  cy.get('#flash-message').contains('That team is already registered');
                 });
               });
             });
 
             context('valid form', () => {
-//              it('updates the record in the database', function() {
-//                cy.task('query', `SELECT * FROM "Teams";`).then(([results, metadata]) => {
-//                  expect(results.length).to.eq(0);
-//                  cy.get('input[name="name"][type="text"]').type('The Justice League');
-//                  cy.get('button[type="submit"]').click();
-//                  cy.wait(500);
-//                  cy.task('query', `SELECT * FROM "Teams"`).then(([results, metadata]) => {;
-//                    expect(results[0].name).to.eq('The Justice League');
-//                  });
-//                });
-//              });
-//
-//              it('hides the add-team-form', function() {
-//                cy.get('input[name="name"][type="text"]').type('The Justice League');
-//                cy.get('button[type="submit"]').click();
-//                cy.wait(500);
-//                cy.get('form#add-team-form').should('not.exist');
-//              });
-//
               it('updates the record on the interface', function() {
-//                cy.get('#organization-team-list').should('not.exist');
-//                cy.get('input[name="name"][type="text"]').type('The Justice League');
-//                cy.get('button[type="submit"]').click();
-//                cy.wait(500);
-//                cy.get('#organization-team-list').find('.list-item').its('length').should('eq', 1);
-//                cy.get('#organization-team-list .list-item').first().contains('The Justice League');
+                cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').type('The Mike Tyson Mystery Team');
+                cy.get('div div div div div div table tbody tr td div button[title="Save"]').click();
+                cy.wait(300);
+                cy.get('table tbody tr td').contains('The Mike Tyson Mystery Team');
+                cy.get('table tbody tr td').contains(_profile.email);
+              });
+
+              it('allows adding multiple teams', function() {
+                // 2, because the `add_box` has been clicked and it is a table row.
+                // Also, the 'No records to display' message is in a table row
+                cy.get('table tbody:nth-child(2)').find('tr').its('length').should('eq', 2);
 
                 cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').type('The Mike Tyson Mystery Team');
                 cy.get('div div div div div div table tbody tr td div button[title="Save"]').click();
                 cy.wait(300);
                 cy.get('table tbody tr td').contains('The Mike Tyson Mystery Team');
                 cy.get('table tbody tr td').contains(_profile.email);
+
+                // 1, because the message is replaced by a team and the add-team-form is hidden
+                cy.get('table tbody:nth-child(2)').find('tr').its('length').should('eq', 1);
+
+                cy.get('button span span').contains('add_box').click();
+                cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').type('Mystery Incorporated');
+                cy.get('div div div div div div table tbody tr td div button[title="Save"]').click();
+                cy.wait(300);
+                cy.get('table tbody tr td').contains('Mystery Incorporated');
+                cy.get('table tbody tr td').contains(_profile.email);
+
+                cy.get('table tbody:nth-child(2)').find('tr').its('length').should('eq', 2);
               });
             });
           });

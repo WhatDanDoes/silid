@@ -430,11 +430,11 @@ require('../support/setupKeystore').then(keyStuff => {
           console.log('POST /api/v2/users');
           console.log(request.payload);
 
-          // Has this agent already been registed?
+          // Has this agent already been registered?
           let agent = await models.Agent.findOne({ where: {email: request.payload.email}});
 
           try {
-            let userId = _profile.sub + ++subIndex;
+            let userId = _profile.user_id + ++subIndex;
             let agent = new models.Agent({ email: request.payload.email,
                                            socialProfile: {
                                              ..._profile,
@@ -500,9 +500,12 @@ require('../support/setupKeystore').then(keyStuff => {
 
           results.socialProfile.user_metadata = request.payload.user_metadata;
 
-          let agent = await results.save();
+          // 2020-4-28 https://github.com/sequelize/sequelize/issues/4387#issuecomment-135804557
+          // Without this, the nested JSON won't actually save
+          results.changed('socialProfile', true);
+          await results.save();
 
-          return h.response({...agent.socialProfile, user_id: agent.socialProfile._json.sub });
+          return h.response({...results.socialProfile, user_id: results.socialProfile._json.sub });
         }
       });
 
