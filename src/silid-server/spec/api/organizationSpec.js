@@ -382,7 +382,10 @@ describe('organizationSpec', () => {
                     if (err) return done.fail(err);
                     expect(res.body.message).toEqual('Update successful');
 
-                    models.Organization.findOne({ where: { id: organization.id }, include: ['members'] }).then(results => {
+                    models.Organization.findOne({ where: { id: organization.id },
+                                                  include: {model: models.Agent, as: 'members'},
+                                                  order: [[{model: models.Agent, as: 'members'}, 'id', 'DESC']]
+                                                }).then(results => {
                       expect(results.members.length).toEqual(2);
                       expect(results.members[0].name).toEqual(anotherAgent.name);
                       expect(results.members[0].email).toEqual(anotherAgent.email);
@@ -580,7 +583,10 @@ describe('organizationSpec', () => {
                     if (err) return done.fail(err);
                     expect(res.body.message).toEqual('Update successful');
 
-                    models.Organization.findOne({ where: { id: organization.id }, include: ['members'] }).then(results => {
+                    models.Organization.findOne({ where: { id: organization.id },
+                                                  include: {model: models.Agent, as: 'members'},
+                                                  order: [[{model: models.Agent, as: 'members'}, 'id', 'DESC']]
+                                                }).then(results => {
                       expect(results.members.length).toEqual(2);
                       expect(results.members[0].name).toEqual(anotherAgent.name);
                       expect(results.members[0].email).toEqual(anotherAgent.email);
