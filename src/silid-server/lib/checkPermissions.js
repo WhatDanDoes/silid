@@ -6,6 +6,8 @@ const apiScope = require('../config/apiPermissions');
 const roles = require('../config/roles');
 const getManagementClient = require('../lib/getManagementClient');
 
+const assert = require('assert');
+
 /**
  * The main function makes a call to the Auth0 API. This simply
  * DRYs out the code.
@@ -26,29 +28,28 @@ function updateDbAndVerify(permissions, req, res, next) {
       }
     }
 
-    if (!req.agent || JSON.stringify(req.agent.socialProfile) !== JSON.stringify(socialProfile)) {
-      models.Agent.update(
-        { socialProfile: socialProfile, ...updates },
-        { returning: true, where: { email: socialProfile._json.email } }).then(function([rowsUpdate, [updatedAgent]]) {
+    let profileChanged = true;
+    if (req.agent && req.agent.socialProfile) {
+      try {
+        assert.deepEqual(req.agent.socialProfile._json, socialProfile._json);
+        profileChanged = false;
 
-        if (updatedAgent) {
-          req.agent = updatedAgent;
+      } catch (error) {
+        console.log('these aren\'t equal');
+      }
+    }
 
-          if (req.agent.isSuper) {
-            return next();
-          }
+    if (!req.agent || profileChanged) {
 
-          jwtAuthz(permissions, { failWithError: true, checkAllScopes: true })(req, res, err => {
-            if (err) {
-              return res.status(err.statusCode).json(err);
-            }
+      const managementClient = getManagementClient(apiScope.read.users);
+      managementClient.getUser({id: socialProfile.user_id}).then(results => {
 
-            next();
-          });
-        }
-        else {
-          models.Agent.create({ name: socialProfile._json.name, email: socialProfile._json.email, socialProfile: socialProfile }).then(agent => {
-            req.agent = agent;
+        models.Agent.update(
+          { socialProfile: results, ...updates },
+          { returning: true, where: { email: socialProfile._json.email } }).then(function([rowsUpdate, [updatedAgent]]) {
+
+          if (updatedAgent) {
+            req.agent = updatedAgent;
 
             if (req.agent.isSuper) {
               return next();
@@ -61,10 +62,29 @@ function updateDbAndVerify(permissions, req, res, next) {
 
               next();
             });
-          }).catch(err => {
-            res.status(500).json(err);
-          });
-        }
+          }
+          else {
+            models.Agent.create({ name: socialProfile._json.name, email: socialProfile._json.email, socialProfile: socialProfile }).then(agent => {
+              req.agent = agent;
+
+              if (req.agent.isSuper) {
+                return next();
+              }
+
+              jwtAuthz(permissions, { failWithError: true, checkAllScopes: true })(req, res, err => {
+                if (err) {
+                  return res.status(err.statusCode).json(err);
+                }
+
+                next();
+              });
+            }).catch(err => {
+              res.status(500).json(err);
+            });
+          }
+        }).catch(err => {
+          res.status(500).json(err);
+        });
       }).catch(err => {
         res.status(500).json(err);
       });
@@ -72,8 +92,8 @@ function updateDbAndVerify(permissions, req, res, next) {
     else {
       if (Object.keys(updates).length) {
         models.Agent.update(
-          { updates },
-          { returning: true, where: { email: socialProfile.email } }).then(function([rowsUpdate, [updatedAgent]]) {
+          updates,
+          { returning: true, where: { email: socialProfile._json.email } }).then(function([rowsUpdate, [updatedAgent]]) {
 
           if (updatedAgent) {
             req.agent = updatedAgent;
@@ -161,3 +181,4 @@ const checkPermissions = function(permissions) {
 };
 
 module.exports = checkPermissions;
+

@@ -8,8 +8,10 @@ const models = require('../../models');
 const Agent = models.Agent;
 const Profile = require('passport-auth0/lib/Profile');
 const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
+const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
 
 const checkPermissions = require('../../lib/checkPermissions');
+const _profile = require('../fixtures/sample-auth0-profile-response');
 
 /**
  * 2019-11-13
@@ -25,7 +27,7 @@ const roles = require('../../config/roles');
 
 describe('checkPermissions', function() {
 
-  let agent, request, response, getRolesScope, userAssignRolesScope;
+  let agent, request, response, getRolesScope, userAssignRolesScope, userReadScope;
 
   beforeEach(done => {
     nock.cleanAll();
@@ -36,7 +38,7 @@ describe('checkPermissions', function() {
      */
     stubAuth0ManagementApi((err, apiScopes) => {
       if (err) return done.fail(err);
-      ({getRolesScope, userAssignRolesScope} = apiScopes);
+      ({getRolesScope, userAssignRolesScope, userReadScope} = apiScopes);
       done();
     });
   });
@@ -95,7 +97,7 @@ describe('checkPermissions', function() {
         if (err) return done.fail(err);
 
         models.Agent.findOne({ where: { email: _identity.email }}).then(agent => {
-          expect(agent.socialProfile).toEqual(JSON.parse(JSON.stringify(profile)));
+          expect(agent.socialProfile).toEqual(_profile);
           done();
         }).catch(err => {
           done.fail(err);
@@ -172,6 +174,86 @@ describe('checkPermissions', function() {
         });
       });
     });
+
+    /**
+     * 2020-4-28
+     *
+     * There may come a day when we don't need the database anymore. Until that happens, these
+     * tests ensure that the `req.user` object is consistent with what _should_ be stored
+     * at Auth0.
+     */
+    describe('Auth0 caching', () => {
+
+      let newReadScope;
+      beforeEach(done => {
+        request = httpMocks.createRequest({
+          method: 'POST',
+          url: '/agent',
+          user: profile
+        });
+
+        checkPermissions([scope.read.agents])(request, response, err => {
+          models.Agent.findOne({ where: { email: _identity.email }}).then(results => {
+            agent = results;
+
+            stubUserRead((err, apiScopes) => {
+              if (err) return done.fail(err);
+              ({userReadScope: newReadScope} = apiScopes);
+              done();
+            });
+          }).catch(err => {
+            done.fail(err);
+          });
+        });
+
+      });
+
+      it('does not call the management API if Auth0 and the local cache data are consistent', done => {
+        request = httpMocks.createRequest({
+          method: 'POST',
+          url: '/agent',
+          user: profile
+        });
+
+        agent.socialProfile = profile;
+        agent.save().then(() => {
+          expect(agent.socialProfile).toEqual(profile);
+
+          checkPermissions([scope.read.agents])(request, response, err => {
+            if (err) return done.fail(err);
+
+            expect(newReadScope.isDone()).toBe(false);
+
+            done();
+          });
+        }).catch(err => {
+          done.fail(err);
+        });
+      });
+
+      it('calls the management API if there is inconsistency between Auth0 and the local cache', done => {
+        request = httpMocks.createRequest({
+          method: 'POST',
+          url: '/agent',
+          user: profile
+        });
+
+        agent.socialProfile = {..._profile, user_metadata: { teams: [] }};
+
+        agent.save().then(() => {
+          checkPermissions([scope.read.agents])(request, response, err => {
+            if (err) return done.fail(err);
+
+            expect(newReadScope.isDone()).toBe(true);
+
+            done();
+          });
+        }).catch(err => {
+          done.fail(err);
+        });
+      });
+    });
+
   });
 
   describe('first visit', () => {
@@ -324,7 +406,7 @@ describe('checkPermissions', function() {
       checkPermissions([scope.read.agents])(request, response, err => {
         if (err) return done.fail(err);
         Agent.findOne({ where: { email: _identity.email } }).then(a => {
-          expect(a.socialProfile).toEqual(JSON.parse(JSON.stringify(profile)));
+          expect(a.socialProfile).toEqual(_profile);
           expect(a.email).toEqual(_identity.email);
           expect(a.name).toEqual(_identity.name);
           done();
@@ -349,7 +431,7 @@ describe('checkPermissions', function() {
         checkPermissions([scope.read.agents])(request, response, err => {
           if (err) return done.fail(err);
           Agent.findOne({ where: { email: _identity.email } }).then(a => {
-            expect(a.socialProfile).toEqual(JSON.parse(JSON.stringify(profile)));
+            expect(a.socialProfile).toEqual(_profile);
             expect(a.email).toEqual(_identity.email);
             expect(a.name).toEqual(_identity.name);
             done();
