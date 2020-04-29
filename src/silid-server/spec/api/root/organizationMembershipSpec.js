@@ -4,6 +4,7 @@ const fixtures = require('sequelize-fixtures');
 const models = require('../../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../../support/stubAuth0Sessions');
+const stubAuth0ManagementApi = require('../../support/stubAuth0ManagementApi');
 const mailer = require('../../../mailer');
 const { uuid } = require('uuidv4');
 
@@ -64,10 +65,15 @@ describe('root/organizationMembershipSpec', () => {
   describe('authorized', () => {
     let rootSession;
     beforeEach(done => {
-      login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, (err, session) => {
+      stubAuth0ManagementApi((err, apiScopes) => {
         if (err) return done.fail(err);
-        rootSession = session;
-        done();
+
+        login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, (err, session) => {
+          if (err) return done.fail(err);
+          rootSession = session;
+
+         done();
+        });
       });
     });
 
@@ -81,7 +87,7 @@ describe('root/organizationMembershipSpec', () => {
             rootSession
               .put(`/organization/${organization.id}/agent`)
               .send({
-                email: 'somebrandnewguy@example.com' 
+                email: 'somebrandnewguy@example.com'
               })
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
@@ -107,7 +113,7 @@ describe('root/organizationMembershipSpec', () => {
             rootSession
               .put(`/organization/${organization.id}/agent`)
               .send({
-                email: 'somebrandnewguy@example.com' 
+                email: 'somebrandnewguy@example.com'
               })
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
@@ -136,7 +142,7 @@ describe('root/organizationMembershipSpec', () => {
             rootSession
               .put(`/organization/${organization.id}/agent`)
               .send({
-                email: 'somebrandnewguy@example.com' 
+                email: 'somebrandnewguy@example.com'
               })
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
@@ -162,7 +168,7 @@ describe('root/organizationMembershipSpec', () => {
           rootSession
             .put(`/organization/${organization.id}/agent`)
             .send({
-              email: 'somebrandnewguy@example.com' 
+              email: 'somebrandnewguy@example.com'
             })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
@@ -173,7 +179,7 @@ describe('root/organizationMembershipSpec', () => {
               rootSession
                 .put(`/organization/${organization.id}/agent`)
                 .send({
-                  email: 'somebrandnewguy@example.com' 
+                  email: 'somebrandnewguy@example.com'
                 })
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
@@ -190,7 +196,7 @@ describe('root/organizationMembershipSpec', () => {
           rootSession
             .put('/organization/333/agent')
             .send({
-              email: 'somebrandnewguy@example.com' 
+              email: 'somebrandnewguy@example.com'
             })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
@@ -258,7 +264,7 @@ describe('root/organizationMembershipSpec', () => {
             rootSession
               .put(`/organization/${organization.id}/agent`)
               .send({
-                email: knownAgent.email 
+                email: knownAgent.email
               })
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
@@ -284,7 +290,7 @@ describe('root/organizationMembershipSpec', () => {
             rootSession
               .put(`/organization/${organization.id}/agent`)
               .send({
-                email: knownAgent.email 
+                email: knownAgent.email
               })
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
@@ -310,7 +316,7 @@ describe('root/organizationMembershipSpec', () => {
           rootSession
             .put(`/organization/${organization.id}/agent`)
             .send({
-              email: knownAgent.email 
+              email: knownAgent.email
             })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
@@ -320,7 +326,7 @@ describe('root/organizationMembershipSpec', () => {
               rootSession
                 .put(`/organization/${organization.id}/agent`)
                 .send({
-                  email: knownAgent.email 
+                  email: knownAgent.email
                 })
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
@@ -337,7 +343,7 @@ describe('root/organizationMembershipSpec', () => {
           rootSession
             .put('/organization/333/agent')
             .send({
-              email: knownAgent.email 
+              email: knownAgent.email
             })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)

@@ -4,7 +4,9 @@ const fixtures = require('sequelize-fixtures');
 const models = require('../../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../../support/stubAuth0Sessions');
+const stubAuth0ManagementApi = require('../../support/stubAuth0ManagementApi');
 const mailer = require('../../../mailer');
+const scope = require('../../../config/permissions');
 
 /**
  * 2019-11-13
@@ -61,10 +63,15 @@ describe('root/organizationSpec', () => {
   describe('authorized', () => {
     let rootSession;
     beforeEach(done => {
-      login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, (err, session) => {
-        if (err) return done.fail(err);
-        rootSession = session;
-        done();
+      stubAuth0ManagementApi((err, apiScopes) => {
+        if (err) return done.fail();
+
+        login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, (err, session) => {
+          if (err) return done.fail(err);
+          rootSession = session;
+
+          done();
+        });
       });
     });
 
@@ -225,7 +232,7 @@ describe('root/organizationSpec', () => {
           rootSession
             .post('/organization')
             .send({
-              name: 'One Book Canada' 
+              name: 'One Book Canada'
             })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
@@ -266,7 +273,7 @@ describe('root/organizationSpec', () => {
         rootSession
           .post('/organization')
           .send({
-            name: organization.name 
+            name: organization.name
           })
           .set('Accept', 'application/json')
           .expect('Content-Type', /json/)
@@ -538,7 +545,7 @@ describe('root/organizationSpec', () => {
                     expect(results.members.length).toEqual(2);
                     expect(results.members.find(m => m.name === anotherAgent.name)).toBeDefined();
                     expect(results.members.find(m => m.email === anotherAgent.email)).toBeDefined();
- 
+
                     done();
                   }).catch(err => {
                     done.fail(err);
@@ -834,14 +841,19 @@ describe('root/organizationSpec', () => {
     });
   });
 
-  describe('unauthorized', () => {
+  describe('forbidden', () => {
 
-    let unauthorizedSession;
+    let forbiddenSession;
     beforeEach(done => {
-      login({..._identity, email: agent.email}, (err, session) => {
-        if (err) return done.fail(err);
-        unauthorizedSession = session;
-        done();
+      stubAuth0ManagementApi((err, apiScopes) => {
+        if (err) return done.fail();
+
+        login({..._identity, email: agent.email}, [scope.read.organizations], (err, session) => {
+          if (err) return done.fail(err);
+          forbiddenSession = session;
+
+          done();
+        });
       });
     });
 
@@ -851,7 +863,7 @@ describe('root/organizationSpec', () => {
           models.Organization.create({ name: 'Mr Worldwide', creatorId: root.id }).then(o => {
             models.Organization.findAll().then(results => {
               expect(results.length).toEqual(2);
-              unauthorizedSession
+              forbiddenSession
                 .get(`/organization`)
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)

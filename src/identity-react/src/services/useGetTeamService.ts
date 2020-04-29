@@ -5,6 +5,7 @@ import { useAdminState } from '../auth/Admin';
 
 export interface Teams {
   results: Team[];
+  error?: string;
 }
 
 const useTeamService = () => {
@@ -25,7 +26,14 @@ const useTeamService = () => {
 
     fetch(url, { headers, credentials: 'include', mode: 'no-cors' })
       .then(response => response.json())
-      .then(response => setResult({ status: 'loaded', payload: { results: response } }))
+      .then(response => {
+        if (response.error) {
+          setResult({ status: 'loaded', payload: response });
+        }
+        else {
+          setResult({ status: 'loaded', payload: { results: response } });
+        }
+      })
       .catch(error => setResult({ status: 'error', error }));
   }, [admin.isEnabled]);
 

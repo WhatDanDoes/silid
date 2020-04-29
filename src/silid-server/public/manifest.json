@@ -1,0 +1,17 @@
+{
+  "name": "SIL Identity",
+  "description": "SIL identity management",
+  "version": "0.0.0.1",
+  "manifest_version": 2,
+  "icons": {
+    "128": "favicons/favicon-96x96.png"
+  },
+  "app": {
+    "urls": [
+      "https://silid.languagetechnology.org/"
+    ],
+    "launch": {
+      "web_url": "https://silid.languagetechnology.org/"
+    }
+  }
+}

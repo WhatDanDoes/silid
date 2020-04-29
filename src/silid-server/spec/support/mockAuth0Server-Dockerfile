@@ -11,4 +11,5 @@ COPY . .
 
 EXPOSE 3002
 
-CMD node spec/support/mockAuth0Server.js
+#CMD node spec/support/mockAuth0Server.js
+CMD node spec/support/mockAuth0ServerWithRBAC.js

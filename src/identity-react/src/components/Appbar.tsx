@@ -70,6 +70,14 @@ const Home = (props: IProps) => {
   };
 
   /**
+   * Show Cached Data toggle
+   */
+  const toggleCacheMode = (event) => {
+    setDrawerPosition({ ...drawerPosition, left: true });
+    admin.toggleCacheMode();
+  };
+
+  /**
    * Menu link
    */
   function ListItemLink(props: any) {
@@ -124,7 +132,7 @@ const Home = (props: IProps) => {
             <ListItemText primary='Teams' />
           </ListItemLink>
         </ListItem>
-        {agent.isSuper && (
+        {agent.user_metadata.isSuper && (
           <ListItem button key='Admin'>
             <FormControlLabel
               control={
@@ -164,18 +172,22 @@ const Home = (props: IProps) => {
   return (
     <AppBar position="static">
       <Toolbar>
-        <IconButton
-          id="app-menu-button"
-          onClick={toggleDrawer('left', true)}
-          edge="start"
-          className={classes.menuButton}
-          color="inherit"
-          aria-label="menu">
-          <MenuIcon />
-        </IconButton>
-        <Drawer open={drawerPosition.left} onClose={toggleDrawer('left', false)}>
-          {sideList('left')}
-        </Drawer>
+        {agent.user_metadata.isSuper && (
+          <>
+            <IconButton
+              id="app-menu-button"
+              onClick={toggleDrawer('left', true)}
+              edge="start"
+              className={classes.menuButton}
+              color="inherit"
+              aria-label="menu">
+              <MenuIcon />
+            </IconButton>
+            <Drawer open={drawerPosition.left} onClose={toggleDrawer('left', false)}>
+              {sideList('left')}
+            </Drawer>
+          </>
+        )}
         <Typography variant="h6" className={classes.title}>
           Identity
         </Typography>
@@ -183,10 +195,10 @@ const Home = (props: IProps) => {
         {agent && (
           <>
             <Grid container justify="flex-end" alignItems="flex-start">
-              {agent.socialProfile.picture ? (
+              {agent.picture ? (
                 <Avatar
                   alt="avatar"
-                  src={agent.socialProfile.picture}
+                  src={agent.picture}
                   className={classes.avatar}
                 />
               ) : (

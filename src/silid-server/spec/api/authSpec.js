@@ -4,7 +4,6 @@ const request = require('supertest-session');
 const nock = require('nock');
 const querystring = require('querystring');
 const jwt = require('jsonwebtoken');
-const setupKeystore = require('../support/setupKeystore');
 const models = require('../../models');
 
 describe('authSpec', () => {
@@ -16,19 +15,28 @@ describe('authSpec', () => {
    * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
    */
   const _identity = require('../fixtures/sample-auth0-identity-token');
+  const _access = require('../fixtures/sample-auth0-access-token');
+  const _profile = require('../fixtures/sample-auth0-profile-response');
+
+  // Auth0 defined scopes and roles
+  const scope = require('../../config/permissions');
+  const apiScope = require('../../config/apiPermissions');
+  const roles = require('../../config/roles');
 
   let pub, prv, keystore;
   beforeAll(done => {
-    setupKeystore((err, keyStuff) => {
-      if (err) return done.fail(err);
+    require('../support/setupKeystore').then(keyStuff => {
       ({ pub, prv, keystore } = keyStuff);
       done();
+    }).catch(err => {
+      done.fail(err);
     });
   });
 
   let auth0Scope, state, nonce;
   beforeEach(done => {
     nock.cleanAll();
+
     /**
      * This is called when `/login` is hit. The session is
      * created prior to redirect.
@@ -86,7 +94,7 @@ describe('authSpec', () => {
         .redirects()
         .end(function(err, res) {
           if (err) return done.fail(err);
-          auth0Scope.isDone()
+          expect(auth0Scope.isDone()).toBe(true);
           done();
         });
     });
@@ -99,7 +107,9 @@ describe('authSpec', () => {
    */
   describe('/callback', () => {
 
-    let session, oauthTokenScope, userInfoScope;
+    let session, oauthTokenScope, userInfoScope, auth0UserAssignRolesScope, auth0GetRolesScope;
+    // Added for when agent info is requested immediately after authentication
+    let anotherOauthTokenScope, userReadScope;
     beforeEach(done => {
 
       /**
@@ -123,6 +133,8 @@ describe('authSpec', () => {
 
           /**
            * `/oauth/token` mock
+           *
+           * This is called when first authenticating
            */
           oauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
             .log(console.log)
@@ -134,7 +146,9 @@ describe('authSpec', () => {
                                     'code': 'AUTHORIZATION_CODE'
                                   })
             .reply(200, {
-              'access_token': 'SOME_MADE_UP_ACCESS_TOKEN',
+              'access_token': jwt.sign({..._access,
+                                        permissions: [scope.read.agents]},
+                                       prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } }),
               'refresh_token': 'SOME_MADE_UP_REFRESH_TOKEN',
               'id_token': jwt.sign({..._identity,
                                       aud: process.env.AUTH0_CLIENT_ID,
@@ -142,6 +156,37 @@ describe('authSpec', () => {
                                       nonce: nonce },
                                    prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
             });
+
+          /**
+           * This is called when the agent has authenticated and silid
+           * needs to retreive the non-OIDC-compliant metadata, etc.
+           */
+          const accessToken = jwt.sign({..._access, scope: [apiScope.read.users]},
+                                        prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
+          anotherOauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+            .log(console.log)
+            .post(/oauth\/token/, {
+                                    'grant_type': 'client_credentials',
+                                    'client_id': process.env.AUTH0_CLIENT_ID,
+                                    'client_secret': process.env.AUTH0_CLIENT_SECRET,
+                                    'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                                    'scope': apiScope.read.users
+                                  })
+            .reply(200, {
+              'access_token': accessToken,
+              'token_type': 'Bearer',
+            });
+
+          /**
+           * The token retrieved above is used to get the
+           * non-OIDC-compliant metadata, etc.
+           */
+          userReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+            .log(console.log)
+            .get(/api\/v2\/users\/.+/)
+            .query({})
+            .reply(200, _profile);
+
 
           done();
         });
@@ -153,7 +198,7 @@ describe('authSpec', () => {
         .expect(302)
         .end(function(err, res) {
           if (err) return done.fail(err);
-          oauthTokenScope.done();
+          expect(oauthTokenScope.isDone()).toBe(true);
           done();
         });
     });
@@ -180,6 +225,30 @@ describe('authSpec', () => {
         });
     });
 
+    describe('request for non-OIDC-compliant agent info', () => {
+      it('calls the `/oauth/token` endpoint', done => {
+        session
+          .get(`/callback?code=AUTHORIZATION_CODE&state=${state}`)
+          .expect(302)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(anotherOauthTokenScope.isDone()).toBe(true);
+            done();
+          });
+      });
+
+      it('calls the `/users/:id` endpoint', done => {
+        session
+          .get(`/callback?code=AUTHORIZATION_CODE&state=${state}`)
+          .expect(302)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            userReadScope.done();
+            done();
+          });
+      });
+    });
+
     describe('database', () => {
       it('adds a new agent record if none exists', done => {
         models.Agent.findAll().then(results => {
@@ -192,6 +261,7 @@ describe('authSpec', () => {
               if (err) return done.fail(err);
               models.Agent.findAll().then(results => {
                 expect(results.length).toEqual(1);
+                expect(results[0].socialProfile._json).toEqual(_identity);
                 done();
               }).catch(err => {
                 done.fail(err);
@@ -210,6 +280,8 @@ describe('authSpec', () => {
             if (err) return done.fail(err);
             models.Agent.findAll().then(results => {
               expect(results.length).toEqual(1);
+              expect(results[0].socialProfile._json).toEqual(_identity);
+
               results[0].socialProfile = null;
               results[0].save().then(results => {
                 expect(results.socialProfile).toBe(null);
@@ -256,7 +328,9 @@ describe('authSpec', () => {
                                                   'code': 'AUTHORIZATION_CODE'
                                                 })
                           .reply(200, {
-                            'access_token': 'SOME_MADE_UP_ACCESS_TOKEN',
+                            'access_token': jwt.sign({..._access,
+                                                      permissions: [scope.read.agents]},
+                                                     prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } }),
                             'refresh_token': 'SOME_MADE_UP_REFRESH_TOKEN',
                             'id_token': jwt.sign({..._identity,
                                                     aud: process.env.AUTH0_CLIENT_ID,
@@ -269,6 +343,40 @@ describe('authSpec', () => {
                           .log(console.log)
                           .get(/userinfo/)
                           .reply(200, _identity);
+
+
+                        /**
+                         * This is so gross...
+                         *
+                         * This is called when the agent has authenticated and silid
+                         * needs to retreive the non-OIDC-compliant metadata, etc.
+                         */
+                        const accessToken = jwt.sign({..._access, scope: [apiScope.read.users]},
+                                                      prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
+                        let anotherOauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+                          .log(console.log)
+                          .post(/oauth\/token/, {
+                                                  'grant_type': 'client_credentials',
+                                                  'client_id': process.env.AUTH0_CLIENT_ID,
+                                                  'client_secret': process.env.AUTH0_CLIENT_SECRET,
+                                                  'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                                                  'scope': apiScope.read.users
+                                                })
+                          .reply(200, {
+                            'access_token': accessToken,
+                            'token_type': 'Bearer',
+                          });
+
+                        /**
+                         * The token retrieved above is used to get the
+                         * non-OIDC-compliant metadata, etc.
+                         */
+                        let userReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+                          .log(console.log)
+                          .get(/api\/v2\/users\/.+/)
+                          .query({})
+                          .reply(200, _profile);
+
 
                         /**
                          * Login again... finally
@@ -353,7 +461,7 @@ describe('authSpec', () => {
     });
     server.listen(PORT);
 
-    // Setup an configure zombie browser
+    // Setup and configure zombie browser
     const Browser = require('zombie');
     Browser.localhost('localhost', PORT);
 
@@ -385,6 +493,7 @@ describe('authSpec', () => {
       let loginScope, oauthTokenScope, userInfoScope;
       beforeEach(done => {
         nock.cleanAll();
+
         /**
          * This is called when `/login` is hit.
          */
@@ -425,10 +534,43 @@ describe('authSpec', () => {
                                       'code': 'AUTHORIZATION_CODE'
                                     })
               .reply(200, {
-                'access_token': 'SOME_MADE_UP_ACCESS_TOKEN',
+                'access_token': jwt.sign({..._access,
+                                          permissions: [scope.read.agents]},
+                                         prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } }),
                 'refresh_token': 'SOME_MADE_UP_REFRESH_TOKEN',
                 'id_token': identityToken
               });
+
+            /**
+             * This is called when the agent has authenticated and silid
+             * needs to retreive the non-OIDC-compliant metadata, etc.
+             */
+            const accessToken = jwt.sign({..._access, scope: [apiScope.read.users]},
+                                          prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
+            const anotherOauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+              .log(console.log)
+              .post(/oauth\/token/, {
+                                      'grant_type': 'client_credentials',
+                                      'client_id': process.env.AUTH0_CLIENT_ID,
+                                      'client_secret': process.env.AUTH0_CLIENT_SECRET,
+                                      'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                                      'scope': apiScope.read.users
+                                    })
+              .reply(200, {
+                'access_token': accessToken,
+                'token_type': 'Bearer',
+              });
+
+            /**
+             * The token retrieved above is used to get the
+             * non-OIDC-compliant metadata, etc.
+             */
+            const userReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+              .log(console.log)
+              .get(/api\/v2\/users\/.+/)
+              .query({})
+              .reply(200, _profile);
+
 
             next(null, [302, {}, { 'Location': `https://${process.env.AUTH0_DOMAIN}/login` }]);
           });
@@ -445,17 +587,6 @@ describe('authSpec', () => {
 
         browser.visit('/', (err) => {
           if (err) return done.fail(err);
-          done();
-        });
-      });
-
-      it('calls the various Auth0 endpoints', done => {
-        browser.clickLink('Login', (err) => {
-          if (err) return done.fail(err);
-          auth0Scope.done();
-          loginScope.done();
-          oauthTokenScope.done();
-          userInfoScope.done();
           done();
         });
       });
@@ -489,9 +620,7 @@ describe('authSpec', () => {
           });
         });
 
-        it('displays the correct interface', done => {
-          browser.clickLink('Logout', (err) => {
-            if (err) return done.fail(err);
+        it('displays the correct interface', done => { browser.clickLink('Logout', (err) => { if (err) return done.fail(err);
             browser.assert.elements('a[href="/login"]');
             browser.assert.elements('a[href="/logout"]', 0);
             done();

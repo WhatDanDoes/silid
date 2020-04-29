@@ -1,11 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const sessionAuth = require('../lib/sessionAuth');
 const models = require('../models');
 const mailer = require('../mailer');
 
+
+/**
+ * Configs must match those defined for RBAC at Auth0
+ */
+const scope = require('../config/permissions');
+const roles = require('../config/roles');
+const checkPermissions = require('../lib/checkPermissions');
+
+
 /* GET organization listing. */
-router.get('/admin', sessionAuth, function(req, res, next) {
+router.get('/admin', checkPermissions(roles.sudo), function(req, res, next) {
   if (!req.agent.isSuper) {
     return res.status(403).json( { message: 'Forbidden' });
   }
@@ -19,7 +27,7 @@ router.get('/admin', sessionAuth, function(req, res, next) {
 });
 
 
-router.get('/', sessionAuth, function(req, res, next) {
+router.get('/', checkPermissions([scope.read.organizations]), function(req, res, next) {
   req.agent.getOrganizations().then(orgs => {
     res.json(orgs);
   }).catch(err => {
@@ -28,7 +36,7 @@ router.get('/', sessionAuth, function(req, res, next) {
 });
 
 
-router.get('/:id', sessionAuth, function(req, res, next) {
+router.get('/:id', checkPermissions([scope.read.organizations]), function(req, res, next) {
   models.Organization.findOne({ where: { id: req.params.id },
                                 include: [ { model: models.Agent, as: 'creator' },
                                            { model: models.Agent, as: 'members' },
@@ -61,7 +69,7 @@ router.get('/:id', sessionAuth, function(req, res, next) {
   });
 });
 
-router.post('/', sessionAuth, function(req, res, next) {
+router.post('/', checkPermissions([scope.create.organizations]), function(req, res, next) {
   req.body.creatorId = req.agent.id;
 
   req.agent.createOrganization(req.body).then(org => {
@@ -75,7 +83,7 @@ router.post('/', sessionAuth, function(req, res, next) {
   });
 });
 
-router.put('/', sessionAuth, function(req, res, next) {
+router.put('/', checkPermissions([scope.update.organizations]), function(req, res, next) {
   models.Organization.findOne({ where: { id: req.body.id } }).then(organization => {
     if (!organization) {
       return res.json( { message: 'No such organization' });
@@ -203,7 +211,7 @@ const patchOrg = function(req, res, next) {
   });
 }
 
-router.patch('/', sessionAuth, function(req, res, next) {
+router.patch('/', checkPermissions([scope.update.organizations]), function(req, res, next) {
   if (req.body.email) {
     models.Agent.findOne({ where: { email: req.body.email } }).then(agent => {
       if (!agent) {
@@ -228,7 +236,7 @@ router.patch('/', sessionAuth, function(req, res, next) {
   }
 });
 
-router.delete('/', sessionAuth, function(req, res, next) {
+router.delete('/', checkPermissions([scope.delete.organizations]), function(req, res, next) {
   models.Organization.findOne({ where: { id: req.body.id } }).then(organization => {
     if (!organization) {
       return res.json( { message: 'No such organization' });
@@ -238,12 +246,12 @@ router.delete('/', sessionAuth, function(req, res, next) {
       if (!req.agent.isSuper && req.agent.email !== creator.email) {
         return res.status(401).json( { message: 'Unauthorized' });
       }
-  
+
       organization.destroy().then(results => {
         res.json( { message: 'Organization deleted' });
       }).catch(err => {
         res.status(500).json(err);
-      });   
+      });
     }).catch(err => {
       res.status(500).json(err);
     });
@@ -252,7 +260,7 @@ router.delete('/', sessionAuth, function(req, res, next) {
   });
 });
 
-router.put('/:id/agent', sessionAuth, function(req, res, next) {
+router.put('/:id/agent', checkPermissions([scope.create.organizationMembers]), function(req, res, next) {
   models.Organization.findOne({ where: { id: req.params.id },
                                 include: [ 'creator',
                                            { model: models.Agent, as: 'members' },
@@ -327,7 +335,7 @@ Click or copy-paste the link below to accept:
 });
 
 
-router.delete('/:id/agent/:agentId', sessionAuth, function(req, res, next) {
+router.delete('/:id/agent/:agentId', checkPermissions([scope.delete.organizationMembers]), function(req, res, next) {
   models.Organization.findOne({ where: { id: req.params.id },
                                 include: [ 'creator',
                                            { model: models.Agent, as: 'members' },

@@ -63,14 +63,6 @@ docker-compose up
 
 Setup and management.
 
-#### Sync database:
-
-For initial setup. This smokes everything and writes the schema from scratch.
-
-```
-docker-compose exec app node config/seed.js
-```
-
 #### Migrations
 
 For an orderly database deployment. Should preserve data.

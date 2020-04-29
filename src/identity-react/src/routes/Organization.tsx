@@ -53,7 +53,12 @@ const Organization = (props: any) => {
 
   useEffect(() => {
     if (service.status === 'loaded') {
-      setOrgList(service.payload);
+      if (service.payload.error) {
+        setFlashProps({ errors: [service.payload], variant: 'error' });
+      }
+      else {
+        setOrgList(service.payload);
+      }
     }
   }, [service]);
 
