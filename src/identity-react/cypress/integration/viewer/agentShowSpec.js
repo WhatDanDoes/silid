@@ -56,10 +56,10 @@ context('viewer/Agent show', function() {
 
       it('displays agent\'s info', function() {
         cy.get('h3').contains('Profile');
-        cy.get('table tbody tr th').contains('Display Name:');
-        cy.get('table tbody tr td').contains(memberAgent.socialProfile.displayName);
+        cy.get('table tbody tr th').contains('Name:');
+        cy.get('table tbody tr td').contains(memberAgent.socialProfile.name);
         cy.get('table tbody tr th').contains('Email:');
-        cy.get('table tbody tr td').contains(memberAgent.socialProfile._json.email);
+        cy.get('table tbody tr td').contains(memberAgent.socialProfile.email);
         cy.get('table tbody tr th').contains('Locale:');
         cy.get('table tbody tr td').contains(memberAgent.socialProfile.locale);
       });
@@ -115,7 +115,7 @@ context('viewer/Agent show', function() {
           // Toggle closed
           cy.get('.react-json-view .icon-container .collapsed-icon').should('exist');
           cy.get('.react-json-view .icon-container .expanded-icon').should('not.exist');
-          cy.get('.react-json-view').contains('displayName').should('not.exist');
+          cy.get('.react-json-view').contains('name').should('not.exist');
 
           // Toggle open
           cy.get('.react-json-view .icon-container .collapsed-icon').click();
@@ -124,13 +124,13 @@ context('viewer/Agent show', function() {
           cy.get('.react-json-view').contains('locale');
           cy.get('.react-json-view').contains('picture');
           cy.get('.react-json-view').contains('user_id');
-          cy.get('.react-json-view').contains('displayName');
+          cy.get('.react-json-view').contains('name');
 
           // Toggle closed again
           cy.get('.react-json-view .icon-container .expanded-icon').click();
           cy.get('.react-json-view .icon-container .collapsed-icon').should('exist');
           cy.get('.react-json-view .icon-container .expanded-icon').should('not.exist');
-          cy.get('.react-json-view').contains('displayName').should('not.exist');
+          cy.get('.react-json-view').contains('name').should('not.exist');
         });
       });
     });
@@ -153,10 +153,10 @@ context('viewer/Agent show', function() {
 
       it('displays agent\'s info', function() {
         cy.get('h3').contains('Profile');
-        cy.get('table tbody tr th').contains('Display Name:');
-        cy.get('table tbody tr td').contains(agent.socialProfile.displayName);
+        cy.get('table tbody tr th').contains('Name:');
+        cy.get('table tbody tr td').contains(agent.socialProfile.name);
         cy.get('table tbody tr th').contains('Email:');
-        cy.get('table tbody tr td').contains(agent.socialProfile._json.email);
+        cy.get('table tbody tr td').contains(agent.socialProfile.email);
         cy.get('table tbody tr th').contains('Locale:');
         cy.get('table tbody tr td').contains(agent.socialProfile.locale);
       });
@@ -211,7 +211,7 @@ context('viewer/Agent show', function() {
           // Toggle closed
           cy.get('.react-json-view .icon-container .collapsed-icon').should('exist');
           cy.get('.react-json-view .icon-container .expanded-icon').should('not.exist');
-          cy.get('.react-json-view').contains('displayName').should('not.exist');
+          cy.get('.react-json-view').contains('name').should('not.exist');
 
           // Toggle open
           cy.get('.react-json-view .icon-container .collapsed-icon').click();
@@ -220,13 +220,13 @@ context('viewer/Agent show', function() {
           cy.get('.react-json-view').contains('locale');
           cy.get('.react-json-view').contains('picture');
           cy.get('.react-json-view').contains('user_id');
-          cy.get('.react-json-view').contains('displayName');
+          cy.get('.react-json-view').contains('name');
 
           // Toggle closed again
           cy.get('.react-json-view .icon-container .expanded-icon').click();
           cy.get('.react-json-view .icon-container .collapsed-icon').should('exist');
           cy.get('.react-json-view .icon-container .expanded-icon').should('not.exist');
-          cy.get('.react-json-view').contains('displayName').should('not.exist');
+          cy.get('.react-json-view').contains('name').should('not.exist');
         });
       });
     });
