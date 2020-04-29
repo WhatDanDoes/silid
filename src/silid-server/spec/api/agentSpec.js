@@ -10,6 +10,8 @@ const scope = require('../../config/permissions');
 const apiScope = require('../../config/apiPermissions');
 const jwt = require('jsonwebtoken');
 
+const _profile = require('../fixtures/sample-auth0-profile-response');
+
 describe('agentSpec', () => {
 
   /**
@@ -65,11 +67,17 @@ describe('agentSpec', () => {
               if (err) return done.fail(err);
               authenticatedSession = session;
 
-              stubAuth0ManagementEndpoint([apiScope.create.users], (err, apiScopes) => {
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
                 if (err) return done.fail();
 
-                ({userCreateScope, oauthTokenScope} = apiScopes);
-                done();
+                stubAuth0ManagementEndpoint([apiScope.create.users], (err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  ({userCreateScope, oauthTokenScope} = apiScopes);
+                  done();
+                });
               });
             });
           });
@@ -131,7 +139,13 @@ describe('agentSpec', () => {
                 if (err) return done.fail(err);
                 authenticatedSession = session;
 
-                done();
+                // Cached profile doesn't match "live" data, so agent needs to be updated
+                // with a call to Auth0
+                stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  done();
+                });
               });
             });
           });
@@ -145,9 +159,9 @@ describe('agentSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(res.body.emails.length).toEqual(1);
-                // The `req.user` `Profile` object adds an `id`
-                expect(res.body.user_id).toEqual(res.body.id);
+                expect(res.body.email).toEqual(_identity.email);
+                expect(res.body.name).toEqual(_identity.name);
+                expect(res.body.user_id).toEqual(_identity.sub);
                 done();
               });
           });
@@ -192,11 +206,17 @@ describe('agentSpec', () => {
                 if (err) return done.fail(err);
                 authenticatedSession = session;
 
+                // Cached profile doesn't match "live" data, so agent needs to be updated
+                // with a call to Auth0
                 stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
-                  if (err) return done.fail(err);
-                  ({userReadScope, oauthTokenScope} = apiScopes);
+                  if (err) return done.fail();
 
-                  done();
+                  stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+                    if (err) return done.fail(err);
+                    ({userReadScope, oauthTokenScope} = apiScopes);
+
+                    done();
+                  });
                 });
               });
             });
@@ -256,11 +276,17 @@ describe('agentSpec', () => {
               if (err) return done.fail(err);
               authenticatedSession = session;
 
-              stubAuth0ManagementEndpoint([apiScope.update.users], (err, apiScopes) => {
-                if (err) return done.fail(err);
-                ({oauthTokenScope} = apiScopes);
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+                if (err) return done.fail();
 
-                done();
+                stubAuth0ManagementEndpoint([apiScope.update.users], (err, apiScopes) => {
+                  if (err) return done.fail(err);
+                  ({oauthTokenScope} = apiScopes);
+
+                  done();
+                });
               });
             });
           });
@@ -353,10 +379,16 @@ describe('agentSpec', () => {
               if (err) return done.fail(err);
               authenticatedSession = session;
 
-              stubAuth0ManagementEndpoint([apiScope.delete.users], (err, apiScopes) => {
-                if (err) return done.fail(err);
-                ({userDeleteScope, oauthTokenScope} = apiScopes);
-                done();
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+                if (err) return done.fail();
+
+                stubAuth0ManagementEndpoint([apiScope.delete.users], (err, apiScopes) => {
+                  if (err) return done.fail(err);
+                  ({userDeleteScope, oauthTokenScope} = apiScopes);
+                  done();
+                });
               });
             });
           });
@@ -453,18 +485,37 @@ describe('agentSpec', () => {
     });
 
     describe('forbidden', () => {
+      let originalProfile;
+
       let forbiddenSession;
       beforeEach(done => {
+        originalProfile = {..._profile};
+        _profile.email = 'someotherguy@example.com';
+        _profile.name = 'Some Other Guy';
+
         stubAuth0ManagementApi((err, apiScopes) => {
           if (err) return done.fail(err);
 
-          login({ ..._identity, email: 'someotherguy@example.com', name: 'Some Other Guy' }, (err, session) => {
+         login({ ..._identity, email: 'someotherguy@example.com', name: 'Some Other Guy' }, (err, session) => {
             if (err) return done.fail(err);
             forbiddenSession = session;
 
-            done();
+            // Cached profile doesn't match "live" data, so agent needs to be updated
+            // with a call to Auth0
+            stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+              if (err) return done.fail();
+
+              done();
+            });
           });
         });
+      });
+
+      afterEach(() => {
+        // Through the magic of node I am able to adjust the profile data returned.
+        // This resets the default values
+        _profile.email = originalProfile.email;
+        _profile.name = originalProfile.name;
       });
 
       describe('update', () => {
