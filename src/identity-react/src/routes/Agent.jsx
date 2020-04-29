@@ -100,12 +100,12 @@ const Agent = (props) => {
                 <Table className={classes.table} aria-label="Agent profile info">
                   <TableBody>
                     <TableRow>
-                      <TableCell align="right" component="th" scope="row">Display Name:</TableCell>
-                      <TableCell align="left">{profileData.displayName}</TableCell>
+                      <TableCell align="right" component="th" scope="row">Name:</TableCell>
+                      <TableCell align="left">{profileData.name}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell align="right" component="th" scope="row">Email:</TableCell>
-                      <TableCell align="left">{profileData._json ? profileData._json.email : ''}</TableCell>
+                      <TableCell align="left">{profileData.email}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell align="right" component="th" scope="row">Locale:</TableCell>
