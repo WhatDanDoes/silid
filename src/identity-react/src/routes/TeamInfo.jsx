@@ -246,12 +246,7 @@ const TeamInfo = (props) => {
                   { title: 'Email', field: 'email'}
                 ]}
                 data={teamInfo.members ? teamInfo.members : []}
-                options={{ search: false }}
-                editable={{
-                  onRowDelete: (oldData) => {
-
-                  }
-                }}
+                options={{ search: false, paging: false }}
               />
             </Grid>
           </>
