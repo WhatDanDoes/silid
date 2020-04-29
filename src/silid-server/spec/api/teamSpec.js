@@ -22,10 +22,8 @@ const _profile = require('../fixtures/sample-auth0-profile-response');
 
 describe('teamSpec', () => {
 
-  let login, pub, prv, keystore, originalProfile;
+  let login, pub, prv, keystore;
   beforeEach(done => {
-    orginalProfile = { ..._profile };
-
     stubAuth0Sessions((err, sessionStuff) => {
       if (err) return done.fail(err);
       ({ login, pub, prv, keystore } = sessionStuff);
