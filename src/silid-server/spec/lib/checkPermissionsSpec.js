@@ -11,7 +11,6 @@ const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
 const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
 
 const checkPermissions = require('../../lib/checkPermissions');
-const _profile = require('../fixtures/sample-auth0-profile-response');
 
 /**
  * 2019-11-13
@@ -20,6 +19,7 @@ const _profile = require('../fixtures/sample-auth0-profile-response');
  * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
  */
 const _identity = require('../fixtures/sample-auth0-identity-token');
+const _profile = require('../fixtures/sample-auth0-profile-response');
 
 const scope = require('../../config/permissions');
 const apiScope = require('../../config/apiPermissions');
@@ -31,6 +31,7 @@ describe('checkPermissions', function() {
 
   beforeEach(done => {
     nock.cleanAll();
+    _profile.scope = [ 'read:agents', 'read:organizations', 'read:teams' ];
 
     /**
      * Agents need basic viewing privileges. This stubs the
@@ -43,6 +44,12 @@ describe('checkPermissions', function() {
     });
   });
 
+  afterEach(() => {
+    // Through the magic of node I am able to adjust the profile data returned.
+    // This resets the default values
+    delete _profile.scope;
+  });
+
   describe('returning visitor', () => {
 
     let authenticatedSession, profile;
@@ -53,10 +60,6 @@ describe('checkPermissions', function() {
         fixtures.loadFile(`${__dirname}/../fixtures/agents.json`, models).then(() => {
           models.Agent.findAll().then(results => {
             agent = results[0];
-
-            // Scope. Cf., app.js
-            profile = new Profile(_identity);
-            profile.scope = [scope.read.agents];
 
             done();
           }).catch(err => {
@@ -74,7 +77,7 @@ describe('checkPermissions', function() {
       request = httpMocks.createRequest({
         method: 'POST',
         url: '/agent',
-        user: profile
+        user: _profile
       });
 
       checkPermissions([scope.read.agents])(request, response, err => {
@@ -84,11 +87,11 @@ describe('checkPermissions', function() {
       });
     });
 
-    it('saves the Profile produced by the Identity Token in the agent\'s socialProfile', done => {
+    it('saves the Auth0-provided profile the agent\'s socialProfile', done => {
       request = httpMocks.createRequest({
         method: 'POST',
         url: '/agent',
-        user: profile
+        user: _profile
       });
 
       expect(agent.socialProfile).toBeNull();
@@ -110,7 +113,7 @@ describe('checkPermissions', function() {
         request = httpMocks.createRequest({
           method: 'POST',
           url: '/agent',
-          user: profile
+          user: {..._profile, scope: null}
         });
 
         checkPermissions([])(request, response, err => {
@@ -126,7 +129,7 @@ describe('checkPermissions', function() {
         request = httpMocks.createRequest({
           method: 'POST',
           url: '/agent',
-          user: profile
+          user: {..._profile, scope: null}
         });
 
         checkPermissions([scope.read.agents])(request, response, err => {
@@ -143,7 +146,7 @@ describe('checkPermissions', function() {
         request = httpMocks.createRequest({
           method: 'POST',
           url: '/agent',
-          user: {...profile, scope: roles.viewer}
+          user: {..._profile, scope: roles.viewer}
         });
 
         checkPermissions([])(request, response, err => {
@@ -160,15 +163,15 @@ describe('checkPermissions', function() {
         request = httpMocks.createRequest({
           method: 'POST',
           url: '/agent',
-          user: profile,
+          user: _profile,
         });
 
-        expect(request.user.scope).toEqual(profile.scope);
+        expect(request.user.scope).toEqual(_profile.scope);
 
         checkPermissions([])(request, response, err => {
           if (err) return done.fail(err);
 
-          expect(request.user.scope).toEqual([...new Set(profile.scope.concat(roles.viewer))]);
+          expect(request.user.scope).toEqual([...new Set(_profile.scope.concat(roles.viewer))]);
 
           done();
         });
@@ -189,7 +192,7 @@ describe('checkPermissions', function() {
         request = httpMocks.createRequest({
           method: 'POST',
           url: '/agent',
-          user: profile
+          user: _profile
         });
 
         checkPermissions([scope.read.agents])(request, response, err => {
@@ -212,12 +215,12 @@ describe('checkPermissions', function() {
         request = httpMocks.createRequest({
           method: 'POST',
           url: '/agent',
-          user: profile
+          user: _profile
         });
 
-        agent.socialProfile = profile;
+        agent.socialProfile = _profile;
         agent.save().then(() => {
-          expect(agent.socialProfile).toEqual(profile);
+          expect(agent.socialProfile).toEqual(_profile);
 
           checkPermissions([scope.read.agents])(request, response, err => {
             if (err) return done.fail(err);
@@ -235,7 +238,7 @@ describe('checkPermissions', function() {
         request = httpMocks.createRequest({
           method: 'POST',
           url: '/agent',
-          user: profile
+          user: _profile
         });
 
         agent.socialProfile = {..._profile, user_metadata: { teams: [] }};
@@ -260,9 +263,6 @@ describe('checkPermissions', function() {
 
     let profile;
     beforeEach(function(done) {
-      profile = new Profile(_identity);
-      profile.scope = [scope.read.agents];
-
       response = httpMocks.createResponse();
 
       models.sequelize.sync({force: true}).then(() => {
@@ -276,7 +276,7 @@ describe('checkPermissions', function() {
       request = httpMocks.createRequest({
         method: 'POST',
         url: '/agent',
-        user: profile
+        user: {..._profile, scope: undefined}
       });
 
       checkPermissions([scope.read.agents])(request, response, err => {
@@ -294,7 +294,7 @@ describe('checkPermissions', function() {
       request = httpMocks.createRequest({
         method: 'POST',
         url: '/agent',
-        user: profile
+        user: {..._profile, scope: undefined}
       });
 
       Agent.findAll().then(a => {
@@ -319,12 +319,12 @@ describe('checkPermissions', function() {
       request = httpMocks.createRequest({
         method: 'POST',
         url: '/agent',
-        user: profile
+        user: {..._profile, scope: undefined}
       });
 
       checkPermissions([scope.read.agents])(request, response, err => {
         if (err) return done.fail(err);
-        expect(request.agent.socialProfile).toEqual(JSON.parse(JSON.stringify(profile)));
+        expect(request.agent.socialProfile).toEqual(_profile);
         Agent.findOne({ where: { email: request.agent.email } }).then(a => {
           expect(request.agent.socialProfile).toEqual(a.socialProfile);
           done();
@@ -339,7 +339,7 @@ describe('checkPermissions', function() {
         request = httpMocks.createRequest({
           method: 'POST',
           url: '/agent',
-          user: profile
+          user: {..._profile, scope: undefined}
         });
 
         checkPermissions([])(request, response, err => {
@@ -356,15 +356,15 @@ describe('checkPermissions', function() {
         request = httpMocks.createRequest({
           method: 'POST',
           url: '/agent',
-          user: profile,
+          user: {..._profile, scope: undefined}
         });
 
-        expect(request.user.scope).toEqual(profile.scope);
+        expect(request.user.scope).toBeUndefined();
 
         checkPermissions([])(request, response, err => {
           if (err) return done.fail(err);
 
-          expect(request.user.scope).toEqual([...new Set(profile.scope.concat(roles.viewer))]);
+          expect(request.user.scope).toEqual(_profile.scope);
 
           done();
         });
@@ -379,9 +379,6 @@ describe('checkPermissions', function() {
 
     let invitedAgent, profile;
     beforeEach(done => {
-      profile = new Profile(_identity);
-      profile.scope = [scope.read.agents];
-
       models.sequelize.sync({force: true}).then(() => {
         invitedAgent = new Agent({ email: _identity.email });
         invitedAgent.save().then(res => {
@@ -398,7 +395,7 @@ describe('checkPermissions', function() {
       request = httpMocks.createRequest({
         method: 'GET',
         url: '/agent',
-        user: profile
+        user: _profile
       });
 
       expect(invitedAgent.socialProfile).toBeNull();
@@ -423,7 +420,7 @@ describe('checkPermissions', function() {
         request = httpMocks.createRequest({
           method: 'GET',
           url: '/agent',
-          user: profile
+          user: _profile
         });
 
         expect(savedAgent.socialProfile).toEqual(_identity);
@@ -449,7 +446,7 @@ describe('checkPermissions', function() {
         request = httpMocks.createRequest({
           method: 'POST',
           url: '/agent',
-          user: profile
+          user: {..._profile, scope: undefined}
         });
 
         checkPermissions([])(request, response, err => {
@@ -466,15 +463,15 @@ describe('checkPermissions', function() {
         request = httpMocks.createRequest({
           method: 'POST',
           url: '/agent',
-          user: profile,
+          user: {..._profile, scope: undefined}
         });
 
-        expect(request.user.scope).toEqual(profile.scope);
+        expect(request.user.scope).toBeUndefined();
 
         checkPermissions([])(request, response, err => {
           if (err) return done.fail(err);
 
-          expect(request.user.scope).toEqual([...new Set(profile.scope.concat(roles.viewer))]);
+          expect(request.user.scope).toEqual(_profile.scope);
 
           done();
         });
@@ -489,7 +486,7 @@ describe('checkPermissions', function() {
       request = httpMocks.createRequest({
         method: 'POST',
         url: '/agent',
-        user: new Profile(_identity)
+        user: _profile
       });
 
       expect(response.statusCode).toEqual(200);
