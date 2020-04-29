@@ -41,7 +41,6 @@ describe('teamSpec', () => {
     _profile.name = originalProfile.name;
   });
 
-  let originalProfile;
   let agent;
   beforeEach(done => {
     originalProfile = {..._profile};
