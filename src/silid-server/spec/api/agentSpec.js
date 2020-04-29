@@ -32,7 +32,6 @@ describe('agentSpec', () => {
     });
   });
 
-
   let agent;
   beforeEach(done => {
     models.sequelize.sync({force: true}).then(() => {
