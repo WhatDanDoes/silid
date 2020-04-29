@@ -101,17 +101,16 @@ const strategy = new Auth0Strategy(
      * 2020-3-19 https://community.auth0.com/t/how-to-check-role-of-user-in-express-application/27525/8
      */
     let decoded = jsonwebtoken.decode(accessToken);
-    profile.scope = decoded.permissions
 
     const managementClient = getManagementClient(apiScope.read.users);
     managementClient.getUser({id: profile.user_id}).then(agent => {
-
       if (!agent.user_metadata) {
         agent.user_metadata = {};
       }
-      profile.user_metadata = agent.user_metadata;
 
-      return done(null, profile);
+      agent.scope = decoded.permissions;
+
+      return done(null, agent);
     }).catch(err => {
       return done(err);
     });

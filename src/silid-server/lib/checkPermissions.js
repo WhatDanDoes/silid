@@ -15,15 +15,15 @@ const assert = require('assert');
 function updateDbAndVerify(permissions, req, res, next) {
   const socialProfile = req.user;
 
-  models.Agent.findOne({ where: { email: socialProfile._json.email } }).then(agent => {
+  models.Agent.findOne({ where: { email: socialProfile.email } }).then(agent => {
     req.agent = agent;
 
     // Fill in any blank agent columns with social profile data
     const updates = {};
     if (req.agent) {
-      for (let key in socialProfile._json) {
+      for (let key in socialProfile) {
         if (agent[key] === null) {
-          updates[key] = socialProfile._json[key];
+          updates[key] = socialProfile[key];
         }
       }
     }
@@ -31,7 +31,7 @@ function updateDbAndVerify(permissions, req, res, next) {
     let profileChanged = true;
     if (req.agent && req.agent.socialProfile) {
       try {
-        assert.deepEqual(req.agent.socialProfile._json, socialProfile._json);
+        assert.deepEqual(req.agent.socialProfile, socialProfile);
         profileChanged = false;
 
       } catch (error) {
@@ -46,7 +46,7 @@ function updateDbAndVerify(permissions, req, res, next) {
 
         models.Agent.update(
           { socialProfile: results, ...updates },
-          { returning: true, where: { email: socialProfile._json.email } }).then(function([rowsUpdate, [updatedAgent]]) {
+          { returning: true, where: { email: socialProfile.email } }).then(function([rowsUpdate, [updatedAgent]]) {
 
           if (updatedAgent) {
             req.agent = updatedAgent;
@@ -64,7 +64,7 @@ function updateDbAndVerify(permissions, req, res, next) {
             });
           }
           else {
-            models.Agent.create({ name: socialProfile._json.name, email: socialProfile._json.email, socialProfile: socialProfile }).then(agent => {
+            models.Agent.create({ name: socialProfile.name, email: socialProfile.email, socialProfile: socialProfile }).then(agent => {
               req.agent = agent;
 
               if (req.agent.isSuper) {
@@ -93,7 +93,7 @@ function updateDbAndVerify(permissions, req, res, next) {
       if (Object.keys(updates).length) {
         models.Agent.update(
           updates,
-          { returning: true, where: { email: socialProfile._json.email } }).then(function([rowsUpdate, [updatedAgent]]) {
+          { returning: true, where: { email: socialProfile.email } }).then(function([rowsUpdate, [updatedAgent]]) {
 
           if (updatedAgent) {
             req.agent = updatedAgent;
@@ -167,7 +167,7 @@ const checkPermissions = function(permissions) {
         const roleId = auth0Roles.find(role => role.name === 'viewer').id;
 
         managementClient = getManagementClient([apiScope.read.roles, apiScope.update.users].join(' '));
-        managementClient.users.assignRoles({ id: req.user.id }, { roles: [roleId] }).then(results => {
+        managementClient.users.assignRoles({ id: req.user.user_id }, { roles: [roleId] }).then(results => {
           req.user.scope = [...new Set(req.user.scope.concat(roles.viewer))];
           updateDbAndVerify(permissions, req, res, next);
         }).catch(err => {

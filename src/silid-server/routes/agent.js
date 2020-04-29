@@ -149,7 +149,7 @@ router.delete('/', checkPermissions([scope.delete.agents]), function(req, res, n
 
       if (agent.socialProfile) {
         const managementClient = getManagementClient(apiScope.delete.users);
-        managementClient.deleteUser({ id: agent.socialProfile.id }, req.body).then(users => {
+        managementClient.deleteUser({ id: agent.socialProfile.user_id }, req.body).then(users => {
           res.status(201).json({ message: 'Agent deleted' });
         })
         .catch(err => {
