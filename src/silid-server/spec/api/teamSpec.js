@@ -21,6 +21,7 @@ const _identity = require('../fixtures/sample-auth0-identity-token');
 const _profile = require('../fixtures/sample-auth0-profile-response');
 
 describe('teamSpec', () => {
+  let originalProfile;
 
   let login, pub, prv, keystore;
   beforeEach(done => {
