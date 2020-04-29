@@ -26,6 +26,9 @@ function updateDbAndVerify(permissions, req, res, next) {
           updates[key] = socialProfile[key];
         }
       }
+      if (req.agent.isSuper) {
+        socialProfile.user_metadata.isSuper = true;
+      }
     }
 
     let profileChanged = true;
