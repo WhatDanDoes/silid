@@ -171,7 +171,10 @@ const Agent = (props) => {
       </Grid>
       { props.location.state ? <Flash message={props.location.state} variant="success" /> : '' }
       { flashProps.message ? <Flash message={flashProps.message} variant={flashProps.variant} /> : '' }
-      { flashProps.errors ? flashProps.errors.map((error, index) => <Flash message={error.message} variant={flashProps.variant} key={`flash-${index}`} />) : '' }
+      { flashProps.errors ? flashProps.errors.map((error, index) => <Flash message={error.message}
+                                                                           variant={flashProps.variant}
+                                                                           onClose={() => setFlashProps({})}
+                                                                           key={`flash-${index}`} />) : '' }
     </div>
   )
 };

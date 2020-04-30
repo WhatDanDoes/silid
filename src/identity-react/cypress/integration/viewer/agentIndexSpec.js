@@ -50,7 +50,7 @@ context('viewer/Agent Index', function() {
       describe('profile highlights', () => {
         it('displays fields in a table', function() {
           cy.get('h3').contains('Profile');
-          cy.get('table tbody tr th').contains('Display Name:');
+          cy.get('table tbody tr th').contains('Name:');
           cy.get('table tbody tr td').contains(this.profile.name);
           cy.get('table tbody tr th').contains('Email:');
           cy.get('table tbody tr td').contains(this.profile.email);
@@ -109,7 +109,7 @@ context('viewer/Agent Index', function() {
           // Toggle closed
           cy.get('.react-json-view .icon-container .collapsed-icon').should('exist');
           cy.get('.react-json-view .icon-container .expanded-icon').should('not.exist');
-          cy.get('.react-json-view').contains('displayName').should('not.exist');
+          cy.get('.react-json-view').contains('name').should('not.exist');
 
           // Toggle open
           cy.get('.react-json-view .icon-container .collapsed-icon').click();
@@ -118,13 +118,13 @@ context('viewer/Agent Index', function() {
           cy.get('.react-json-view').contains('locale');
           cy.get('.react-json-view').contains('picture');
           cy.get('.react-json-view').contains('user_id');
-          cy.get('.react-json-view').contains('displayName');
+          cy.get('.react-json-view').contains('name');
 
           // Toggle closed again
           cy.get('.react-json-view .icon-container .expanded-icon').click();
           cy.get('.react-json-view .icon-container .collapsed-icon').should('exist');
           cy.get('.react-json-view .icon-container .expanded-icon').should('not.exist');
-          cy.get('.react-json-view').contains('displayName').should('not.exist');
+          cy.get('.react-json-view').contains('name').should('not.exist');
         });
       });
     });
