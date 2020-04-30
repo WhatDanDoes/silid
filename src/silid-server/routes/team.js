@@ -98,8 +98,15 @@ router.post('/', checkPermissions([scope.create.teams]), function(req, res, next
     });
 
     managementClient.updateUser({id: req.user.user_id}, { user_metadata: agent.user_metadata }).then(result => {
+      // Auth0 does not return agent scope
+      result.scope = req.user.scope;
+      // 2020-4-30 https://stackoverflow.com/a/24498660/1356582
+      // This updates the agent's session data
+      req.login(result, err => {
+        if (err) return next(err);
 
-      res.status(201).json(result);
+        res.status(201).json(result);
+      });
     }).catch(err => {
       res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
     });
@@ -176,6 +183,8 @@ router.delete('/:id', checkPermissions([scope.delete.teams]), function(req, res,
       agent.user_metadata.teams.splice(teamIndex, 1);
 
       managementClient.updateUserMetadata({id: req.user.user_id}, agent.user_metadata).then(agent => {
+        // Auth0 does not return agent scope
+        agent.scope = req.user.scope;
         // 2020-4-30 https://stackoverflow.com/a/24498660/1356582
         // This updates the agent's session data
         req.login(agent, err => {
