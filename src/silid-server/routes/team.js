@@ -42,10 +42,11 @@ router.get('/:id', checkPermissions([scope.read.teams]), function(req, res, next
   managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.id}"` }).then(agents => {
     if (agents.length) {
 
+      let teamIndex = agents[0].user_metadata.teams.findIndex(t => t.id === req.params.id);
       let teams = {
-        id: agents[0].user_metadata.teams[0].id,
-        name: agents[0].user_metadata.teams[0].name,
-        leader: agents[0].user_metadata.teams[0].leader,
+        id: agents[0].user_metadata.teams[teamIndex].id,
+        name: agents[0].user_metadata.teams[teamIndex].name,
+        leader: agents[0].user_metadata.teams[teamIndex].leader,
         members: [],
       };
 
@@ -175,7 +176,12 @@ router.delete('/:id', checkPermissions([scope.delete.teams]), function(req, res,
       agent.user_metadata.teams.splice(teamIndex, 1);
 
       managementClient.updateUserMetadata({id: req.user.user_id}, agent.user_metadata).then(agent => {
-        res.status(201).json({ message: 'Team deleted', agent: agent });
+        // 2020-4-30 https://stackoverflow.com/a/24498660/1356582
+        // This updates the agent's session data
+        req.login(agent, err => {
+          if (err) return next(err);
+          res.status(201).json({ message: 'Team deleted', agent: agent });
+        });
       }).catch(err => {
         res.status(err.statusCode).json(err.message.error_description);
       });
