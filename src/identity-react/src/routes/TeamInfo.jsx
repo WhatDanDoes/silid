@@ -78,8 +78,7 @@ const TeamInfo = (props) => {
 //  const [agentFormVisible, setAgentFormVisible] = useState(false);
 //  const [prevFormState, setPrevFormState] = useState({});
   const [toAgent, setToAgent] = useState(false);
-  //const [flashProps, setFlashProps] = useState({});
-  const [flashProps] = useState({});
+  const [flashProps, setFlashProps] = useState({});
 
   const [teamInfo, setTeamInfo] = useState({});
 
@@ -124,7 +123,15 @@ const TeamInfo = (props) => {
     }
     if (window.confirm('Delete team?')) {
       deleteTeam(teamInfo.id).then(results => {
-        setToAgent(true);
+        if (results.statusCode) {
+          setFlashProps({ message: results.message, variant: 'error' });
+        }
+        else {
+          setToAgent(true);
+        }
+      }).catch(err => {
+        console.log('TeamInfo Error');
+        console.log(err);
       });
     }
   }

@@ -28,24 +28,66 @@ context('Team delete', function() {
     cy.get('input[placeholder="Name"]').type('The A-Team');
     cy.get('button[title="Save"]').click();
     cy.wait(300);
-    cy.contains('The A-Team').click();
-    cy.wait(300);
+
+    cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
+      agent = results[0];
+    });
   });
 
   describe('Deleting', () => {
+    describe('unsuccessfully', () => {
+      describe('without sufficient privilege', () => {
 
-//    let organization, team;
-//    beforeEach(function() {
-//      cy.request({ url: '/team', method: 'POST', body: {name: 'The A Team' } }).then(res => {
-//        team = res.body;
-//        cy.visit('/#/').then(() => {
-//          cy.contains('The A Team').click();
-//          cy.wait(300);
-//        });
-//      });
-//    });
+        beforeEach(function() {
+          cy.login(_profile.email, agent.socialProfile, [this.scope.read.agents, this.scope.read.teams]);
+          cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
+            agent = results[0];
 
-    describe('Delete button', () => {
+            cy.contains('The A-Team').click();
+            cy.wait(300);
+          });
+        });
+
+        it('lands in the proper place', () => {
+          cy.on('window:confirm', (str) => {
+            return true;
+          });
+          cy.get('#delete-team').click();
+          cy.url().should('contain', `/#/team/${agent.socialProfile.user_metadata.teams[0].id}`);
+        });
+
+        it('displays a friendly error message', () => {
+          cy.on('window:confirm', (str) => {
+            return true;
+          });
+          cy.get('#delete-team').first().click();
+          cy.get('#flash-message').contains('Insufficient scope');
+        });
+
+        it('does not remove the record from the team leader\'s user_metadata', () => {
+          cy.on('window:confirm', (str) => {
+            return true;
+          });
+          cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
+            expect(results.length).to.eq(1);
+            expect(results[0].socialProfile.user_metadata.teams.length).to.eq(1);
+            cy.get('#delete-team').click();
+            cy.wait(300);
+            cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
+              expect(results[0].socialProfile.user_metadata.teams.length).to.eq(1);
+            });
+          });
+        });
+      });
+    });
+
+    describe('successfully', () => {
+
+      beforeEach(() => {
+        cy.contains('The A-Team').click();
+        cy.wait(300);
+      });
+
       context('when team has team members', () => {
 //        beforeEach(function() {
 //          cy.request({ url: `/team/${team.id}/agent`, method: 'PUT', body: { email: anotherAgent.email } }).then((res) => {
@@ -73,14 +115,14 @@ context('Team delete', function() {
             expect(str).to.eq('Delete team?');
             done();
           });
-          cy.get('#delete-team').first().click();
+          cy.get('#delete-team').click();
         });
 
         it('lands in the proper place', () => {
           cy.on('window:confirm', (str) => {
             return true;
           });
-          cy.get('#delete-team').first().click();
+          cy.get('#delete-team').click();
           cy.url().should('contain', '/#/agent');
         });
 
