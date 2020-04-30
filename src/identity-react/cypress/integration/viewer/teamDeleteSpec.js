@@ -156,6 +156,49 @@ context('Team delete', function() {
           cy.get('table tbody tr td').contains('No records to display');
           cy.get('#flash-message').contains('Team deleted');
         });
+
+        it('doesn\'t mess up team order', () => {
+          cy.visit('/#/agent');
+          cy.wait(300);
+
+          cy.get('button span span').contains('add_box').click();
+          cy.get('input[placeholder="Name"]').type('The B-Team');
+          cy.get('button[title="Save"]').click();
+          cy.wait(300);
+
+          cy.get('button span span').contains('add_box').click();
+          cy.get('input[placeholder="Name"]').type('The C-Team');
+          cy.get('button[title="Save"]').click();
+          cy.wait(300);
+
+          cy.get('table tbody:nth-child(2)').find('tr').its('length').should('eq', 3);
+
+          cy.contains('The B-Team').click();
+          cy.wait(300);
+
+          cy.get('#delete-team').click();
+          cy.wait(300);
+
+          cy.get('table tbody:nth-child(2)').find('tr').its('length').should('eq', 2);
+          cy.get('table tbody:nth-child(2)').find('tr:first-child').contains('The A-Team');
+          cy.get('table tbody:nth-child(2)').find('tr:last-child').contains('The C-Team');
+
+          cy.contains('The A-Team').click();
+          cy.wait(300);
+          cy.get('#delete-team').click();
+          cy.wait(300);
+
+          cy.get('table tbody:nth-child(2)').find('tr').its('length').should('eq', 1);
+          cy.get('table tbody:nth-child(2)').find('tr:first-child').contains('The C-Team');
+
+          cy.contains('The C-Team').click();
+          cy.wait(300);
+          cy.get('#delete-team').click();
+          cy.wait(300);
+
+          cy.get('table tbody:nth-child(2)').find('tr').its('length').should('eq', 1);
+          cy.get('table tbody:nth-child(2)').find('tr:first-child').contains('No records to display');
+        });
       });
 
 //      describe('on team edit page', () => {
