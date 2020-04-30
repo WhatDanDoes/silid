@@ -60,7 +60,13 @@ context('Team delete', function() {
           cy.on('window:confirm', (str) => {
             return true;
           });
-          cy.get('#delete-team').first().click();
+          cy.get('#delete-team').click();
+          cy.get('#flash-message').contains('Insufficient scope');
+
+          // Do it again to ensure flash message is reset
+          cy.get('#flash-message #close-flash').click();
+          cy.wait(100);
+          cy.get('#delete-team').click();
           cy.get('#flash-message').contains('Insufficient scope');
         });
 

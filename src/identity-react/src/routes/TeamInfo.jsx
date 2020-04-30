@@ -279,7 +279,7 @@ const TeamInfo = (props) => {
         )}
       </Grid>
 
-      { flashProps.message ? <Flash message={flashProps.message} variant={flashProps.variant} /> : '' }
+      { flashProps.message ? <Flash message={flashProps.message} onClose={() => setFlashProps({})} variant={flashProps.variant} /> : '' }
       { flashProps.errors ? flashProps.errors.map(error => <Flash message={error.message} variant={flashProps.variant} />) : '' }
     </div>
   );
