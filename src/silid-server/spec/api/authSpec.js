@@ -261,7 +261,9 @@ describe('authSpec', () => {
               if (err) return done.fail(err);
               models.Agent.findAll().then(results => {
                 expect(results.length).toEqual(1);
-                expect(results[0].socialProfile._json).toEqual(_identity);
+                expect(results[0].socialProfile.user_id).toEqual(_profile.user_id);
+                expect(results[0].socialProfile.name).toEqual(_profile.name);
+                expect(results[0].socialProfile.email).toEqual(_profile.email);
                 done();
               }).catch(err => {
                 done.fail(err);
@@ -280,7 +282,9 @@ describe('authSpec', () => {
             if (err) return done.fail(err);
             models.Agent.findAll().then(results => {
               expect(results.length).toEqual(1);
-              expect(results[0].socialProfile._json).toEqual(_identity);
+              expect(results[0].socialProfile.user_id).toEqual(_profile.user_id);
+              expect(results[0].socialProfile.name).toEqual(_profile.name);
+              expect(results[0].socialProfile.email).toEqual(_profile.email);
 
               results[0].socialProfile = null;
               results[0].save().then(results => {
@@ -388,7 +392,10 @@ describe('authSpec', () => {
                             if (err) return done.fail(err);
                             models.Agent.findAll().then(results => {
                               expect(results.length).toEqual(1);
-                              expect(results[0].socialProfile._json).toEqual(_identity);
+                              expect(results[0].socialProfile.user_id).toEqual(_profile.user_id);
+                              expect(results[0].socialProfile.name).toEqual(_profile.name);
+                              expect(results[0].socialProfile.email).toEqual(_profile.email);
+
                               done();
                             }).catch(err => {
                               done.fail(err);

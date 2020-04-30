@@ -67,10 +67,10 @@ context('root/Agent Index', function() {
           cy.get('#agent-list').find('.agent-button').its('length').should('eq', 2);
           cy.get('.agent-button').first().contains(agents[0].name);
           cy.get('.agent-button').first().contains(agents[0].email);
-          cy.get('.agent-button a').first().should('have.attr', 'href').and('include', `#agent/${agents[0].socialProfile.id}`);
+          cy.get('.agent-button a').first().should('have.attr', 'href').and('include', `#agent/${agents[0].socialProfile.user_id}`);
           cy.get('.agent-button').last().contains(agents[1].name);
           cy.get('.agent-button').last().contains(agents[1].email);
-          cy.get('.agent-button a').last().should('have.attr', 'href').and('include', `#agent/${agents[1].socialProfile.id}`);
+          cy.get('.agent-button a').last().should('have.attr', 'href').and('include', `#agent/${agents[1].socialProfile.user_id}`);
         });
 
         it('does not display the paging button', () => {

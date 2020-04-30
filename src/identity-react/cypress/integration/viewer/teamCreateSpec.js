@@ -20,6 +20,8 @@ context('viewer/Team creation', function() {
                                           this.scope.read.teams]);
       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
         agent = results[0];
+
+        cy.get('#flash-message #close-flash').click();
       });
     });
 
@@ -110,13 +112,20 @@ context('viewer/Team creation', function() {
                   cy.contains('Team name can\'t be blank');
                 });
 
-                it('does not allow a duplicate team', function() {
-                  // TODO count and test team rows
+                it('does not allow a duplicate team no matter how many times you try', function() {
                   cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').type('Team Copycat');
                   cy.get('div div div div div div table tbody tr td div button[title="Save"]').click();
                   cy.wait(300);
                   cy.get('table tbody tr td').contains('Team Copycat');
 
+                  cy.get('button span span').contains('add_box').click();
+                  cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').type('Team Copycat');
+                  cy.get('div div div div div div table tbody tr td div button[title="Save"]').click();
+                  cy.wait(300);
+                  cy.get('#flash-message').contains('That team is already registered');
+
+                  // Try a second time to ensure the flash message resets
+                  cy.get('#flash-message #close-flash').click();
                   cy.get('button span span').contains('add_box').click();
                   cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').type('Team Copycat');
                   cy.get('div div div div div div table tbody tr td div button[title="Save"]').click();

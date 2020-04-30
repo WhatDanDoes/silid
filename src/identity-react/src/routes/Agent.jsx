@@ -100,12 +100,12 @@ const Agent = (props) => {
                 <Table className={classes.table} aria-label="Agent profile info">
                   <TableBody>
                     <TableRow>
-                      <TableCell align="right" component="th" scope="row">Display Name:</TableCell>
-                      <TableCell align="left">{profileData.displayName}</TableCell>
+                      <TableCell align="right" component="th" scope="row">Name:</TableCell>
+                      <TableCell align="left">{profileData.name}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell align="right" component="th" scope="row">Email:</TableCell>
-                      <TableCell align="left">{profileData._json ? profileData._json.email : ''}</TableCell>
+                      <TableCell align="left">{profileData.email}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell align="right" component="th" scope="row">Locale:</TableCell>
@@ -171,7 +171,10 @@ const Agent = (props) => {
       </Grid>
       { props.location.state ? <Flash message={props.location.state} variant="success" /> : '' }
       { flashProps.message ? <Flash message={flashProps.message} variant={flashProps.variant} /> : '' }
-      { flashProps.errors ? flashProps.errors.map((error, index) => <Flash message={error.message} variant={flashProps.variant} key={`flash-${index}`} />) : '' }
+      { flashProps.errors ? flashProps.errors.map((error, index) => <Flash message={error.message}
+                                                                           variant={flashProps.variant}
+                                                                           onClose={() => setFlashProps({})}
+                                                                           key={`flash-${index}`} />) : '' }
     </div>
   )
 };

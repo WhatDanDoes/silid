@@ -21,11 +21,10 @@ const _identity = require('../fixtures/sample-auth0-identity-token');
 const _profile = require('../fixtures/sample-auth0-profile-response');
 
 describe('teamSpec', () => {
+  let originalProfile;
 
-  let login, pub, prv, keystore, originalProfile;
+  let login, pub, prv, keystore;
   beforeEach(done => {
-    orginalProfile = { ..._profile };
-
     stubAuth0Sessions((err, sessionStuff) => {
       if (err) return done.fail(err);
       ({ login, pub, prv, keystore } = sessionStuff);
@@ -38,10 +37,14 @@ describe('teamSpec', () => {
     // This resets the default values
     _profile.email_verified = true;
     delete _profile.user_metadata;
+    _profile.email = originalProfile.email;
+    _profile.name = originalProfile.name;
   });
 
   let agent;
   beforeEach(done => {
+    originalProfile = {..._profile};
+
     models.sequelize.sync({force: true}).then(() => {
       fixtures.loadFile(`${__dirname}/../fixtures/agents.json`, models).then(() => {
         models.Agent.findAll().then(results => {
@@ -71,15 +74,20 @@ describe('teamSpec', () => {
               if (err) return done.fail();
 
               login(_identity, [scope.create.teams], (err, session) => {
-
                 if (err) return done.fail(err);
                 authenticatedSession = session;
 
-                stubAuth0ManagementEndpoint([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
+                // Cached profile doesn't match "live" data, so agent needs to be updated
+                // with a call to Auth0
+                stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
                   if (err) return done.fail();
 
-                  ({userReadScope, updateTeamScope, oauthTokenScope} = apiScopes);
-                  done();
+                  stubAuth0ManagementEndpoint([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
+                    if (err) return done.fail();
+
+                    ({userReadScope, updateTeamScope, oauthTokenScope} = apiScopes);
+                    done();
+                  });
                 });
               });
             });
@@ -167,11 +175,17 @@ describe('teamSpec', () => {
                 if (err) return done.fail(err);
                 authenticatedSession = session;
 
-                stubAuth0ManagementEndpoint([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
+                // Cached profile doesn't match "live" data, so agent needs to be updated
+                // with a call to Auth0
+                stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
                   if (err) return done.fail();
 
-                  ({userReadScope, updateTeamScope, oauthTokenScope} = apiScopes);
-                  done();
+                  stubAuth0ManagementEndpoint([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
+                    if (err) return done.fail();
+
+                    ({userReadScope, updateTeamScope, oauthTokenScope} = apiScopes);
+                    done();
+                  });
                 });
               });
             });
@@ -298,11 +312,17 @@ describe('teamSpec', () => {
                 if (err) return done.fail(err);
                 authenticatedSession = session;
 
-                stubAuth0ManagementEndpoint([apiScope.read.usersAppMetadata], (err, apiScopes) => {
+                // Cached profile doesn't match "live" data, so agent needs to be updated
+                // with a call to Auth0
+                stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
                   if (err) return done.fail();
 
-                  ({teamReadScope, oauthTokenScope} = apiScopes);
-                  done();
+                  stubAuth0ManagementEndpoint([apiScope.read.usersAppMetadata], (err, apiScopes) => {
+                    if (err) return done.fail();
+
+                    ({teamReadScope, oauthTokenScope} = apiScopes);
+                    done();
+                  });
                 });
               });
             });
@@ -386,11 +406,17 @@ describe('teamSpec', () => {
                 if (err) return done.fail(err);
                 authenticatedSession = session;
 
-                stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata], (err, apiScopes) => {
+                // Cached profile doesn't match "live" data, so agent needs to be updated
+                // with a call to Auth0
+                stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
                   if (err) return done.fail();
 
-                  ({userReadScope, oauthTokenScope} = apiScopes);
-                  done();
+                  stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata], (err, apiScopes) => {
+                    if (err) return done.fail();
+
+                    ({userReadScope, oauthTokenScope} = apiScopes);
+                    done();
+                  });
                 });
               });
             });
@@ -457,11 +483,17 @@ describe('teamSpec', () => {
               if (err) return done.fail(err);
               authenticatedSession = session;
 
-              stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
                 if (err) return done.fail();
 
-                ({teamReadScope, updateTeamScope, oauthTokenScope} = apiScopes);
-                done();
+                stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  ({teamReadScope, updateTeamScope, oauthTokenScope} = apiScopes);
+                  done();
+                });
               });
             });
           });
@@ -1073,11 +1105,17 @@ describe('teamSpec', () => {
               if (err) return done.fail(err);
               authenticatedSession = session;
 
-              stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
                 if (err) return done.fail();
 
-                ({teamReadScope, updateTeamScope, oauthTokenScope} = apiScopes);
-                done();
+                stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  ({teamReadScope, updateTeamScope, oauthTokenScope} = apiScopes);
+                  done();
+                });
               });
             });
           });
@@ -1166,23 +1204,31 @@ describe('teamSpec', () => {
         // This is fine for testing, but does not reflect reality (because all
         // the team data looks like it belongs to unauthorized agent
         teamId = uuid.v4();
-        _profile.user_metadata = { teams: [{ name: 'Saskatchewan Rush', leader: _profile.email, members: [_profile.email], id: teamId }] };
+        _profile.email = 'unauthorizedagent@example.com';
+        _profile.name = 'Suspicious Guy';
+        _profile.user_metadata = { teams: [{ name: 'Saskatchewan Rush', leader: 'someotherguy@example.com', members: [_profile.email], id: teamId }] };
         _profile.user_metadata.teams.push({ name: 'Philadelphia Wings', leader: 'someotherguy@example.com',
                                             members: ['someotherguy@example.com', _profile.email], id: uuid.v4() });
 
         stubAuth0ManagementApi((err, apiScopes) => {
           if (err) return done.fail();
 
-          login({ ..._identity, email: 'unauthorizedagent@example.com', name: 'Suspicious GUy' },
+          login({ ..._identity, email: 'unauthorizedagent@example.com', name: 'Suspicious Guy' },
               [scope.create.teams, scope.read.teams, scope.update.teams, scope.delete.teams], (err, session) => {
             if (err) return done.fail(err);
             unauthorizedSession = session;
 
-            stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
+            // Cached profile doesn't match "live" data, so agent needs to be updated
+            // with a call to Auth0
+            stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
               if (err) return done.fail();
 
-              ({teamReadScope, updateTeamScope, oauthTokenScope} = apiScopes);
-              done();
+              stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
+                if (err) return done.fail();
+
+                ({teamReadScope, updateTeamScope, oauthTokenScope} = apiScopes);
+                done();
+              });
             });
           });
         });

@@ -16,7 +16,7 @@ const Home = (props: IProps) => {
       <AppBar {...props} />
       { props.message && (<h3>{props.message}</h3>) }
       { agent ?
-        <Redirect to={{ pathname: '/agent', state: `Hello, ${agent.displayName}` }} />
+        <Redirect to={{ pathname: '/agent', state: `Hello, ${agent.name}` }} />
       : ''}
     </div>
   );

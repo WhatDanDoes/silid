@@ -6,6 +6,7 @@ const request = require('supertest');
 const stubAuth0Sessions = require('../../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../../support/stubAuth0ManagementApi');
 const stubAuth0ManagementEndpoint = require('../../support/stubAuth0ManagementEndpoint');
+const stubUserRead = require('../../support/auth0Endpoints/stubUserRead');
 const scope = require('../../../config/permissions');
 const apiScope = require('../../../config/apiPermissions');
 const jwt = require('jsonwebtoken');
@@ -19,16 +20,27 @@ const nock = require('nock');
  */
 const _identity = require('../../fixtures/sample-auth0-identity-token');
 const _access = require('../../fixtures/sample-auth0-access-token');
+const _profile = require('../../fixtures/sample-auth0-profile-response');
 
 describe('root/agentSpec', () => {
+  let originalProfile;
 
   let login, pub, prv, keystore;
   beforeEach(done => {
+    originalProfile = {..._profile};
+    _profile.email = process.env.ROOT_AGENT;
+
     stubAuth0Sessions((err, sessionStuff) => {
       if (err) return done.fail(err);
       ({ login, pub, prv, keystore } = sessionStuff);
       done();
     });
+  });
+
+  afterEach(() => {
+    // Through the magic of node I am able to adjust the profile data returned.
+    // This resets the default values
+    _profile.email = originalProfile.email;
   });
 
   let root, agent;
@@ -72,7 +84,14 @@ describe('root/agentSpec', () => {
         login({..._identity, email: process.env.ROOT_AGENT}, (err, session) => {
           if (err) return done.fail(err);
           rootSession = session;
-          done();
+
+          // Cached profile doesn't match "live" data, so agent needs to be updated
+          // with a call to Auth0
+          stubUserRead((err, apiScopes) => {
+            if (err) return done.fail();
+
+            done();
+          });
         });
       });
     });
@@ -118,11 +137,7 @@ describe('root/agentSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                // This is just returning whatever is in
-                // `fixtures/sample-auth0-profile-response`.
-                // Don't be alarmed when the emails don't match
-                expect(res.body.emails.length).toEqual(1);
-
+                expect(res.body.email).toEqual(_profile.email);
                 expect(res.body.user_metadata.isSuper).toBe(true);
                 done();
               });
@@ -288,7 +303,7 @@ describe('root/agentSpec', () => {
                 expect(res.body.length).toEqual(results.length);
                 expect(res.body.total).toEqual(results.length);
                 expect(res.body.users.length).toEqual(results.length);
-                expect(res.body.users[0].given_name).toBeDefined();
+                expect(res.body.users[0].name).toBeDefined();
                 expect(res.body.users[0].id).toEqual(results[0].id);
 
                 done();
@@ -901,6 +916,8 @@ describe('root/agentSpec', () => {
   describe('unauthorized', () => {
     let unauthorizedSession;
     beforeEach(done => {
+      _profile.email = originalProfile.email;
+
       stubAuth0ManagementApi((err, apiScopes) => {
         if (err) return done.fail(err);
 

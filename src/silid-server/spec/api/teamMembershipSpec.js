@@ -5,9 +5,11 @@ const models = require('../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
+const stubAuth0ManagementEndpoint = require('../support/stubAuth0ManagementEndpoint');
 const mailer = require('../../mailer');
 const { uuid } = require('uuidv4');
 const scope = require('../../config/permissions');
+const apiScope = require('../../config/apiPermissions');
 
 /**
  * 2019-11-13
@@ -16,6 +18,7 @@ const scope = require('../../config/permissions');
  * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
  */
 const _identity = require('../fixtures/sample-auth0-identity-token');
+const _profile = require('../fixtures/sample-auth0-profile-response');
 
 describe('teamMembershipSpec', () => {
 
@@ -32,8 +35,11 @@ describe('teamMembershipSpec', () => {
     mailer.transport.sentMail = [];
   });
 
+  let originalProfile;
   let team, organization, agent;
   beforeEach(done => {
+    originalProfile = {..._profile};
+
     models.sequelize.sync({force: true}).then(() => {
       fixtures.loadFile(`${__dirname}/../fixtures/agents.json`, models).then(() => {
         models.Agent.findAll().then(results => {
@@ -68,6 +74,12 @@ describe('teamMembershipSpec', () => {
     });
   });
 
+  afterEach(() => {
+    // Through the magic of node I am able to adjust the profile data returned.
+    // This resets the default values
+    _profile.email = originalProfile.email;
+    _profile.name = originalProfile.name;
+  });
 
   describe('authenticated', () => {
 
@@ -79,12 +91,18 @@ describe('teamMembershipSpec', () => {
         beforeEach(done => {
           stubAuth0ManagementApi((err, apiScopes) => {
             if (err) return done.fail();
- 
+
             login(_identity, [scope.create.teamMembers], (err, session) => {
               if (err) return done.fail(err);
               authenticatedSession = session;
 
-             done();
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+                if (err) return done.fail();
+
+                done();
+              });
             });
           });
         });
@@ -186,19 +204,25 @@ describe('teamMembershipSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                authenticatedSession
-                  .put(`/team/${team.id}/agent`)
-                  .send({
-                    email: 'somebrandnewguy@example.com'
-                  })
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(200)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-                    expect(res.body.message).toEqual('somebrandnewguy@example.com is already a member of this team');
-                    done();
-                  });
+                // Cached profile doesn't match "live" data, so agent needs to be updated
+                // with a call to Auth0
+                stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  authenticatedSession
+                    .put(`/team/${team.id}/agent`)
+                    .send({
+                      email: 'somebrandnewguy@example.com'
+                    })
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(res.body.message).toEqual('somebrandnewguy@example.com is already a member of this team');
+                      done();
+                    });
+                });
               });
           });
 
@@ -467,19 +491,26 @@ describe('teamMembershipSpec', () => {
               .expect(201)
               .end(function(err, res) {
                 if (err) return done.fail(err);
-                authenticatedSession
-                  .put(`/team/${team.id}/agent`)
-                  .send({
-                    email: knownAgent.email
-                  })
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(200)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-                    expect(res.body.message).toEqual(`${knownAgent.email} is already a member of this team`);
-                    done();
-                  });
+
+                // Cached profile doesn't match "live" data, so agent needs to be updated
+                // with a call to Auth0
+                stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  authenticatedSession
+                    .put(`/team/${team.id}/agent`)
+                    .send({
+                      email: knownAgent.email
+                    })
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(res.body.message).toEqual(`${knownAgent.email} is already a member of this team`);
+                      done();
+                    });
+                });
               });
           });
 
@@ -672,12 +703,18 @@ describe('teamMembershipSpec', () => {
 
               stubAuth0ManagementApi((err, apiScopes) => {
                 if (err) return done.fail();
-   
+
                 login(_identity, [scope.delete.teamMembers], (err, session) => {
                   if (err) return done.fail(err);
                   authenticatedSession = session;
 
-                  done();
+                  // Cached profile doesn't match "live" data, so agent needs to be updated
+                  // with a call to Auth0
+                  stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+                    if (err) return done.fail();
+
+                    done();
+                  });
                 });
               });
             }).catch(err => {
@@ -754,16 +791,27 @@ describe('teamMembershipSpec', () => {
     describe('unauthorized', () => {
       let unauthorizedSession, suspiciousAgent;
       beforeEach(done => {
-        models.Agent.create({ email: 'suspiciousagent@example.com' }).then(a => {
+        models.Agent.create({ email: 'suspiciousagent@example.com', name: 'Suspicious Guy' }).then(a => {
           suspiciousAgent = a;
+
+          _profile.email = suspiciousAgent.email;
+          _profile.name = suspiciousAgent.name;
+
+
           stubAuth0ManagementApi((err, apiScopes) => {
             if (err) return done.fail();
- 
-            login({ ..._identity, email: suspiciousAgent.email, name: 'Suspicious GUy' }, [scope.create.teamMembers], (err, session) => {
+
+            login({ ..._identity, email: suspiciousAgent.email }, [scope.create.teamMembers], (err, session) => {
               if (err) return done.fail(err);
               unauthorizedSession = session;
 
-              done();
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+                if (err) return done.fail();
+
+                done();
+              });
             });
           });
         }).catch(err => {

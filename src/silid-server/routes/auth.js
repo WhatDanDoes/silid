@@ -48,9 +48,9 @@ router.get('/callback', passport.authenticate('auth0'), (req, res) => {
     });
   }
 
-  models.Agent.findOne({ where: { email: req.user._json.email } }).then(result => {
+  models.Agent.findOne({ where: { email: req.user.email } }).then(result => {
     if (!result) {
-      let newAgent = new models.Agent({email: req.user._json.email, name: req.user._json.name, socialProfile: req.user});
+      let newAgent = new models.Agent({email: req.user.email, name: req.user.name, socialProfile: req.user});
 
       newAgent.save().then(result => {
         login();

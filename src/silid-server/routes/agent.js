@@ -38,7 +38,7 @@ router.get('/admin/:page?/:cached?', checkPermissions(roles.sudo), function(req,
                            limit: 30,
                            offset: page * 30 }).
                         then(results => {
-      const profiles = results.map(p => { return {...p.socialProfile._json, id: p.id }; });
+      const profiles = results.map(p => { return {...p.socialProfile, id: p.id }; });
       models.Agent.count({ where: { socialProfile: { [models.Sequelize.Op.ne]: null} } }).then(count => {
         res.json({ users: profiles, start: page, limit: 30, length: profiles.length, total: count });
       }).catch(err => {
@@ -59,11 +59,6 @@ router.get('/admin/:page?/:cached?', checkPermissions(roles.sudo), function(req,
 });
 
 router.get('/', checkPermissions([scope.read.agents]), function(req, res, next) {
-  // Attach isSuper status for configured root agent
-  if (req.agent.isSuper) {
-    req.user.user_metadata.isSuper = true;
-  }
-
   res.status(200).json(req.user);
 });
 
@@ -149,7 +144,7 @@ router.delete('/', checkPermissions([scope.delete.agents]), function(req, res, n
 
       if (agent.socialProfile) {
         const managementClient = getManagementClient(apiScope.delete.users);
-        managementClient.deleteUser({ id: agent.socialProfile.id }, req.body).then(users => {
+        managementClient.deleteUser({ id: agent.socialProfile.user_id }, req.body).then(users => {
           res.status(201).json({ message: 'Agent deleted' });
         })
         .catch(err => {

@@ -5,6 +5,7 @@ const models = require('../../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../../support/stubAuth0ManagementApi');
+const stubUserRead = require('../../support/auth0Endpoints/stubUserRead');
 const mailer = require('../../../mailer');
 const scope = require('../../../config/permissions');
 
@@ -15,6 +16,7 @@ const scope = require('../../../config/permissions');
  * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
  */
 const _identity = require('../../fixtures/sample-auth0-identity-token');
+const _profile = require('../../fixtures/sample-auth0-profile-response');
 
 describe('root/organizationSpec', () => {
 
@@ -27,8 +29,18 @@ describe('root/organizationSpec', () => {
     });
   });
 
+  let originalProfile;
+  afterEach(() => {
+    // Through the magic of node I am able to adjust the profile data returned.
+    // This resets the default values
+    _profile.email = originalProfile.email;
+  });
+
   let root, organization, agent;
   beforeEach(done => {
+    originalProfile = {..._profile};
+    _profile.email = process.env.ROOT_AGENT;
+
     models.sequelize.sync({force: true}).then(() => {
       fixtures.loadFile(`${__dirname}/../../fixtures/agents.json`, models).then(() => {
         models.Agent.findAll().then(results => {
@@ -70,7 +82,13 @@ describe('root/organizationSpec', () => {
           if (err) return done.fail(err);
           rootSession = session;
 
-          done();
+          // Cached profile doesn't match "live" data, so agent needs to be updated
+          // with a call to Auth0
+          stubUserRead((err, apiScopes) => {
+            if (err) return done.fail();
+
+            done();
+          });
         });
       });
     });
@@ -845,6 +863,8 @@ describe('root/organizationSpec', () => {
 
     let forbiddenSession;
     beforeEach(done => {
+      _profile.email = originalProfile.email;
+
       stubAuth0ManagementApi((err, apiScopes) => {
         if (err) return done.fail();
 
@@ -852,7 +872,13 @@ describe('root/organizationSpec', () => {
           if (err) return done.fail(err);
           forbiddenSession = session;
 
-          done();
+          // Cached profile doesn't match "live" data, so agent needs to be updated
+          // with a call to Auth0
+          stubUserRead((err, apiScopes) => {
+            if (err) return done.fail();
+
+            done();
+          });
         });
       });
     });
