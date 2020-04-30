@@ -106,6 +106,7 @@ context('viewer/Team show', function() {
       it('displays appropriate Team interface elements', function() {
         cy.get('table tbody tr td').contains('The Calgary Roughnecks');
         cy.get('table tbody tr td').contains(_profile.email);
+        cy.get('button#delete-team').should('exist');
 //        cy.get('button#edit-team').should('exist');
 //        cy.get('button#add-agent').should('exist');
       });
