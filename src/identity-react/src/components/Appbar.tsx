@@ -70,14 +70,6 @@ const Home = (props: IProps) => {
   };
 
   /**
-   * Show Cached Data toggle
-   */
-  const toggleCacheMode = (event) => {
-    setDrawerPosition({ ...drawerPosition, left: true });
-    admin.toggleCacheMode();
-  };
-
-  /**
    * Menu link
    */
   function ListItemLink(props: any) {
