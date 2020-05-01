@@ -23,7 +23,7 @@ import Flash from '../components/Flash';
 //import { useAdminState } from '../auth/Admin';
 
 import useGetTeamInfoService from '../services/useGetTeamInfoService';
-//import usePutTeamService from '../services/usePutTeamService';
+import usePutTeamService from '../services/usePutTeamService';
 import useDeleteTeamService from '../services/useDeleteTeamService';
 //import usePutTeamMemberService from '../services/usePutTeamMemberService';
 //import useDeleteTeamMemberService from '../services/useDeleteTeamMemberService';
@@ -76,14 +76,14 @@ const TeamInfo = (props) => {
 
 //  const [editFormVisible, setEditFormVisible] = useState(false);
 //  const [agentFormVisible, setAgentFormVisible] = useState(false);
-//  const [prevFormState, setPrevFormState] = useState({});
+  const [prevInputState, setPrevInputState] = useState({});
   const [toAgent, setToAgent] = useState(false);
   const [flashProps, setFlashProps] = useState({});
 
   const [teamInfo, setTeamInfo] = useState({});
 
   const service = useGetTeamInfoService(props.match.params.id);
-//  let { publishTeam } = usePutTeamService();
+  let { publishTeam } = usePutTeamService();
   let { deleteTeam } = useDeleteTeamService();
 //  let { putTeamMember } = usePutTeamMemberService();
 //  let { deleteTeamMember } = useDeleteTeamMemberService(props.match.params.id);
@@ -97,22 +97,25 @@ const TeamInfo = (props) => {
   /**
    * Update this team
    */
-//  const handleSubmit = (evt) => {
-//    evt.preventDefault();
-//
-//    const formData = new FormData(evt.target);
-//    let data = {};
-//    for (const [key, value] of formData.entries()) {
-//      data[key] = value;
-//    }
-//
-//    publishTeam(data).then(results => {
-////      setEditFormVisible(false);
-//      setTeamInfo({ results, ...teamInfo });
-//    }).catch(err => {
-//      console.log(err);
-//    });
-//  }
+  const handleUpdate = (evt) => {
+    // Front-end validation (sufficient for now...)
+    if (!teamInfo.name.trim()) {
+      return setFlashProps({ message: 'Team name can\'t be blank', variant: 'error' });
+    }
+
+    publishTeam({...teamInfo, members: undefined, tableData: undefined}).then(results => {
+      if (results.statusCode) {
+        setFlashProps({ message: results.message, variant: 'error' });
+      }
+      else {
+        setPrevInputState({});
+        setTeamInfo(results);
+        setFlashProps({ message: 'Team updated', variant: 'success' });
+      }
+    }).catch(err => {
+      console.log(err);
+    });
+  }
 
   /**
    * Remove this team
@@ -233,7 +236,16 @@ const TeamInfo = (props) => {
                   <TableBody>
                     <TableRow>
                       <TableCell align="right" component="th" scope="row">Name:</TableCell>
-                      <TableCell align="left">{teamInfo.name}</TableCell>
+                      <TableCell  lign="left">
+                        <input id="team-name-field" value={teamInfo.name || ''}
+                          onChange={e => {
+                              if (!prevInputState.name) {
+                                setPrevInputState({ name: teamInfo.name });
+                              }
+                              setTeamInfo({ ...teamInfo, name: e.target.value });
+                            }
+                          } />
+                      </TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell align="right" component="th" scope="row">Email:</TableCell>
@@ -244,15 +256,35 @@ const TeamInfo = (props) => {
               </TableContainer>
             </Grid>
             <Grid item className={classes.grid}>
-              <TableContainer component={Paper}>
+              <TableContainer>
                 <Table className={classes.table} aria-label="Team delete and edit buttons">
                   <TableBody>
                     <TableRow>
-                      <TableCell align="left">
-                        <Button id="delete-team" variant="contained" color="secondary" onClick={handleDelete}>
-                          Delete
-                        </Button>
-                      </TableCell>
+                      { Object.keys(prevInputState).length ?
+                        <>
+                          <TableCell align="right">
+                            <Button id="cancel-team-changes" variant="contained" color="secondary"
+                                    onClick={e => {
+                                      setTeamInfo({ ...teamInfo, ...prevInputState });
+                                      setPrevInputState({});
+                                    }
+                            }>
+                              Cancel
+                            </Button>
+                          </TableCell>
+                          <TableCell align="left">
+                            <Button id="save-team" variant="contained" color="primary" onClick={handleUpdate}>
+                              Save
+                            </Button>
+                          </TableCell>
+                        </>
+                      :
+                        <TableCell align="left">
+                          <Button id="delete-team" variant="contained" color="secondary" onClick={handleDelete}>
+                            Delete
+                          </Button>
+                        </TableCell>
+                      }
                     </TableRow>
                   </TableBody>
                 </Table>
