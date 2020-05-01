@@ -104,8 +104,6 @@ const TeamInfo = (props) => {
     }
 
     publishTeam({...teamInfo, members: undefined, tableData: undefined}).then(results => {
-console.log('JSON.stringify(results)');
-console.log(JSON.stringify(results));
       if (results.statusCode) {
         setFlashProps({ message: results.message, variant: 'error' });
       }
