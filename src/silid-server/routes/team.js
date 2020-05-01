@@ -140,6 +140,11 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
   if (!teamName) {
     return res.status(400).json({ errors: [{ message: 'Team requires a name' }] });
   }
+  // Make sure edited name isn't a duplicate
+  const nameCount = req.user.user_metadata.teams.reduce((n, team) => n + (team.name === teamName), 0);
+  if (nameCount > 0) {
+    return res.status(400).json({ errors: [{ message: 'That team is already registered' }] });
+  }
 
   // Find the team
   const teamIndex = req.user.user_metadata.teams.findIndex(t => t.id === req.params.id);

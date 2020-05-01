@@ -473,7 +473,7 @@ describe('teamSpec', () => {
         beforeEach(done => {
           teamId = uuid.v4();
           _profile.user_metadata = { teams: [{ name: 'Vancouver Warriors', leader: _profile.email, members: [_profile.email], id: teamId }] };
-          _profile.user_metadata.teams.push({ name: 'Georgia Swarm', leader: 'someotherguy@example.com',
+          _profile.user_metadata.teams.push({ name: 'Georgia Swarm', leader: _profile.email,
                                               members: ['someotherguy@example.com', _profile.email], id: uuid.v4() });
 
           stubAuth0ManagementApi((err, apiScopes) => {
@@ -533,6 +533,23 @@ describe('teamSpec', () => {
               if (err) return done.fail(err);
               expect(res.body.errors.length).toEqual(1);
               expect(res.body.errors[0].message).toEqual('Team requires a name');
+              done();
+            });
+        });
+
+        it('returns an error if record already exists', done => {
+          authenticatedSession
+            .put(`/team/${_profile.user_metadata.teams[1].id}`)
+            .send({
+              name: 'Vancouver Warriors'
+            })
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(400)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(res.body.errors.length).toEqual(1);
+              expect(res.body.errors[0].message).toEqual('That team is already registered');
               done();
             });
         });
