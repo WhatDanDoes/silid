@@ -532,8 +532,10 @@ describe('root/teamSpec', () => {
           .end(function(err, res) {
             if (err) return done.fail(err);
 
-            expect(res.body.message).toEqual('Team updated');
-            expect(res.body.agent.user_metadata.teams[0].name).toEqual('Vancouver Riot');
+            expect(res.body.name).toEqual('Vancouver Riot');
+            expect(res.body.leader).toEqual(_profile.email);
+            expect(res.body.id).toEqual(teamId);
+            expect(res.body.members).toEqual([{ name: _profile.name, email: _profile.email, user_id: _profile.user_id }]);
 
             done();
           });
