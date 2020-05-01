@@ -104,8 +104,13 @@ const TeamInfo = (props) => {
     }
 
     publishTeam({...teamInfo, members: undefined, tableData: undefined}).then(results => {
+console.log('JSON.stringify(results)');
+console.log(JSON.stringify(results));
       if (results.statusCode) {
         setFlashProps({ message: results.message, variant: 'error' });
+      }
+      else if (results.errors) {
+        setFlashProps({...results, variant: 'error' });
       }
       else {
         setPrevInputState({});
@@ -312,7 +317,10 @@ const TeamInfo = (props) => {
       </Grid>
 
       { flashProps.message ? <Flash message={flashProps.message} onClose={() => setFlashProps({})} variant={flashProps.variant} /> : '' }
-      { flashProps.errors ? flashProps.errors.map(error => <Flash message={error.message} variant={flashProps.variant} />) : '' }
+      { flashProps.errors ? flashProps.errors.map(error => <Flash message={error.message}
+                                                                  onClose={() => setFlashProps({})}
+                                                                  variant={flashProps.variant}
+                                                                  key={`error-${error.message}`} />) : '' }
     </div>
   );
 };

@@ -127,6 +127,54 @@ context('Team edit', function() {
                   });
                 });
               });
+
+              describe('duplicate team name', () => {
+                beforeEach(() => {
+                  cy.visit('/#/agent');
+                  cy.wait(300);
+                  cy.get('table tbody tr td').contains('The A-Team');
+
+                  cy.get('button span span').contains('add_box').click();
+                  cy.get('input[placeholder="Name"]').type('The K-Team');
+                  cy.get('button[title="Save"]').click();
+                  cy.wait(300);
+
+                  cy.contains('The K-Team').click();
+                  cy.wait(300);
+                });
+
+                it('displays friendly error message', () => {
+                  cy.get('#team-name-field').clear();
+                  cy.get('#team-name-field').type('The A-Team');
+                  cy.get('button#save-team').click();
+                  cy.wait(300);
+                  cy.get('#flash-message').contains('That team is already registered');
+                  cy.get('#flash-message #close-flash').click();
+
+                  // Make sure flash state resets
+                  cy.get('button#save-team').click();
+                  cy.wait(300);
+                  cy.get('#flash-message').contains('That team is already registered');
+                });
+
+                it('does not change the record in the team leader\'s user_metadata', () => {
+                  cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
+                    expect(results[0].socialProfile.user_metadata.teams.length).to.eq(2);
+                    expect(results[0].socialProfile.user_metadata.teams[0].name).to.eq('The A-Team');
+                    expect(results[0].socialProfile.user_metadata.teams[1].name).to.eq('The K-Team');
+
+                    cy.get('#team-name-field').clear();
+                    cy.get('#team-name-field').type('The A-Team');
+                    cy.get('button#save-team').click();
+
+                    cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
+                      expect(results[0].socialProfile.user_metadata.teams.length).to.eq(2);
+                      expect(results[0].socialProfile.user_metadata.teams[0].name).to.eq('The A-Team');
+                      expect(results[0].socialProfile.user_metadata.teams[1].name).to.eq('The K-Team');
+                    });
+                  });
+                });
+              });
             });
 
             describe('with insufficient privilege', () => {
@@ -218,16 +266,16 @@ context('Team edit', function() {
               cy.get('#flash-message').contains('Team updated');
             });
 
-            it.only('persists updated team data between browser refreshes', function() {
+            it('persists updated team data between browser refreshes', function() {
               cy.get('#team-name-field').should('have.value', 'The K-Team');
               cy.get('button#save-team').click();
               cy.wait(300);
               cy.get('#team-name-field').should('have.value', 'The K-Team');
               cy.reload();
               cy.wait(300);
-//              cy.contains('The K-Team').click();
-//              cy.wait(300);
-//              cy.get('#team-name-field').should('have.value', 'The K-Team');
+              cy.contains('The K-Team').click();
+              cy.wait(300);
+              cy.get('#team-name-field').should('have.value', 'The K-Team');
             });
           });
         });
