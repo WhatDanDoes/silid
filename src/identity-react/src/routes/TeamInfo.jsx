@@ -300,17 +300,41 @@ const TeamInfo = (props) => {
               <MaterialTable
                 title='Members'
                 columns={[
-                  { title: 'Name', field: 'name', render: rowData => <Link href={`#agent/${rowData.user_id}`}>{rowData.name}</Link> },
-                  { title: 'Email', field: 'email'}
+                  {
+                    title: 'Name',
+                    field: 'name',
+                    editable: 'never',
+                    render: (rowData) => {
+                      return rowData ? <Link href={`#agent/${rowData.user_id}`}>{rowData.name}</Link> : null;
+                    }
+                  },
+                  { title: 'Email', field: 'email' }
                 ]}
                 data={teamInfo.members ? teamInfo.members : []}
                 options={{ search: false, paging: false }}
-                editable={{
-                  onRowAdd: teamInfo.leader === agent.email ? newData =>
+                editable={ teamInfo.leader === agent.email ? {
+                  onRowAdd: newData =>
+                    new Promise((resolve, reject) => {
+                      newData.email = newData.email.trim();
+
+                      if (!newData.email.length) {
+                        setFlashProps({ message: 'Email can\'t be blank', variant: 'error' });
+                        reject();
+                      }
+                      // 2020-5-5 email regex from here: https://redux-form.com/6.5.0/examples/material-ui/
+                      else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(newData.email)) {
+                        setFlashProps({ message: 'That\'s not a valid email address', variant: 'error' });
+                        reject();
+                      }
+                      else {
+                        resolve();
+                      }
+                    }),
+                  onRowDelete: oldData =>
                     new Promise((resolve, reject) => {
                       resolve();
-                    }) : undefined,
-                }}
+                    })
+                } : undefined}
               />
             </Grid>
           </>
@@ -330,7 +354,6 @@ const TeamInfo = (props) => {
     </div>
   );
 };
-
 
 //  return (
 //    <div className="team">
