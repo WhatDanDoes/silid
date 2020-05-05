@@ -27,7 +27,7 @@ const roles = require('../../config/roles');
 
 describe('checkPermissions', function() {
 
-  let agent, request, response, getRolesScope, userAssignRolesScope, userReadScope;
+  let agent, request, response, rolesReadScope, userAssignRolesScope, userReadScope;
 
   beforeEach(done => {
     nock.cleanAll();
@@ -39,7 +39,7 @@ describe('checkPermissions', function() {
      */
     stubAuth0ManagementApi((err, apiScopes) => {
       if (err) return done.fail(err);
-      ({getRolesScope, userAssignRolesScope, userReadScope} = apiScopes);
+      ({rolesReadScope, userAssignRolesScope, userReadScope} = apiScopes);
       done();
     });
   });
@@ -119,7 +119,7 @@ describe('checkPermissions', function() {
         checkPermissions([])(request, response, err => {
           if (err) return done.fail(err);
 
-          expect(getRolesScope.isDone()).toBe(true);
+          expect(rolesReadScope.isDone()).toBe(true);
 
           done();
         });
@@ -152,7 +152,7 @@ describe('checkPermissions', function() {
         checkPermissions([])(request, response, err => {
           if (err) return done.fail(err);
 
-          expect(getRolesScope.isDone()).toBe(false);
+          expect(rolesReadScope.isDone()).toBe(false);
           expect(userAssignRolesScope.isDone()).toBe(false);
 
           done();
@@ -345,7 +345,7 @@ describe('checkPermissions', function() {
         checkPermissions([])(request, response, err => {
           if (err) return done.fail(err);
 
-          expect(getRolesScope.isDone()).toBe(true);
+          expect(rolesReadScope.isDone()).toBe(true);
           expect(userAssignRolesScope.isDone()).toBe(true);
 
           done();
@@ -452,7 +452,7 @@ describe('checkPermissions', function() {
         checkPermissions([])(request, response, err => {
           if (err) return done.fail(err);
 
-          expect(getRolesScope.isDone()).toBe(true);
+          expect(rolesReadScope.isDone()).toBe(true);
           expect(userAssignRolesScope.isDone()).toBe(true);
 
           done();

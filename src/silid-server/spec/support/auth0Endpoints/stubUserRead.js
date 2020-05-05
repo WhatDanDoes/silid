@@ -7,7 +7,7 @@ const stubOauthToken =  require('./stubOauthToken');
 const _profile = require('../../fixtures/sample-auth0-profile-response');
 
 /**
- * This stubs the Auth0 endpoint that provides a list of users
+ * This stubs the Auth0 endpoint that returns agent profile info 
  *
  * @param array
  * @param function
@@ -31,7 +31,7 @@ module.exports = function(done) {
         .query({})
         .reply(200, _profile);
 
-        done(null, {userReadScope, oauthTokenScope});
+      done(null, {userReadScope, oauthTokenScope});
 
     });
   });

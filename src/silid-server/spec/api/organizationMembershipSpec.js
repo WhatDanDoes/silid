@@ -6,6 +6,7 @@ const request = require('supertest');
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
 const stubAuth0ManagementEndpoint = require('../support/stubAuth0ManagementEndpoint');
+const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
 const mailer = require('../../mailer');
 const { uuid } = require('uuidv4');
 const scope = require('../../config/permissions');
@@ -76,7 +77,7 @@ describe('organizationMembershipSpec', () => {
 
               // Cached profile doesn't match "live" data, so agent needs to be updated
               // with a call to Auth0
-              stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+              stubUserRead((err, apiScopes) => {
                 if (err) return done.fail();
 
                 done();
@@ -185,7 +186,7 @@ describe('organizationMembershipSpec', () => {
 
                 // Cached profile doesn't match "live" data, so agent needs to be updated
                 // with a call to Auth0
-                stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+                stubUserRead((err, apiScopes) => {
                   if (err) return done.fail();
 
                   authenticatedSession
@@ -473,7 +474,7 @@ describe('organizationMembershipSpec', () => {
 
                 // Cached profile doesn't match "live" data, so agent needs to be updated
                 // with a call to Auth0
-                stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+                stubUserRead((err, apiScopes) => {
                   if (err) return done.fail();
 
                   authenticatedSession
@@ -694,7 +695,7 @@ describe('organizationMembershipSpec', () => {
 
               // Cached profile doesn't match "live" data, so agent needs to be updated
               // with a call to Auth0
-              stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+              stubUserRead((err, apiScopes) => {
                 if (err) return done.fail();
 
                 done();
@@ -801,7 +802,7 @@ describe('organizationMembershipSpec', () => {
 
               // Cached profile doesn't match "live" data, so agent needs to be updated
               // with a call to Auth0
-              stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+              stubUserRead((err, apiScopes) => {
                 if (err) return done.fail();
 
                 done();

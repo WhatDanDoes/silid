@@ -50,15 +50,6 @@ module.exports = function(permissions, done) {
       });
 
     /**
-     * GET `/users/:id`. Get a single user by Auth0 ID
-     */
-    const userReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-      .log(console.log)
-      .get(/api\/v2\/users\/.+/)
-      .query({})
-      .reply(200, _profile);
-
-    /**
      * Search for a team by ID
      *
      * GET `/users`
@@ -173,26 +164,10 @@ module.exports = function(permissions, done) {
       })
       .reply(200, { });
 
-    /**
-     * GET `/roles`
-     */
-    const getRolesScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-      .log(console.log)
-      .get('/api/v2/roles')
-      .reply(200, [
-        {
-          "id": "123",
-          "name": "viewer",
-          "description": "View all roles"
-        }
-      ]);
-
-
     done(null, {
                 oauthTokenScope,
-                userCreateScope, userReadScope, userDeleteScope, userReadByEmailScope,
+                userCreateScope, userDeleteScope, userReadByEmailScope,
                 userAssignRolesScope,
-                getRolesScope,
                 updateTeamScope, teamReadScope,
     });
   });

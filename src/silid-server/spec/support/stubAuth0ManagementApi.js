@@ -7,6 +7,8 @@
  * @param function
  */
 const apiScope = require('../../config/apiPermissions');
+const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
+const stubRolesRead = require('../support/auth0Endpoints/stubRolesRead');
 const stubAuth0ManagementEndpoint = require('../support/stubAuth0ManagementEndpoint');
 
 module.exports = function(done) {
@@ -15,9 +17,9 @@ module.exports = function(done) {
 
   /**
    * This layer stubs the endpoints required for the retrieving the agent's
-   * metadata on login
+   * OIDC profile data on login
    */
-  stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+  stubUserRead((err, apiScopes) => {
     if (err) return done(err);
     ({userReadScope, oauthTokenScope} = apiScopes);
 
@@ -25,15 +27,15 @@ module.exports = function(done) {
      * The following two layers stub the endpoints required for the
      * `viewer` role-check in `lib/checkPermissions`
      */
-    stubAuth0ManagementEndpoint([apiScope.read.roles], (err, apiScopes) => {
+    stubRolesRead((err, apiScopes) => {
       if (err) return done(err);
-      ({getRolesScope} = apiScopes);
+      ({rolesReadScope} = apiScopes);
 
       stubAuth0ManagementEndpoint([apiScope.read.roles, apiScope.update.users], (err, apiScopes) => {
         if (err) return done(err);
         ({userAssignRolesScope, oauthTokenScope} = apiScopes);
 
-        done(null, {userReadScope, getRolesScope, userAssignRolesScope, oauthTokenScope});
+        done(null, {userReadScope, rolesReadScope, userAssignRolesScope, oauthTokenScope});
       });
     });
   });

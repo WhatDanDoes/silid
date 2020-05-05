@@ -8,6 +8,7 @@ const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
 const stubAuth0ManagementEndpoint = require('../support/stubAuth0ManagementEndpoint');
 const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
+const stubUserAppMetadataRead = require('../support/auth0Endpoints/stubUserAppMetadataRead');
 const mailer = require('../../mailer');
 const scope = require('../../config/permissions');
 const apiScope = require('../../config/apiPermissions');
@@ -83,11 +84,18 @@ describe('teamSpec', () => {
                 stubUserRead((err, apiScopes) => {
                   if (err) return done.fail();
 
-                  stubAuth0ManagementEndpoint([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
+                  // This stubs user reads subsequent to the original login
+                  stubUserRead((err, apiScopes) => {
                     if (err) return done.fail();
 
-                    ({userReadScope, updateTeamScope, oauthTokenScope} = apiScopes);
-                    done();
+                    ({userReadScope} = apiScopes);
+
+                    stubAuth0ManagementEndpoint([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
+                      if (err) return done.fail();
+
+                      ({updateTeamScope, oauthTokenScope} = apiScopes);
+                      done();
+                    });
                   });
                 });
               });
@@ -181,11 +189,17 @@ describe('teamSpec', () => {
                 stubUserRead((err, apiScopes) => {
                   if (err) return done.fail();
 
-                  stubAuth0ManagementEndpoint([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
+                  // This stubs calls subsequent to the inital login/permission checking step
+                  stubUserRead((err, apiScopes) => {
                     if (err) return done.fail();
+                    ({userReadScope, oauthTokenScope} = apiScopes);
 
-                    ({userReadScope, updateTeamScope, oauthTokenScope} = apiScopes);
-                    done();
+                    stubAuth0ManagementEndpoint([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
+                      if (err) return done.fail();
+
+                      ({updateTeamScope} = apiScopes);
+                      done();
+                    });
                   });
                 });
               });
@@ -412,10 +426,10 @@ describe('teamSpec', () => {
                 stubUserRead((err, apiScopes) => {
                   if (err) return done.fail();
 
-                  stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata], (err, apiScopes) => {
+                  stubUserAppMetadataRead((err, apiScopes) => {
                     if (err) return done.fail();
+                    ({userAppMetadataReadScope, oauthTokenScope} = apiScopes);
 
-                    ({userReadScope, oauthTokenScope} = apiScopes);
                     done();
                   });
                 });
@@ -460,7 +474,7 @@ describe('teamSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  expect(userReadScope.isDone()).toBe(true);
+                  expect(userAppMetadataReadScope.isDone()).toBe(true);
                   done();
                 });
             });
