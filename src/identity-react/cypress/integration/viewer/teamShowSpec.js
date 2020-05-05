@@ -117,7 +117,7 @@ context('viewer/Team show', function() {
       it('displays team members in a table', function() {
         cy.get('h6').contains('Members');
         cy.get('table tbody tr td').contains('No records to display').should('not.exist');
-//        cy.get('button span span').contains('add_box').should('not.exist');
+        cy.get('button span span').contains('add_box').should('exist');
 //        cy.get('table thead tr th').contains('Actions');
 //        cy.get('table tbody tr td button span').contains('edit');
 //        cy.get('table tbody tr td button span').contains('delete_outline');
@@ -252,26 +252,23 @@ context('viewer/Team show', function() {
 //        cy.contains('You have not verified your invitation to this organization. Check your email.');
 //      });
 //    });
-//
-//
-//    context('non-member agent visit', () => {
-//
-//      let team;
-//      beforeEach(function() {
-//        cy.request({ url: '/team',  method: 'POST',
-//                     body: { organizationId: organization.id, name: 'Insert Funny Team Name Here' } }).then(res => {
-//          team = res.body;
-//
-//          cy.login(anotherAgent.email, _profile, [this.scope.read.agents, this.scope.read.organizations, this.scope.read.teams]);
-//        });
-//      });
-//
-//      it('displays a friendly message', () => {
-//        cy.visit(`/#/team/${team.id}`);
-//        cy.wait(500);
-//        cy.get('h3').contains('You are not a member of that team');
-//      });
-//    });
+
+
+    context('non-member agent visit', () => {
+
+      let team;
+      beforeEach(function() {
+        // Login/create another agent
+        cy.login('someotherguy@example.com', _profile, [this.scope.read.agents]);
+        cy.wait(300);
+      });
+
+      it.only('displays a friendly message', () => {
+        cy.visit(`/#/team/${teamId}`);
+        cy.wait(500);
+        cy.get('h3').contains('You are not a member of that team');
+      });
+    });
   });
 });
 

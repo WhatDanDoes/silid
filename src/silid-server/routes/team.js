@@ -26,6 +26,11 @@ const getManagementClient = require('../lib/getManagementClient');
 function collateTeams(agents, teamId, agentId) {
   const agentIndex = agents.findIndex(a => a.user_id === agentId);
 
+  // Requesting agent is not a member of the team
+  if (agentIndex < 0) {
+    return;
+  }
+
   const teamIndex = agents[agentIndex].user_metadata.teams.findIndex(t => t.id === teamId);
   let teams = {
     id: agents[agentIndex].user_metadata.teams[teamIndex].id,
@@ -68,9 +73,13 @@ router.get('/', checkPermissions([scope.read.teams]), function(req, res, next) {
 router.get('/:id', checkPermissions([scope.read.teams]), function(req, res, next) {
   const managementClient = getManagementClient(apiScope.read.usersAppMetadata);
   managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.id}"` }).then(agents => {
-    if (agents.length) {
+  if (agents.length) {
 
       const teams = collateTeams(agents, req.params.id, req.user.user_id);
+
+      if (!teams) {
+        return res.status(403).json({ message: 'You are not a member of that team' });
+      }
 
       return res.status(200).json(teams);
     }
