@@ -19,7 +19,7 @@ import Grid from '@material-ui/core/Grid';
 
 import Flash from '../components/Flash';
 
-//import { useAuthState } from '../auth/Auth';
+import { useAuthState } from '../auth/Auth';
 //import { useAdminState } from '../auth/Admin';
 
 import useGetTeamInfoService from '../services/useGetTeamInfoService';
@@ -71,7 +71,7 @@ const useStyles = makeStyles((theme) =>
 const TeamInfo = (props) => {
   const classes = useStyles();
 
-//  const {agent} = useAuthState();
+  const {agent} = useAuthState();
 //  const admin = useAdminState();
 
 //  const [editFormVisible, setEditFormVisible] = useState(false);
@@ -240,7 +240,7 @@ const TeamInfo = (props) => {
                     <TableRow>
                       <TableCell align="right" component="th" scope="row">Name:</TableCell>
                       <TableCell  lign="left">
-                        <input id="team-name-field" value={teamInfo.name || ''}
+                        <input id="team-name-field" value={teamInfo.name || ''} disabled={agent.email !== teamInfo.leader}
                           onChange={e => {
                               if (!prevInputState.name) {
                                 setPrevInputState({ name: teamInfo.name });
@@ -258,41 +258,43 @@ const TeamInfo = (props) => {
                 </Table>
               </TableContainer>
             </Grid>
-            <Grid item className={classes.grid}>
-              <TableContainer>
-                <Table className={classes.table} aria-label="Team delete and edit buttons">
-                  <TableBody>
-                    <TableRow>
-                      { Object.keys(prevInputState).length ?
-                        <>
-                          <TableCell align="right">
-                            <Button id="cancel-team-changes" variant="contained" color="secondary"
-                                    onClick={e => {
-                                      setTeamInfo({ ...teamInfo, ...prevInputState });
-                                      setPrevInputState({});
-                                    }
-                            }>
-                              Cancel
-                            </Button>
-                          </TableCell>
+            {teamInfo.leader === agent.email ?
+              <Grid item className={classes.grid}>
+                <TableContainer>
+                  <Table className={classes.table} aria-label="Team delete">
+                    <TableBody>
+                      <TableRow>
+                        { Object.keys(prevInputState).length ?
+                          <>
+                            <TableCell align="right">
+                              <Button id="cancel-team-changes" variant="contained" color="secondary"
+                                      onClick={e => {
+                                        setTeamInfo({ ...teamInfo, ...prevInputState });
+                                        setPrevInputState({});
+                                      }
+                              }>
+                                Cancel
+                              </Button>
+                            </TableCell>
+                            <TableCell align="left">
+                              <Button id="save-team" variant="contained" color="primary" onClick={handleUpdate}>
+                                Save
+                              </Button>
+                            </TableCell>
+                          </>
+                        :
                           <TableCell align="left">
-                            <Button id="save-team" variant="contained" color="primary" onClick={handleUpdate}>
-                              Save
+                            <Button id="delete-team" variant="contained" color="secondary" onClick={handleDelete}>
+                              Delete
                             </Button>
                           </TableCell>
-                        </>
-                      :
-                        <TableCell align="left">
-                          <Button id="delete-team" variant="contained" color="secondary" onClick={handleDelete}>
-                            Delete
-                          </Button>
-                        </TableCell>
-                      }
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Grid>
+                        }
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Grid>
+            : ''}
 
             <Grid item className={classes.grid}>
               <MaterialTable
@@ -303,6 +305,12 @@ const TeamInfo = (props) => {
                 ]}
                 data={teamInfo.members ? teamInfo.members : []}
                 options={{ search: false, paging: false }}
+                editable={{
+                  onRowAdd: teamInfo.leader === agent.email ? newData =>
+                    new Promise((resolve, reject) => {
+                      resolve();
+                    }) : undefined,
+                }}
               />
             </Grid>
           </>
