@@ -73,7 +73,7 @@ router.get('/', checkPermissions([scope.read.teams]), function(req, res, next) {
 router.get('/:id', checkPermissions([scope.read.teams]), function(req, res, next) {
   const managementClient = getManagementClient(apiScope.read.usersAppMetadata);
   managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.id}"` }).then(agents => {
-  if (agents.length) {
+    if (agents.length) {
 
       const teams = collateTeams(agents, req.params.id, req.user.user_id);
 
@@ -90,7 +90,7 @@ router.get('/:id', checkPermissions([scope.read.teams]), function(req, res, next
 });
 
 router.post('/', checkPermissions([scope.create.teams]), function(req, res, next) {
-  const managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+  let managementClient = getManagementClient([apiScope.read.users].join(' '));
   managementClient.getUser({id: req.user.user_id}).then(agent => {
 
     // No duplicate team names
@@ -124,6 +124,7 @@ router.post('/', checkPermissions([scope.create.teams]), function(req, res, next
       leader: req.user.email,
     });
 
+    managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
     managementClient.updateUser({id: req.user.user_id}, { user_metadata: agent.user_metadata }).then(result => {
       // Auth0 does not return agent scope
       result.scope = req.user.scope;
@@ -321,76 +322,88 @@ router.patch('/', checkPermissions([scope.update.teams]), function(req, res, nex
 });
 
 router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(req, res, next) {
-  models.Team.findOne({ where: { id: req.params.id },
-                                 include: [ 'creator',
-                                            { model: models.Agent, as: 'members' },
-                                            'organization'] }).then(team => {
+  const managementClient = getManagementClient([apiScope.read.users].join(' '));
+  managementClient.getUsersByEmail(req.body.email).then(agent => {
+    if (!agents) {
 
-    if (!team) {
-      return res.status(404).json( { message: 'No such team' });
     }
 
-    if (!req.agent.isSuper && !team.members.map(member => member.id).includes(req.agent.id)) {
-      return res.status(403).json({ message: 'You are not a member of this team' });
-    }
-
-    models.Agent.findOne({ where: { email: req.body.email } }).then(agent => {
-
-      const mailOptions = {
-        from: process.env.NOREPLY_EMAIL,
-        subject: 'Identity team invitation',
-        text: `You have been invited to join ${team.name}
-
-Click or copy-paste the link below to accept:
-
-`
-      };
-
-      if (!agent) {
-        let newAgent = new models.Agent({ email: req.body.email });
-        newAgent.save().then(result => {
-          team.addMember(newAgent.id).then(result => {
-            mailOptions.text += `${process.env.SERVER_DOMAIN}/verify/${result[0].verificationCode}\n`;
-            mailOptions.to = newAgent.email;
-            mailer.transporter.sendMail(mailOptions, (error, info) => {
-              if (error) {
-                console.error('Mailer Error', error);
-                return res.status(501).json(error);
-              }
-              res.status(201).json(newAgent);
-            });
-          }).catch(err => {
-            res.status(500).json(err);
-          })
-        }).catch(err => {
-          res.status(500).json(err);
-        });
-      }
-      else {
-        if (team.members.map(a => a.id).includes(agent.id)) {
-          return res.status(200).json({ message: `${agent.email} is already a member of this team` });
-        }
-
-        team.addMember(agent.id).then(result => {
-          mailOptions.text += `${process.env.SERVER_DOMAIN}/verify/${result[0].verificationCode}\n`;
-          mailOptions.to = agent.email;
-          mailer.transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-              console.error('Mailer Error', error);
-              return res.status(501).json(error);
-            }
-            res.status(201).json(agent);
-          });
-        }).catch(err => {
-          res.status(500).json(err);
-        });
-      }
-    }).catch(err => {
-      res.status(500).json(err);
-    });
+    res.status(201).json();
   }).catch(err => {
-    res.status(500).json(err);
+    res.status(err.statusCode).json(err.message.error_description);
   });
+
+
+//  models.Team.findOne({ where: { id: req.params.id },
+//                                 include: [ 'creator',
+//                                            { model: models.Agent, as: 'members' },
+//                                            'organization'] }).then(team => {
+//
+//    if (!team) {
+//      return res.status(404).json( { message: 'No such team' });
+//    }
+//
+//    if (!req.agent.isSuper && !team.members.map(member => member.id).includes(req.agent.id)) {
+//      return res.status(403).json({ message: 'You are not a member of this team' });
+//    }
+//
+//    models.Agent.findOne({ where: { email: req.body.email } }).then(agent => {
+//
+//      const mailOptions = {
+//        from: process.env.NOREPLY_EMAIL,
+//        subject: 'Identity team invitation',
+//        text: `You have been invited to join ${team.name}
+//
+//Click or copy-paste the link below to accept:
+//
+//`
+//      };
+//
+//      if (!agent) {
+//        let newAgent = new models.Agent({ email: req.body.email });
+//        newAgent.save().then(result => {
+//          team.addMember(newAgent.id).then(result => {
+//            mailOptions.text += `${process.env.SERVER_DOMAIN}/verify/${result[0].verificationCode}\n`;
+//            mailOptions.to = newAgent.email;
+//            mailer.transporter.sendMail(mailOptions, (error, info) => {
+//              if (error) {
+//                console.error('Mailer Error', error);
+//                return res.status(501).json(error);
+//              }
+//              res.status(201).json(newAgent);
+//            });
+//          }).catch(err => {
+//            res.status(500).json(err);
+//          })
+//        }).catch(err => {
+//          res.status(500).json(err);
+//        });
+//      }
+//      else {
+//        if (team.members.map(a => a.id).includes(agent.id)) {
+//          return res.status(200).json({ message: `${agent.email} is already a member of this team` });
+//        }
+//
+//        team.addMember(agent.id).then(result => {
+//          mailOptions.text += `${process.env.SERVER_DOMAIN}/verify/${result[0].verificationCode}\n`;
+//          mailOptions.to = agent.email;
+//          mailer.transporter.sendMail(mailOptions, (error, info) => {
+//            if (error) {
+//              console.error('Mailer Error', error);
+//              return res.status(501).json(error);
+//            }
+//            res.status(201).json(agent);
+//          });
+//        }).catch(err => {
+//          res.status(500).json(err);
+//        });
+//      }
+//    }).catch(err => {
+//      res.status(500).json(err);
+//    });
+//  }).catch(err => {
+//    res.status(500).json(err);
+//  });
 });
 
 
