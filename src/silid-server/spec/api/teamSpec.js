@@ -7,6 +7,7 @@ const uuid = require('uuid');
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
 const stubAuth0ManagementEndpoint = require('../support/stubAuth0ManagementEndpoint');
+const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
 const mailer = require('../../mailer');
 const scope = require('../../config/permissions');
 const apiScope = require('../../config/apiPermissions');
@@ -79,7 +80,7 @@ describe('teamSpec', () => {
 
                 // Cached profile doesn't match "live" data, so agent needs to be updated
                 // with a call to Auth0
-                stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+                stubUserRead((err, apiScopes) => {
                   if (err) return done.fail();
 
                   stubAuth0ManagementEndpoint([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
@@ -177,7 +178,7 @@ describe('teamSpec', () => {
 
                 // Cached profile doesn't match "live" data, so agent needs to be updated
                 // with a call to Auth0
-                stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+                stubUserRead((err, apiScopes) => {
                   if (err) return done.fail();
 
                   stubAuth0ManagementEndpoint([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
@@ -314,7 +315,7 @@ describe('teamSpec', () => {
 
                 // Cached profile doesn't match "live" data, so agent needs to be updated
                 // with a call to Auth0
-                stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+                stubUserRead((err, apiScopes) => {
                   if (err) return done.fail();
 
                   stubAuth0ManagementEndpoint([apiScope.read.usersAppMetadata], (err, apiScopes) => {
@@ -408,7 +409,7 @@ describe('teamSpec', () => {
 
                 // Cached profile doesn't match "live" data, so agent needs to be updated
                 // with a call to Auth0
-                stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+                stubUserRead((err, apiScopes) => {
                   if (err) return done.fail();
 
                   stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata], (err, apiScopes) => {
@@ -472,7 +473,7 @@ describe('teamSpec', () => {
         beforeEach(done => {
           teamId = uuid.v4();
           _profile.user_metadata = { teams: [{ name: 'Vancouver Warriors', leader: _profile.email, members: [_profile.email], id: teamId }] };
-          _profile.user_metadata.teams.push({ name: 'Georgia Swarm', leader: 'someotherguy@example.com',
+          _profile.user_metadata.teams.push({ name: 'Georgia Swarm', leader: _profile.email,
                                               members: ['someotherguy@example.com', _profile.email], id: uuid.v4() });
 
           stubAuth0ManagementApi((err, apiScopes) => {
@@ -485,7 +486,7 @@ describe('teamSpec', () => {
 
               // Cached profile doesn't match "live" data, so agent needs to be updated
               // with a call to Auth0
-              stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+              stubUserRead((err, apiScopes) => {
                 if (err) return done.fail();
 
                 stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
@@ -510,8 +511,45 @@ describe('teamSpec', () => {
             .expect(201)
             .end(function(err, res) {
               if (err) return done.fail(err);
-              expect(res.body.message).toEqual('Team updated');
-              expect(res.body.agent.user_metadata.teams[0].name).toEqual('Vancouver Riot');
+
+              expect(res.body.name).toEqual('Vancouver Riot');
+              expect(res.body.leader).toEqual(_profile.email);
+              expect(res.body.id).toEqual(teamId);
+              expect(res.body.members).toEqual([{ name: _profile.name, email: _profile.email, user_id: _profile.user_id }]);
+              done();
+            });
+        });
+
+        it('returns an error if empty team name provided', done => {
+          authenticatedSession
+            .put(`/team/${teamId}`)
+            .send({
+              name: '   '
+            })
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(400)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(res.body.errors.length).toEqual(1);
+              expect(res.body.errors[0].message).toEqual('Team requires a name');
+              done();
+            });
+        });
+
+        it('returns an error if record already exists', done => {
+          authenticatedSession
+            .put(`/team/${_profile.user_metadata.teams[1].id}`)
+            .send({
+              name: 'Vancouver Warriors'
+            })
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(400)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(res.body.errors.length).toEqual(1);
+              expect(res.body.errors[0].message).toEqual('That team is already registered');
               done();
             });
         });
@@ -1107,7 +1145,7 @@ describe('teamSpec', () => {
 
               // Cached profile doesn't match "live" data, so agent needs to be updated
               // with a call to Auth0
-              stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+              stubUserRead((err, apiScopes) => {
                 if (err) return done.fail();
 
                 stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
@@ -1220,7 +1258,7 @@ describe('teamSpec', () => {
 
             // Cached profile doesn't match "live" data, so agent needs to be updated
             // with a call to Auth0
-            stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+            stubUserRead((err, apiScopes) => {
               if (err) return done.fail();
 
               stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
@@ -1268,7 +1306,7 @@ describe('teamSpec', () => {
         });
 
         describe('Auth0', () => {
-          it('calls /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
+          it('does not call /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
             unauthorizedSession
               .put(`/team/${teamId}`)
               .send({
@@ -1279,12 +1317,12 @@ describe('teamSpec', () => {
               .expect(403)
               .end(function(err, res) {
                 if (err) return done.fail(err);
-                expect(oauthTokenScope.isDone()).toBe(true);
+                expect(oauthTokenScope.isDone()).toBe(false);
                 done();
               });
           });
 
-          it('is called to retrieve the agent user_metadata', done => {
+          it('is not called to retrieve the agent user_metadata', done => {
             unauthorizedSession
               .put(`/team/${teamId}`)
               .send({
@@ -1296,7 +1334,7 @@ describe('teamSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(teamReadScope.isDone()).toBe(true);
+                expect(teamReadScope.isDone()).toBe(false);
                 done();
               });
           });

@@ -14,6 +14,34 @@ const checkPermissions = require('../lib/checkPermissions');
 const apiScope = require('../config/apiPermissions');
 const getManagementClient = require('../lib/getManagementClient');
 
+/**
+ * Take agent user_metadata and collate it into manageable team data
+ *
+ * @param array
+ * @param string
+ * @param string
+ *
+ * @returns array
+ */
+function collateTeams(agents, teamId, agentId) {
+  const agentIndex = agents.findIndex(a => a.user_id === agentId);
+
+  const teamIndex = agents[agentIndex].user_metadata.teams.findIndex(t => t.id === teamId);
+  let teams = {
+    id: agents[agentIndex].user_metadata.teams[teamIndex].id,
+    name: agents[agentIndex].user_metadata.teams[teamIndex].name,
+    leader: agents[agentIndex].user_metadata.teams[teamIndex].leader,
+    members: [],
+  };
+
+  agents.map(agent => {
+    teams.members.push({ name: agent.name, email: agent.email, user_id: agent.user_id });
+  });
+
+  return teams;
+}
+
+
 /* GET team listing. */
 router.get('/admin', checkPermissions(roles.sudo), function(req, res, next) {
   if (!req.agent.isSuper) {
@@ -42,16 +70,7 @@ router.get('/:id', checkPermissions([scope.read.teams]), function(req, res, next
   managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.id}"` }).then(agents => {
     if (agents.length) {
 
-      let teams = {
-        id: agents[0].user_metadata.teams[0].id,
-        name: agents[0].user_metadata.teams[0].name,
-        leader: agents[0].user_metadata.teams[0].leader,
-        members: [],
-      };
-
-      agents.map(agent => {
-        teams.members.push({ name: agent.name, email: agent.email, user_id: agent.user_id });
-      });
+      const teams = collateTeams(agents, req.params.id, req.user.user_id);
 
       return res.status(200).json(teams);
     }
@@ -97,8 +116,15 @@ router.post('/', checkPermissions([scope.create.teams]), function(req, res, next
     });
 
     managementClient.updateUser({id: req.user.user_id}, { user_metadata: agent.user_metadata }).then(result => {
+      // Auth0 does not return agent scope
+      result.scope = req.user.scope;
+      // 2020-4-30 https://stackoverflow.com/a/24498660/1356582
+      // This updates the agent's session data
+      req.login(result, err => {
+        if (err) return next(err);
 
-      res.status(201).json(result);
+        res.status(201).json(result);
+      });
     }).catch(err => {
       res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
     });
@@ -108,41 +134,45 @@ router.post('/', checkPermissions([scope.create.teams]), function(req, res, next
 });
 
 router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, next) {
+
+  // Validate incoming data
+  const teamName = req.body.name.trim();
+  if (!teamName) {
+    return res.status(400).json({ errors: [{ message: 'Team requires a name' }] });
+  }
+  // Make sure edited name isn't a duplicate
+  const nameCount = req.user.user_metadata.teams.reduce((n, team) => n + (team.name === teamName), 0);
+  if (nameCount > 0) {
+    return res.status(400).json({ errors: [{ message: 'That team is already registered' }] });
+  }
+
+  // Find the team
+  const teamIndex = req.user.user_metadata.teams.findIndex(t => t.id === req.params.id);
+  if (teamIndex < 0) {
+    return res.status(404).json({ message: 'No such team' });
+  }
+
+  // Decide permission
+  if (req.user.email !== req.user.user_metadata.teams[teamIndex].leader) {
+    return res.status(403).json({ message: 'Unauthorized' });
+  }
+
+  // Update team
+  req.user.user_metadata.teams[teamIndex].name = teamName;
+
+  // Update user_metadata at Auth0
   const managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
-  managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.id}"` }).then(agents => {
-    if (!agents.length) {
-      return res.status(404).json({ message: 'No such team' });
-    }
+  managementClient.updateUserMetadata({id: req.user.user_id}, req.user.user_metadata).then(agent => {
 
-    // There should only ever be one agent given the application of UUIDs
-    let teamIndex = 0;
-    for (let agent of agents) {
-      for (let team of agent.user_metadata.teams) {
-        if (team.id === req.params.id) {
-          break;
-        }
-        teamIndex++;
-      }
-      if (teamIndex === agent.user_metadata.teams.length) {
-        return res.status(404).json({ message: 'No such team' });
-      }
+    // Refresh team info
+    managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.id}"` }).then(agents => {
+      const teams = collateTeams(agents, req.params.id, req.user.user_id);
 
-      if (req.user.email !== agent.user_metadata.teams[teamIndex].leader) {
-        return res.status(403).json({ message: 'Unauthorized' });
-      }
-
-      for (let p in req.body) {
-        if (agent.user_metadata.teams[teamIndex][p]) {
-          agent.user_metadata.teams[teamIndex][p] = req.body[p];
-        }
-      }
-
-      managementClient.updateUserMetadata({id: req.user.user_id}, agent.user_metadata).then(agent => {
-        res.status(201).json({ message: 'Team updated', agent: agent });
-      }).catch(err => {
-        res.status(err.statusCode).json(err.message.error_description);
-      });
-    }
+      //res.status(201).json({ message: 'Team updated', agent: agent });
+      res.status(201).json(teams);
+    }).catch(err => {
+      res.status(err.statusCode).json(err.message.error_description);
+    });
   }).catch(err => {
     res.status(err.statusCode).json(err.message.error_description);
   });
@@ -175,7 +205,14 @@ router.delete('/:id', checkPermissions([scope.delete.teams]), function(req, res,
       agent.user_metadata.teams.splice(teamIndex, 1);
 
       managementClient.updateUserMetadata({id: req.user.user_id}, agent.user_metadata).then(agent => {
-        res.status(201).json({ message: 'Team deleted', agent: agent });
+        // Auth0 does not return agent scope
+        agent.scope = req.user.scope;
+        // 2020-4-30 https://stackoverflow.com/a/24498660/1356582
+        // This updates the agent's session data
+        req.login(agent, err => {
+          if (err) return next(err);
+          res.status(201).json({ message: 'Team deleted', agent: agent });
+        });
       }).catch(err => {
         res.status(err.statusCode).json(err.message.error_description);
       });

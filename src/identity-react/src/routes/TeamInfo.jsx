@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-//import { Redirect } from 'react-router-dom';
+import { Redirect } from 'react-router-dom';
 //import TextField from '@material-ui/core/TextField';
 import { createStyles, makeStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
@@ -7,7 +7,7 @@ import Typography from '@material-ui/core/Typography';
 //import CardContent from '@material-ui/core/CardContent';
 //import Fab from '@material-ui/core/Fab';
 //import PersonAddIcon from '@material-ui/icons/PersonAdd';
-//import Button from '@material-ui/core/Button';
+import Button from '@material-ui/core/Button';
 //import List from '@material-ui/core/List';
 //import ListItem from '@material-ui/core/ListItem';
 //import ListItemIcon from '@material-ui/core/ListItemIcon';
@@ -23,8 +23,8 @@ import Flash from '../components/Flash';
 //import { useAdminState } from '../auth/Admin';
 
 import useGetTeamInfoService from '../services/useGetTeamInfoService';
-//import usePutTeamService from '../services/usePutTeamService';
-//import useDeleteTeamService from '../services/useDeleteTeamService';
+import usePutTeamService from '../services/usePutTeamService';
+import useDeleteTeamService from '../services/useDeleteTeamService';
 //import usePutTeamMemberService from '../services/usePutTeamMemberService';
 //import useDeleteTeamMemberService from '../services/useDeleteTeamMemberService';
 
@@ -40,8 +40,6 @@ import Paper from '@material-ui/core/Paper';
 import MaterialTable from 'material-table';
 
 import Link from '@material-ui/core/Link';
-
-
 
 const useStyles = makeStyles((theme) =>
   createStyles({
@@ -78,16 +76,15 @@ const TeamInfo = (props) => {
 
 //  const [editFormVisible, setEditFormVisible] = useState(false);
 //  const [agentFormVisible, setAgentFormVisible] = useState(false);
-//  const [prevFormState, setPrevFormState] = useState({});
-//  const [toOrganization, setToOrganization] = useState(false);
-  //const [flashProps, setFlashProps] = useState({});
-  const [flashProps] = useState({});
+  const [prevInputState, setPrevInputState] = useState({});
+  const [toAgent, setToAgent] = useState(false);
+  const [flashProps, setFlashProps] = useState({});
 
   const [teamInfo, setTeamInfo] = useState({});
 
   const service = useGetTeamInfoService(props.match.params.id);
-//  let { publishTeam } = usePutTeamService();
-//  let { deleteTeam } = useDeleteTeamService();
+  let { publishTeam } = usePutTeamService();
+  let { deleteTeam } = useDeleteTeamService();
 //  let { putTeamMember } = usePutTeamMemberService();
 //  let { deleteTeamMember } = useDeleteTeamMemberService(props.match.params.id);
 
@@ -100,36 +97,50 @@ const TeamInfo = (props) => {
   /**
    * Update this team
    */
-//  const handleSubmit = (evt) => {
-//    evt.preventDefault();
-//
-//    const formData = new FormData(evt.target);
-//    let data = {};
-//    for (const [key, value] of formData.entries()) {
-//      data[key] = value;
-//    }
-//
-//    publishTeam(data).then(results => {
-////      setEditFormVisible(false);
-//      setTeamInfo({ results, ...teamInfo });
-//    }).catch(err => {
-//      console.log(err);
-//    });
-//  }
+  const handleUpdate = (evt) => {
+    // Front-end validation (sufficient for now...)
+    if (!teamInfo.name.trim()) {
+      return setFlashProps({ message: 'Team name can\'t be blank', variant: 'error' });
+    }
+
+    publishTeam({...teamInfo, members: undefined, tableData: undefined}).then(results => {
+      if (results.statusCode) {
+        setFlashProps({ message: results.message, variant: 'error' });
+      }
+      else if (results.errors) {
+        setFlashProps({...results, variant: 'error' });
+      }
+      else {
+        setPrevInputState({});
+        setTeamInfo(results);
+        setFlashProps({ message: 'Team updated', variant: 'success' });
+      }
+    }).catch(err => {
+      console.log(err);
+    });
+  }
 
   /**
    * Remove this team
    */
-//  const handleDelete = (evt) => {
-//    if (teamInfo.members.length > 1) {
-//      return window.alert('Remove all team members before deleting the team');
-//    }
-//    if (window.confirm('Delete team?')) {
-//      deleteTeam(teamInfo.id).then(results => {
-//        setToOrganization(true);
-//      });
-//    }
-//  }
+  const handleDelete = (evt) => {
+    if (teamInfo.members.length > 1) {
+      return window.alert('Remove all team members before deleting the team');
+    }
+    if (window.confirm('Delete team?')) {
+      deleteTeam(teamInfo.id).then(results => {
+        if (results.statusCode) {
+          setFlashProps({ message: results.message, variant: 'error' });
+        }
+        else {
+          setToAgent(true);
+        }
+      }).catch(err => {
+        console.log('TeamInfo Error');
+        console.log(err);
+      });
+    }
+  }
 
   /**
    * Set tool-tip message on field validation
@@ -155,11 +166,11 @@ const TeamInfo = (props) => {
 //  }
 
   /**
-   * Redirect to `/organization` when this team is deleted
+   * Redirect to `/agent` when this team is deleted
    */
-//  if (toOrganization) {
-//    return <Redirect to={{ pathname: `/organization/${teamInfo.organizationId}`, state: 'Team deleted' }} />
-//  }
+  if (toAgent) {
+    return <Redirect to={{ pathname: `/agent`, state: 'Team deleted' }} />
+  }
 
   /**
    * Add a new member to this team
@@ -228,7 +239,16 @@ const TeamInfo = (props) => {
                   <TableBody>
                     <TableRow>
                       <TableCell align="right" component="th" scope="row">Name:</TableCell>
-                      <TableCell align="left">{teamInfo.name}</TableCell>
+                      <TableCell  lign="left">
+                        <input id="team-name-field" value={teamInfo.name || ''}
+                          onChange={e => {
+                              if (!prevInputState.name) {
+                                setPrevInputState({ name: teamInfo.name });
+                              }
+                              setTeamInfo({ ...teamInfo, name: e.target.value });
+                            }
+                          } />
+                      </TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell align="right" component="th" scope="row">Email:</TableCell>
@@ -238,6 +258,42 @@ const TeamInfo = (props) => {
                 </Table>
               </TableContainer>
             </Grid>
+            <Grid item className={classes.grid}>
+              <TableContainer>
+                <Table className={classes.table} aria-label="Team delete and edit buttons">
+                  <TableBody>
+                    <TableRow>
+                      { Object.keys(prevInputState).length ?
+                        <>
+                          <TableCell align="right">
+                            <Button id="cancel-team-changes" variant="contained" color="secondary"
+                                    onClick={e => {
+                                      setTeamInfo({ ...teamInfo, ...prevInputState });
+                                      setPrevInputState({});
+                                    }
+                            }>
+                              Cancel
+                            </Button>
+                          </TableCell>
+                          <TableCell align="left">
+                            <Button id="save-team" variant="contained" color="primary" onClick={handleUpdate}>
+                              Save
+                            </Button>
+                          </TableCell>
+                        </>
+                      :
+                        <TableCell align="left">
+                          <Button id="delete-team" variant="contained" color="secondary" onClick={handleDelete}>
+                            Delete
+                          </Button>
+                        </TableCell>
+                      }
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Grid>
+
             <Grid item className={classes.grid}>
               <MaterialTable
                 title='Members'
@@ -258,8 +314,11 @@ const TeamInfo = (props) => {
         )}
       </Grid>
 
-      { flashProps.message ? <Flash message={flashProps.message} variant={flashProps.variant} /> : '' }
-      { flashProps.errors ? flashProps.errors.map(error => <Flash message={error.message} variant={flashProps.variant} />) : '' }
+      { flashProps.message ? <Flash message={flashProps.message} onClose={() => setFlashProps({})} variant={flashProps.variant} /> : '' }
+      { flashProps.errors ? flashProps.errors.map(error => <Flash message={error.message}
+                                                                  onClose={() => setFlashProps({})}
+                                                                  variant={flashProps.variant}
+                                                                  key={`error-${error.message}`} />) : '' }
     </div>
   );
 };

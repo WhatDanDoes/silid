@@ -16,7 +16,7 @@ const usePutTeamService = () => {
     headers.append('Content-Type', 'application/json; charset=utf-8');
 
     return new Promise((resolve, reject) => {
-      fetch('/team',
+      fetch(`/team/${team.id}`,
         {
           method: 'PUT',
           body: JSON.stringify(team),

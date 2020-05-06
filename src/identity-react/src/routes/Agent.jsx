@@ -137,7 +137,10 @@ const Agent = (props) => {
                     }
                     else {
                       publishTeam(newData).then(profile => {;
-                        if (profile.errors) {
+                        if (profile.statusCode) {
+                          setFlashProps({ message: profile.message, variant: 'error' });
+                        }
+                        else if (profile.errors) {
                           setFlashProps({ errors: profile.errors, variant: 'error' });
                         }
                         else {
@@ -170,7 +173,7 @@ const Agent = (props) => {
         : ''}
       </Grid>
       { props.location.state ? <Flash message={props.location.state} variant="success" /> : '' }
-      { flashProps.message ? <Flash message={flashProps.message} variant={flashProps.variant} /> : '' }
+      { flashProps.message ? <Flash message={flashProps.message} variant={flashProps.variant} onClose={() => setFlashProps({})} /> : '' }
       { flashProps.errors ? flashProps.errors.map((error, index) => <Flash message={error.message}
                                                                            variant={flashProps.variant}
                                                                            onClose={() => setFlashProps({})}

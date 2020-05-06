@@ -476,7 +476,10 @@ require('../support/setupKeystore').then(keyStuff => {
                                                                 }
                                                             }, attributes: ['socialProfile'] });
 
-          return h.response({...results.socialProfile, user_id: results.socialProfile._json.sub });
+          /**
+           * BEWARE: Auth0 does not return the agent's scope!
+           */
+          return h.response({...results.socialProfile, user_id: results.socialProfile._json.sub, scope: undefined });
         }
       });
 

@@ -123,7 +123,8 @@ module.exports = function(permissions, done) {
         return false;
       })
       .reply(201, (uri, requestBody) => {
-        return {..._profile, user_metadata: {...requestBody.user_metadata} };
+        _profile.user_metadata = {...requestBody.user_metadata};
+        return _profile;
       });
 
     /**
