@@ -134,65 +134,48 @@ describe('teamMembershipSpec', () => {
         });
 
         describe('unknown agent', () => {
-          beforeEach(done => {
-            stubUserAppMetadataRead((err, apiScopes) => {
-              if (err) return done.fail();
-              ({userAppMetadataReadScope, oauthTokenScope} = apiScopes);
-              done();
-            });
-          });
+//          beforeEach(done => {
+//            stubUserAppMetadataRead((err, apiScopes) => {
+//              if (err) return done.fail();
+//              ({userAppMetadataReadScope, oauthTokenScope} = apiScopes);
+//              done();
+//            });
+//          });
 
-          describe('Auth0', () => {
-            it('/oauth/token endpoint is called to retrieve a machine-to-machine access token', done => {
-              authenticatedSession
-                .put(`/team/${teamId}/agent`)
-                .send({
-                  email: 'somebrandnewguy@example.com'
-                })
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(201)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-                  expect(oauthTokenScope.isDone()).toBe(true);
-                  done();
-                });
-            });
-
-            it('is called to see if the agent already exists', done => {
-              authenticatedSession
-                .put(`/team/${teamId}/agent`)
-                .send({
-                  email: 'somebrandnewguy@example.com'
-                })
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(201)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-                  expect(userAppMetadataReadScope.isDone()).toBe(true);
-                  done();
-                });
-            });
-
-            it('is called to create the agent', done => {
-              authenticatedSession
-                .put(`/team/${teamId}/agent`)
-                .send({
-                  email: 'somebrandnewguy@example.com'
-                })
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(201)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-
-                  expect(userReadScope.isDone()).toBe(true);
-                  done();
-                });
-            });
-
-//            it('is called to update the agent\'s user_metadata', done => {
+//          describe('Auth0', () => {
+//            it('/oauth/token endpoint is called to retrieve a machine-to-machine access token', done => {
+//              authenticatedSession
+//                .put(`/team/${teamId}/agent`)
+//                .send({
+//                  email: 'somebrandnewguy@example.com'
+//                })
+//                .set('Accept', 'application/json')
+//                .expect('Content-Type', /json/)
+//                .expect(201)
+//                .end(function(err, res) {
+//                  if (err) return done.fail(err);
+//                  expect(oauthTokenScope.isDone()).toBe(true);
+//                  done();
+//                });
+//            });
+//
+//            it('is called to see if the agent already exists', done => {
+//              authenticatedSession
+//                .put(`/team/${teamId}/agent`)
+//                .send({
+//                  email: 'somebrandnewguy@example.com'
+//                })
+//                .set('Accept', 'application/json')
+//                .expect('Content-Type', /json/)
+//                .expect(201)
+//                .end(function(err, res) {
+//                  if (err) return done.fail(err);
+//                  expect(userAppMetadataReadScope.isDone()).toBe(true);
+//                  done();
+//                });
+//            });
+//
+//            it('is called to create the agent', done => {
 //              authenticatedSession
 //                .put(`/team/${teamId}/agent`)
 //                .send({
@@ -204,11 +187,28 @@ describe('teamMembershipSpec', () => {
 //                .end(function(err, res) {
 //                  if (err) return done.fail(err);
 //
-//                  expect(updateTeamScope.isDone()).toBe(true);
+//                  expect(userReadScope.isDone()).toBe(true);
 //                  done();
 //                });
 //            });
-          });
+//
+////            it('is called to update the agent\'s user_metadata', done => {
+////              authenticatedSession
+////                .put(`/team/${teamId}/agent`)
+////                .send({
+////                  email: 'somebrandnewguy@example.com'
+////                })
+////                .set('Accept', 'application/json')
+////                .expect('Content-Type', /json/)
+////                .expect(201)
+////                .end(function(err, res) {
+////                  if (err) return done.fail(err);
+////
+////                  expect(updateTeamScope.isDone()).toBe(true);
+////                  done();
+////                });
+////            });
+//          });
 
 //          it('returns the agent added to the membership', done => {
 //            models.Team.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
