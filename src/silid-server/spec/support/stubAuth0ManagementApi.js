@@ -1,19 +1,16 @@
 /**
- * Stub all the commonly used Auth0 Management API endpoints
- *
- * The real functionality is embodied in `stubAuth0ManagementEndpoint` This
- * function simply wraps frequent stubbing requirements
+ * Stub all the Auth0 Management API endpoints used on login
  *
  * @param function
  */
 const apiScope = require('../../config/apiPermissions');
 const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
 const stubRolesRead = require('../support/auth0Endpoints/stubRolesRead');
-const stubAuth0ManagementEndpoint = require('../support/stubAuth0ManagementEndpoint');
+const stubUserAssignRoles = require('../support/auth0Endpoints/stubUserAssignRoles');
 
 module.exports = function(done) {
 
-  let userReadScope, getRolesScope, userAssignRolesScope, tokenScope;
+  let userReadScope, getRolesScope, userAssignRolesScope;
 
   /**
    * This layer stubs the endpoints required for the retrieving the agent's
@@ -21,7 +18,7 @@ module.exports = function(done) {
    */
   stubUserRead((err, apiScopes) => {
     if (err) return done(err);
-    ({userReadScope, oauthTokenScope} = apiScopes);
+    ({userReadScope} = apiScopes);
 
     /**
      * The following two layers stub the endpoints required for the
@@ -31,11 +28,15 @@ module.exports = function(done) {
       if (err) return done(err);
       ({rolesReadScope} = apiScopes);
 
-      stubAuth0ManagementEndpoint([apiScope.read.roles, apiScope.update.users], (err, apiScopes) => {
+      /**
+       * If basic `viewer` permissions are not assigned (they won't be on
+       * initial login), assign the agent the `viewer role
+       */
+      stubUserAssignRoles((err, apiScopes) => {
         if (err) return done(err);
-        ({userAssignRolesScope, oauthTokenScope} = apiScopes);
+        ({userAssignRolesScope} = apiScopes);
 
-        done(null, {userReadScope, rolesReadScope, userAssignRolesScope, oauthTokenScope});
+        done(null, {userReadScope, rolesReadScope, userAssignRolesScope});
       });
     });
   });

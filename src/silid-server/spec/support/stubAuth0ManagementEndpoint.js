@@ -154,20 +154,9 @@ module.exports = function(permissions, done) {
         ]
       });
 
-    /**
-     * GET `/users/:id/roles`
-     */
-    const userAssignRolesScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-      .log(console.log)
-      .post(/api\/v2\/users\/.+\/roles/, {
-                              'roles': /.+/i,
-      })
-      .reply(200, { });
-
     done(null, {
                 oauthTokenScope,
                 userCreateScope, userDeleteScope, userReadByEmailScope,
-                userAssignRolesScope,
                 updateTeamScope, teamReadScope,
     });
   });
