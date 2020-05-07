@@ -44,7 +44,7 @@ function updateDbAndVerify(permissions, req, res, next) {
 
     if (!req.agent || profileChanged) {
 
-      const managementClient = getManagementClient(apiScope.read.users);
+      let managementClient = getManagementClient(apiScope.read.users);
       managementClient.getUser({id: socialProfile.user_id}).then(results => {
 
         models.Agent.update(
@@ -70,16 +70,55 @@ function updateDbAndVerify(permissions, req, res, next) {
             models.Agent.create({ name: socialProfile.name, email: socialProfile.email, socialProfile: socialProfile }).then(agent => {
               req.agent = agent;
 
+              // This almost certainly superfluous. Revisit
               if (req.agent.isSuper) {
                 return next();
               }
 
-              jwtAuthz(permissions, { failWithError: true, checkAllScopes: true })(req, res, err => {
-                if (err) {
-                  return res.status(err.statusCode).json(err);
-                }
+              models.Invitation.findAll({ recipient: agent.email }).then(invites => {
 
-                next();
+                if (invites.length) {
+                  if (!req.user.user_metadata) {
+                    req.user.user_metadata = { rsvps: [] };
+                  }
+
+                  if (!req.user.user_metadata.rsvps) {
+                    req.user.user_metadata.rsvps = [];
+                  }
+
+                  for (let invite of invites) {
+                    req.user.user_metadata.rsvps.push({ uuid: invite.uuid, type: invite.type, name: invite.name, recipient: invite.recipient });
+                  }
+
+                  managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+                  managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
+
+                    models.Invitation.destroy({ where: { recipient: agent.email } }).then(results => {
+                      jwtAuthz(permissions, { failWithError: true, checkAllScopes: true })(req, res, err => {
+                        if (err) {
+                          return res.status(err.statusCode).json(err);
+                        }
+
+                        next();
+                      });
+                    }).catch(err => {
+                      res.status(500).json(err);
+                    });
+                  }).catch(err => {
+                    res.status(500).json(err);
+                  });
+                }
+                else {
+                  jwtAuthz(permissions, { failWithError: true, checkAllScopes: true })(req, res, err => {
+                    if (err) {
+                      return res.status(err.statusCode).json(err);
+                    }
+
+                    next();
+                  });
+                }
+              }).catch(err => {
+                res.status(500).json(err);
               });
             }).catch(err => {
               res.status(500).json(err);
