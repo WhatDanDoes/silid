@@ -29,6 +29,8 @@ module.exports = function(done) {
 
       ({accessToken, oauthTokenScope} = oauthScopes);
 
+      const userAppMetadataReadOauthTokenScope = oauthTokenScope;
+
       /**
        * GET `/users/:id`. Get a single user by Auth0 ID
        */
@@ -38,7 +40,7 @@ module.exports = function(done) {
         .query({})
         .reply(200, _profile);
 
-        done(null, {userAppMetadataReadScope, oauthTokenScope});
+        done(null, {userAppMetadataReadScope, userAppMetadataReadOauthTokenScope});
 
     });
   });
