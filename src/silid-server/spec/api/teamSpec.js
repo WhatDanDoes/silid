@@ -428,7 +428,7 @@ describe('teamSpec', () => {
 
                   stubUserAppMetadataRead((err, apiScopes) => {
                     if (err) return done.fail();
-                    ({userAppMetadataReadScope, oauthTokenScope} = apiScopes);
+                    ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
 
                     done();
                   });
@@ -460,7 +460,7 @@ describe('teamSpec', () => {
                 .expect(200)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
-                  expect(oauthTokenScope.isDone()).toBe(true);
+                  expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(true);
                   done();
                 });
             });

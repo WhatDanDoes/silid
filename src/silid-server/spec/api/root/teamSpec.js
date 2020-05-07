@@ -89,7 +89,7 @@ describe('root/teamSpec', () => {
                 // This stubs calls subsequent to the initial login
                 stubUserAppMetadataRead((err, apiScopes) => {
                   if (err) return done.fail();
-                  ({userAppMetadataReadScope, oauthTokenScope} = apiScopes);
+                  ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
 
 //                stubUserRead((err, apiScopes) => {
 //                  if (err) return done.fail();
@@ -129,7 +129,7 @@ describe('root/teamSpec', () => {
               .expect(200)
               .end(function(err, res) {
                 if (err) return done.fail(err);
-                expect(oauthTokenScope.isDone()).toBe(true);
+                expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(true);
                 done();
               });
           });
