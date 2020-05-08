@@ -7,7 +7,7 @@ const stubOauthToken =  require('./stubOauthToken');
 const _profile = require('../../fixtures/sample-auth0-profile-response');
 
 /**
- * This stubs the Auth0 endpoint that returns searched agent profile info 
+ * This stubs the Auth0 endpoint that returns searched agent profile info
  *
  * @param object
  * @param function

@@ -332,78 +332,85 @@ router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(
     return res.status(404).json( { message: 'No such team' });
   }
 
-  models.Invitation.findOne({ where: { uuid: req.params.id, recipient: req.body.email } }).then(invite => {
-    const mailOptions = {
-      from: process.env.NOREPLY_EMAIL,
-      subject: 'Identity team invitation',
-      text: `
-        You have been invited to join a team:
+//  const managementClient = getManagementClient([apiScope.read.users].join(' '));
+//  managementClient.getUsersByEmail(req.body.email).then(agents => {
 
-        ${team.name}
+    models.Invitation.findOne({ where: { uuid: req.params.id, recipient: req.body.email } }).then(invite => {
+      const mailOptions = {
+        from: process.env.NOREPLY_EMAIL,
+        subject: 'Identity team invitation',
+        text: `
+          You have been invited to join a team:
 
-        Login at the link below to view the invitation:
+          ${team.name}
 
-        ${process.env.SERVER_DOMAIN}
-      `
-    };
+          Login at the link below to view the invitation:
 
-    if (!invite) {
+          ${process.env.SERVER_DOMAIN}
+        `
+      };
 
-        /**
-         * NOTE TO SELF:
-         *
-         * Remember to test this leader user_metadata persistence on client-side
-         *
-         */
-        // Auth0 does not return agent scope
-        // result.scope = req.user.scope;
-        // 2020-4-30 https://stackoverflow.com/a/24498660/1356582
-        // This updates the agent's session data
-        // req.login(result, err => {
-        //   if (err) return next(err);
+      if (!invite) {
 
-      const invite = { uuid: req.params.id, recipient: req.body.email, type: 'team', name: team.name };
-      models.Invitation.create(invite).then(results => {
+          /**
+           * NOTE TO SELF:
+           *
+           * Remember to test this leader user_metadata persistence on client-side
+           *
+           */
+          // Auth0 does not return agent scope
+          // result.scope = req.user.scope;
+          // 2020-4-30 https://stackoverflow.com/a/24498660/1356582
+          // This updates the agent's session data
+          // req.login(result, err => {
+          //   if (err) return next(err);
 
-        if (!req.user.user_metadata.pendingInvitations) {
-          req.user.user_metadata.pendingInvitations = [];
-        }
-        req.user.user_metadata.pendingInvitations.push(invite);
+        const invite = { uuid: req.params.id, recipient: req.body.email, type: 'team', name: team.name };
+        models.Invitation.create(invite).then(results => {
 
-        const managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
-        managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
+          if (!req.user.user_metadata.pendingInvitations) {
+            req.user.user_metadata.pendingInvitations = [];
+          }
+          req.user.user_metadata.pendingInvitations.push(invite);
 
-          mailOptions.to = invite.recipient;
+          const managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+          managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
 
-          mailer.transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-              console.error('Mailer Error', error);
-              return res.status(501).json(error);
-            }
+            mailOptions.to = invite.recipient;
 
-            res.status(201).json({ message: 'Invitation sent' });
+            mailer.transporter.sendMail(mailOptions, (error, info) => {
+              if (error) {
+                console.error('Mailer Error', error);
+                return res.status(501).json(error);
+              }
+
+              res.status(201).json({ message: 'Invitation sent' });
+            });
+          }).catch(err => {
+            res.status(500).json(err);
           });
         }).catch(err => {
           res.status(500).json(err);
         });
-      }).catch(err => {
-        res.status(500).json(err);
-      });
-    }
-    else {
-      mailOptions.to = invite.recipient;
+      }
+      else {
+        mailOptions.to = invite.recipient;
 
-      // 2020-5-7 Force updating the timestamp - https://github.com/sequelize/sequelize/issues/3759
-      invite.changed('updatedAt', true);
-      invite.save().then(result => {
-        return res.status(201).json({ message: 'Invitation sent' });
-      }).catch(err => {
-        res.status(500).json(err);
-      });
-    }
-  }).catch(err => {
-    res.status(500).json(err);
-  });
+        // 2020-5-7 Force updating the timestamp - https://github.com/sequelize/sequelize/issues/3759
+        invite.changed('updatedAt', true);
+        invite.save().then(result => {
+          return res.status(201).json({ message: 'Invitation sent' });
+        }).catch(err => {
+          res.status(500).json(err);
+        });
+      }
+    }).catch(err => {
+      res.status(500).json(err);
+    });
+//  }).catch(err => {
+//  console.log(err);
+//    res.status(500).json(err);
+//  });
 });
 
 /**

@@ -8,6 +8,7 @@ const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
 const stubAuth0ManagementEndpoint = require('../support/stubAuth0ManagementEndpoint');
 const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
 const stubUserReadQuery = require('../support/auth0Endpoints/stubUserReadQuery');
+const stubUserReadByEmail = require('../support/auth0Endpoints/stubUserReadByEmail');
 const stubUserAppMetadataUpdate = require('../support/auth0Endpoints/stubUserAppMetadataUpdate');
 const mailer = require('../../mailer');
 const uuid = require('uuid');
@@ -117,10 +118,14 @@ describe('teamMembershipSpec', () => {
         describe('unknown agent', () => {
           let userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope;
           beforeEach(done => {
-            stubUserAppMetadataUpdate((err, apiScopes) => {
+            stubUserReadByEmail([], (err, apiScopes) => {
               if (err) return done.fail();
-              ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-              done();
+
+              stubUserAppMetadataUpdate((err, apiScopes) => {
+                if (err) return done.fail();
+                ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                done();
+              });
             });
           });
 
@@ -410,7 +415,6 @@ describe('teamMembershipSpec', () => {
                       // with a call to Auth0
                       stubUserRead((err, apiScopes) => {
                         if (err) return done.fail();
-
                         stubUserReadQuery([{..._profile,
                                            email: 'someguy@example.com',
                                            name: 'Some Guy',
@@ -495,7 +499,7 @@ describe('teamMembershipSpec', () => {
 
                       it('removes the invitation from the team leader\'s user_metadata', done => {
                         invitedAgentSession
-                          .get(`${verificationUrl}/reject`)
+                          .get(`${verificationUrl}/accept`)
                           .set('Accept', 'application/json')
                           .expect('Content-Type', /json/)
                           .expect(201)
@@ -506,6 +510,44 @@ describe('teamMembershipSpec', () => {
                             expect(_profile.user_metadata.pendingInvitations.length).toEqual(0);
 
                             done();
+                          });
+                      });
+
+                      it('returns a friendly message if agent is already a member of the team', done => {
+                        // Agent accepts invite
+                        invitedAgentSession
+                          .get(`${verificationUrl}/accept`)
+                          .set('Accept', 'application/json')
+                          .expect('Content-Type', /json/)
+                          .expect(201)
+                          .end(function(err, res) {
+                            if (err) return done.fail(err);
+
+console.log("INVITING THE SAME USER");
+                            // Try adding the agent again
+                            stubUserRead((err, apiScopes) => {
+                              if (err) return done.fail();
+
+                              stubUserReadByEmail([{..._profile, user_metadata: {
+                                                                  teams: [ {name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId } ] } }], (err, apiScopes) => {
+                                if (err) return done.fail();
+
+                                authenticatedSession
+                                  .put(`/team/${teamId}/agent`)
+                                  .send({
+                                    email: 'somebrandnewguy@example.com'
+                                  })
+                                  .set('Accept', 'application/json')
+                                  .expect('Content-Type', /json/)
+                                  .expect(200)
+                                  .end(function(err, res) {
+                                    if (err) return done.fail(err);
+
+                                    expect(res.body.message).toEqual('somebrandnewguy@example.com is already a member of this team');
+                                    done();
+                                  });
+                              });
+                            });
                           });
                       });
                     });
@@ -617,27 +659,30 @@ describe('teamMembershipSpec', () => {
 
                     stubUserRead((err, apiScopes) => {
                       if (err) return done.fail();
+                      stubUserReadByEmail([], (err, apiScopes) => {
+                        if (err) return done.fail();
 
-                      authenticatedSession
-                        .put(`/team/${teamId}/agent`)
-                        .send({
-                          email: 'somebrandnewguy@example.com'
-                        })
-                        .set('Accept', 'application/json')
-                        .expect('Content-Type', /json/)
-                        .expect(201)
-                        .end(function(err, res) {
-                          if (err) return done.fail(err);
+                        authenticatedSession
+                          .put(`/team/${teamId}/agent`)
+                          .send({
+                            email: 'somebrandnewguy@example.com'
+                          })
+                          .set('Accept', 'application/json')
+                          .expect('Content-Type', /json/)
+                          .expect(201)
+                          .end(function(err, res) {
+                            if (err) return done.fail(err);
 
-                          models.Invitation.findAll().then(results => {
-                            expect(results.length).toEqual(1);
-                            expect(results[0].updatedAt).toBeGreaterThan(updatedAt);
+                            models.Invitation.findAll().then(results => {
+                              expect(results.length).toEqual(1);
+                              expect(results[0].updatedAt).toBeGreaterThan(updatedAt);
 
-                            done();
-                          }).catch(err => {
-                            done.fail(err);
+                              done();
+                            }).catch(err => {
+                              done.fail(err);
+                            });
                           });
-                        });
+                      });
                     });
                   }).catch(err => {
                     done.fail(err);
