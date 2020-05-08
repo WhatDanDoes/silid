@@ -41,7 +41,6 @@ function updateDbAndVerify(permissions, req, res, next) {
         console.log('these aren\'t equal');
       }
     }
-
     if (!req.agent || profileChanged) {
 
       let managementClient = getManagementClient(apiScope.read.users);
@@ -75,50 +74,12 @@ function updateDbAndVerify(permissions, req, res, next) {
                 return next();
               }
 
-              models.Invitation.findAll({ recipient: agent.email }).then(invites => {
-
-                if (invites.length) {
-                  if (!req.user.user_metadata) {
-                    req.user.user_metadata = { rsvps: [] };
-                  }
-
-                  if (!req.user.user_metadata.rsvps) {
-                    req.user.user_metadata.rsvps = [];
-                  }
-
-                  for (let invite of invites) {
-                    req.user.user_metadata.rsvps.push({ uuid: invite.uuid, type: invite.type, name: invite.name, recipient: invite.recipient });
-                  }
-
-                  managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
-                  managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
-
-                    models.Invitation.destroy({ where: { recipient: agent.email } }).then(results => {
-                      jwtAuthz(permissions, { failWithError: true, checkAllScopes: true })(req, res, err => {
-                        if (err) {
-                          return res.status(err.statusCode).json(err);
-                        }
-
-                        next();
-                      });
-                    }).catch(err => {
-                      res.status(500).json(err);
-                    });
-                  }).catch(err => {
-                    res.status(500).json(err);
-                  });
+              jwtAuthz(permissions, { failWithError: true, checkAllScopes: true })(req, res, err => {
+                if (err) {
+                  return res.status(err.statusCode).json(err);
                 }
-                else {
-                  jwtAuthz(permissions, { failWithError: true, checkAllScopes: true })(req, res, err => {
-                    if (err) {
-                      return res.status(err.statusCode).json(err);
-                    }
 
-                    next();
-                  });
-                }
-              }).catch(err => {
-                res.status(500).json(err);
+                next();
               });
             }).catch(err => {
               res.status(500).json(err);
@@ -174,6 +135,47 @@ function updateDbAndVerify(permissions, req, res, next) {
   });
 };
 
+
+/**
+ * When an agent is unknown (i.e., has not logged in before), he
+ * may have invitations waiting in the database. These need to be
+ * handed off to Auth0 user_metadata
+ */
+function checkForInvites(req, done) {
+  models.Invitation.findAll({where: { recipient: req.user.email }, order: [['updatedAt', 'DESC']]}).then(invites => {
+    if (invites.length) {
+      if (!req.user.user_metadata) {
+        req.user.user_metadata = { rsvps: [] };
+      }
+
+      if (!req.user.user_metadata.rsvps) {
+        req.user.user_metadata.rsvps = [];
+      }
+
+      for (let invite of invites) {
+        req.user.user_metadata.rsvps.push({ uuid: invite.uuid, type: invite.type, name: invite.name, recipient: invite.recipient });
+      }
+
+      managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+      managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
+
+        models.Invitation.destroy({ where: { recipient: req.user.email } }).then(results => {
+          done();
+        }).catch(err => {
+          done(err);
+        });
+      }).catch(err => {
+        done(err);
+      });
+    }
+    else {
+      done();
+    }
+  }).catch(err => {
+    done(err);
+  });
+};
+
 /**
  * This is called subsequent to the `passport.authenticate` function.
  * `passport` attaches a `user` property to `req`
@@ -211,7 +213,13 @@ const checkPermissions = function(permissions) {
         managementClient = getManagementClient([apiScope.read.roles, apiScope.update.users].join(' '));
         managementClient.users.assignRoles({ id: req.user.user_id }, { roles: [roleId] }).then(results => {
           req.user.scope = [...new Set(req.user.scope.concat(roles.viewer))];
-          updateDbAndVerify(permissions, req, res, next);
+
+          checkForInvites(req, err => {
+            if (err) {
+              return res.status(500).json(err);
+            }
+            updateDbAndVerify(permissions, req, res, next);
+          });
         }).catch(err => {
           res.status(err.statusCode).json(err.message.error_description);
         });
