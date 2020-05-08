@@ -468,6 +468,32 @@ router.get('/:id/invite/:action', checkPermissions([scope.create.teamMembers]), 
   });
 });
 
+
+/**
+ * Delete pending team invitation
+ */
+router.delete('/:id/invite', checkPermissions([scope.delete.teamMembers]), function(req, res, next) {
+  const inviteIndex = req.user.user_metadata.pendingInvitations.findIndex(invite =>
+                                                                          invite.uuid === req.params.id && invite.type === 'team' && invite.recipient === req.body.email);
+  if (inviteIndex < 0) {
+    return res.status(404).json({ message: 'No such invitation' });
+  }
+
+  models.Invitation.destroy({ where: { uuid: req.params.id, recipient: req.body.email } }).then(results => {
+    req.user.user_metadata.pendingInvitations.splice(inviteIndex, 1);
+
+    const managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+    managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
+      res.status(201).json(req.user);
+    }).catch(err => {
+      res.status(err.statusCode).json(err.message.error_description);
+    });
+  }).catch(err => {
+    res.status(500).json(err);
+  });
+});
+
+
 router.delete('/:id/agent/:agentId', checkPermissions([scope.delete.teamMembers]), function(req, res, next) {
   models.Team.findOne({ where: { id: req.params.id },
                                  include: [ 'creator',
