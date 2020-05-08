@@ -35,6 +35,7 @@ module.exports = function(done) {
         .reply(201, (uri, requestBody) => {
           _profile.user_metadata = {...requestBody.user_metadata};
 
+          // Be very careful here... this is manipulating a value in a wide scope
           return _profile;
         });
 
