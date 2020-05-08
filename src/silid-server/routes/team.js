@@ -322,90 +322,151 @@ router.patch('/', checkPermissions([scope.update.teams]), function(req, res, nex
 });
 
 router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(req, res, next) {
-  const managementClient = getManagementClient([apiScope.read.users].join(' '));
-  managementClient.getUsersByEmail(req.body.email).then(agent => {
-    if (!agents) {
 
+  let team;
+  if (req.user.user_metadata.teams) {
+    team = req.user.user_metadata.teams.find(team => team.id === req.params.id && team.leader === req.user.email);
+  }
+
+  if (!team) {
+    return res.status(404).json( { message: 'No such team' });
+  }
+
+  models.Invitation.findOne({ where: { uuid: req.params.id, recipient: req.body.email } }).then(invite => {
+    const mailOptions = {
+      from: process.env.NOREPLY_EMAIL,
+      subject: 'Identity team invitation',
+      text: `
+        You have been invited to join a team:
+
+        ${team.name}
+
+        Login at the link below to view the invitation:
+
+        ${process.env.SERVER_DOMAIN}
+      `
+    };
+
+    if (!invite) {
+
+        /**
+         * NOTE TO SELF:
+         *
+         * Remember to test this leader user_metadata persistence on client-side
+         *
+         */
+        // Auth0 does not return agent scope
+        // result.scope = req.user.scope;
+        // 2020-4-30 https://stackoverflow.com/a/24498660/1356582
+        // This updates the agent's session data
+        // req.login(result, err => {
+        //   if (err) return next(err);
+
+      const invite = { uuid: req.params.id, recipient: req.body.email, type: 'team', name: team.name };
+      models.Invitation.create(invite).then(results => {
+
+        if (!req.user.user_metadata.pendingInvitations) {
+          req.user.user_metadata.pendingInvitations = [];
+        }
+        req.user.user_metadata.pendingInvitations.push(invite);
+
+        const managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+        managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
+
+          mailOptions.to = invite.recipient;
+
+          mailer.transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+              console.error('Mailer Error', error);
+              return res.status(501).json(error);
+            }
+
+            res.status(201).json({ message: 'Invitation sent' });
+          });
+        }).catch(err => {
+          res.status(500).json(err);
+        });
+      }).catch(err => {
+        res.status(500).json(err);
+      });
     }
+    else {
+      mailOptions.to = invite.recipient;
 
-    res.status(201).json();
+      // 2020-5-7 Force updating the timestamp - https://github.com/sequelize/sequelize/issues/3759
+      invite.changed('updatedAt', true);
+      invite.save().then(result => {
+        return res.status(201).json({ message: 'Invitation sent' });
+      }).catch(err => {
+        res.status(500).json(err);
+      });
+    }
+  }).catch(err => {
+    res.status(500).json(err);
+  });
+});
+
+/**
+ * Accept or reject team invitation
+ */
+router.get('/:id/invite/:action', checkPermissions([scope.create.teamMembers]), function(req, res, next) {
+  const rsvpIndex = req.user.user_metadata.rsvps.findIndex(rsvp => rsvp.uuid === req.params.id && rsvp.type === 'team' && rsvp.recipient === req.user.email);
+  if (rsvpIndex < 0) {
+    return res.status(404).json({ message: 'No such invitation' });
+  }
+  const managementClient = getManagementClient(apiScope.read.usersAppMetadata);
+  managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.pendingInvitations.uuid:"${req.params.id}"` }).then(agents => {
+
+    /**
+     * Can there (or will there ever) be more than one agent in this scenario?
+     */
+    if (agents.length) {
+      let inviteIndex;
+      const teamLeader = agents.find(a => {
+        if (a.user_metadata && a.user_metadata.pendingInvitations) {
+          inviteIndex = a.user_metadata.pendingInvitations.findIndex(i => i.uuid === req.params.id && i.type === 'team' && i.recipient === req.user.email);
+          return inviteIndex > -1;
+        }
+        return false;
+      });
+
+      if (!teamLeader) {
+        return res.status(404).json({ message: 'No such invitation' });
+      }
+
+      if (!req.user.user_metadata.teams) {
+        req.user.user_metadata.teams = [];
+      }
+
+      if (req.params.action === 'accept') {
+        let team = teamLeader.user_metadata.teams.find(t => t.id === req.params.id)
+        req.user.user_metadata.teams.push(team);
+
+      }
+      else if (req.params.action !== 'reject') {
+        return res.status(404).send();
+      }
+
+      req.user.user_metadata.rsvps.splice(rsvpIndex, 1);
+      teamLeader.user_metadata.pendingInvitations.splice(inviteIndex, 1);
+
+      managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
+        managementClient.updateUser({id: teamLeader.user_id}, { user_metadata: teamLeader.user_metadata }).then(result => {
+          res.status(201).json(req.user);
+        }).catch(err => {
+          res.status(err.statusCode).json(err.message.error_description);
+        });
+      }).catch(err => {
+        res.status(err.statusCode).json(err.message.error_description);
+      });
+    }
+    else {
+      res.status(404).json({ message: 'No such invitation' });
+    }
   }).catch(err => {
     res.status(err.statusCode).json(err.message.error_description);
   });
-
-
-//  models.Team.findOne({ where: { id: req.params.id },
-//                                 include: [ 'creator',
-//                                            { model: models.Agent, as: 'members' },
-//                                            'organization'] }).then(team => {
-//
-//    if (!team) {
-//      return res.status(404).json( { message: 'No such team' });
-//    }
-//
-//    if (!req.agent.isSuper && !team.members.map(member => member.id).includes(req.agent.id)) {
-//      return res.status(403).json({ message: 'You are not a member of this team' });
-//    }
-//
-//    models.Agent.findOne({ where: { email: req.body.email } }).then(agent => {
-//
-//      const mailOptions = {
-//        from: process.env.NOREPLY_EMAIL,
-//        subject: 'Identity team invitation',
-//        text: `You have been invited to join ${team.name}
-//
-//Click or copy-paste the link below to accept:
-//
-//`
-//      };
-//
-//      if (!agent) {
-//        let newAgent = new models.Agent({ email: req.body.email });
-//        newAgent.save().then(result => {
-//          team.addMember(newAgent.id).then(result => {
-//            mailOptions.text += `${process.env.SERVER_DOMAIN}/verify/${result[0].verificationCode}\n`;
-//            mailOptions.to = newAgent.email;
-//            mailer.transporter.sendMail(mailOptions, (error, info) => {
-//              if (error) {
-//                console.error('Mailer Error', error);
-//                return res.status(501).json(error);
-//              }
-//              res.status(201).json(newAgent);
-//            });
-//          }).catch(err => {
-//            res.status(500).json(err);
-//          })
-//        }).catch(err => {
-//          res.status(500).json(err);
-//        });
-//      }
-//      else {
-//        if (team.members.map(a => a.id).includes(agent.id)) {
-//          return res.status(200).json({ message: `${agent.email} is already a member of this team` });
-//        }
-//
-//        team.addMember(agent.id).then(result => {
-//          mailOptions.text += `${process.env.SERVER_DOMAIN}/verify/${result[0].verificationCode}\n`;
-//          mailOptions.to = agent.email;
-//          mailer.transporter.sendMail(mailOptions, (error, info) => {
-//            if (error) {
-//              console.error('Mailer Error', error);
-//              return res.status(501).json(error);
-//            }
-//            res.status(201).json(agent);
-//          });
-//        }).catch(err => {
-//          res.status(500).json(err);
-//        });
-//      }
-//    }).catch(err => {
-//      res.status(500).json(err);
-//    });
-//  }).catch(err => {
-//    res.status(500).json(err);
-//  });
 });
-
 
 router.delete('/:id/agent/:agentId', checkPermissions([scope.delete.teamMembers]), function(req, res, next) {
   models.Team.findOne({ where: { id: req.params.id },
