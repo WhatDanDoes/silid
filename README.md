@@ -16,6 +16,8 @@ These are not required versions, but rather the most up-to-date available for th
 
 # Setup
 
+[Watch the video setup instructions](https://youtu.be/f0DYs0JiIBw)
+
 Clone this repository.
 
 The client-side React application is found in `src/identity-react`.
