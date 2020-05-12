@@ -322,59 +322,89 @@ router.patch('/', checkPermissions([scope.update.teams]), function(req, res, nex
 });
 
 /**
- * Invite agent to join a team
+ * Send email invitation to join a team
  */
-function inviteAgent(team, req, res) {
-  models.Invitation.findOne({ where: { uuid: req.params.id, recipient: req.body.email } }).then(invite => {
-    const mailOptions = {
-      from: process.env.NOREPLY_EMAIL,
-      subject: 'Identity team invitation',
-      text: `
-        You have been invited to join a team:
+function inviteAgent(invite, req, res) {
+  const mailOptions = {
+    from: process.env.NOREPLY_EMAIL,
+    to: invite.recipient,
+    subject: 'Identity team invitation',
+    text: `
+      You have been invited to join a team:
 
-        ${team.name}
+      ${invite.name}
 
-        Login at the link below to view the invitation:
+      Login at the link below to view the invitation:
 
-        ${process.env.SERVER_DOMAIN}
-      `
-    };
+      ${process.env.SERVER_DOMAIN}
+    `
+  };
 
-    if (!invite) {
+  mailer.transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error('Mailer Error', error);
+      return res.status(501).json(error);
+    }
 
-        /**
-         * NOTE TO SELF:
-         *
-         * Remember to test this leader user_metadata persistence on client-side
-         *
-         */
-        // Auth0 does not return agent scope
-        // result.scope = req.user.scope;
-        // 2020-4-30 https://stackoverflow.com/a/24498660/1356582
-        // This updates the agent's session data
-        // req.login(result, err => {
-        //   if (err) return next(err);
+    res.status(201).json({ message: 'Invitation sent' });
+  });
+}
 
-      const invite = { uuid: req.params.id, recipient: req.body.email, type: 'team', name: team.name };
-      models.Invitation.create(invite).then(results => {
+router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(req, res, next) {
+  let team;
+  if (req.user.user_metadata.teams) {
+    team = req.user.user_metadata.teams.find(team => team.id === req.params.id && team.leader === req.user.email);
+  }
 
-        if (!req.user.user_metadata.pendingInvitations) {
-          req.user.user_metadata.pendingInvitations = [];
+  if (!team) {
+    return res.status(404).json({ message: 'No such team' });
+  }
+
+  if (!req.body.email) {
+    return res.status(400).json({ message: 'No email provided' });
+  }
+
+  // Make sure agent isn't already a member of the team
+  models.Agent.findOne({ where: { email: req.body.email.trim().toLowerCase() } }).then(agent => {
+    const invite = { uuid: req.params.id, recipient: req.body.email, type: 'team', name: team.name };
+
+    if (agent) {
+      let managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
+      managementClient.getUser({id: agent.socialProfile.user_id}).then(invitedAgent => {
+
+        let isMember;
+        if (invitedAgent.user_metadata.teams) {
+          isMember = invitedAgent.user_metadata.teams.find(team => team.id === req.params.id && team.leader === agent.email);
         }
-        req.user.user_metadata.pendingInvitations.push(invite);
 
-        const managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
-        managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
+        if (isMember) {
+          return res.status(200).json({ message: `${agent.email} is already a member of this team` });
+        }
 
-          mailOptions.to = invite.recipient;
 
-          mailer.transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-              console.error('Mailer Error', error);
-              return res.status(501).json(error);
-            }
+        // Write invite to agent's rsvps
+        if (!invitedAgent.user_metadata.rsvps) {
+          invitedAgent.user_metadata.rsvps = [];
+        }
+        invitedAgent.user_metadata.rsvps.push(invite);
+        managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+        managementClient.updateUser({id: invitedAgent.user_id}, { user_metadata: invitedAgent.user_metadata }).then(result => {
 
-            res.status(201).json({ message: 'Invitation sent' });
+          // Write invite to team leader's pendingInvitations
+          if (!req.user.user_metadata.pendingInvitations) {
+            req.user.user_metadata.pendingInvitations = [];
+          }
+          req.user.user_metadata.pendingInvitations.push(invite);
+
+          // 2020-5-12 Interesting... if you don't get a new client, it recycles the OAuth token
+          // This is probably totally unnecessary
+          managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+          managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
+
+            inviteAgent(invite, req, res);
+
+          }).catch(err => {
+            res.status(500).json(err);
           });
         }).catch(err => {
           res.status(500).json(err);
@@ -384,59 +414,54 @@ function inviteAgent(team, req, res) {
       });
     }
     else {
-      mailOptions.to = invite.recipient;
+      models.Invitation.findOne({ where: { uuid: req.params.id, recipient: req.body.email } }).then(invitation => {
 
-      // 2020-5-7 Force updating the timestamp - https://github.com/sequelize/sequelize/issues/3759
-      invite.changed('updatedAt', true);
-      invite.save().then(result => {
-        return res.status(201).json({ message: 'Invitation sent' });
+        if (!invitation) {
+
+          /**
+           * NOTE TO SELF:
+           *
+           * Remember to test this leader user_metadata persistence on client-side
+           *
+           */
+          // Auth0 does not return agent scope
+          // result.scope = req.user.scope;
+          // 2020-4-30 https://stackoverflow.com/a/24498660/1356582
+          // This updates the agent's session data
+          // req.login(result, err => {
+          //   if (err) return next(err);
+
+          models.Invitation.create(invite).then(results => {
+
+            if (!req.user.user_metadata.pendingInvitations) {
+              req.user.user_metadata.pendingInvitations = [];
+            }
+            req.user.user_metadata.pendingInvitations.push(invite);
+
+            const managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+            managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
+
+              inviteAgent(invite, req, res);
+            }).catch(err => {
+              res.status(500).json(err);
+            });
+
+          }).catch(err => {
+            res.status(500).json(err);
+          });
+        }
+        else {
+          // 2020-5-7 Force updating the timestamp - https://github.com/sequelize/sequelize/issues/3759
+          invitation.changed('updatedAt', true);
+          invitation.save().then(result => {
+            inviteAgent(invite, req, res);
+          }).catch(err => {
+            res.status(500).json(err);
+          });
+        }
       }).catch(err => {
         res.status(500).json(err);
       });
-    }
-  }).catch(err => {
-    res.status(500).json(err);
-  });
-}
-
-router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(req, res, next) {
-
-  let team;
-  if (req.user.user_metadata.teams) {
-    team = req.user.user_metadata.teams.find(team => team.id === req.params.id && team.leader === req.user.email);
-  }
-
-  if (!team) {
-    return res.status(404).json( { message: 'No such team' });
-  }
-
-  if (!req.body.email) {
-    return res.status(400).json( { message: 'No email provided' });
-  }
-
-  // Make sure agent isn't already a member of the team
-  models.Agent.findOne({ where: { email: req.body.email.trim().toLowerCase() } }).then(agent => {
-
-    if (agent) {
-      const managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
-      managementClient.getUser({id: agent.socialProfile.user_id}).then(result => {
-
-        let isMember;
-        if (result.user_metadata.teams) {
-          isMember = result.user_metadata.teams.find(team => team.id === req.params.id && team.leader === agent.email);
-        }
-
-        if (isMember) {
-          return res.status(200).json( { message: `${agent.email} is already a member of this team` });
-        }
-        inviteAgent(team, req, res);
-
-      }).catch(err => {
-        res.status(500).json(err);
-      });
-    }
-    else {
-      inviteAgent(team, req, res);
     }
   }).catch(err => {
     res.status(500).json(err);
@@ -516,12 +541,40 @@ router.delete('/:id/invite', checkPermissions([scope.delete.teamMembers]), funct
     return res.status(404).json({ message: 'No such invitation' });
   }
 
-  models.Invitation.destroy({ where: { uuid: req.params.id, recipient: req.body.email } }).then(results => {
+  // Returns `0` if nothing was removed
+  models.Invitation.destroy({ where: { uuid: req.params.id, recipient: req.body.email } }).then(deleted => {
+
     req.user.user_metadata.pendingInvitations.splice(inviteIndex, 1);
 
-    const managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+    let managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
     managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
-      res.status(201).json(req.user);
+
+      // A known agent, so he needs to be updated at Auth0
+      if (!deleted) {
+        models.Agent.findOne({ where: { email: req.body.email.trim().toLowerCase() } }).then(invitedAgent => {
+
+          managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
+          managementClient.getUser({id: invitedAgent.socialProfile.user_id}).then(a => {
+            const rsvpIndex = a.user_metadata.rsvps.findIndex(r => r.uuid === req.params.id);
+            a.user_metadata.rsvps.splice(rsvpIndex, 1);
+
+            managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+            managementClient.updateUser({id: a.user_id}, { user_metadata: a.user_metadata }).then(result => {
+
+              res.status(201).json(req.user);
+            }).catch(err => {
+              res.status(err.statusCode).json(err.message.error_description);
+            });
+          }).catch(err => {
+            res.status(err.statusCode).json(err.message.error_description);
+          });
+        }).catch(err => {
+          res.status(500).json(err);
+        });
+      }
+      else {
+        res.status(201).json(req.user);
+      }
     }).catch(err => {
       res.status(err.statusCode).json(err.message.error_description);
     });
