@@ -16,10 +16,15 @@ const _profile = require('../../fixtures/sample-auth0-profile-response');
  *
  * This stubs the Auth0 endpoint that reads a user and his metadata
  *
- * @param array
+ * @param object
  * @param function
  */
-module.exports = function(done) {
+module.exports = function(profile, done) {
+
+  if (typeof profile === 'function') {
+    done = profile;
+    profile = null;
+  }
 
   require('../setupKeystore').then(singleton => {
     let { pub, prv, keystore } = singleton.keyStuff;
@@ -38,7 +43,7 @@ module.exports = function(done) {
         .log(console.log)
         .get(/api\/v2\/users\/.+/)
         .query({})
-        .reply(200, _profile);
+        .reply(200, profile || _profile);
 
         done(null, {userAppMetadataReadScope, userAppMetadataReadOauthTokenScope});
 
