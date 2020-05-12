@@ -8,8 +8,8 @@ const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
 const stubAuth0ManagementEndpoint = require('../support/stubAuth0ManagementEndpoint');
 const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
 const stubUserReadQuery = require('../support/auth0Endpoints/stubUserReadQuery');
-const stubUserReadByEmail = require('../support/auth0Endpoints/stubUserReadByEmail');
 const stubUserAppMetadataUpdate = require('../support/auth0Endpoints/stubUserAppMetadataUpdate');
+const stubUserAppMetadataRead = require('../support/auth0Endpoints/stubUserAppMetadataRead');
 const mailer = require('../../mailer');
 const uuid = require('uuid');
 const nock = require('nock');
@@ -115,17 +115,26 @@ describe('teamMembershipSpec', () => {
             });
         });
 
+        it('doesn\'t barf if no email provided', done => {
+          authenticatedSession
+            .put(`/team/${teamId}/agent`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(400)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(res.body.message).toEqual('No email provided');
+              done();
+            });
+        });
+
         describe('unknown agent', () => {
           let userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope;
           beforeEach(done => {
-            stubUserReadByEmail([], (err, apiScopes) => {
+            stubUserAppMetadataUpdate((err, apiScopes) => {
               if (err) return done.fail();
-
-              stubUserAppMetadataUpdate((err, apiScopes) => {
-                if (err) return done.fail();
-                ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                done();
-              });
+              ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+              done();
             });
           });
 
@@ -523,13 +532,15 @@ describe('teamMembershipSpec', () => {
                           .end(function(err, res) {
                             if (err) return done.fail(err);
 
-console.log("INVITING THE SAME USER");
                             // Try adding the agent again
                             stubUserRead((err, apiScopes) => {
                               if (err) return done.fail();
 
-                              stubUserReadByEmail([{..._profile, user_metadata: {
-                                                                  teams: [ {name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId } ] } }], (err, apiScopes) => {
+                              // This stubs the call for info on the agent who is already a team member
+                              stubUserAppMetadataRead({..._profile,
+                                                       user_metadata: { teams: [
+                                                         {name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId }
+                                                       ] } }, (err, apiScopes) => {
                                 if (err) return done.fail();
 
                                 authenticatedSession
@@ -659,30 +670,27 @@ console.log("INVITING THE SAME USER");
 
                     stubUserRead((err, apiScopes) => {
                       if (err) return done.fail();
-                      stubUserReadByEmail([], (err, apiScopes) => {
-                        if (err) return done.fail();
 
-                        authenticatedSession
-                          .put(`/team/${teamId}/agent`)
-                          .send({
-                            email: 'somebrandnewguy@example.com'
-                          })
-                          .set('Accept', 'application/json')
-                          .expect('Content-Type', /json/)
-                          .expect(201)
-                          .end(function(err, res) {
-                            if (err) return done.fail(err);
+                      authenticatedSession
+                        .put(`/team/${teamId}/agent`)
+                        .send({
+                          email: 'somebrandnewguy@example.com'
+                        })
+                        .set('Accept', 'application/json')
+                        .expect('Content-Type', /json/)
+                        .expect(201)
+                        .end(function(err, res) {
+                          if (err) return done.fail(err);
 
-                            models.Invitation.findAll().then(results => {
-                              expect(results.length).toEqual(1);
-                              expect(results[0].updatedAt).toBeGreaterThan(updatedAt);
+                          models.Invitation.findAll().then(results => {
+                            expect(results.length).toEqual(1);
+                            expect(results[0].updatedAt).toBeGreaterThan(updatedAt);
 
-                              done();
-                            }).catch(err => {
-                              done.fail(err);
-                            });
+                            done();
+                          }).catch(err => {
+                            done.fail(err);
                           });
-                      });
+                        });
                     });
                   }).catch(err => {
                     done.fail(err);
