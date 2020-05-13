@@ -346,7 +346,7 @@ function inviteAgent(invite, req, res) {
       return res.status(501).json(error);
     }
 
-    res.status(201).json({ message: 'Invitation sent' });
+    res.status(201).json(req.user);
   });
 }
 
@@ -381,11 +381,17 @@ router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(
           return res.status(200).json({ message: `${agent.email} is already a member of this team` });
         }
 
-
         // Write invite to agent's rsvps
         if (!invitedAgent.user_metadata.rsvps) {
           invitedAgent.user_metadata.rsvps = [];
         }
+
+        // Check if this agent already has an invitation (functionality covered by client-side tests, because globally modified `const` profiles are just too hairy)
+        const existingInvite = invitedAgent.user_metadata.rsvps.find(rsvp => rsvp.uuid === req.params.id && rsvp.type === 'team' && rsvp.recipient === invitedAgent.email);
+        if (existingInvite) {
+          return inviteAgent(invite, req, res);
+        }
+
         invitedAgent.user_metadata.rsvps.push(invite);
         managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
         managementClient.updateUser({id: invitedAgent.user_id}, { user_metadata: invitedAgent.user_metadata }).then(result => {
@@ -401,6 +407,7 @@ router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(
           managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
           managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
 
+            req.user = {...req.user, ...result};
             inviteAgent(invite, req, res);
 
           }).catch(err => {
