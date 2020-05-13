@@ -178,6 +178,34 @@ describe('teamMembershipSpec', () => {
               });
             });
 
+            it('returns the updated team leader\'s profile', done => {
+              authenticatedSession
+                .put(`/team/${teamId}/agent`)
+                .send({
+                  email: 'somebrandnewguy@example.com'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  models.Invitation.findAll().then(invites => {
+                    expect(invites.length).toEqual(1);
+
+                    expect(res.body.user_metadata.pendingInvitations.length).toEqual(1);
+                    expect(res.body.user_metadata.pendingInvitations[0].name).toEqual(invites[0].name);
+                    expect(res.body.user_metadata.pendingInvitations[0].type).toEqual(invites[0].type);
+                    expect(res.body.user_metadata.pendingInvitations[0].uuid).toEqual(invites[0].uuid);
+                    expect(res.body.user_metadata.pendingInvitations[0].recipient).toEqual(invites[0].recipient);
+
+                    done();
+                  }).catch(err => {
+                    done.fail(err);
+                  });
+                });
+            });
+
             describe('Auth0', () => {
               it('/oauth/token endpoint is called to retrieve a machine-to-machine access token', done => {
                 authenticatedSession
@@ -239,6 +267,8 @@ describe('teamMembershipSpec', () => {
                     });
                   });
               });
+
+
             });
 
             describe('email', () => {
