@@ -79,7 +79,7 @@ describe('teamMembershipSpec', () => {
         let authenticatedSession, teamId;
         beforeEach(done => {
           teamId = uuid.v4();
-          _profile.user_metadata = { teams: [ {name: 'The Calgary Roughnecks', leader: _profile.email, members: [_profile.email], id: teamId } ] };
+          _profile.user_metadata = { teams: [ {name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId } ] };
 
           stubAuth0ManagementApi((err, apiScopes) => {
             if (err) return done.fail();
@@ -1595,203 +1595,272 @@ describe('teamMembershipSpec', () => {
         });
       });
 
-//      describe('delete', () => {
-//        let knownAgent, authenticatedSession;
-//        beforeEach(done => {
-//          models.Agent.create({ email: 'weknowthisguy@example.com', name: 'Well-known Guy' }).then(result => {
-//            knownAgent = result;
-//            team.addMember(knownAgent).then(result => {
-//
-//              stubAuth0ManagementApi((err, apiScopes) => {
-//                if (err) return done.fail();
-//
-//                login(_identity, [scope.delete.teamMembers], (err, session) => {
-//                  if (err) return done.fail(err);
-//                  authenticatedSession = session;
-//
-//                  // Cached profile doesn't match "live" data, so agent needs to be updated
-//                  // with a call to Auth0
-//                  stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
-//                    if (err) return done.fail();
-//
-//                    done();
-//                  });
-//                });
-//              });
-//            }).catch(err => {
-//              done.fail(err);
-//            });
-//          }).catch(err => {
-//            done.fail(err);
-//          });
-//        });
-//
-//        it('removes an existing member record from the team', done => {
-//          authenticatedSession
-//            .delete(`/team/${team.id}/agent/${knownAgent.id}`)
-//            .set('Accept', 'application/json')
-//            .expect('Content-Type', /json/)
-//            .expect(201)
-//            .end(function(err, res) {
-//              if (err) return done.fail(err);
-//              expect(res.body.message).toEqual(`Member removed`);
-//              done();
-//            });
-//        });
-//
-//        it('doesn\'t barf if team doesn\'t exist', done => {
-//          authenticatedSession
-//            .delete(`/team/333/agent/${knownAgent.id}`)
-//            .set('Accept', 'application/json')
-//            .expect('Content-Type', /json/)
-//            .expect(404)
-//            .end(function(err, res) {
-//              if (err) return done.fail(err);
-//              expect(res.body.message).toEqual('No such team');
-//              done();
-//            });
-//        });
-//
-//        it('doesn\'t barf if the agent doesn\'t exist', done => {
-//          authenticatedSession
-//            .delete(`/team/${team.id}/agent/333`)
-//            .set('Accept', 'application/json')
-//            .expect('Content-Type', /json/)
-//            .expect(404)
-//            .end(function(err, res) {
-//              if (err) return done.fail(err);
-//              expect(res.body.message).toEqual('That agent is not a member');
-//              done();
-//            });
-//        });
-//
-//        it('sends an email to notify agent of membership revocation', function(done) {
-//          expect(mailer.transport.sentMail.length).toEqual(0);
-//          team.addMember(knownAgent).then(result => {
-//            authenticatedSession
-//              .delete(`/team/${team.id}/agent/${knownAgent.id}`)
-//              .set('Accept', 'application/json')
-//              .expect('Content-Type', /json/)
-//              .expect(201)
-//              .end(function(err, res) {
-//                if (err) return done.fail(err);
-//                expect(mailer.transport.sentMail.length).toEqual(1);
-//                expect(mailer.transport.sentMail[0].data.to).toEqual(knownAgent.email);
-//                expect(mailer.transport.sentMail[0].data.from).toEqual(process.env.NOREPLY_EMAIL);
-//                expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity membership update');
-//                expect(mailer.transport.sentMail[0].data.text).toContain(`You are no longer a member of ${team.name}`);
-//                done();
-//              });
-//          }).catch(err => {
-//            done.fail(err);
-//          });
-//        });
-//      });
+      describe('delete', () => {
+
+        const agentProfile = { ..._profile, user_id: `${_profile.user_id + 1}`};
+
+        let knownAgent, authenticatedSession, teamId,
+            memberUserAppMetadataReadScope, memberUserAppMetadataReadOauthTokenScope,
+            formerMemberUserAppMetadataUpdateScope, formerMemberUserAppMetadataUpdateOauthTokenScope;
+
+        beforeEach(done => {
+          models.Agent.create({ email: 'weknowthisguy@example.com', name: 'Well-known Guy' }).then(result => {
+            knownAgent = result;
+
+            // Member agent profile
+            teamId = uuid.v4();
+            agentProfile.email = knownAgent.email;
+            agentProfile.name = knownAgent.name;
+            agentProfile.user_metadata = { teams: [ {name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId } ] };
+
+            // Team leader profile
+            _profile.user_metadata = { teams: [ {name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId } ] };
+
+            stubAuth0ManagementApi((err, apiScopes) => {
+              if (err) return done.fail();
+
+              login(_identity, [scope.create.teamMembers, scope.delete.teamMembers], (err, session) => {
+                if (err) return done.fail(err);
+                authenticatedSession = session;
+
+                // Cached profile doesn't match "live" data, so agent needs to be updated
+                // with a call to Auth0
+                stubUserRead((err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  // Retrieve the member agent
+                  stubUserAppMetadataRead(agentProfile, (err, apiScopes) => {
+                    if (err) return done.fail();
+                    let {userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes;
+                    memberUserAppMetadataReadScope = userAppMetadataReadScope;
+                    memberUserAppMetadataReadOauthTokenScope = userAppMetadataReadOauthTokenScope;
+
+                    // Update the agent
+                    stubUserAppMetadataUpdate(agentProfile, (err, apiScopes) => {
+                      if (err) return done.fail();
+                      let {userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes;
+                      formerMemberUserAppMetadataUpdateScope = userAppMetadataUpdateScope;
+                      formerMemberUserAppMetadataUpdateOauthTokenScope = userAppMetadataUpdateOauthTokenScope;
+
+                      done();
+                    });
+                  });
+                });
+              });
+            });
+          }).catch(err => {
+            done.fail(err);
+          });
+        });
+
+        it('removes an existing member record from the team', done => {
+          expect(agentProfile.user_metadata.teams.length).toEqual(1);
+          authenticatedSession
+            .delete(`/team/${teamId}/agent/${agentProfile.user_id}`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(201)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(agentProfile.user_metadata.teams.length).toEqual(0);
+              done();
+            });
+        });
+
+        it('returns a friendly message', done => {
+          authenticatedSession
+            .delete(`/team/${teamId}/agent/${agentProfile.user_id}`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(201)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(res.body.message).toEqual(`Member removed`);
+              done();
+            });
+        });
+
+        it('doesn\'t barf if team doesn\'t exist', done => {
+          authenticatedSession
+            .delete(`/team/333/agent/${agentProfile.user_id}`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(404)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(res.body.message).toEqual('No such team');
+              done();
+            });
+        });
+
+        it('doesn\'t barf if the agent doesn\'t exist', done => {
+          // This call just clears the mock so a new mock can be put in its place
+          authenticatedSession
+            .delete(`/team/${teamId}/agent/${agentProfile.user_id}`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(201)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+
+              // For team leader permission check
+              stubUserRead((err, apiScopes) => {
+                if (err) return done.fail();
+
+                // Reset mock. No agent found...
+                stubUserAppMetadataRead((err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  authenticatedSession
+                    .delete(`/team/${teamId}/agent/333`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(404)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(res.body.message).toEqual('That agent is not a member');
+                      done();
+                    });
+                }, {status: 404});
+              });
+            });
+        });
+
+        it('sends an email to notify agent of membership revocation', function(done) {
+          expect(mailer.transport.sentMail.length).toEqual(0);
+          authenticatedSession
+            .delete(`/team/${teamId}/agent/${agentProfile.user_id}`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(201)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(mailer.transport.sentMail.length).toEqual(1);
+              expect(mailer.transport.sentMail[0].data.to).toEqual(knownAgent.email);
+              expect(mailer.transport.sentMail[0].data.from).toEqual(process.env.NOREPLY_EMAIL);
+              expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity membership update');
+              expect(mailer.transport.sentMail[0].data.text).toContain('You are no longer a member of The Calgary Roughnecks');
+              done();
+            });
+        })
+
+        describe('Auth0', () => {
+          it('is called to retrieve the agent\'s user_metadata', done => {
+            authenticatedSession
+              .delete(`/team/${teamId}/agent/${_profile.user_id}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(memberUserAppMetadataReadScope.isDone()).toBe(true);
+                expect(memberUserAppMetadataReadOauthTokenScope.isDone()).toBe(true);
+                done();
+              });
+          });
+
+          it('is called to update the agent\'s user_metadata', done => {
+            authenticatedSession
+              .delete(`/team/${teamId}/agent/${_profile.user_id}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(formerMemberUserAppMetadataUpdateScope.isDone()).toBe(true);
+                expect(formerMemberUserAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                done();
+              });
+          });
+        });
+      });
     });
 
-//    describe('unauthorized', () => {
-//      let unauthorizedSession, suspiciousAgent;
-//      beforeEach(done => {
-//        models.Agent.create({ email: 'suspiciousagent@example.com', name: 'Suspicious Guy' }).then(a => {
-//          suspiciousAgent = a;
-//
-//          _profile.email = suspiciousAgent.email;
-//          _profile.name = suspiciousAgent.name;
-//
-//
-//          stubAuth0ManagementApi((err, apiScopes) => {
-//            if (err) return done.fail();
-//
-//            login({ ..._identity, email: suspiciousAgent.email }, [scope.create.teamMembers], (err, session) => {
-//              if (err) return done.fail(err);
-//              unauthorizedSession = session;
-//
-//              // Cached profile doesn't match "live" data, so agent needs to be updated
-//              // with a call to Auth0
-//              stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
-//                if (err) return done.fail();
-//
-//                done();
-//              });
-//            });
-//          });
-//        }).catch(err => {
-//          done.fail(err);
-//        });
-//      });
-//
-//      describe('create', () => {
-//        it('doesn\'t allow a non-member agent to add a member', done => {
-//          unauthorizedSession
-//            .put(`/team/${team.id}/agent`)
-//            .send({
-//              email: suspiciousAgent.email
-//            })
-//            .set('Accept', 'application/json')
-//            .expect('Content-Type', /json/)
-//            .expect(403)
-//            .end(function(err, res) {
-//              if (err) return done.fail(err);
-//              expect(res.body.message).toEqual('You are not a member of this team');
-//              done();
-//            });
-//        });
-//      });
-//
-//      describe('delete', () => {
-//        let knownAgent;
-//        beforeEach(done => {
-//          models.Agent.create({ email: 'weknowthisguy@example.com', name: 'Well-known Guy' }).then(result => {
-//            knownAgent = result;
-//            team.addMember(knownAgent).then(result => {
-//              done();
-//            }).catch(err => {
-//              done.fail(err);
-//            });
-//          }).catch(err => {
-//            done.fail(err);
-//          });
-//        });
-//
-//        it('returns 403', done => {
-//          unauthorizedSession
-//            .delete(`/team/${team.id}/agent/${knownAgent.id}`)
-//            .set('Accept', 'application/json')
-//            .expect('Content-Type', /json/)
-//            .expect(403)
-//            .end(function(err, res) {
-//              if (err) return done.fail(err);
-//              expect(res.body.message).toEqual('Insufficient scope');
-//              done();
-//            });
-//        });
-//
-//        it('does not remove the record from the database', done => {
-//          models.Team.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
-//            expect(results.length).toEqual(1);
-//            expect(results[0].members.length).toEqual(2);
-//
-//            unauthorizedSession
-//              .delete(`/team/${team.id}/agent/${knownAgent.id}`)
-//              .set('Accept', 'application/json')
-//              .expect('Content-Type', /json/)
-//              .expect(403)
-//              .end(function(err, res) {
-//                if (err) return done.fail(err);
-//                models.Team.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
-//                  expect(results.length).toEqual(1);
-//                  expect(results[0].members.length).toEqual(2);
-//                  done();
-//                }).catch(err => {
-//                  done.fail(err);
-//                });
-//              });
-//          }).catch(err => {
-//            done.fail(err);
-//          });
-//        });
-//      });
-//    });
+    describe('unauthorized', () => {
+      let unauthorizedSession, suspiciousAgent;
+      beforeEach(done => {
+        models.Agent.create({ email: 'suspiciousagent@example.com', name: 'Suspicious Guy' }).then(a => {
+          suspiciousAgent = a;
+
+          _profile.email = suspiciousAgent.email;
+          _profile.name = suspiciousAgent.name;
+
+
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
+
+            login({ ..._identity, email: suspiciousAgent.email }, [scope.create.teamMembers, scope.delete.teamMembers], (err, session) => {
+              if (err) return done.fail(err);
+              unauthorizedSession = session;
+
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubUserRead((err, apiScopes) => {
+                if (err) return done.fail();
+
+                done();
+              });
+            });
+          });
+        }).catch(err => {
+          done.fail(err);
+        });
+      });
+
+      describe('create', () => {
+        it('doesn\'t allow a non-member agent to add a member', done => {
+          unauthorizedSession
+            .put(`/team/333/agent`)
+            .send({
+              email: suspiciousAgent.email
+            })
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(404)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              // Only the team leader can add a member. This is the correct response
+              expect(res.body.message).toEqual('No such team');
+              done();
+            });
+        });
+      });
+
+      describe('delete', () => {
+
+        const agentProfile = { ..._profile, user_id: `${_profile.user_id + 1}`};
+
+        let knownAgent;
+        beforeEach(done => {
+          models.Agent.create({ email: 'weknowthisguy@example.com', name: 'Well-known Guy' }).then(result => {
+            knownAgent = result;
+
+            // Member agent profile
+            teamId = uuid.v4();
+            agentProfile.email = knownAgent.email;
+            agentProfile.name = knownAgent.name;
+            agentProfile.user_metadata = { teams: [ {name: 'The Calgary Roughnecks', leader: 'teamleader@example.com', id: teamId } ] };
+
+            done();
+          }).catch(err => {
+            done.fail(err);
+          });
+        });
+
+        it('returns 403', done => {
+          unauthorizedSession
+            .delete(`/team/${teamId}/agent/${agentProfile.user_id}`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(404)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(res.body.message).toEqual('No such team');
+              done();
+            });
+        });
+      });
+    });
   });
 
   describe('not authenticated', () => {

@@ -585,45 +585,55 @@ router.delete('/:id/invite', checkPermissions([scope.delete.teamMembers]), funct
 
 
 router.delete('/:id/agent/:agentId', checkPermissions([scope.delete.teamMembers]), function(req, res, next) {
-  models.Team.findOne({ where: { id: req.params.id },
-                                 include: [ 'creator',
-                                          { model: models.Agent, as: 'members' },
-                                           'organization'] }).then(team => {
-    if (!team) {
-      return res.status(404).json( { message: 'No such team' });
+
+  if (!req.user.user_metadata || !req.user.user_metadata.teams) {
+    return res.status(404).json({ message: 'No such team' });
+  }
+
+  const team = req.user.user_metadata.teams.find(t => t.id === req.params.id);
+
+  if (!team) {
+    return res.status(404).json({ message: 'No such team' });
+  }
+
+  if (!req.agent.isSuper && req.user.email !== team.leader) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  let managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
+  managementClient.getUser({id: req.params.agentId}).then(invitedAgent => {
+    if (!invitedAgent) {
+      return res.status(404).json( { message: 'That agent is not a member' });
     }
 
-    if (!req.agent.isSuper && req.agent.email !== team.creator.email) {
-      return res.status(401).json( { message: 'Unauthorized' });
-    }
+    const teamIndex = invitedAgent.user_metadata.teams.find(t => t.id === req.params.id);
+    invitedAgent.user_metadata.teams.splice(teamIndex, 1);
 
-    models.Agent.findOne({ where: { id: req.params.agentId } }).then(agent => {
-      if (!agent || !team.members.map(member => member.id).includes(agent.id)) {
-        return res.status(404).json({ message: 'That agent is not a member' });
-      }
+    managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+    managementClient.updateUser({id: invitedAgent.user_id}, { user_metadata: invitedAgent.user_metadata }).then(result => {
 
-      team.removeMember(req.params.agentId).then(results => {
-        let mailOptions = {
-          to: agent.email,
-          from: process.env.NOREPLY_EMAIL,
-          subject: 'Identity membership update',
-          text: `You are no longer a member of ${team.name}`
-        };
-        mailer.transporter.sendMail(mailOptions, (error, info) => {
-          if (error) {
-            console.error('Mailer Error', error);
-            return res.status(501).json(error);
-          }
-          res.status(201).json({ message: 'Member removed' });
-        });
-      }).catch(err => {
-        res.status(500).json(err);
+      let mailOptions = {
+        to: invitedAgent.email,
+        from: process.env.NOREPLY_EMAIL,
+        subject: 'Identity membership update',
+        text: `You are no longer a member of ${team.name}`
+      };
+      mailer.transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.error('Mailer Error', error);
+          return res.status(501).json(error);
+        }
+        res.status(201).json({ message: 'Member removed' });
       });
+
     }).catch(err => {
       res.status(500).json(err);
     });
   }).catch(err => {
-    res.status(500).json(err);
+    if (err.statusCode === 404) {
+      return res.status(err.statusCode).json({ message: 'That agent is not a member' });
+    }
+    res.status(err.statusCode).json(err);
   });
 });
 
