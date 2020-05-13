@@ -1008,7 +1008,6 @@ describe('teamMembershipSpec', () => {
                 });
 
                 it('is called to write the pending invitation to user_metadata', done => {
-                  expect(_profile.user_metadata.rsvps).toBeUndefined();
                   authenticatedSession
                     .put(`/team/${teamId}/agent`)
                     .send({
