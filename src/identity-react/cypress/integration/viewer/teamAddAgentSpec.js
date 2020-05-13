@@ -363,7 +363,7 @@ context('viewer/Team add agent', function() {
                 });
 
                 describe('via the members table', () => {
-                  it.only('doesn\'t add a new pending invitation to the table', () => {
+                  it('doesn\'t add a new pending invitation to the table', () => {
                     cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 1);
 
                     cy.get('button span span').contains('add_box').click();
