@@ -8,17 +8,17 @@ const usePutTeamMemberService = () => {
     status: 'init',
   });
 
-  const putTeamMember = (update: any) => {
+  const putTeamMember = (teamId: any, data: any) => {
     setService({ status: 'loading' });
 
     const headers = new Headers();
     headers.append('Content-Type', 'application/json; charset=utf-8');
 
     return new Promise((resolve, reject) => {
-      fetch(`/team/${update.id}/agent`,
+      fetch(`/team/${teamId}/agent`,
         {
           method: 'PUT',
-          body: JSON.stringify(update),
+          body: JSON.stringify(data),
           headers,
         }
       )
