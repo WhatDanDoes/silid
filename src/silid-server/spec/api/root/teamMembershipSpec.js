@@ -428,81 +428,81 @@ describe('root/teamMembershipSpec', () => {
 //      });
 //    });
 
-    describe('delete', () => {
-      let knownAgent;
-      beforeEach(done => {
-        models.Agent.create({ email: 'weknowthisguy@example.com', name: 'Well-known Guy' }).then(result => {
-          knownAgent = result;
-          team.addMember(knownAgent).then(result => {
-            done();
-          }).catch(err => {
-            done.fail(err);
-          });
-        }).catch(err => {
-          done.fail(err);
-        });
-      });
-
-      it('removes an existing member record from the team', done => {
-        rootSession
-          .delete(`/team/${team.id}/agent/${knownAgent.id}`)
-          .set('Accept', 'application/json')
-          .expect('Content-Type', /json/)
-          .expect(201)
-          .end(function(err, res) {
-            if (err) return done.fail(err);
-            expect(res.body.message).toEqual(`Member removed`);
-            done();
-          });
-      });
-
-      it('doesn\'t barf if team doesn\'t exist', done => {
-        rootSession
-          .delete(`/team/333/agent/${knownAgent.id}`)
-          .set('Accept', 'application/json')
-          .expect('Content-Type', /json/)
-          .expect(404)
-          .end(function(err, res) {
-            if (err) return done.fail(err);
-            expect(res.body.message).toEqual('No such team');
-            done();
-          });
-      });
-
-      it('doesn\'t barf if the agent doesn\'t exist', done => {
-        rootSession
-          .delete(`/team/${team.id}/agent/333`)
-          .set('Accept', 'application/json')
-          .expect('Content-Type', /json/)
-          .expect(404)
-          .end(function(err, res) {
-            if (err) return done.fail(err);
-            expect(res.body.message).toEqual('That agent is not a member');
-            done();
-          });
-      });
-
-      it('sends an email to notify agent of membership revocation', function(done) {
-        expect(mailer.transport.sentMail.length).toEqual(0);
-        team.addMember(knownAgent).then(result => {
-          rootSession
-            .delete(`/team/${team.id}/agent/${knownAgent.id}`)
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(201)
-            .end(function(err, res) {
-              if (err) return done.fail(err);
-              expect(mailer.transport.sentMail.length).toEqual(1);
-              expect(mailer.transport.sentMail[0].data.to).toEqual(knownAgent.email);
-              expect(mailer.transport.sentMail[0].data.from).toEqual(process.env.NOREPLY_EMAIL);
-              expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity membership update');
-              expect(mailer.transport.sentMail[0].data.text).toContain(`You are no longer a member of ${team.name}`);
-              done();
-            });
-        }).catch(err => {
-          done.fail(err);
-        });
-      });
-    });
+//    describe('delete', () => {
+//      let knownAgent;
+//      beforeEach(done => {
+//        models.Agent.create({ email: 'weknowthisguy@example.com', name: 'Well-known Guy' }).then(result => {
+//          knownAgent = result;
+//          team.addMember(knownAgent).then(result => {
+//            done();
+//          }).catch(err => {
+//            done.fail(err);
+//          });
+//        }).catch(err => {
+//          done.fail(err);
+//        });
+//      });
+//
+//      it('removes an existing member record from the team', done => {
+//        rootSession
+//          .delete(`/team/${team.id}/agent/${knownAgent.id}`)
+//          .set('Accept', 'application/json')
+//          .expect('Content-Type', /json/)
+//          .expect(201)
+//          .end(function(err, res) {
+//            if (err) return done.fail(err);
+//            expect(res.body.message).toEqual(`Member removed`);
+//            done();
+//          });
+//      });
+//
+//      it('doesn\'t barf if team doesn\'t exist', done => {
+//        rootSession
+//          .delete(`/team/333/agent/${knownAgent.id}`)
+//          .set('Accept', 'application/json')
+//          .expect('Content-Type', /json/)
+//          .expect(404)
+//          .end(function(err, res) {
+//            if (err) return done.fail(err);
+//            expect(res.body.message).toEqual('No such team');
+//            done();
+//          });
+//      });
+//
+//      it('doesn\'t barf if the agent doesn\'t exist', done => {
+//        rootSession
+//          .delete(`/team/${team.id}/agent/333`)
+//          .set('Accept', 'application/json')
+//          .expect('Content-Type', /json/)
+//          .expect(404)
+//          .end(function(err, res) {
+//            if (err) return done.fail(err);
+//            expect(res.body.message).toEqual('That agent is not a member');
+//            done();
+//          });
+//      });
+//
+//      it('sends an email to notify agent of membership revocation', function(done) {
+//        expect(mailer.transport.sentMail.length).toEqual(0);
+//        team.addMember(knownAgent).then(result => {
+//          rootSession
+//            .delete(`/team/${team.id}/agent/${knownAgent.id}`)
+//            .set('Accept', 'application/json')
+//            .expect('Content-Type', /json/)
+//            .expect(201)
+//            .end(function(err, res) {
+//              if (err) return done.fail(err);
+//              expect(mailer.transport.sentMail.length).toEqual(1);
+//              expect(mailer.transport.sentMail[0].data.to).toEqual(knownAgent.email);
+//              expect(mailer.transport.sentMail[0].data.from).toEqual(process.env.NOREPLY_EMAIL);
+//              expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity membership update');
+//              expect(mailer.transport.sentMail[0].data.text).toContain(`You are no longer a member of ${team.name}`);
+//              done();
+//            });
+//        }).catch(err => {
+//          done.fail(err);
+//        });
+//      });
+//    });
   });
 });
