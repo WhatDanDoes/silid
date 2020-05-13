@@ -35,6 +35,7 @@ context('viewer/Team add agent', function() {
 
     afterEach(() => {
       cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
+      cy.task('query', 'TRUNCATE TABLE "Invitations" CASCADE;');
     });
 
     context('creator agent visit', () => {
@@ -125,111 +126,298 @@ context('viewer/Team add agent', function() {
               cy.contains('That\'s not a valid email address');
             });
 
-//            describe('unknown agent', () => {
-//              it('updates the record in the database', function() {
-//                cy.task('query', `SELECT * FROM "TeamMembers";`).then(([results, metadata]) => {
-//                  expect(results.length).to.eq(1);
-//                  cy.get('input[name="email"][type="email"]').type('somenewguy@example.com');
-//                  cy.get('button[type="submit"]').click();
-//                  cy.wait(500);
-//                  cy.task('query', `SELECT * FROM "TeamMembers";`).then(([results, metadata]) => {
-//                    expect(results.length).to.eq(2);
-//                  });
-//                });
-//              });
-//
-//              it('creates agent record in the database', function() {
-//                cy.task('query', `SELECT * FROM "Agents" WHERE email='somenewguy@example.com';`).then(([results, metadata]) => {
-//                  expect(results.length).to.eq(0);
-//                  cy.get('input[name="email"][type="email"]').type('somenewguy@example.com');
-//                  cy.get('button[type="submit"]').click();
-//                  cy.wait(500);
-//                  cy.task('query', `SELECT * FROM "Agents" WHERE email='somenewguy@example.com';`).then(([results, metadata]) => {
-//                    expect(results.length).to.eq(1);
-//                  });
-//                });
-//              });
-//
-//              it('hides the add-member-agent-form', function() {
-//                cy.get('input[name="email"][type="email"]').type('somenewguy@example.com');
-//                cy.get('button[type="submit"]').click();
-//                cy.wait(500);
-//                cy.get('form#add-member-agent-form').should('not.exist');
-//              });
-//
-//              it('updates the record on the interface', function() {
-//                cy.get('#team-member-list').should('exist');
-//                cy.get('#team-member-list').find('.list-item').its('length').should('eq', 1);
-//                cy.get('#team-member-list .list-item').first().contains(agent.email);
-//                cy.get('input[name="email"][type="email"]').type('somenewguy@example.com');
-//                cy.get('button[type="submit"]').click();
-//                cy.wait(500);
-//                cy.get('#team-member-list').find('.list-item').its('length').should('eq', 2);
-//                cy.get('#team-member-list .list-item').last().contains('somenewguy@example.com');
-//                cy.get('#team-member-list .team-button .delete-member').last().should('exist');
-//              });
-//
-//              it('links to the new agent\'s profile page', () => {
-//                cy.get('input[name="email"][type="email"]').type('somenewguy@example.com');
-//                cy.get('button[type="submit"]').click();
-//                cy.wait(500);
-//                cy.task('query', `SELECT * FROM "Agents" WHERE email='somenewguy@example.com';`).then(([results, metadata]) => {
-//                  cy.get('#team-member-list .list-item').last().should('have.attr', 'href').and('include', `#agent/${results[0].id}`)
-//                  cy.get('#team-member-list .list-item').last().click();
-//                  cy.url().should('contain', `/#/agent/${results[0].id}`);
-//                  cy.get('input[name="name"][type="text"]').should('have.value', '');
-//                  cy.get('input[name="email"][type="email"]').should('have.value', 'somenewguy@example.com');
-//                });
-//              });
-//            });
-//
-//            describe('known agent', () => {
-//              it('updates the record in the database', function() {
-//                cy.task('query', `SELECT * FROM "TeamMembers";`).then(([results, metadata]) => {
-//                  expect(results.length).to.eq(1);
-//                  expect(results[0].AgentId).to.eq(agent.id);
-//                  cy.get('input[name="email"][type="email"]').type(anotherAgent.email);
-//                  cy.get('button[type="submit"]').click();
-//                  cy.wait(500);
-//                  cy.task('query', `SELECT * FROM "TeamMembers";`).then(([results, metadata]) => {
-//                    expect(results.length).to.eq(2);
-//                    expect(results[0].AgentId).to.eq(agent.id);
-//                    expect(results[1].AgentId).to.eq(anotherAgent.id);
-//                  });
-//                });
-//              });
-//
-//              it('hides the add-member-agent-form', function() {
-//                cy.get('input[name="email"][type="email"]').type(anotherAgent.email);
-//                cy.get('button[type="submit"]').click();
-//                cy.wait(500);
-//                cy.get('form#add-member-agent-form').should('not.exist');
-//              });
-//
-//              it('updates the record on the interface', function() {
-//                cy.get('#team-member-list').find('.list-item').its('length').should('eq', 1);
-//                cy.get('#team-member-list .list-item').first().contains(agent.email);
-//                cy.get('input[name="email"][type="email"]').type(anotherAgent.email);
-//                cy.get('button[type="submit"]').click();
-//                cy.wait(500);
-//                cy.get('#team-member-list').find('.list-item').its('length').should('eq', 2);
-//                cy.get('#team-member-list .list-item').last().contains(anotherAgent.email);
-//                cy.get('#team-member-list .team-button .delete-member').last().should('exist');
-//              });
-//
-//              it('links to the new agent\'s profile page', () => {
-//                cy.get('input[name="email"][type="email"]').type(anotherAgent.email);
-//                cy.get('button[type="submit"]').click();
-//                cy.wait(500);
-//                cy.get('#team-member-list .list-item').last().should('have.attr', 'href').and('include', `#agent/${anotherAgent.id}`)
-//                cy.get('#team-member-list .list-item').last().click();
-//                cy.url().should('contain', '/#/agent');
-//                cy.url().should('contain', `/#/agent/${anotherAgent.id}`);
-//                cy.get('input[name="name"][type="text"]').should('have.value', anotherAgent.name);
-//                cy.get('input[name="email"][type="email"]').should('have.value', anotherAgent.email);
-//              });
-//            });
-//
+            describe('unknown agent', () => {
+              it('creates an invitation in the database', function() {
+                cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                  expect(results.length).to.eq(0);
+
+                  cy.get('input[placeholder="Email"]').type('somenewguy@example.com');
+                  cy.get('button[title="Save"]').click();
+                  cy.wait(300);
+
+                  cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                    expect(results.length).to.eq(1);
+                  });
+                });
+              });
+
+              it('hides the add-member-agent-form', function() {
+                cy.get('#members-table table tbody tr td div button[title="Save"]').should('exist');
+                cy.get('#members-table table tbody tr td div button[title="Cancel"]').should('exist');
+                cy.get('#members-table table tbody tr td div div input[placeholder="Email"]').should('exist');
+
+                cy.get('input[placeholder="Email"]').type('somenewguy@example.com');
+                cy.get('button[title="Save"]').click();
+                cy.wait(300);
+
+                cy.get('#members-table table tbody tr td div button[title="Save"]').should('not.exist');
+                cy.get('#members-table table tbody tr td div button[title="Cancel"]').should('not.exist');
+                cy.get('#members-table table tbody tr td div div input[placeholder="Email"]').should('not.exist');
+              });
+
+              it('reveals the pending-invitations-table', function() {
+                cy.get('#pending-invitations-table').should('not.exist');
+
+                cy.get('input[placeholder="Email"]').type('somenewguy@example.com');
+                cy.get('button[title="Save"]').click();
+                cy.wait(300);
+
+                cy.get('#pending-invitations-table').should('exist');
+                cy.get('#pending-invitations-table table thead tr th').contains('Actions');
+                cy.get('#pending-invitations-table table tbody tr td button span').contains('delete_outline');
+                cy.get('#pending-invitations-table table tbody tr td button span').contains('refresh');
+                cy.get('#pending-invitations-table table thead tr th').contains('Email');
+                cy.get('#pending-invitations-table table tbody tr td').contains('somenewguy@example.com');
+              });
+
+              it('persists pending invitations between refreshes', function() {
+                cy.get('#pending-invitations-table').should('not.exist');
+
+                cy.get('input[placeholder="Email"]').type('somenewguy@example.com');
+                cy.get('button[title="Save"]').click();
+                cy.wait(300);
+
+                cy.get('#pending-invitations-table').should('exist');
+                cy.get('#pending-invitations-table table thead tr th').contains('Actions');
+                cy.get('#pending-invitations-table table tbody tr td button span').contains('delete_outline');
+                cy.get('#pending-invitations-table table tbody tr td button span').contains('refresh');
+                cy.get('#pending-invitations-table table thead tr th').contains('Email');
+                cy.get('#pending-invitations-table table tbody tr td').contains('somenewguy@example.com');
+
+                cy.reload();
+                cy.wait(300);
+                cy.contains('The A-Team').click();
+                cy.wait(300);
+
+                cy.get('#pending-invitations-table').should('exist');
+                cy.get('#pending-invitations-table table thead tr th').contains('Actions');
+                cy.get('#pending-invitations-table table tbody tr td button span').contains('delete_outline');
+                cy.get('#pending-invitations-table table tbody tr td button span').contains('refresh');
+                cy.get('#pending-invitations-table table thead tr th').contains('Email');
+                cy.get('#pending-invitations-table table tbody tr td').contains('somenewguy@example.com');
+              });
+
+              it('allows inviting multiple agents', function() {
+                cy.get('#pending-invitations-table').should('not.exist');
+
+                cy.get('input[placeholder="Email"]').type('somenewguy@example.com');
+                cy.get('button[title="Save"]').click();
+                cy.wait(300);
+
+                cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 1);
+
+                cy.get('button span span').contains('add_box').click();
+                cy.get('input[placeholder="Email"]').type('anothernewguy@example.com');
+                cy.get('button[title="Save"]').click();
+                cy.wait(300);
+
+                cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 2);
+
+                cy.get('button span span').contains('add_box').click();
+                cy.get('input[placeholder="Email"]').type('yetanothernewguy@example.com');
+                cy.get('button[title="Save"]').click();
+                cy.wait(300);
+
+                cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 3);
+              });
+
+              describe('is re-sent an invitation', () => {
+                beforeEach(() => {
+                  cy.get('input[placeholder="Email"]').type('somenewguy@example.com');
+                  cy.get('button[title="Save"]').click();
+                  cy.wait(300);
+                });
+
+                describe('via the members table', () => {
+                  it('doesn\'t add a new pending invitation to the table', () => {
+                    cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 1);
+
+                    cy.get('button span span').contains('add_box').click();
+                    cy.get('input[placeholder="Email"]').type('somenewguy@example.com');
+                    cy.get('button[title="Save"]').click();
+                    cy.wait(300);
+
+                    cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 1);
+                  });
+
+                  it('displays a message', () => {
+                    cy.get('button span span').contains('add_box').click();
+                    cy.get('input[placeholder="Email"]').type('somenewguy@example.com');
+                    cy.get('button[title="Save"]').click();
+                    cy.wait(300);
+
+                    cy.contains('Invitation sent');
+                    cy.get('#flash-message #close-flash').click();
+
+                    cy.get('button span span').contains('add_box').click();
+                    cy.get('input[placeholder="Email"]').type('somenewguy@example.com');
+                    cy.get('button[title="Save"]').click();
+                    cy.wait(300);
+
+                    cy.contains('Invitation sent');
+                  });
+                });
+
+                describe('via the send button on the Pending Invitations table', () => {
+                  it('doesn\'t add a new pending invitation to the table', () => {
+                    cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 1);
+
+                    cy.get('#pending-invitations-table button span span').contains('refresh').click();
+                    cy.wait(300);
+
+                    cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 1);
+                  });
+
+                  it('displays a message', () => {
+                    cy.get('#pending-invitations-table button span span').contains('refresh').click();
+                    cy.wait(300);
+
+                    cy.contains('Invitation sent');
+                    cy.get('#flash-message #close-flash').click();
+
+                    cy.get('#pending-invitations-table button span span').contains('refresh').click();
+                    cy.wait(300);
+
+                    cy.contains('Invitation sent');
+                  });
+                });
+              });
+            });
+
+            describe('known agent', () => {
+              it('does not create an invitation in the database', function() {
+                cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                  expect(results.length).to.eq(0);
+
+                  cy.get('input[placeholder="Email"]').type(anotherAgent.email);
+                  cy.get('button[title="Save"]').click();
+                  cy.wait(300);
+
+                  cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                    expect(results.length).to.eq(0);
+                  });
+                });
+              });
+
+              it('hides the add-member-agent-form', function() {
+                cy.get('#members-table table tbody tr td div button[title="Save"]').should('exist');
+                cy.get('#members-table table tbody tr td div button[title="Cancel"]').should('exist');
+                cy.get('#members-table table tbody tr td div div input[placeholder="Email"]').should('exist');
+
+                cy.get('input[placeholder="Email"]').type(anotherAgent.email);
+                cy.get('button[title="Save"]').click();
+                cy.wait(300);
+
+                cy.get('#members-table table tbody tr td div button[title="Save"]').should('not.exist');
+                cy.get('#members-table table tbody tr td div button[title="Cancel"]').should('not.exist');
+                cy.get('#members-table table tbody tr td div div input[placeholder="Email"]').should('not.exist');
+              });
+
+              it('reveals the pending-invitations-table', function() {
+                cy.get('#pending-invitations-table').should('not.exist');
+
+                cy.get('input[placeholder="Email"]').type(anotherAgent.email);
+                cy.get('button[title="Save"]').click();
+                cy.wait(300);
+
+                cy.get('#pending-invitations-table').should('exist');
+                cy.get('#pending-invitations-table table thead tr th').contains('Actions');
+                cy.get('#pending-invitations-table table tbody tr td button span').contains('delete_outline');
+                cy.get('#pending-invitations-table table tbody tr td button span').contains('refresh');
+                cy.get('#pending-invitations-table table thead tr th').contains('Email');
+                cy.get('#pending-invitations-table table tbody tr td').contains(anotherAgent.email);
+              });
+
+              it('persists pending invitations between refreshes', function() {
+                cy.get('#pending-invitations-table').should('not.exist');
+
+                cy.get('input[placeholder="Email"]').type(anotherAgent.email);
+                cy.get('button[title="Save"]').click();
+                cy.wait(300);
+
+                cy.get('#pending-invitations-table').should('exist');
+                cy.get('#pending-invitations-table table thead tr th').contains('Actions');
+                cy.get('#pending-invitations-table table tbody tr td button span').contains('delete_outline');
+                cy.get('#pending-invitations-table table tbody tr td button span').contains('refresh');
+                cy.get('#pending-invitations-table table thead tr th').contains('Email');
+                cy.get('#pending-invitations-table table tbody tr td').contains(anotherAgent.email);
+
+                cy.reload();
+                cy.wait(300);
+                cy.contains('The A-Team').click();
+                cy.wait(300);
+
+                cy.get('#pending-invitations-table').should('exist');
+                cy.get('#pending-invitations-table table thead tr th').contains('Actions');
+                cy.get('#pending-invitations-table table tbody tr td button span').contains('delete_outline');
+                cy.get('#pending-invitations-table table tbody tr td button span').contains('refresh');
+                cy.get('#pending-invitations-table table thead tr th').contains('Email');
+                cy.get('#pending-invitations-table table tbody tr td').contains(anotherAgent.email);
+              });
+
+              describe('is re-sent an invitation', () => {
+                beforeEach(() => {
+                  cy.get('input[placeholder="Email"]').type(anotherAgent.email);
+                  cy.get('button[title="Save"]').click();
+                  cy.wait(300);
+                });
+
+                describe('via the members table', () => {
+                  it.only('doesn\'t add a new pending invitation to the table', () => {
+                    cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 1);
+
+                    cy.get('button span span').contains('add_box').click();
+                    cy.get('input[placeholder="Email"]').type(anotherAgent.email);
+                    cy.get('button[title="Save"]').click();
+                    cy.wait(300);
+
+                    cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 1);
+                  });
+
+                  it('displays a message', () => {
+                    cy.get('button span span').contains('add_box').click();
+                    cy.get('input[placeholder="Email"]').type(anotherAgent.email);
+                    cy.get('button[title="Save"]').click();
+                    cy.wait(300);
+
+                    cy.contains('Invitation sent');
+                    cy.get('#flash-message #close-flash').click();
+
+                    cy.get('button span span').contains('add_box').click();
+                    cy.get('input[placeholder="Email"]').type(anotherAgent.email);
+                    cy.get('button[title="Save"]').click();
+                    cy.wait(300);
+
+                    cy.contains('Invitation sent');
+                  });
+                });
+
+                describe('via the send button on the Pending Invitations table', () => {
+                  it('doesn\'t add a new pending invitation to the table', () => {
+                    cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 1);
+
+                    cy.get('#pending-invitations-table button span span').contains('refresh').click();
+                    cy.wait(300);
+
+                    cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 1);
+                  });
+
+                  it('displays a message', () => {
+                    cy.get('#pending-invitations-table button span span').contains('refresh').click();
+                    cy.wait(300);
+
+                    cy.contains('Invitation sent');
+                    cy.get('#flash-message #close-flash').click();
+
+                    cy.get('#pending-invitations-table button span span').contains('refresh').click();
+                    cy.wait(300);
+
+                    cy.contains('Invitation sent');
+                  });
+                });
+              });
+            });
+
 //            describe('erroneous additions', () => {
 //
 //              it('shows an error message when a duplicate agent is added', () => {

@@ -25,7 +25,7 @@ import { useAuthState } from '../auth/Auth';
 import useGetTeamInfoService from '../services/useGetTeamInfoService';
 import usePutTeamService from '../services/usePutTeamService';
 import useDeleteTeamService from '../services/useDeleteTeamService';
-//import usePutTeamMemberService from '../services/usePutTeamMemberService';
+import usePutTeamMemberService from '../services/usePutTeamMemberService';
 //import useDeleteTeamMemberService from '../services/useDeleteTeamMemberService';
 
 /**
@@ -71,7 +71,7 @@ const useStyles = makeStyles((theme) =>
 const TeamInfo = (props) => {
   const classes = useStyles();
 
-  const {agent} = useAuthState();
+  const {agent, updateAgent} = useAuthState();
 //  const admin = useAdminState();
 
 //  const [editFormVisible, setEditFormVisible] = useState(false);
@@ -85,7 +85,7 @@ const TeamInfo = (props) => {
   const service = useGetTeamInfoService(props.match.params.id);
   let { publishTeam } = usePutTeamService();
   let { deleteTeam } = useDeleteTeamService();
-//  let { putTeamMember } = usePutTeamMemberService();
+  let { putTeamMember } = usePutTeamMemberService();
 //  let { deleteTeamMember } = useDeleteTeamMemberService(props.match.params.id);
 
   useEffect(() => {
@@ -296,7 +296,7 @@ const TeamInfo = (props) => {
               </Grid>
             : ''}
 
-            <Grid item className={classes.grid}>
+            <Grid id="members-table" item className={classes.grid}>
               <MaterialTable
                 title='Members'
                 columns={[
@@ -327,7 +327,15 @@ const TeamInfo = (props) => {
                         reject();
                       }
                       else {
-                        resolve();
+                        putTeamMember(teamInfo.id, newData).then((results) => {
+                          setFlashProps({ message: 'Invitation sent', variant: 'success' });
+                          updateAgent(results);
+                          resolve();
+                        }).catch(err => {
+                          console.log(err);
+                          setFlashProps({ errors: [err], variant: 'error' });
+                          reject(err);
+                        });
                       }
                     }),
                   onRowDelete: oldData =>
@@ -337,7 +345,51 @@ const TeamInfo = (props) => {
                 } : undefined}
               />
             </Grid>
+            {agent.user_metadata &&
+             agent.user_metadata.pendingInvitations &&
+             agent.user_metadata.pendingInvitations.length &&
+             agent.user_metadata.pendingInvitations.filter(i => i.uuid === teamInfo.id).length ?
+              <>
+                <br />
+                <Grid id="pending-invitations-table" item className={classes.grid}>
+                  <MaterialTable
+                    title='Pending Invitations'
+                    columns={[
+                      { title: 'Email', field: 'recipient', editable: 'never' }
+                    ]}
+                    data={agent.user_metadata.pendingInvitations.filter(i => i.uuid === teamInfo.id).length ?
+                          agent.user_metadata.pendingInvitations.filter(i => i.uuid === teamInfo.id) : []}
+                    options={{ search: false, paging: false }}
+                    editable={ teamInfo.leader === agent.email ? {
+                      onRowDelete: oldData =>
+                        new Promise((resolve, reject) => {
+                          resolve();
+                        })
+                    } : undefined}
+                    actions={[
+                      {
+                        icon: 'refresh',
+                        tooltip: 'Re-send invitation',
+                        onClick: (event, rowData) =>
+                          new Promise((resolve, reject) => {
+                            putTeamMember(teamInfo.id, { email: rowData.recipient }).then((results) => {
+                              setFlashProps({ message: 'Invitation sent', variant: 'success' });
+                              updateAgent(results);
+                              resolve();
+                            }).catch(err => {
+                              console.log(err);
+                              setFlashProps({ errors: [err], variant: 'error' });
+                              reject(err);
+                            });
+                          })
+                      }
+                    ]}
+                  />
+                </Grid>
+              </>
+            : ''}
           </>
+
         : ''}
         {service.status === 'error' && (
           <Typography id="error-message" variant="h5" component="h3">
