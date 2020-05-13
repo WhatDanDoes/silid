@@ -18,12 +18,20 @@ const _profile = require('../../fixtures/sample-auth0-profile-response');
  *
  * @param object
  * @param function
+ * @param object
  */
-module.exports = function(profile, done) {
+module.exports = function(profile, done, options) {
 
   if (typeof profile === 'function') {
+    if (typeof done === 'object') {
+      options = done;
+    }
     done = profile;
     profile = null;
+  }
+
+  if (!options) {
+    options = { status: 200 };
   }
 
   require('../setupKeystore').then(singleton => {
@@ -43,7 +51,7 @@ module.exports = function(profile, done) {
         .log(console.log)
         .get(/api\/v2\/users\/.+/)
         .query({})
-        .reply(200, profile || _profile);
+        .reply(options.status, profile || _profile);
 
         done(null, {userAppMetadataReadScope, userAppMetadataReadOauthTokenScope});
 
