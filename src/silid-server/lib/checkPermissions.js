@@ -200,7 +200,13 @@ const checkPermissions = function(permissions) {
     }
 
     if (isViewer) {
-      updateDbAndVerify(permissions, req, res, next);
+      // Functionality covered by client-side tests
+      checkForInvites(req, err => {
+        if (err) {
+          return res.status(500).json(err);
+        }
+        updateDbAndVerify(permissions, req, res, next);
+      });
     }
     else {
       // Not a viewer? Assign role
