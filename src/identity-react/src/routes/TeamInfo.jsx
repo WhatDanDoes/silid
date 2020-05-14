@@ -25,7 +25,8 @@ import { useAuthState } from '../auth/Auth';
 import useGetTeamInfoService from '../services/useGetTeamInfoService';
 import usePutTeamService from '../services/usePutTeamService';
 import useDeleteTeamService from '../services/useDeleteTeamService';
-import usePutTeamMemberService from '../services/usePutTeamMemberService';
+import useSendTeamInvitationService from '../services/useSendTeamInvitationService';
+import useRescindTeamInvitationService from '../services/useRescindTeamInvitationService';
 //import useDeleteTeamMemberService from '../services/useDeleteTeamMemberService';
 
 /**
@@ -85,7 +86,9 @@ const TeamInfo = (props) => {
   const service = useGetTeamInfoService(props.match.params.id);
   let { publishTeam } = usePutTeamService();
   let { deleteTeam } = useDeleteTeamService();
-  let { putTeamMember } = usePutTeamMemberService();
+  let { sendTeamInvitation } = useSendTeamInvitationService();
+  let { rescindTeamInvitation } = useRescindTeamInvitationService();
+
 //  let { deleteTeamMember } = useDeleteTeamMemberService(props.match.params.id);
 
   useEffect(() => {
@@ -143,29 +146,6 @@ const TeamInfo = (props) => {
   }
 
   /**
-   * Set tool-tip message on field validation
-   */
-//  const customMessage = (evt) => {
-//    evt.target.setCustomValidity(`${evt.target.name} required`);
-//  }
-
-  /**
-   * Keep track of team form state
-   *
-   * This needs to be replaced, as it does in OrganizationInfo...
-   */
-//  const onChange = (evt) => {
-//    if (!prevFormState[evt.target.name]) {
-//      const s = { ...prevFormState};
-//      s[evt.target.name] = teamInfo[evt.target.name];
-//      setPrevFormState(s);
-//    }
-//    const f = { ...teamInfo };
-//    f[evt.target.name] = evt.target.value.trimLeft();
-//    setTeamInfo(f);
-//  }
-
-  /**
    * Redirect to `/agent` when this team is deleted
    */
   if (toAgent) {
@@ -184,7 +164,7 @@ const TeamInfo = (props) => {
 //      data[key] = value;
 //    }
 //
-//    putTeamMember(data).then((results) => {
+//    sendTeamInvitation(data).then((results) => {
 //      setAgentFormVisible(false);
 //      if (results.message) {
 //        setFlashProps({ message: results.message, variant: 'warning' });
@@ -327,7 +307,7 @@ const TeamInfo = (props) => {
                         reject();
                       }
                       else {
-                        putTeamMember(teamInfo.id, newData).then((results) => {
+                        sendTeamInvitation(teamInfo.id, newData).then((results) => {
                           setFlashProps({ message: 'Invitation sent', variant: 'success' });
                           updateAgent(results);
                           resolve();
@@ -363,7 +343,19 @@ const TeamInfo = (props) => {
                     editable={ teamInfo.leader === agent.email ? {
                       onRowDelete: oldData =>
                         new Promise((resolve, reject) => {
-                          resolve();
+                          rescindTeamInvitation(teamInfo.id, { email: oldData.recipient }).then((results) => {
+                            if (results.error) {
+                              setFlashProps({ message: results.message, variant: 'error' });
+                              return reject(results);
+                            }
+                            setFlashProps({ message: 'Invitation canceled', variant: 'success' });
+                            updateAgent(results);
+                            resolve();
+                          }).catch(err => {
+                            console.log(err);
+                            setFlashProps({ errors: [err], variant: 'error' });
+                            reject(err);
+                          });
                         })
                     } : undefined}
                     actions={[
@@ -372,7 +364,7 @@ const TeamInfo = (props) => {
                         tooltip: 'Re-send invitation',
                         onClick: (event, rowData) =>
                           new Promise((resolve, reject) => {
-                            putTeamMember(teamInfo.id, { email: rowData.recipient }).then((results) => {
+                            sendTeamInvitation(teamInfo.id, { email: rowData.recipient }).then((results) => {
                               setFlashProps({ message: 'Invitation sent', variant: 'success' });
                               updateAgent(results);
                               resolve();

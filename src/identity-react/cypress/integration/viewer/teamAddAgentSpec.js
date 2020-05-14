@@ -26,7 +26,8 @@ context('viewer/Team add agent', function() {
                                             this.scope.update.organizations,
                                             this.scope.create.teams,
                                             this.scope.read.teams,
-                                            this.scope.create.teamMembers]);
+                                            this.scope.create.teamMembers,
+                                            this.scope.delete.teamMembers]);
         cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
           agent = results[0];
         });
@@ -282,6 +283,79 @@ context('viewer/Team add agent', function() {
                   });
                 });
               });
+
+              describe('has invitation rescinded', () => {
+                beforeEach(() => {
+                  cy.get('input[placeholder="Email"]').type('somenewguy@example.com');
+                  cy.get('button[title="Save"]').click();
+                  cy.wait(300);
+                });
+
+                it('removes the invitation from the database', () => {
+                  cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                    expect(results.length).to.eq(1);
+
+                    cy.get('#pending-invitations-table button[title="Delete"]').click();
+                    // Are you sure?
+                    cy.get('#pending-invitations-table button[title="Save"]').contains('check').click();
+
+                    cy.wait(300);
+
+                    cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                      expect(results.length).to.eq(0);
+                    });
+                  });
+                });
+
+                it('displays a message', () => {
+                  cy.get('#pending-invitations-table button[title="Delete"]').click();
+                  cy.wait(300);
+                  // Are you sure?
+                  cy.get('#pending-invitations-table button[title="Save"]').contains('check').click();
+
+                  cy.contains('Invitation canceled');
+                });
+
+                it('updates the pending invitations table', () => {
+                  // Add another agent...
+                  cy.get('button span span').contains('add_box').click();
+                  cy.get('input[placeholder="Email"]').type('anothernewguy@example.com');
+                  cy.get('button[title="Save"]').click();
+                  cy.wait(300);
+
+                  // And another...
+                  cy.get('button span span').contains('add_box').click();
+                  cy.get('input[placeholder="Email"]').type('yetanothernewguy@example.com');
+                  cy.get('button[title="Save"]').click();
+                  cy.wait(300);
+
+                  cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 3);
+
+                  // Remove second invitation
+                  cy.get('#pending-invitations-table tr:nth-of-type(2) button[title="Delete"]').click();
+                  cy.get('#pending-invitations-table button[title="Save"]').contains('check').click();
+                  cy.wait(300);
+
+                  cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 2);
+                  cy.get('#pending-invitations-table table tbody tr:nth-of-type(1) td').contains('somenewguy@example.com');
+                  cy.get('#pending-invitations-table table tbody tr:nth-of-type(2) td').contains('yetanothernewguy@example.com');
+
+                  // Remove first invitation
+                  cy.get('#pending-invitations-table tr:nth-of-type(1) button[title="Delete"]').click();
+                  cy.get('#pending-invitations-table button[title="Save"]').contains('check').click();
+                  cy.wait(300);
+
+                  cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 1);
+                  cy.get('#pending-invitations-table table tbody tr td').contains('yetanothernewguy@example.com');
+
+                  // Remove last invitation
+                  cy.get('#pending-invitations-table button[title="Delete"]').click();
+                  cy.get('#pending-invitations-table button[title="Save"]').contains('check').click();
+                  cy.wait(300);
+
+                  cy.get('#pending-invitations-table').should('not.exist');
+                });
+              });
             });
 
             describe('known agent', () => {
@@ -414,6 +488,79 @@ context('viewer/Team add agent', function() {
 
                     cy.contains('Invitation sent');
                   });
+                });
+              });
+
+              describe('has invitation rescinded', () => {
+                beforeEach(() => {
+                  cy.get('input[placeholder="Email"]').type(anotherAgent.email);
+                  cy.get('button[title="Save"]').click();
+                  cy.wait(300);
+                });
+
+                it('does not impact the database', () => {
+                  cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                    expect(results.length).to.eq(0);
+
+                    cy.get('#pending-invitations-table button[title="Delete"]').click();
+                    // Are you sure?
+                    cy.get('#pending-invitations-table button[title="Save"]').contains('check').click();
+
+                    cy.wait(300);
+
+                    cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                      expect(results.length).to.eq(0);
+                    });
+                  });
+                });
+
+                it('displays a message', () => {
+                  cy.get('#pending-invitations-table button[title="Delete"]').click();
+                  cy.wait(300);
+                  // Are you sure?
+                  cy.get('#pending-invitations-table button[title="Save"]').contains('check').click();
+
+                  cy.contains('Invitation canceled');
+                });
+
+                it('updates the pending invitations table', () => {
+                  // Add another agent...
+                  cy.get('button span span').contains('add_box').click();
+                  cy.get('input[placeholder="Email"]').type('anothernewguy@example.com');
+                  cy.get('button[title="Save"]').click();
+                  cy.wait(300);
+
+                  // And another...
+                  cy.get('button span span').contains('add_box').click();
+                  cy.get('input[placeholder="Email"]').type('yetanothernewguy@example.com');
+                  cy.get('button[title="Save"]').click();
+                  cy.wait(300);
+
+                  cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 3);
+
+                  // Remove second invitation
+                  cy.get('#pending-invitations-table tr:nth-of-type(2) button[title="Delete"]').click();
+                  cy.get('#pending-invitations-table button[title="Save"]').contains('check').click();
+                  cy.wait(300);
+
+                  cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 2);
+                  cy.get('#pending-invitations-table table tbody tr:nth-of-type(1) td').contains(anotherAgent.email);
+                  cy.get('#pending-invitations-table table tbody tr:nth-of-type(2) td').contains('yetanothernewguy@example.com');
+
+                  // Remove first invitation
+                  cy.get('#pending-invitations-table tr:nth-of-type(1) button[title="Delete"]').click();
+                  cy.get('#pending-invitations-table button[title="Save"]').contains('check').click();
+                  cy.wait(300);
+
+                  cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 1);
+                  cy.get('#pending-invitations-table table tbody tr td').contains('yetanothernewguy@example.com');
+
+                  // Remove last invitation
+                  cy.get('#pending-invitations-table button[title="Delete"]').click();
+                  cy.get('#pending-invitations-table button[title="Save"]').contains('check').click();
+                  cy.wait(300);
+
+                  cy.get('#pending-invitations-table').should('not.exist');
                 });
               });
             });
