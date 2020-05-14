@@ -115,6 +115,39 @@ const Agent = (props) => {
                 </Table>
               </TableContainer>
             </Grid>
+            {profileData.user_metadata &&
+             profileData.user_metadata.rsvps &&
+             profileData.user_metadata.rsvps.length ?
+              <>
+                <Grid id="rsvps-table" item className={classes.grid}>
+                  <MaterialTable
+                    title='RSVPs'
+                    columns={[
+                      { title: 'Name', field: 'name', editable: 'never' },
+                      { title: 'Type', field: 'type', editable: 'never' },
+                    ]}
+                    data={profileData.user_metadata ? profileData.user_metadata.rsvps : []}
+                    options={{ search: false, paging: false }}
+                    editable={{
+                      onRowDelete: (oldData) => new Promise((resolve, reject) => {
+                        resolve();
+                      }),
+                    }}
+                    actions={[
+                      {
+                        icon: 'check',
+                        tooltip: 'Accept invitation',
+                        onClick: (event, rowData) =>
+                          new Promise((resolve, reject) => {
+                            resolve();
+                          })
+                      }
+                    ]}
+                  />
+                </Grid>
+                <br />
+              </>
+            : '' }
             <Grid item className={classes.grid}>
               <MaterialTable
                 title='Teams'

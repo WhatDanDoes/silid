@@ -222,6 +222,64 @@ context('viewer/Team add agent', function() {
                 cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 3);
               });
 
+              context('is logged in', () => {
+                describe('the invitation', () => {
+
+                  beforeEach(function() {
+                    cy.get('input[placeholder="Email"]').type('somenewguy@example.com');
+                    cy.get('button[title="Save"]').click();
+                    cy.wait(300);
+                  });
+
+                  it('is removed from the database', function() {
+                    cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                      expect(results.length).to.eq(1);
+
+                      cy.login('somenewguy@example.com', {..._profile, name: 'Some New Guy'},
+                                [this.scope.read.agents,
+                                 this.scope.create.organizations,
+                                 this.scope.read.organizations,
+                                 this.scope.update.organizations,
+                                 this.scope.create.teams,
+                                 this.scope.read.teams,
+                                 this.scope.create.teamMembers,
+                                 this.scope.delete.teamMembers]);
+
+                      cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                        expect(results.length).to.eq(0);
+                      });
+                    });
+                  });
+
+                  describe('RSVP table', () => {
+                    beforeEach(function() {
+                      cy.login('somenewguy@example.com', {..._profile, name: 'Some New Guy'},
+                                [this.scope.read.agents,
+                                 this.scope.create.organizations,
+                                 this.scope.read.organizations,
+                                 this.scope.update.organizations,
+                                 this.scope.create.teams,
+                                 this.scope.read.teams,
+                                 this.scope.create.teamMembers,
+                                 this.scope.delete.teamMembers]);
+                    });
+
+                    it('displays the team invite', () => {
+                      cy.get('#rsvps-table table tbody').find('tr').its('length').should('eq', 1);
+
+                      cy.get('#rsvps-table').should('exist');
+                      cy.get('#rsvps-table table thead tr th').contains('Actions');
+                      cy.get('#rsvps-table table tbody tr td button span').contains('delete_outline');
+                      cy.get('#rsvps-table table tbody tr td button span').contains('check');
+                      cy.get('#rsvps-table table thead tr th').contains('Name');
+                      cy.get('#rsvps-table table tbody tr td').contains('The A-Team');
+                      cy.get('#rsvps-table table thead tr th').contains('Type');
+                      cy.get('#rsvps-table table tbody tr td').contains('team');
+                    });
+                  });
+                });
+              });
+
               describe('is re-sent an invitation', () => {
                 beforeEach(() => {
                   cy.get('input[placeholder="Email"]').type('somenewguy@example.com');
@@ -561,6 +619,64 @@ context('viewer/Team add agent', function() {
                   cy.wait(300);
 
                   cy.get('#pending-invitations-table').should('not.exist');
+                });
+              });
+
+              context('is logged in', () => {
+                describe('the invitation', () => {
+
+                  beforeEach(function() {
+                    cy.get('input[placeholder="Email"]').type(anotherAgent.email);
+                    cy.get('button[title="Save"]').click();
+                    cy.wait(300);
+                  });
+
+                  it('has no impact on the database', function() {
+                    cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                      expect(results.length).to.eq(0);
+
+                      cy.login(anotherAgent.email, {..._profile, name: anotherAgent.name},
+                                [this.scope.read.agents,
+                                 this.scope.create.organizations,
+                                 this.scope.read.organizations,
+                                 this.scope.update.organizations,
+                                 this.scope.create.teams,
+                                 this.scope.read.teams,
+                                 this.scope.create.teamMembers,
+                                 this.scope.delete.teamMembers]);
+
+                      cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                        expect(results.length).to.eq(0);
+                      });
+                    });
+                  });
+
+                  describe('RSVP table', () => {
+                    beforeEach(function() {
+                      cy.login(anotherAgent.email, {..._profile, name: anotherAgent.name},
+                                [this.scope.read.agents,
+                                 this.scope.create.organizations,
+                                 this.scope.read.organizations,
+                                 this.scope.update.organizations,
+                                 this.scope.create.teams,
+                                 this.scope.read.teams,
+                                 this.scope.create.teamMembers,
+                                 this.scope.delete.teamMembers]);
+                    });
+
+                    it('displays the team invite', () => {
+                      cy.get('#rsvps-table table tbody').find('tr').its('length').should('eq', 1);
+
+                      cy.get('#rsvps-table').should('exist');
+                      cy.get('#rsvps-table table thead tr th').contains('Actions');
+                      cy.get('#rsvps-table table tbody tr td button span').contains('delete_outline');
+                      cy.get('#rsvps-table table tbody tr td button span').contains('check');
+                      cy.get('#rsvps-table table thead tr th').contains('Name');
+                      cy.get('#rsvps-table table tbody tr td').contains('The A-Team');
+                      cy.get('#rsvps-table table thead tr th').contains('Type');
+                      cy.get('#rsvps-table table tbody tr td').contains('team');
+                    });
+                  });
                 });
               });
             });
