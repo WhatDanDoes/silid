@@ -135,6 +135,9 @@ require('../support/setupKeystore').then(keyStuff => {
 
             socialProfile._json.sub = agent.socialProfile.user_id;
             socialProfile.user_id = agent.socialProfile.user_id;
+            if (agent.socialProfile) {
+              socialProfile = {...agent.socialProfile, ...socialProfile};
+            }
             agent.socialProfile = socialProfile;
             await agent.save();
           }
