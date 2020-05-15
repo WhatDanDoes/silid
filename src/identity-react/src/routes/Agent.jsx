@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createStyles, makeStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
-//import { useAuthState } from '../auth/Auth';
 import Link from '@material-ui/core/Link';
 import { useAdminState } from '../auth/Admin';
 import ReactJson from 'react-json-view';
@@ -22,6 +21,7 @@ import MaterialTable from 'material-table';
 
 import useGetAgentService from '../services/useGetAgentService';
 import usePostTeamService from '../services/usePostTeamService';
+import useGetTeamInviteActionService from '../services/useGetTeamInviteActionService';
 
 const useStyles = makeStyles(theme =>
   createStyles({
@@ -73,6 +73,7 @@ const Agent = (props) => {
   const classes = useStyles();
   const service = useGetAgentService(props.match.params.id, admin.viewingCached);
   const { publishTeam } = usePostTeamService();
+  const { respondToTeamInvitation } = useGetTeamInviteActionService();
 
   useEffect(() => {
     if (service.status === 'loaded') {
@@ -130,7 +131,17 @@ const Agent = (props) => {
                     options={{ search: false, paging: false }}
                     editable={{
                       onRowDelete: (oldData) => new Promise((resolve, reject) => {
-                        resolve();
+                        respondToTeamInvitation(oldData.uuid, 'reject').then(results => {
+                          if (results.error) {
+                            setFlashProps({ message: results.message, variant: 'error' });
+                            return reject(results);
+                          }
+                          setFlashProps({ message: 'Invitation ignored', variant: 'warning' });
+                          setProfileData(results);
+                          resolve();
+                        }).catch(err => {
+                          reject(err);
+                        });
                       }),
                     }}
                     actions={[
@@ -139,7 +150,17 @@ const Agent = (props) => {
                         tooltip: 'Accept invitation',
                         onClick: (event, rowData) =>
                           new Promise((resolve, reject) => {
-                            resolve();
+                            respondToTeamInvitation(rowData.uuid, 'accept').then(results => {
+                              if (results.error) {
+                                setFlashProps({ message: results.message, variant: 'error' });
+                                return reject(results);
+                              }
+                              setFlashProps({ message: 'Welcome to the team', variant: 'success' });
+                              setProfileData(results);
+                              resolve();
+                            }).catch(err => {
+                              reject(err);
+                            });
                           })
                       }
                     ]}
@@ -148,7 +169,7 @@ const Agent = (props) => {
                 <br />
               </>
             : '' }
-            <Grid item className={classes.grid}>
+            <Grid id="teams-table" item className={classes.grid}>
               <MaterialTable
                 title='Teams'
                 columns={[

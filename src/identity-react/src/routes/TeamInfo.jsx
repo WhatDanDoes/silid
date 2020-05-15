@@ -308,8 +308,15 @@ const TeamInfo = (props) => {
                       }
                       else {
                         sendTeamInvitation(teamInfo.id, newData).then((results) => {
-                          setFlashProps({ message: 'Invitation sent', variant: 'success' });
-                          updateAgent(results);
+                          console.log('results');
+                          console.log(JSON.stringify(results));
+                          if (results.message) {
+                            setFlashProps({ message: results.message, variant: 'warning' });
+                          }
+                          else {
+                            setFlashProps({ message: 'Invitation sent', variant: 'success' });
+                            updateAgent(results);
+                          }
                           resolve();
                         }).catch(err => {
                           console.log(err);

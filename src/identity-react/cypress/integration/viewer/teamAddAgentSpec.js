@@ -276,6 +276,161 @@ context('viewer/Team add agent', function() {
                       cy.get('#rsvps-table table thead tr th').contains('Type');
                       cy.get('#rsvps-table table tbody tr td').contains('team');
                     });
+
+                    describe('accept button', () => {
+                      beforeEach(() => {
+                        cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
+                          agent = results[0];
+                        });
+                      });
+
+                      it('removes the entry from the RSVP table', () => {
+                        cy.get('#rsvps-table table tbody').find('tr').its('length').should('eq', 1);
+                        cy.get('#rsvps-table table tbody tr td button span').contains('check').click();
+                        cy.wait(300);
+                        cy.get('#rsvps-table').should('not.exist');
+                      });
+
+                      it('adds the entry to the Teams table', () => {
+                        cy.get('#teams-table table tbody').contains('No records to display');
+                        cy.get('#rsvps-table table tbody tr td button span').contains('check').click();
+                        cy.wait(300);
+
+                        cy.get('#teams-table table tbody').contains('No records to display').should('not.exist');
+                        cy.get('#teams-table table thead tr th').contains('Name');
+                        cy.get('#teams-table table tbody tr td a').should('contain', agent.socialProfile.user_metadata.teams[0].name).
+                          and('have.attr', 'href').and('equal', `#team/${agent.socialProfile.user_metadata.teams[0].id}`);
+                        cy.get('table thead tr th').contains('Leader');
+                        cy.get('table tbody tr td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+                      });
+
+                      it('persists membership status between refreshes', () => {
+                        cy.get('#rsvps-table table tbody').find('tr').its('length').should('eq', 1);
+                        cy.get('#rsvps-table table tbody tr td button span').contains('check').click();
+                        cy.wait(300);
+                        cy.get('#rsvps-table').should('not.exist');
+                        cy.get('#teams-table table tbody tr td a').contains('The A-Team');
+                        cy.reload();
+                        cy.wait(300);
+                        cy.get('#rsvps-table').should('not.exist');
+                        cy.get('#teams-table table tbody tr td a').contains('The A-Team');
+                      });
+
+                      it('allows the agent to view the team', () => {
+                        cy.get('#rsvps-table table tbody tr td button span').contains('check').click();
+                        cy.wait(300);
+                        cy.get('#teams-table table tbody tr td a').contains('The A-Team').click();
+                        cy.wait(300);
+
+                        cy.get('#members-table table thead tr th').contains('Name');
+                        cy.get('#members-table table thead tr th').contains('Email');
+                        cy.get('#members-table table tbody tr td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
+                        cy.get('#members-table table tbody tr td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+                        cy.get('#members-table table tbody tr td a').should('contain', 'Some New Guy').and('have.attr', 'href');
+                        cy.get('#members-table table tbody tr td').contains('somenewguy@example.com');
+                      });
+
+                      it('displays a friendly message', () => {
+                        cy.get('#rsvps-table table tbody tr td button span').contains('check').click();
+                        cy.wait(300);
+                        cy.contains('Welcome to the team');
+                      });
+
+                      context('team leader login', () => {
+                        beforeEach(function() {
+                          cy.get('#rsvps-table table tbody tr td button span').contains('check').click();
+                          cy.wait(300);
+
+                          // Login/create main test agent
+                          cy.login(_profile.email, _profile, [this.scope.read.agents,
+                                                              this.scope.create.organizations,
+                                                              this.scope.read.organizations,
+                                                              this.scope.update.organizations,
+                                                              this.scope.create.teams,
+                                                              this.scope.read.teams,
+                                                              this.scope.create.teamMembers,
+                                                              this.scope.delete.teamMembers]);
+
+                          cy.get('#teams-table table tbody tr td a').contains('The A-Team').click();
+                          cy.wait(300);
+                        });
+
+                        it('removes the entry from the Pending Invitations table', () => {
+                          cy.get('#pending-invitations-table').should('not.exist');
+                        });
+
+                        it('adds the new agent to the team members table', () => {
+                          cy.get('#members-table table thead tr th').contains('Name');
+                          cy.get('#members-table table thead tr th').contains('Email');
+                          cy.get('#members-table table tbody tr td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
+                          cy.get('#members-table table tbody tr td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+                          cy.get('#members-table table tbody tr td a').should('contain', 'Some New Guy').and('have.attr', 'href');
+                          cy.get('#members-table table tbody tr td').contains('somenewguy@example.com');
+                        });
+                      });
+                    });
+
+                    describe('reject button', () => {
+                      it('removes the entry from the RSVP table', () => {
+                        cy.get('#rsvps-table table tbody').find('tr').its('length').should('eq', 1);
+
+                        cy.get('#rsvps-table table tbody tr td button span').contains('delete_outline').click();
+                        // Are you sure?
+                        cy.get('#rsvps-table button[title="Save"]').contains('check').click();
+                        cy.wait(300);
+
+                        cy.get('#rsvps-table').should('not.exist');
+                      });
+
+                      it('does not add the entry to the Teams table', () => {
+                        cy.get('#teams-table table tbody').contains('No records to display');
+                        cy.get('#rsvps-table table tbody tr td button span').contains('delete_outline').click();
+                        // Are you sure?
+                        cy.get('#rsvps-table button[title="Save"]').contains('check').click();
+                        cy.wait(300);
+                        cy.get('#teams-table table tbody').contains('No records to display');
+                      });
+
+                      it('displays a friendly message', () => {
+                        cy.get('#rsvps-table table tbody tr td button span').contains('delete_outline').click();
+                        // Are you sure?
+                        cy.get('#rsvps-table button[title="Save"]').contains('check').click();
+                        cy.wait(300);
+                        cy.contains('Invitation ignored');
+                      });
+
+                      context('team leader login', () => {
+                        beforeEach(function() {
+                          cy.get('#rsvps-table table tbody tr td button span').contains('delete_outline').click();
+                          // Are you sure?
+                          cy.get('#rsvps-table button[title="Save"]').contains('check').click();
+                          cy.wait(300);
+
+                          // Login/create main test agent
+                          cy.login(_profile.email, _profile, [this.scope.read.agents,
+                                                              this.scope.create.organizations,
+                                                              this.scope.read.organizations,
+                                                              this.scope.update.organizations,
+                                                              this.scope.create.teams,
+                                                              this.scope.read.teams,
+                                                              this.scope.create.teamMembers,
+                                                              this.scope.delete.teamMembers]);
+
+                          cy.get('#teams-table table tbody tr td a').contains('The A-Team').click();
+                          cy.wait(300);
+                        });
+
+                        it('removes the entry from the Pending Invitations table', () => {
+                          cy.get('#pending-invitations-table').should('not.exist');
+                        });
+
+                        it('does not add the new agent to the team members table', () => {
+                          cy.get('#members-table table tbody').find('tr').its('length').should('eq', 1);
+                          cy.get('#members-table table tbody tr td a').should('not.contain', 'Some New Guy');
+                          cy.get('#members-table table tbody tr td').should('not.contain', 'somenewguy@example.com');
+                        });
+                      });
+                    });
                   });
                 });
               });
@@ -676,105 +831,224 @@ context('viewer/Team add agent', function() {
                       cy.get('#rsvps-table table thead tr th').contains('Type');
                       cy.get('#rsvps-table table tbody tr td').contains('team');
                     });
+
+                    describe('accept button', () => {
+                      beforeEach(() => {
+                        cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
+                          agent = results[0];
+                        });
+                      });
+
+                      it('removes the entry from the RSVP table', () => {
+                        cy.get('#rsvps-table table tbody').find('tr').its('length').should('eq', 1);
+                        cy.get('#rsvps-table table tbody tr td button span').contains('check').click();
+                        cy.wait(300);
+                        cy.get('#rsvps-table').should('not.exist');
+                      });
+
+                      it('adds the entry to the Teams table', () => {
+                        cy.get('#teams-table table tbody').contains('No records to display');
+                        cy.get('#rsvps-table table tbody tr td button span').contains('check').click();
+                        cy.wait(300);
+
+                        cy.get('#teams-table table tbody').contains('No records to display').should('not.exist');
+                        cy.get('#teams-table table thead tr th').contains('Name');
+                        cy.get('#teams-table table tbody tr td a').should('contain', agent.socialProfile.user_metadata.teams[0].name).
+                          and('have.attr', 'href').and('equal', `#team/${agent.socialProfile.user_metadata.teams[0].id}`);
+                        cy.get('table thead tr th').contains('Leader');
+                        cy.get('table tbody tr td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+                      });
+
+                      it('persists membership status between refreshes', () => {
+                        cy.get('#rsvps-table table tbody').find('tr').its('length').should('eq', 1);
+                        cy.get('#rsvps-table table tbody tr td button span').contains('check').click();
+                        cy.wait(300);
+                        cy.get('#rsvps-table').should('not.exist');
+                        cy.get('#teams-table table tbody tr td a').contains('The A-Team');
+                        cy.reload();
+                        cy.wait(300);
+                        cy.get('#rsvps-table').should('not.exist');
+                        cy.get('#teams-table table tbody tr td a').contains('The A-Team');
+                      });
+
+                      it('allows the agent to view the team', () => {
+                        cy.get('#rsvps-table table tbody tr td button span').contains('check').click();
+                        cy.wait(300);
+                        cy.get('#teams-table table tbody tr td a').contains('The A-Team').click();
+                        cy.wait(300);
+
+                        cy.get('#members-table table thead tr th').contains('Name');
+                        cy.get('#members-table table thead tr th').contains('Email');
+                        cy.get('#members-table table tbody tr:nth-of-type(1) td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${anotherAgent.socialProfile.user_id}`);
+                        cy.get('#members-table table tbody tr:nth-of-type(1) td').contains(anotherAgent.email);
+                        cy.get('#members-table table tbody tr:nth-of-type(2) td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
+                        cy.get('#members-table table tbody tr:nth-of-type(2) td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+                     });
+
+                      it('displays a friendly message', () => {
+                        cy.get('#rsvps-table table tbody tr td button span').contains('check').click();
+                        cy.wait(300);
+                        cy.contains('Welcome to the team');
+                      });
+
+                      context('team leader login', () => {
+                        beforeEach(function() {
+                          cy.get('#rsvps-table table tbody tr td button span').contains('check').click();
+                          cy.wait(300);
+
+                          // Login/create main test agent
+                          cy.login(_profile.email, _profile, [this.scope.read.agents,
+                                                              this.scope.create.organizations,
+                                                              this.scope.read.organizations,
+                                                              this.scope.update.organizations,
+                                                              this.scope.create.teams,
+                                                              this.scope.read.teams,
+                                                              this.scope.create.teamMembers,
+                                                              this.scope.delete.teamMembers]);
+
+                          cy.get('#teams-table table tbody tr td a').contains('The A-Team').click();
+                          cy.wait(300);
+                        });
+
+                        it('removes the entry from the Pending Invitations table', () => {
+                          cy.get('#pending-invitations-table').should('not.exist');
+                        });
+
+                        it('adds the new agent to the team members table', () => {
+                          cy.get('#members-table table thead tr th').contains('Name');
+                          cy.get('#members-table table thead tr th').contains('Email');
+                          cy.get('#members-table table tbody tr:nth-of-type(1) td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${anotherAgent.socialProfile.user_id}`);
+                          cy.get('#members-table table tbody tr:nth-of-type(1) td').contains(anotherAgent.email);
+                          cy.get('#members-table table tbody tr:nth-of-type(2) td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
+                          cy.get('#members-table table tbody tr:nth-of-type(2) td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+                        });
+                      });
+                    });
+
+                    describe('reject button', () => {
+                      it('removes the entry from the RSVP table', () => {
+                        cy.get('#rsvps-table table tbody').find('tr').its('length').should('eq', 1);
+
+                        cy.get('#rsvps-table table tbody tr td button span').contains('delete_outline').click();
+                        // Are you sure?
+                        cy.get('#rsvps-table button[title="Save"]').contains('check').click();
+                        cy.wait(300);
+
+                        cy.get('#rsvps-table').should('not.exist');
+                      });
+
+                      it('does not add the entry to the Teams table', () => {
+                        cy.get('#teams-table table tbody').contains('No records to display');
+                        cy.get('#rsvps-table table tbody tr td button span').contains('delete_outline').click();
+                        // Are you sure?
+                        cy.get('#rsvps-table button[title="Save"]').contains('check').click();
+                        cy.wait(300);
+                        cy.get('#teams-table table tbody').contains('No records to display');
+                      });
+
+                      it('displays a friendly message', () => {
+                        cy.get('#rsvps-table table tbody tr td button span').contains('delete_outline').click();
+                        // Are you sure?
+                        cy.get('#rsvps-table button[title="Save"]').contains('check').click();
+                        cy.wait(300);
+                        cy.contains('Invitation ignored');
+                      });
+
+                      context('team leader login', () => {
+                        beforeEach(function() {
+                          cy.get('#rsvps-table table tbody tr td button span').contains('delete_outline').click();
+                          // Are you sure?
+                          cy.get('#rsvps-table button[title="Save"]').contains('check').click();
+                          cy.wait(300);
+
+                          // Login/create main test agent
+                          cy.login(_profile.email, _profile, [this.scope.read.agents,
+                                                              this.scope.create.organizations,
+                                                              this.scope.read.organizations,
+                                                              this.scope.update.organizations,
+                                                              this.scope.create.teams,
+                                                              this.scope.read.teams,
+                                                              this.scope.create.teamMembers,
+                                                              this.scope.delete.teamMembers]);
+
+                          cy.get('#teams-table table tbody tr td a').contains('The A-Team').click();
+                          cy.wait(300);
+                        });
+
+                        it('removes the entry from the Pending Invitations table', () => {
+                          cy.get('#pending-invitations-table').should('not.exist');
+                        });
+
+                        it('does not add the new agent to the team members table', () => {
+                          cy.get('#members-table table tbody').find('tr').its('length').should('eq', 1);
+                          cy.get('#members-table table tbody tr td a').should('not.contain', anotherAgent.name);
+                          cy.get('#members-table table tbody tr td').should('not.contain', anotherAgent.email);
+                        });
+                      });
+                    });
                   });
                 });
               });
             });
 
-//            describe('erroneous additions', () => {
-//
-//              it('shows an error message when a duplicate agent is added', () => {
-//                cy.get('#team-member-list').find('.list-item').its('length').should('eq', 1);
-//                cy.get('#team-member-list .list-item').first().contains(agent.email);
-//
-//                cy.get('input[name="email"][type="email"]').type(anotherAgent.email);
-//                cy.get('button[type="submit"]').click();
-//                cy.wait(500);
-//                cy.get('#team-member-list').find('.list-item').its('length').should('eq', 2);
-//                cy.get('#team-member-list .list-item').last().contains(anotherAgent.email);
-//
-//                // Add same agent
-//                cy.get('button#add-agent').click();
-//                cy.get('input[name="email"][type="email"]').type(anotherAgent.email);
-//                cy.get('button[type="submit"]').click();
-//                cy.wait(500);
-//                cy.get('#team-member-list').find('.list-item').its('length').should('eq', 2);
-//                cy.contains(`${anotherAgent.email} is already a member of this team`);
-//              });
-//            });
+            describe('erroneous additions', () => {
+              beforeEach(function() {
+                // Invite new team member
+                cy.get('input[placeholder="Email"]').type(anotherAgent.email);
+                cy.get('button[title="Save"]').click();
+                cy.wait(300);
+
+                // Accept invitation
+                cy.login(anotherAgent.email, {..._profile, name: anotherAgent.name},
+                          [this.scope.read.agents,
+                           this.scope.create.organizations,
+                           this.scope.read.organizations,
+                           this.scope.update.organizations,
+                           this.scope.create.teams,
+                           this.scope.read.teams,
+                           this.scope.create.teamMembers,
+                           this.scope.delete.teamMembers]);
+                cy.get('#rsvps-table table tbody tr td button span').contains('check').click();
+                cy.wait(300);
+              });
+
+              it('shows an error message when a duplicate agent is added', function() {
+
+                // Login team leader and send invite to same agent
+                cy.login(_profile.email, _profile, [this.scope.read.agents,
+                                                    this.scope.create.organizations,
+                                                    this.scope.read.organizations,
+                                                    this.scope.update.organizations,
+                                                    this.scope.create.teams,
+                                                    this.scope.read.teams,
+                                                    this.scope.create.teamMembers,
+                                                    this.scope.delete.teamMembers]);
+
+                cy.contains('The A-Team').click();
+                cy.wait(300);
+
+                cy.get('button span span').contains('add_box').click();
+                cy.get('input[placeholder="Email"]').type(anotherAgent.email);
+                cy.get('button[title="Save"]').click();
+                cy.wait(300);
+
+                cy.contains(`${anotherAgent.email} is already a member of this team`);
+
+                cy.get('#flash-message #close-flash').click();
+
+                cy.get('button span span').contains('add_box').click();
+                cy.get('input[placeholder="Email"]').type(anotherAgent.email);
+                cy.get('button[title="Save"]').click();
+                cy.wait(300);
+
+                cy.contains(`${anotherAgent.email} is already a member of this team`);
+              });
+            });
           });
         });
       });
     });
 
-//    context('verified member agent visit', () => {
-//
-//      let organization, team;
-//      beforeEach(function() {
-//        cy.request({ url: '/organization',  method: 'POST', body: { name: 'One Book Canada' } }).then((org) => {
-//          organization = org.body;
-//          cy.request({ url: '/organization',  method: 'PATCH', body: { id: organization.id, memberId: anotherAgent.id } }).then((res) => {
-//
-//            // Verify agent membership
-//            cy.task('query', `UPDATE "OrganizationMembers" SET "verificationCode"=null WHERE "AgentId"=${anotherAgent.id};`).then(([results, metadata]) => {
-//
-//              cy.request({ url: '/team',  method: 'POST',
-//                           body: { organizationId: organization.id, name: 'Calgary Roughnecks' } }).then(res => {
-//                team = res.body;
-//
-//                cy.login(anotherAgent.email, _profile, [this.scope.read.agents, this.scope.read.organizations]);
-//                cy.visit('/#/');
-//                cy.get('#app-menu-button').click();
-//                cy.get('#organization-button').click();
-//                cy.contains('One Book Canada').click();
-//                cy.contains('Calgary Roughnecks').click();
-//              });
-//            });
-//          });
-//        });
-//      });
-//
-//      it('lands in the right spot', () => {
-//        cy.url().should('contain', `/#/team/${team.id}`);
-//      });
-//
-//      it('displays common Team interface elements', function() {
-//        cy.get('button#add-agent').should('not.exist');
-//        cy.get('button#add-team').should('not.exist');
-//      });
-//    });
-
-//    context('unverified member agent visit', () => {
-//
-//      let organization, team;
-//      beforeEach(function() {
-//        cy.request({ url: '/organization',  method: 'POST', body: { name: 'One Book Canada' } }).then((org) => {
-//          organization = org.body;
-//          cy.request({ url: '/organization',  method: 'PATCH', body: { id: organization.id, memberId: anotherAgent.id } }).then((res) => {
-//            cy.request({ url: '/team',  method: 'POST',
-//                         body: { organizationId: organization.id, name: 'Calgary Roughnecks' } }).then(res => {
-//              team = res.body;
-//
-//              cy.login(anotherAgent.email, _profile, [this.scope.read.agents, this.scope.read.organizations]);
-//              cy.visit('/#/');
-//              cy.get('#app-menu-button').click();
-//              cy.get('#organization-button').click();
-//              cy.contains('One Book Canada').click();
-//            });
-//          });
-//        });
-//      });
-//
-//      it('lands in the right spot', () => {
-//        cy.url().should('contain', `/#/organization/${organization.id}`);
-//      });
-//
-//      it('displays common Team interface elements', function() {
-//        cy.get('button#add-agent').should('not.exist');
-//        cy.get('button#add-team').should('not.exist');
-//        cy.contains('You have not verified your invitation to this organization. Check your email.');
-//      });
-//    });
   });
 });
 
