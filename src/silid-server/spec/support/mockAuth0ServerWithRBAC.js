@@ -409,6 +409,27 @@ require('../support/setupKeystore').then(keyStuff => {
 
             return h.response(data);
           }
+
+          /**
+           * For retrieving a team leader's pendingInvitations
+           */
+          if (request.query.q && /user_metadata\.pendingInvitations\.uuid/.test(request.query.q)) {
+            const results = await models.Agent.findAll(searchParams);
+
+            // Get team ID from search string
+            const teamId = request.query.q.match(/(?<=(["']\b))(?:(?=(\\?))\2.)*?(?=\1)/)[0];
+
+            let data = results.filter(agent => {
+              if (agent.socialProfile.user_metadata && agent.socialProfile.user_metadata.pendingInvitations) {
+                return agent.socialProfile.user_metadata.pendingInvitations.find(invite => invite.uuid === teamId);
+              }
+              return false;
+            });
+
+            data = data.map(d => ({...d.socialProfile, email: d.socialProfile.email, name: d.socialProfile.name }));
+
+            return h.response(data);
+          }
         }
       });
 
