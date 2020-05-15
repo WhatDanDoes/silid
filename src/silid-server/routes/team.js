@@ -363,7 +363,6 @@ router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(
   if (!req.body.email) {
     return res.status(400).json({ message: 'No email provided' });
   }
-
   // Make sure agent isn't already a member of the team
   models.Agent.findOne({ where: { email: req.body.email.trim().toLowerCase() } }).then(agent => {
     const invite = { uuid: req.params.id, recipient: req.body.email, type: 'team', name: team.name };
@@ -374,7 +373,7 @@ router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(
 
         let isMember;
         if (invitedAgent.user_metadata.teams) {
-          isMember = invitedAgent.user_metadata.teams.find(team => team.id === req.params.id && team.leader === agent.email);
+          isMember = invitedAgent.user_metadata.teams.find(team => team.id === req.params.id);
         }
 
         if (isMember) {

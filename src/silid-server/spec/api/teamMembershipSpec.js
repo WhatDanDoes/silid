@@ -903,11 +903,11 @@ describe('teamMembershipSpec', () => {
           beforeEach(done => {
             models.Agent.create({ name: 'Some Other Guy',
                                   email: 'someotherguy@example.com',
-                                  socialProfile: {..._profile, name: 'Some Other Guy',email: 'someotherguy@example.com' } }).then(result => {
+                                  socialProfile: {..._profile, name: 'Some Other Guy', email: 'someotherguy@example.com' } }).then(result => {
               registeredAgent = result;
 
               // For the invited agent
-              stubUserAppMetadataRead((err, apiScopes) => {
+              stubUserAppMetadataRead({..._profile, name: 'Some Other Guy', email: 'someotherguy@example.com', user_metadata: {} }, (err, apiScopes) => {
                 if (err) return done.fail();
                 ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
                 invitedUserAppMetadataReadScope = userAppMetadataReadScope;
