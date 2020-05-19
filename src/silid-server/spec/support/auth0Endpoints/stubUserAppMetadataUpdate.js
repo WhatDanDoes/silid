@@ -30,7 +30,7 @@ module.exports = function(profile, done, options) {
   require('../setupKeystore').then(singleton => {
     let { pub, prv, keystore } = singleton.keyStuff;
 
-    stubOauthToken([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, oauthScopes) => {
+    stubOauthToken([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, oauthScopes) => {
       if (err) return done(err);
 
       ({accessToken, oauthTokenScope} = oauthScopes);
