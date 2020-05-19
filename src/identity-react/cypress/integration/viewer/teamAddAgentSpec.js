@@ -41,9 +41,8 @@ context('viewer/Team add agent', function() {
 
     context('creator agent visit', () => {
 
-      let organization, team;
+      let team;
       beforeEach(function() {
-
         cy.get('button span span').contains('add_box').click();
         cy.get('input[placeholder="Name"]').type('The A-Team');
         cy.get('button[title="Save"]').click();
