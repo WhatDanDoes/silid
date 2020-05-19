@@ -1,8 +1,10 @@
+# vcs & container
+.git
+*Dockerfile*
+*docker-compose*
+
 # environment config
 .env*
-!.env.example
-# TODO: Omit
-!.env.e2e
 
 # dependencies
 node_modules
