@@ -1,5 +1,6 @@
-FROM node
-ARG PORT
+FROM node:10.20.1
+ENV PORT=3001
+
 WORKDIR /app
 
 COPY ./package.json .
