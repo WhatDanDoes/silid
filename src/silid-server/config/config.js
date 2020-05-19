@@ -7,17 +7,17 @@ module.exports = {
     dialect: 'postgres'
   },
   test: {
-    username: 'postgres',
-    password: 'pass',
-    database: 'postgres',
-    host: 'localhost',
+    username: process.env.POSTGRES_USER || 'user',
+    password: process.env.POSTGRES_PASSWORD || 'pass',
+    database: process.env.POSTGRES_DB || 'postgres',
+    host: process.env.POSTGRES_HOST || 'localhost',
     dialect: 'postgres'
   },
   e2e: {
-    username: 'user',
-    password: 'pass',
-    database: 'postgres',
-    host: 'localhost',
+    username: process.env.POSTGRES_USER || 'user',
+    password: process.env.POSTGRES_PASSWORD || 'pass',
+    database: process.env.POSTGRES_DB || 'postgres',
+    host: process.env.POSTGRES_HOST || 'localhost',
     dialect: 'postgres',
     migrationStorage: 'none'
   },
