@@ -171,7 +171,6 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
   req.user.user_metadata.teams[teamIndex].name = teamName;
 
   // Update user_metadata at Auth0
-  //const managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
   let managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
   managementClient.updateUserMetadata({id: req.user.user_id}, req.user.user_metadata).then(agent => {
 
@@ -191,11 +190,13 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
 });
 
 router.delete('/:id', checkPermissions([scope.delete.teams]), function(req, res, next) {
-  //let managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
   let managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
   managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.id}"` }).then(agents => {
     if (!agents.length) {
       return res.status(404).json({ message: 'No such team' });
+    }
+    else if (agents.length > 1) {
+      return res.status(200).json({ message: 'Team still has members. Cannot delete' });
     }
 
     // There should only ever be one agent given the application of UUIDs
@@ -609,6 +610,10 @@ router.delete('/:id/agent/:agentId', checkPermissions([scope.delete.teamMembers]
 
   if (!req.agent.isSuper && req.user.email !== team.leader) {
     return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  if(req.user.user_id === req.params.agentId) {
+    return res.status(200).json({ message: 'Team leader cannot be removed from team' });
   }
 
   let managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));

@@ -1160,38 +1160,39 @@ describe('teamSpec', () => {
           });
 
           it('does not remove the team if it still has member agents', done => {
-            // Add another agent to the team
-            _profile.email = 'someotherguy@example.com';
-            _profile.name = 'Some Other Guy';
-            _profile.user_metadata = { teams: [{ name: 'The Halifax Thunderbirds', leader: 'someguy@example.com', id: teamId }] };
-
-            stubAuth0ManagementApi((err, apiScopes) => {
-              if (err) return done.fail();
-
-              login(_identity, [scope.create.teams], (err, session) => {
+            // This call just clears the mock so that it can be reset
+            authenticatedSession
+              .delete(`/team/${teamId}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
                 if (err) return done.fail(err);
+
+                // Reset team leader data
+                _profile.user_metadata.teams.push({ name: 'Saskatchewan Rush', leader: _profile.email, id: teamId });
 
                 // Cached profile doesn't match "live" data, so agent needs to be updated
                 // with a call to Auth0
                 stubUserRead((err, apiScopes) => {
                   if (err) return done.fail();
 
-                  stubUserAppMetadataRead((err, apiScopes) => {
+                  // Set new return value for team read stub
+                  stubTeamRead([{..._profile}, {..._profile, email: 'someotherguy@example.com', name: 'Some Other Guy',
+                                                user_metadata: { teams: [{ name: 'Saskatchewan Rush', leader: _profile.email, id: teamId }] }}], (err, apiScopes) => {
                     if (err) return done.fail();
-                    ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
 
-                    // Try deleting team
                     authenticatedSession
-                     .delete(`/team/${teamId}`)
-                     .set('Accept', 'application/json')
-                     .expect('Content-Type', /json/)
-                     .expect(200)
-                     .end(function(err, res) {
-                       if (err) return done.fail(err);
-                       expect(res.body.message).toEqual('That team still has members. It cannot be deleted');
-                       done();
-                     });
-                    });
+                      .delete(`/team/${teamId}`)
+                      .set('Accept', 'application/json')
+                      .expect('Content-Type', /json/)
+                      .expect(200)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+
+                        expect(res.body.message).toEqual('Team still has members. Cannot delete');
+                        done();
+                      });
                   });
                 });
               });

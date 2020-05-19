@@ -1774,13 +1774,22 @@ describe('teamMembershipSpec', () => {
         })
 
         it('does not allow deletion of the team leader', done => {
-          done.fail();
+          authenticatedSession
+            .delete(`/team/${teamId}/agent/${_profile.user_id}`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(200)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(res.body.message).toEqual('Team leader cannot be removed from team');
+              done();
+            });
         });
 
         describe('Auth0', () => {
           it('is called to retrieve the agent\'s user_metadata', done => {
             authenticatedSession
-              .delete(`/team/${teamId}/agent/${_profile.user_id}`)
+              .delete(`/team/${teamId}/agent/${agentProfile.user_id}`)
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
@@ -1794,7 +1803,7 @@ describe('teamMembershipSpec', () => {
 
           it('is called to update the agent\'s user_metadata', done => {
             authenticatedSession
-              .delete(`/team/${teamId}/agent/${_profile.user_id}`)
+              .delete(`/team/${teamId}/agent/${agentProfile.user_id}`)
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)

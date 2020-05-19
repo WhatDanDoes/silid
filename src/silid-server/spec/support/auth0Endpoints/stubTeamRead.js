@@ -14,14 +14,14 @@ const _profile = require('../../fixtures/sample-auth0-profile-response');
  * @param function
  * @param object
  */
-module.exports = function(profile, done, options) {
+module.exports = function(profiles, done, options) {
 
-  if (typeof profile === 'function') {
+  if (typeof profiles === 'function') {
     if (typeof done === 'object') {
       options = done;
     }
-    done = profile;
-    profile = null;
+    done = profiles;
+    profiles = [_profile];//null;
   }
 
   if (!options) {
@@ -47,15 +47,20 @@ module.exports = function(profile, done, options) {
         .log(console.log)
         .get(/api\/v2\/users/)
         .query({ search_engine: 'v3', q: /.+/ })
-        .reply(200, (uri, requestBody) => {
+        .reply(options.status, (uri, requestBody) => {
           let qs = querystring.parse(uri.split('?')[1]);
-          for (let team of _profile.user_metadata.teams) {
-            let regex = new RegExp(team.id);
-            if (regex.test(qs.q)) {
-              return [_profile];
+          let results = [];
+          for (let profile of profiles) {
+            for (let team of profile.user_metadata.teams) {
+              let regex = new RegExp(team.id);
+              if (regex.test(qs.q)) {
+                //return [_profile];
+                results.push(profile);
+              }
             }
           }
-          return [];
+
+          return results;
         });
 
 
