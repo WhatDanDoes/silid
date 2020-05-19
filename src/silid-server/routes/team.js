@@ -90,7 +90,7 @@ router.get('/:id', checkPermissions([scope.read.teams]), function(req, res, next
 });
 
 router.post('/', checkPermissions([scope.create.teams]), function(req, res, next) {
-  let managementClient = getManagementClient([apiScope.read.users].join(' '));
+  let managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
   managementClient.getUser({id: req.user.user_id}).then(agent => {
 
     // No duplicate team names
@@ -124,7 +124,7 @@ router.post('/', checkPermissions([scope.create.teams]), function(req, res, next
       leader: req.user.email,
     });
 
-    managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+    managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
     managementClient.updateUser({id: req.user.user_id}, { user_metadata: agent.user_metadata }).then(result => {
       // Auth0 does not return agent scope
       result.scope = req.user.scope;
@@ -171,10 +171,12 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
   req.user.user_metadata.teams[teamIndex].name = teamName;
 
   // Update user_metadata at Auth0
-  const managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+  //const managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+  let managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
   managementClient.updateUserMetadata({id: req.user.user_id}, req.user.user_metadata).then(agent => {
 
     // Refresh team info
+    managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
     managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.id}"` }).then(agents => {
       const teams = collateTeams(agents, req.params.id, req.user.user_id);
 
@@ -189,13 +191,15 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
 });
 
 router.delete('/:id', checkPermissions([scope.delete.teams]), function(req, res, next) {
-  const managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+  //let managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+  let managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
   managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.id}"` }).then(agents => {
     if (!agents.length) {
       return res.status(404).json({ message: 'No such team' });
     }
 
     // There should only ever be one agent given the application of UUIDs
+    // Is this true?
     let teamIndex = 0;
     for (let agent of agents) {
       for (let team of agent.user_metadata.teams) {
@@ -214,6 +218,7 @@ router.delete('/:id', checkPermissions([scope.delete.teams]), function(req, res,
 
       agent.user_metadata.teams.splice(teamIndex, 1);
 
+      managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
       managementClient.updateUserMetadata({id: req.user.user_id}, agent.user_metadata).then(agent => {
         // Auth0 does not return agent scope
         agent.scope = req.user.scope;
@@ -392,7 +397,7 @@ router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(
         }
 
         invitedAgent.user_metadata.rsvps.push(invite);
-        managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+        managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
         managementClient.updateUser({id: invitedAgent.user_id}, { user_metadata: invitedAgent.user_metadata }).then(result => {
 
           // Write invite to team leader's pendingInvitations
@@ -403,7 +408,7 @@ router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(
 
           // 2020-5-12 Interesting... if you don't get a new client, it recycles the OAuth token
           // This is probably totally unnecessary
-          managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+          managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
           managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
 
             req.user = {...req.user, ...result};
@@ -444,7 +449,7 @@ router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(
             }
             req.user.user_metadata.pendingInvitations.push(invite);
 
-            const managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+            const managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
             managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
 
               inviteAgent(invite, req, res);
@@ -552,7 +557,7 @@ router.delete('/:id/invite', checkPermissions([scope.delete.teamMembers]), funct
 
     req.user.user_metadata.pendingInvitations.splice(inviteIndex, 1);
 
-    let managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+    let managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
     managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
 
       // A known agent, so he needs to be updated at Auth0
@@ -564,7 +569,7 @@ router.delete('/:id/invite', checkPermissions([scope.delete.teamMembers]), funct
             const rsvpIndex = a.user_metadata.rsvps.findIndex(r => r.uuid === req.params.id);
             a.user_metadata.rsvps.splice(rsvpIndex, 1);
 
-            managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+            managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
             managementClient.updateUser({id: a.user_id}, { user_metadata: a.user_metadata }).then(result => {
 
               res.status(201).json(req.user);
@@ -615,7 +620,7 @@ router.delete('/:id/agent/:agentId', checkPermissions([scope.delete.teamMembers]
     const teamIndex = invitedAgent.user_metadata.teams.find(t => t.id === req.params.id);
     invitedAgent.user_metadata.teams.splice(teamIndex, 1);
 
-    managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+    managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
     managementClient.updateUser({id: invitedAgent.user_id}, { user_metadata: invitedAgent.user_metadata }).then(result => {
 
       let mailOptions = {

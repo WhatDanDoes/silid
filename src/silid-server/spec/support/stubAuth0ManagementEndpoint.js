@@ -50,27 +50,6 @@ module.exports = function(permissions, done) {
       });
 
     /**
-     * Search for a team by ID
-     *
-     * GET `/users`
-     */
-    const teamReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-      .log(console.log)
-      .get(/api\/v2\/users/)
-      .query({ search_engine: 'v3', q: /.+/ })
-      .reply(200, (uri, requestBody) => {
-        let qs = querystring.parse(uri.split('?')[1]);
-        for (let team of _profile.user_metadata.teams) {
-          let regex = new RegExp(team.id);
-          if (regex.test(qs.q)) {
-            return [_profile];
-          }
-        }
-        return [];
-      });
-
-
-    /**
      * POST `/users`
      *
      * Auth0 requires a connection for this endpoint. It is called `Initial-Connection`
@@ -136,28 +115,10 @@ module.exports = function(permissions, done) {
         ]
       });
 
-    /**
-     * GET `/users-by-email`
-     */
-    const userReadByEmailScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-      .log(console.log)
-      .get(/api\/v2\/users-by-email/)
-      .query({ 'email': /.+/i })
-      .reply(200, {
-        "user_id": "auth0|507f1f77bcf86c0000000000",
-        "email": "doesnotreallymatterforthemoment@example.com",
-        "email_verified": false,
-        "identities": [
-          {
-            "connection": "Initial-Connection",
-          }
-        ]
-      });
-
     done(null, {
                 oauthTokenScope,
-                userCreateScope, userDeleteScope, userReadByEmailScope,
-                updateTeamScope, teamReadScope,
+                userCreateScope, userDeleteScope,
+                updateTeamScope,
     });
   });
 };

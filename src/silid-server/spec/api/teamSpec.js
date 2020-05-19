@@ -86,9 +86,9 @@ describe('teamSpec', () => {
                   if (err) return done.fail();
 
                   // This stubs user reads subsequent to the original login
-                  stubUserRead((err, apiScopes) => {
+                  stubUserAppMetadataRead((err, apiScopes) => {
                     if (err) return done.fail();
-                    ({userReadScope, oauthTokenScope} = apiScopes);
+                    ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
 
                       stubUserAppMetadataUpdate((err, apiScopes) => {
                         if (err) return done.fail();
@@ -131,8 +131,8 @@ describe('teamSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  expect(oauthTokenScope.isDone()).toBe(true);
-                  expect(userReadScope.isDone()).toBe(true);
+                  expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(true);
+                  expect(userAppMetadataReadScope.isDone()).toBe(true);
                   done();
                 });
             });
@@ -175,9 +175,9 @@ describe('teamSpec', () => {
                   if (err) return done.fail();
 
                   // This stubs calls subsequent to the inital login/permission checking step
-                  stubUserRead((err, apiScopes) => {
+                  stubUserAppMetadataRead((err, apiScopes) => {
                     if (err) return done.fail();
-                    ({userReadScope, oauthTokenScope} = apiScopes);
+                    ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
 
                     stubTeamRead((err, apiScopes) => {
                       if (err) return done.fail();
@@ -226,8 +226,8 @@ describe('teamSpec', () => {
                   .end(function(err, res) {
                     if (err) return done.fail(err);
 
-                    expect(oauthTokenScope.isDone()).toBe(true);
-                    expect(userReadScope.isDone()).toBe(true);
+                    expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(true);
+                    expect(userAppMetadataReadScope.isDone()).toBe(true);
                     done();
                   });
               });
@@ -361,7 +361,7 @@ describe('teamSpec', () => {
                 .expect(200)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
-                  expect(oauthTokenScope.isDone()).toBe(true);
+                  expect(teamReadOauthTokenScope.isDone()).toBe(true);
                   done();
                 });
             });
@@ -1129,7 +1129,6 @@ describe('teamSpec', () => {
                 if (err) return done.fail();
 
                 stubTeamRead((err, apiScopes) => {
-                //stubAuth0ManagementEndpoint([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, apiScopes) => {
                   if (err) return done.fail();
                   ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
 

@@ -5,7 +5,7 @@ const models = require('../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
-const stubAuth0ManagementEndpoint = require('../support/stubAuth0ManagementEndpoint');
+//const stubAuth0ManagementEndpoint = require('../support/stubAuth0ManagementEndpoint');
 const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
 const stubUserReadQuery = require('../support/auth0Endpoints/stubUserReadQuery');
 const stubUserAppMetadataUpdate = require('../support/auth0Endpoints/stubUserAppMetadataUpdate');
@@ -1772,6 +1772,10 @@ describe('teamMembershipSpec', () => {
               done();
             });
         })
+
+        it('does not allow deletion of the team leader', done => {
+          done.fail();
+        });
 
         describe('Auth0', () => {
           it('is called to retrieve the agent\'s user_metadata', done => {
