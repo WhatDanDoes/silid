@@ -27,7 +27,7 @@ import usePutTeamService from '../services/usePutTeamService';
 import useDeleteTeamService from '../services/useDeleteTeamService';
 import useSendTeamInvitationService from '../services/useSendTeamInvitationService';
 import useRescindTeamInvitationService from '../services/useRescindTeamInvitationService';
-//import useDeleteTeamMemberService from '../services/useDeleteTeamMemberService';
+import useDeleteTeamMemberService from '../services/useDeleteTeamMemberService';
 
 /**
  * For profile data display
@@ -75,8 +75,6 @@ const TeamInfo = (props) => {
   const {agent, updateAgent} = useAuthState();
 //  const admin = useAdminState();
 
-//  const [editFormVisible, setEditFormVisible] = useState(false);
-//  const [agentFormVisible, setAgentFormVisible] = useState(false);
   const [prevInputState, setPrevInputState] = useState({});
   const [toAgent, setToAgent] = useState(false);
   const [flashProps, setFlashProps] = useState({});
@@ -88,8 +86,7 @@ const TeamInfo = (props) => {
   let { deleteTeam } = useDeleteTeamService();
   let { sendTeamInvitation } = useSendTeamInvitationService();
   let { rescindTeamInvitation } = useRescindTeamInvitationService();
-
-//  let { deleteTeamMember } = useDeleteTeamMemberService(props.match.params.id);
+  let { deleteTeamMember } = useDeleteTeamMemberService(props.match.params.id);
 
   useEffect(() => {
     if (service.status === 'loaded') {
@@ -151,52 +148,6 @@ const TeamInfo = (props) => {
   if (toAgent) {
     return <Redirect to={{ pathname: `/agent`, state: 'Team deleted' }} />
   }
-
-  /**
-   * Add a new member to this team
-   */
-//  const handleMembershipChange = (evt) => {
-//    evt.preventDefault();
-//    const formData = new FormData(evt.target);
-//
-//    let data = {};
-//    for (const [key, value] of formData.entries()) {
-//      data[key] = value;
-//    }
-//
-//    sendTeamInvitation(data).then((results) => {
-//      setAgentFormVisible(false);
-//      if (results.message) {
-//        setFlashProps({ message: results.message, variant: 'warning' });
-//      }
-//      else {
-//        teamInfo.members.push(results);
-//        setTeamInfo({ ...teamInfo });
-//      }
-//    }).catch(err => {
-//      console.log(err);
-//    });
-//  }
-
-  /**
-   * Remove member from team
-   */
-//  const handleMemberDelete = (memberId) => {
-//    if (window.confirm('Remove member?')) {
-//      deleteTeamMember(memberId).then(results => {
-//        const index = teamInfo.members.findIndex(member => member.id === memberId);
-//        teamInfo.members.splice(index, 1);
-//        setTeamInfo({ ...teamInfo });
-//        setFlashProps({ message: 'Member removed', variant: 'success' });
-//      }).catch(err => {
-//        console.log(err);
-//      });
-//    }
-//  }
-
-//  function ListItemLink(props) {
-//    return <ListItem className='list-item' button component="a" {...props} />;
-//  }
 
   return (
     <div className={classes.root}>
@@ -301,7 +252,26 @@ const TeamInfo = (props) => {
                       hidden: rowData.email === teamInfo.leader || teamInfo.leader !== agent.email,
                       onClick:() => {
                         new Promise((resolve, reject) => {
-                          resolve();
+                          if (window.confirm('Remove member?')) {
+                            return deleteTeamMember(rowData.user_id).then(results => {
+                              console.log('results');
+                              console.log(JSON.stringify(results));
+                              if (results.message) {
+                                teamInfo.members.splice(teamInfo.members.findIndex(m => m.user_id === rowData.user_id), 1);
+                                setFlashProps({ message: results.message, variant: 'success' });
+                              }
+                              else {
+                                reject(req.body);
+                                setFlashProps({ message: 'Deletion cannot be confirmed', variant: 'warning' });
+                              }
+
+                            }).catch(err => {
+                              console.log(err);
+                              setFlashProps({ errors: [err], variant: 'error' });
+                              reject(err);
+                            });
+                          }
+                          reject();
                         })
                       }
                     })
@@ -322,8 +292,6 @@ const TeamInfo = (props) => {
                       }
                       else {
                         sendTeamInvitation(teamInfo.id, newData).then((results) => {
-                          console.log('results');
-                          console.log(JSON.stringify(results));
                           if (results.message) {
                             setFlashProps({ message: results.message, variant: 'warning' });
                           }
@@ -415,143 +383,5 @@ const TeamInfo = (props) => {
     </div>
   );
 };
-
-//  return (
-//    <div className="team">
-//      <Card className={classes.card}>
-//        <CardContent>
-//          <Typography variant="h5" component="h3">
-//            {service.status === 'loading' && <div>Loading...</div>}
-//            {service.status === 'loaded' ?
-//              <React.Fragment>
-//                <React.Fragment>
-//                  {teamInfo.name}
-//                </React.Fragment>
-//                {admin.isEnabled || (teamInfo.creator && (agent.email === teamInfo.creator.email)) ?
-//                  <React.Fragment>
-//                    {!editFormVisible ?
-//                      <Button id="edit-team" variant="contained" color="primary" onClick={() => setEditFormVisible(true)}>
-//                        Edit
-//                      </Button>
-//                    :
-//                      <React.Fragment>
-//                        <form id="edit-team-form" onSubmit={handleSubmit}>
-//                          <input type="hidden" name="id" value={teamInfo.id} />
-//                          <TextField
-//                            id="name-input"
-//                            label="Name"
-//                            type="text"
-//                            className={classes.textField}
-//                            InputLabelProps={{
-//                              shrink: true,
-//                            }}
-//                            margin="normal"
-//                            name="name"
-//                            required
-//                            value={teamInfo.name}
-//                            onChange={onChange}
-//                            onInvalid={customMessage}
-//                          />
-//                          <Button id="cancel-changes"
-//                            variant="contained" color="secondary"
-//                            onClick={() => {
-//                              setTeamInfo({ ...teamInfo, ...prevFormState });
-//                              setEditFormVisible(false);
-//                            }}>
-//                              Cancel
-//                          </Button>
-//                          <Button id="save-team-button"
-//                                  type="submit" variant="contained" color="primary"
-//                                  disabled={!Object.keys(prevFormState).length}>
-//                            Save
-//                          </Button>
-//                        </form>
-//                        <Button id="delete-team" variant="contained" color="secondary" onClick={handleDelete}>
-//                          Delete
-//                        </Button>
-//                      </React.Fragment>
-//                    }
-//                  </React.Fragment>
-//                : ''}
-//                {!editFormVisible && !agentFormVisible ?
-//                  <Typography variant="body2" color="textSecondary" component="p">
-//                    <React.Fragment>
-//                      {admin.isEnabled || (teamInfo.creator && (agent.email === teamInfo.creator.email)) ?
-//                        <Fab id="add-agent" color="primary" aria-label="add-agent" className={classes.margin}>
-//                          <PersonAddIcon onClick={() => setAgentFormVisible(true)} />
-//                        </Fab>
-//                      : '' }
-//                    </React.Fragment>
-//                  </Typography>
-//                : ''}
-//                {agentFormVisible ?
-//                  <form id="add-member-agent-form" onSubmit={handleMembershipChange}>
-//                    <input type="hidden" name="id" value={teamInfo.id} />
-//                    <TextField
-//                      id="email-input"
-//                      label="New Member Email"
-//                      type="email"
-//                      className={classes.textField}
-//                      InputLabelProps={{
-//                        shrink: true,
-//                      }}
-//                      margin="normal"
-//                      name="email"
-//                      required
-//                      onChange={onChange}
-//                      onInvalid={customMessage}
-//                    />
-//                    <Button id="cancel-add-agent"
-//                      variant="contained" color="secondary"
-//                      onClick={() => {
-//                        setTeamInfo({ ...teamInfo, ...prevFormState });
-//                        setAgentFormVisible(false);
-//                      }}>
-//                        Cancel
-//                    </Button>
-//                    <Button id="add-member-agent-button"
-//                            type="submit" variant="contained" color="primary"
-//                            disabled={!Object.keys(prevFormState).length}>
-//                      Add
-//                    </Button>
-//                  </form>
-//                : ''}
-//
-//              </React.Fragment>
-//            : ''}
-//          </Typography>
-//
-//          {service.status === 'loading' && <div>Loading...</div>}
-//          {service.status === 'loaded' && teamInfo.members && teamInfo.members.length ?
-//            <List id="team-member-list">
-//              <Typography variant="h5" component="h3">
-//                <React.Fragment>
-//                  Members
-//                </React.Fragment>
-//              </Typography>
-//              { teamInfo.members.map(member => (
-//                <ListItem button className='team-button' key={`agent-${agent.id}`}>
-//                  <ListItemIcon><InboxIcon /></ListItemIcon>
-//                  <ListItemLink href={`#agent/${member.id}`}>
-//                    <ListItemText primary={member.email} />
-//                  </ListItemLink>
-//                  { teamInfo.creator.email !== member.email && (agent.email === teamInfo.creator.email || admin.isEnabled) ?
-//                  <DeleteForeverOutlinedIcon className="delete-member" onClick={() => handleMemberDelete(member.id)} />
-//                  : ''}
-//                </ListItem>
-//              ))}
-//            </List> : ''}
-//
-//          {service.status === 'error' && (
-//            <Typography id="error-message" variant="h5" component="h3">
-//              {service.error}
-//            </Typography>
-//          )}
-//        </CardContent>
-//      </Card>
-//      { flashProps.message ? <Flash message={flashProps.message} variant={flashProps.variant} /> : '' }
-//      { flashProps.errors ? flashProps.errors.map(error => <Flash message={error.message} variant={flashProps.variant} />) : '' }
-//    </div>
-//  );
 
 export default TeamInfo;
