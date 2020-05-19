@@ -38,24 +38,39 @@ context('viewer/Team show', function() {
 
   describe('authenticated', () => {
 
-    let agent, teamId;
+    let agent, anotherAgent, teamId;
     beforeEach(function() {
       teamId = 'some-uuid-v4';
 
-      cy.login(_profile.email, {..._profile, user_metadata: {
-                                               teams: [
-                                                 {
-                                                   id: teamId,
-                                                   name: 'The Calgary Roughnecks',
-                                                   leader: _profile.email,
-                                                 }
-                                               ]
-                                             } }, [this.scope.read.agents]);
+      // Create another team member
+      cy.login('someotherguy@example.com', {..._profile, user_metadata: {
+                                                 teams: [
+                                                   {
+                                                     id: teamId,
+                                                     name: 'The Calgary Roughnecks',
+                                                     leader: _profile.email,
+                                                   }
+                                                 ]
+                                               }, name: 'Some Other Guy' }, [this.scope.read.agents]);
 
-      cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
-        agent = results[0];
-        cy.reload(true);
-        cy.wait(300);
+      cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
+        anotherAgent = results[0];
+
+        cy.login(_profile.email, {..._profile, user_metadata: {
+                                                 teams: [
+                                                   {
+                                                     id: teamId,
+                                                     name: 'The Calgary Roughnecks',
+                                                     leader: _profile.email,
+                                                   }
+                                                 ]
+                                               } }, [this.scope.read.agents]);
+
+        cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
+          agent = results[0];
+          cy.reload(true);
+          cy.wait(300);
+        });
       });
     });
 
@@ -82,7 +97,7 @@ context('viewer/Team show', function() {
       });
 
       it('displays appropriate Team interface elements', function() {
-        cy.get('table tbody tr td input#team-name-field').should('have.value', 'The Calgary Roughnecks');
+        cy.get('table tbody tr td input#team-name-field').should('have.value', agent.socialProfile.user_metadata.teams[0].name);
         cy.get('table tbody tr td').contains(_profile.email);
         cy.get('button#delete-team').should('exist');
         cy.get('button#save-team').should('not.exist');
@@ -93,34 +108,27 @@ context('viewer/Team show', function() {
         cy.get('h6').contains('Members');
         cy.get('table tbody tr td').contains('No records to display').should('not.exist');
         cy.get('button span span').contains('add_box').should('exist');
+
         cy.get('table thead tr th').contains('Name');
-        cy.get('table tbody tr td input#team-name-field').should('have.value', agent.socialProfile.user_metadata.teams[0].name);
-        cy.get('table tbody tr td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
         cy.get('table thead tr th').contains('Email');
-        cy.get('table tbody tr td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+        // Member agent can be deleted
+        cy.get('table tbody tr:nth-of-type(1) button[title=Delete]').should('exist');
+        cy.get('table tbody tr:nth-of-type(1) td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${anotherAgent.socialProfile.user_id}`);
+        cy.get('table tbody tr:nth-of-type(1) td').contains(anotherAgent.socialProfile.email);
+        // Team leader cannot be deleted
+        cy.get('table tbody tr:nth-of-type(2) button[title=Delete]').should('not.exist');
+        cy.get('table tbody tr:nth-of-type(2) td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
+        cy.get('table tbody tr:nth-of-type(2) td').contains(agent.socialProfile.user_metadata.teams[0].leader);
       });
     });
 
     context('verified team member agent visit', () => {
 
-      let anotherAgent;
       beforeEach(function() {
-        cy.login('someotherguy@example.com', {..._profile, user_metadata: {
-                                                 teams: [
-                                                   {
-                                                     id: teamId,
-                                                     name: 'The Calgary Roughnecks',
-                                                     leader: _profile.email,
-                                                   }
-                                                 ]
-                                               }, name: 'Some Other Guy' }, [this.scope.read.agents]);
-
-        cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
-          anotherAgent = results[0];
-
-          cy.contains('The Calgary Roughnecks').click();
-          cy.wait(300);
-        });
+        // Membership established in first `beforeEach`
+        cy.login('someotherguy@example.com', {..._profile, name: 'Some Other Guy'}, [this.scope.read.agents]);
+        cy.contains('The Calgary Roughnecks').click();
+        cy.wait(300);
       });
 
       it('lands in the right spot', () => {
@@ -147,10 +155,12 @@ context('viewer/Team show', function() {
 
         cy.get('table thead tr th').contains('Name');
         cy.get('table thead tr th').contains('Email');
-        cy.get('table tbody tr td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
-        cy.get('table tbody tr td').contains(agent.socialProfile.user_metadata.teams[0].leader);
-        cy.get('table tbody tr td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
-        cy.get('table tbody tr td').contains(anotherAgent.socialProfile.email);
+        cy.get('table tbody tr:nth-of-type(1) button[title=Delete]').should('not.exist');
+        cy.get('table tbody tr:nth-of-type(1) td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
+        cy.get('table tbody tr:nth-of-type(1) td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+        cy.get('table tbody tr:nth-of-type(2) button[title=Delete]').should('not.exist');
+        cy.get('table tbody tr:nth-of-type(2) td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${anotherAgent.socialProfile.user_id}`);
+        cy.get('table tbody tr:nth-of-type(2) td').contains(anotherAgent.socialProfile.email);
       });
     });
 
@@ -159,7 +169,7 @@ context('viewer/Team show', function() {
       let team;
       beforeEach(function() {
         // Login/create another agent
-        cy.login('someotherguy@example.com', _profile, [this.scope.read.agents]);
+        cy.login('someunknownguy@example.com', _profile, [this.scope.read.agents]);
         cy.wait(300);
       });
 

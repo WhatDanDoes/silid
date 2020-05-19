@@ -292,6 +292,20 @@ const TeamInfo = (props) => {
                 ]}
                 data={teamInfo.members ? teamInfo.members : []}
                 options={{ search: false, paging: false }}
+                actions={
+                  [
+                    rowData => ({
+                      icon: 'delete_outline',
+                      isFreeAction: false,
+                      tooltip: 'Delete',
+                      hidden: rowData.email === teamInfo.leader || teamInfo.leader !== agent.email,
+                      onClick:() => {
+                        new Promise((resolve, reject) => {
+                          resolve();
+                        })
+                      }
+                    })
+                  ]}
                 editable={ teamInfo.leader === agent.email ? {
                   onRowAdd: newData =>
                     new Promise((resolve, reject) => {
@@ -325,10 +339,6 @@ const TeamInfo = (props) => {
                         });
                       }
                     }),
-                  onRowDelete: oldData =>
-                    new Promise((resolve, reject) => {
-                      resolve();
-                    })
                 } : undefined}
               />
             </Grid>
