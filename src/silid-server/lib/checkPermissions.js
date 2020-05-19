@@ -156,7 +156,7 @@ function checkForInvites(req, done) {
         req.user.user_metadata.rsvps.push({ uuid: invite.uuid, type: invite.type, name: invite.name, recipient: invite.recipient });
       }
 
-      managementClient = getManagementClient([apiScope.update.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+      managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
       managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
 
         models.Invitation.destroy({ where: { recipient: req.user.email } }).then(results => {
