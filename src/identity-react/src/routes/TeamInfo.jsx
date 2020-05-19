@@ -261,7 +261,7 @@ const TeamInfo = (props) => {
                                 setFlashProps({ message: results.message, variant: 'success' });
                               }
                               else {
-                                reject(req.body);
+                                reject(results);
                                 setFlashProps({ message: 'Deletion cannot be confirmed', variant: 'warning' });
                               }
 
