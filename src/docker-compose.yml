@@ -1,0 +1,80 @@
+#### docker-compose.yml
+# all containers required for cypress tests
+#
+# TODO:
+#   * add more documentation and use-case details
+#   * consider how to coalesce DB service ENV vars with other services
+#   * see if it makes sense to connect cypress test container here
+#
+version: "3.7"
+services:
+  # silid server app serving the primary UI
+  app:
+    depends_on:
+      - auth0
+      - postgres
+    build: ./silid-server
+    env_file:
+      - ./silid-server/.env
+    network_mode: host
+    command: npm run dev
+    volumes:
+      - ./silid-server:/app/
+      - app-node_modules:/app/node_modules
+      - app-build:/app/build
+    env_file:
+      - ./silid-server/.env.e2e
+    environment:
+      NODE_ENV: e2e
+      PORT: 3001
+      DATABASE_URL: 'postgres://user:pass@postgres:5432/postgres'
+
+  # mock identity server for local-only testing
+  auth0:
+    depends_on:
+      - postgres
+    build:
+      context: ./silid-server
+      dockerfile: ./spec/support/mockAuth0Server-Dockerfile
+    network_mode: host
+    # convenience script will check that the db is ready before continuing
+    command: ["./wait-for-postgres.sh", "postgres", "node", "spec/support/mockAuth0ServerWithRBAC.js"]
+    volumes:
+      - ./silid-server:/app
+      - app-node_modules:/app/node_modules
+    env_file:
+      - ./silid-server/.env.e2e
+    environment:
+      NODE_ENV: e2e
+      PORT: 3002
+
+  # client build server
+  client:
+    depends_on:
+      - app
+    build: ./identity-react
+    env_file:
+      - ./identity-react/.env
+    network_mode: host
+    # client app sends a premature exit status; PM2 watcher added for workaround this
+    command: ["pm2-runtime", "start", "./node_modules/react-scripts/scripts/start.js"]
+    volumes:
+      - client-node_modules:/srv/app/client/node_modules
+
+  # supporting data base for the application
+  postgres:
+    image: postgres
+    network_mode: host
+    volumes:
+      - silid-postgres-data:/var/lib/postgresql/data
+    # for now, need to make sure these ENV vars match ENV files (see top TODO)
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: postgres
+
+volumes:
+  app-node_modules:
+  app-build:
+  client-node_modules:
+  silid-postgres-data:
