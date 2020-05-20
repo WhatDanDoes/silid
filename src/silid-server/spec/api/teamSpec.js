@@ -467,6 +467,11 @@ describe('teamSpec', () => {
           _profile.user_metadata = { teams: [{ name: 'Vancouver Warriors', leader: _profile.email, id: teamId }] };
           _profile.user_metadata.teams.push({ name: 'Georgia Swarm', leader: _profile.email, id: uuid.v4() });
 
+          _profile.user_metadata.pendingInvitations = [];
+          _profile.user_metadata.pendingInvitations.push({ name: 'Vancouver Warriors', recipient: 'someotherguy@example.com', uuid: teamId, type: 'team' });
+          _profile.user_metadata.pendingInvitations.push({ name: 'Vancouver Warriors', recipient: 'anotherteamplayer@example.com', uuid: teamId, type: 'team' });
+
+
           stubAuth0ManagementApi((err, apiScopes) => {
             if (err) return done.fail();
 
@@ -495,7 +500,7 @@ describe('teamSpec', () => {
           });
         });
 
-        it('allows a team creator to update an existing agent record', done => {
+        it('allows a team creator to update an existing record', done => {
           authenticatedSession
             .put(`/team/${teamId}`)
             .send({
@@ -511,6 +516,25 @@ describe('teamSpec', () => {
               expect(res.body.leader).toEqual(_profile.email);
               expect(res.body.id).toEqual(teamId);
               expect(res.body.members).toEqual([{ name: _profile.name, email: _profile.email, user_id: _profile.user_id }]);
+              done();
+            });
+        });
+
+        it('updates any pending invitations', done => {
+          authenticatedSession
+            .put(`/team/${teamId}`)
+            .send({
+              name: 'Vancouver Riot'
+            })
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(201)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+
+              expect(_profile.user_metadata.pendingInvitations.length).toEqual(2);
+              expect(_profile.user_metadata.pendingInvitations[0].name).toEqual('Vancouver Riot');
+              expect(_profile.user_metadata.pendingInvitations[1].name).toEqual('Vancouver Riot');
               done();
             });
         });

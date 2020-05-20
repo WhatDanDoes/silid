@@ -181,7 +181,6 @@ function upsertInvites(invites, done) {
  * Update team record
  */
 router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, next) {
-
   // Validate incoming data
   const teamName = req.body.name.trim();
   if (!teamName) {
@@ -202,6 +201,15 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
   // Decide permission
   if (req.user.email !== req.user.user_metadata.teams[teamIndex].leader) {
     return res.status(403).json({ message: 'Unauthorized' });
+  }
+
+  // Update any pendingInvitations
+  if (!req.user.user_metadata.pendingInvitations) {
+    req.user.user_metadata.pendingInvitations = [];
+  }
+  const pending = req.user.user_metadata.pendingInvitations.filter(invite => invite.uuid === req.params.id);
+  for (let p of pending) {
+    p.name = req.body.name;
   }
 
   // Update team
