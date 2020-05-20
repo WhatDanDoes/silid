@@ -143,6 +143,43 @@ router.post('/', checkPermissions([scope.create.teams]), function(req, res, next
   });
 });
 
+/**
+ * 2020-5-20 https://github.com/sequelize/sequelize/pull/11984#issuecomment-625193209
+ *
+ * To be used until Sequelize's `bulkCreate` method can handle composite indexes
+ *
+ * Used in conjunction with PUT /team/:id defined below
+ *
+ * @params array
+ * @params function
+ */
+function upsertInvites(invites, done) {
+  if (!invites.length) {
+    return done();
+  }
+
+  const invite = invites.shift();
+  models.Invitation.create(invite).then(result => {
+    upsertInvites(invites, done);
+  }).catch(err => {
+    if (err.name === 'SequelizeUniqueConstraintError') {
+      models.Invitation.upsert(invite, { fields: ['name', 'updatedAt'] }).then(result => {
+        upsertInvites(invites, done);
+      }).catch(err => {
+        done(err);
+      });
+    }
+    else {
+      done(err);
+    }
+  });
+};
+
+/**
+ * PUT /team/:id
+ *
+ * Update team record
+ */
 router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, next) {
 
   // Validate incoming data
@@ -177,10 +214,35 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
     // Refresh team info
     managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
     managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.id}"` }).then(agents => {
-      const teams = collateTeams(agents, req.params.id, req.user.user_id);
+      const invitations = [];
+      agents.forEach(a => {
+        if (a.email !== req.user.email) {
+          invitations.push({ uuid: req.params.id, type: 'team', name: teamName, recipient: a.email });
+        }
+      });
 
-      //res.status(201).json({ message: 'Team updated', agent: agent });
-      res.status(201).json(teams);
+      /**
+       * 2020-5-20
+       * https://github.com/sequelize/sequelize/pull/11984#issuecomment-625193209
+       *
+       * Upserting on composite keys has yet to be released. When it is, this
+       * step can be simplified as follows (or similar)...
+       */
+      //  models.Invitation.bulkCreate(invitations, { updateOnDuplicate: ['name', 'updatedAt'], upsertKeys: { fields: ['uuid', 'recipient'] } }).then(result => {
+      //    const teams = collateTeams(agents, req.params.id, req.user.user_id);
+      //    res.status(201).json(teams);
+      //  }).catch(err => {
+      //    res.status(500).json(err);
+      //  });
+
+      upsertInvites(invitations, err => {
+        if (err) {
+          return res.status(500).json(err);
+        }
+        const teams = collateTeams(agents, req.params.id, req.user.user_id);
+        res.status(201).json(teams);
+      });
+
     }).catch(err => {
       res.status(err.statusCode).json(err.message.error_description);
     });

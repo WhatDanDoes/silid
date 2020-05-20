@@ -715,6 +715,12 @@ describe('checkPermissions', function() {
         describe('multiple invitations', () => {
           let anotherTeamId;
           beforeEach(done => {
+            request = httpMocks.createRequest({
+              method: 'POST',
+              url: '/agent',
+              user: {..._profile, scope: undefined}
+            });
+
             anotherTeamId = uuid.v4();
 
             models.Invitation.create({name: 'The Buffalo Bandits', uuid: anotherTeamId, type: 'team', recipient: _profile.email}).then(result => {

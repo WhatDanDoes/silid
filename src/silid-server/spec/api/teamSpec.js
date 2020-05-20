@@ -603,6 +603,175 @@ describe('teamSpec', () => {
           });
         });
 
+        describe('membership update', () => {
+          beforeEach(done => {
+            // This mainly serves to wipe out the mocks
+            authenticatedSession
+              .put(`/team/${teamId}`)
+              .send({
+                name: 'Vancouver Riot'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                // Cached profile doesn't match "live" data, so agent needs to be updated
+                // with a call to Auth0
+                stubUserRead((err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  stubTeamRead([{..._profile},
+                                {..._profile, email: 'someotherguy@example.com', name: 'Some Other Guy',
+                                   user_metadata: { teams: [{ name: 'Vancouver Riot', leader: _profile.email, id: teamId }] }
+                                },
+                                {..._profile, email: 'yetanotherteamplayer@example.com', name: 'Team Player',
+                                   user_metadata: { teams: [{ name: 'Vancouver Riot', leader: _profile.email, id: teamId }] }
+                                }], (err, apiScopes) => {
+                    if (err) return done.fail();
+                    ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
+
+                    stubUserAppMetadataUpdate((err, apiScopes) => {
+                      if (err) return done.fail();
+                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                      done();
+                    });
+                  });
+                });
+              });
+          });
+
+          it('creates an invitation record to update team info on next login', done => {
+            models.Invitation.findAll().then(invites => {
+              expect(invites.length).toEqual(0);
+
+              authenticatedSession
+                .put(`/team/${teamId}`)
+                .send({
+                  name: 'Vancouver Warriors'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+                  models.Invitation.findAll().then(invites => {
+
+                    expect(invites.length).toEqual(2);
+
+                    expect(invites[0].name).toEqual('Vancouver Warriors');
+                    expect(invites[0].type).toEqual('team');
+                    expect(invites[0].uuid).toEqual(teamId);
+                    expect(invites[0].recipient).toEqual('someotherguy@example.com');
+
+                    expect(invites[1].name).toEqual('Vancouver Warriors');
+                    expect(invites[1].type).toEqual('team');
+                    expect(invites[1].uuid).toEqual(teamId);
+                    expect(invites[1].recipient).toEqual('yetanotherteamplayer@example.com');
+
+                    done();
+                  }).catch(err => {
+                    done.fail(err);
+                  });
+                });
+              }).catch(err => {
+                done.fail(err);
+              });
+          });
+
+
+          it('overwrites existing invitation records to update team info on next login', done => {
+            models.Invitation.findAll().then(invites => {
+              expect(invites.length).toEqual(0);
+
+              // First update
+              authenticatedSession
+                .put(`/team/${teamId}`)
+                .send({
+                  name: 'Vancouver Warriors'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+                  models.Invitation.findAll().then(invites => {
+
+                    expect(invites.length).toEqual(2);
+
+                    expect(invites[0].name).toEqual('Vancouver Warriors');
+                    expect(invites[0].type).toEqual('team');
+                    expect(invites[0].uuid).toEqual(teamId);
+                    expect(invites[0].recipient).toEqual('someotherguy@example.com');
+
+                    expect(invites[1].name).toEqual('Vancouver Warriors');
+                    expect(invites[1].type).toEqual('team');
+                    expect(invites[1].uuid).toEqual(teamId);
+                    expect(invites[1].recipient).toEqual('yetanotherteamplayer@example.com');
+
+                    // Reset mocks
+
+                    // Cached profile doesn't match "live" data, so agent needs to be updated
+                    // with a call to Auth0
+                    stubUserRead((err, apiScopes) => {
+                      if (err) return done.fail();
+
+                      stubTeamRead([{..._profile},
+                                    {..._profile, email: 'someotherguy@example.com', name: 'Some Other Guy',
+                                       user_metadata: { teams: [{ name: 'Vancouver Warriors', leader: _profile.email, id: teamId }] }
+                                    },
+                                    {..._profile, email: 'yetanotherteamplayer@example.com', name: 'Team Player',
+                                       user_metadata: { teams: [{ name: 'Vancouver Warriors', leader: _profile.email, id: teamId }] }
+                                    }], (err, apiScopes) => {
+                        if (err) return done.fail();
+
+                        stubUserAppMetadataUpdate((err, apiScopes) => {
+                          if (err) return done.fail();
+
+                          authenticatedSession
+                            .put(`/team/${teamId}`)
+                            .send({
+                              name: 'Vancouver Riot'
+                            })
+                            .set('Accept', 'application/json')
+                            .expect('Content-Type', /json/)
+                            .expect(201)
+                            .end(function(err, res) {
+                              if (err) return done.fail(err);
+                              models.Invitation.findAll().then(invites => {
+
+                                expect(invites.length).toEqual(2);
+
+                                expect(invites[0].name).toEqual('Vancouver Riot');
+                                expect(invites[0].type).toEqual('team');
+                                expect(invites[0].uuid).toEqual(teamId);
+                                expect(invites[0].recipient).toEqual('someotherguy@example.com');
+
+                                expect(invites[1].name).toEqual('Vancouver Riot');
+                                expect(invites[1].type).toEqual('team');
+                                expect(invites[1].uuid).toEqual(teamId);
+                                expect(invites[1].recipient).toEqual('yetanotherteamplayer@example.com');
+
+                                done();
+                              }).catch(err => {
+                                done.fail(err);
+                              });
+                            });
+                        });
+                      });
+                    });
+                  }).catch(err => {
+                    done.fail(err);
+                  });
+                });
+              }).catch(err => {
+                done.fail(err);
+              });
+          });
+
+        });
+
 //        describe('PUT', () => {
 //          it('allows an organization creator to update an existing team in the database', done => {
 //            organization.getCreator().then(creator => {
