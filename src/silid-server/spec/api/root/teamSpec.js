@@ -289,7 +289,7 @@ describe('root/teamSpec', () => {
                   stubTeamRead((err, apiScopes) => {
                     if (err) return done.fail();
                     ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-  
+
                     stubUserAppMetadataUpdate((err, apiScopes) => {
                       if (err) return done.fail();
                       ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
@@ -379,11 +379,11 @@ describe('root/teamSpec', () => {
                 stubUserAppMetadataRead((err, apiScopes) => {
                   if (err) return done.fail();
                   ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
-  
+
                   stubTeamRead((err, apiScopes) => {
                     if (err) return done.fail();
                     ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-  
+
                     stubUserAppMetadataUpdate((err, apiScopes) => {
                       if (err) return done.fail();
                       ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
