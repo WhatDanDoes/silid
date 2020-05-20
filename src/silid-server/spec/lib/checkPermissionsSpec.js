@@ -795,6 +795,166 @@ describe('checkPermissions', function() {
     });
   });
 
+  describe('invitations as updates', () => {
+
+    let userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope;
+    describe('team updates', () => {
+
+      let anotherTeamId;
+      beforeEach(done => {
+
+        anotherTeamId = uuid.v4();
+        request = httpMocks.createRequest({
+          method: 'POST',
+          url: '/agent',
+          user: {..._profile, email: 'someotherguy@example.com', name: 'Some Other Guy', scope: undefined,
+                 user_metadata: { teams: [{name: 'The Buffalo Bandits', id: anotherTeamId, leader: _profile.email}] } }
+        });
+
+        models.Invitation.create(
+            {name: 'The Beefalo Bandits', uuid: anotherTeamId, type: 'team', recipient: 'someotherguy@example.com'}
+          ).then(result => {
+
+          stubUserAppMetadataUpdate((err, apiScopes) => {
+            if (err) return done.fail();
+            ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+            done();
+          });
+        }).catch(err => {
+          done.fail(err);
+        });
+      });
+
+      it('removes the update from the database', done => {
+        models.Invitation.findAll().then(invites => {
+          expect(invites.length).toEqual(1);
+
+          checkPermissions([])(request, response, err => {
+            if (err) return done.fail(err);
+
+            models.Invitation.findAll().then(invites => {
+              expect(invites.length).toEqual(0);
+
+              done();
+            }).catch(err => {
+              done.fail(err);
+            });
+          });
+        }).catch(err => {
+          done.fail(err);
+        });
+      });
+
+      it('writes the update to the agent\'s user_metadata', done => {
+        expect(request.user.user_metadata.rsvps).toBeUndefined();
+        expect(request.user.user_metadata.teams.length).toEqual(1);
+        expect(request.user.user_metadata.teams[0].name).toEqual('The Buffalo Bandits');
+
+        checkPermissions([])(request, response, err => {
+          if (err) return done.fail(err);
+
+          expect(request.user.user_metadata.rsvps.length).toEqual(0);
+          expect(request.user.user_metadata.teams.length).toEqual(1);
+          expect(request.user.user_metadata.teams[0].name).toEqual('The Beefalo Bandits');
+
+          done();
+        });
+      });
+
+      describe('Auth0 roles', () => {
+        it('calls the management API update user_metadata', done => {
+
+          checkPermissions([])(request, response, err => {
+            if (err) return done.fail(err);
+
+            expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+            expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+
+            done();
+          });
+        });
+      });
+    });
+
+    describe('rsvp updates', () => {
+      let anotherTeamId;
+      beforeEach(done => {
+
+        anotherTeamId = uuid.v4();
+        request = httpMocks.createRequest({
+          method: 'POST',
+          url: '/agent',
+          user: {..._profile, email: 'someotherguy@example.com', name: 'Some Other Guy', scope: undefined,
+                 user_metadata: { rsvps: [{ name: 'The Buffalo Bandits', uuid: anotherTeamId, type: 'team', recipient: 'someotherguy@example.com' }] } }
+        });
+
+        models.Invitation.create(
+            {name: 'The Beefalo Bandits', uuid: anotherTeamId, type: 'team', recipient: 'someotherguy@example.com'}
+          ).then(result => {
+
+          stubUserAppMetadataUpdate((err, apiScopes) => {
+            if (err) return done.fail();
+            ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+            done();
+          });
+        }).catch(err => {
+          done.fail(err);
+        });
+      });
+
+      it('removes the update from the database', done => {
+        models.Invitation.findAll().then(invites => {
+          expect(invites.length).toEqual(1);
+
+          checkPermissions([])(request, response, err => {
+            if (err) return done.fail(err);
+
+            models.Invitation.findAll().then(invites => {
+              expect(invites.length).toEqual(0);
+
+              done();
+            }).catch(err => {
+              done.fail(err);
+            });
+          });
+        }).catch(err => {
+          done.fail(err);
+        });
+      });
+
+      it('writes the update to the agent\'s user_metadata', done => {
+        expect(request.user.user_metadata.rsvps.length).toEqual(1);
+        expect(request.user.user_metadata.rsvps[0].name).toEqual('The Buffalo Bandits');
+        expect(request.user.user_metadata.teams).toBeUndefined(0);
+
+        checkPermissions([])(request, response, err => {
+          if (err) return done.fail(err);
+
+          expect(request.user.user_metadata.rsvps.length).toEqual(1);
+          expect(request.user.user_metadata.rsvps[0].name).toEqual('The Beefalo Bandits');
+          expect(request.user.user_metadata.teams.length).toEqual(0);
+
+          done();
+        });
+      });
+
+      describe('Auth0 roles', () => {
+        it('calls the management API update user_metadata', done => {
+
+          checkPermissions([])(request, response, err => {
+            if (err) return done.fail(err);
+
+            expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+            expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+
+            done();
+          });
+        });
+      });
+    });
+  });
+
+
   describe('unauthorized', () => {
     it('returns 403', done => {
       response = httpMocks.createResponse();

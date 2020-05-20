@@ -480,7 +480,7 @@ describe('teamMembershipSpec', () => {
                     describe('accept the invitation', () => {
 
                       it('writes team membership to the agent\'s user_metadata', done => {
-                        expect(_profile.user_metadata.teams).toBeUndefined();
+                        expect(_profile.user_metadata.teams.length).toEqual(0);
                         invitedAgentSession
                           .get(`${verificationUrl}/accept`)
                           .set('Accept', 'application/json')
@@ -489,7 +489,6 @@ describe('teamMembershipSpec', () => {
                           .end(function(err, res) {
                             if (err) return done.fail(err);
 
-                            expect(_profile.user_metadata.teams).toBeDefined();
                             expect(_profile.user_metadata.teams.length).toEqual(1);
                             expect(_profile.user_metadata.teams[0].name).toEqual('The Calgary Roughnecks');
                             expect(_profile.user_metadata.teams[0].id).toEqual(teamId);
@@ -597,7 +596,7 @@ describe('teamMembershipSpec', () => {
 
                       it('does not write team membership to the agent\'s user_metadata', done => {
                         // Note the flip-flop from testing _profile to testing res.body. Cf. above...
-                        expect(_profile.user_metadata.teams).toBeUndefined();
+                        expect(_profile.user_metadata.teams.length).toEqual(0);
                         invitedAgentSession
                           .get(`${verificationUrl}/reject`)
                           .set('Accept', 'application/json')

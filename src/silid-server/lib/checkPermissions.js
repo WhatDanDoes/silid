@@ -145,15 +145,30 @@ function checkForInvites(req, done) {
   models.Invitation.findAll({where: { recipient: req.user.email }, order: [['updatedAt', 'DESC']]}).then(invites => {
     if (invites.length) {
       if (!req.user.user_metadata) {
-        req.user.user_metadata = { rsvps: [] };
+        req.user.user_metadata = { rsvps: [], teams: [] };
       }
 
       if (!req.user.user_metadata.rsvps) {
         req.user.user_metadata.rsvps = [];
       }
 
+      if (!req.user.user_metadata.teams) {
+        req.user.user_metadata.teams = [];
+      }
+
       for (let invite of invites) {
-        req.user.user_metadata.rsvps.push({ uuid: invite.uuid, type: invite.type, name: invite.name, recipient: invite.recipient });
+        let teamIndex = req.user.user_metadata.teams.findIndex(team => team.id === invite.uuid);
+        let rsvpIndex = req.user.user_metadata.rsvps.findIndex(rsvp => rsvp.uuid === invite.uuid);
+
+        if (teamIndex > -1) {
+          req.user.user_metadata.teams[teamIndex].name = invite.name;
+        }
+        else if (rsvpIndex > -1) {
+          req.user.user_metadata.rsvps[rsvpIndex].name = invite.name;
+        }
+        else {
+          req.user.user_metadata.rsvps.push({ uuid: invite.uuid, type: invite.type, name: invite.name, recipient: invite.recipient });
+        }
       }
 
       managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
