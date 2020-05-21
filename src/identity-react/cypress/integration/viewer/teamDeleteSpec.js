@@ -127,6 +127,35 @@ context('Team delete', function() {
         });
       });
 
+      context('when team has pending invitations', () => {
+        beforeEach(function() {
+          // Login/create main test agent
+          cy.login(_profile.email, _profile, [this.scope.read.agents,
+                                              this.scope.create.teams,
+                                              this.scope.read.teams,
+                                              this.scope.update.teams,
+                                              this.scope.delete.teams,
+                                              this.scope.create.teamMembers ]);
+
+          cy.contains('The A-Team').click();
+          cy.wait(300);
+
+          // Invite agent to team
+          cy.get('button span span').contains('add_box').click();
+          cy.get('input[placeholder="Email"]').type('somenewguy@example.com');
+          cy.get('button[title="Save"]').click();
+          cy.wait(300);
+        });
+
+        it('does not allow deletion', function(done) {
+          cy.on('window:alert', (str) => {
+            expect(str).to.eq('Remove all pending invitations before deleting the team');
+            done();
+          });
+          cy.get('#delete-team').click();
+        });
+      });
+
       context('when team has no team members', () => {
         it('displays a popup warning', function(done) {
           cy.on('window:confirm', (str) => {

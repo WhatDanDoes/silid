@@ -127,6 +127,11 @@ const TeamInfo = (props) => {
     if (teamInfo.members.length > 1) {
       return window.alert('Remove all team members before deleting the team');
     }
+
+    if (agent.user_metadata.pendingInvitations && agent.user_metadata.pendingInvitations.find(p => p.uuid === teamInfo.id)) {
+      return window.alert('Remove all pending invitations before deleting the team');
+    }
+
     if (window.confirm('Delete team?')) {
       deleteTeam(teamInfo.id).then(results => {
         if (results.statusCode) {
