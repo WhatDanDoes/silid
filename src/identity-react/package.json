@@ -66,8 +66,7 @@
     "node-mocks-http": "^1.8.1",
     "passport": "^0.4.1",
     "pg": "^7.18.2",
-    "sequelize": "^5.21.6",
-    "whatwg-fetch": "^3.0.0"
+    "sequelize": "^5.21.6"
   },
   "proxy": "http://localhost:3001"
 }
