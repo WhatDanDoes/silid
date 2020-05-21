@@ -5,7 +5,6 @@ const models = require('../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
-//const stubAuth0ManagementEndpoint = require('../support/stubAuth0ManagementEndpoint');
 const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
 const stubUserReadQuery = require('../support/auth0Endpoints/stubUserReadQuery');
 const stubUserAppMetadataUpdate = require('../support/auth0Endpoints/stubUserAppMetadataUpdate');
