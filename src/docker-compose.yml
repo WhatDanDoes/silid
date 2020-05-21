@@ -5,7 +5,6 @@
 #   * add more documentation and use-case details
 #   * consider how to coalesce DB service ENV vars with other services
 #   * see if it makes sense to connect cypress test container here
-#   * clarify or correct postgres hostname dependency in app service
 #
 version: "3.7"
 services:
@@ -15,8 +14,6 @@ services:
       - auth0
       - postgres
     build: ./silid-server
-    env_file:
-      - ./silid-server/.env
     network_mode: host
     command: npm run dev
     volumes:
@@ -28,7 +25,6 @@ services:
     environment:
       NODE_ENV: e2e
       PORT: 3001
-      # NOTE: assumes postgres is a resolvable hostname (see top TODO)
       DATABASE_URL: 'postgres://user:pass@localhost:5432/postgres'
 
   # mock identity server for local-only testing
