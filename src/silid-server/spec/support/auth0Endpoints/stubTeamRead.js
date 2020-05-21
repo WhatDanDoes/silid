@@ -21,7 +21,7 @@ module.exports = function(profiles, done, options) {
       options = done;
     }
     done = profiles;
-    profiles = [_profile];//null;
+    profiles = [_profile];
   }
 
   if (!options) {
@@ -48,13 +48,14 @@ module.exports = function(profiles, done, options) {
         .get(/api\/v2\/users/)
         .query({ search_engine: 'v3', q: /.+/ })
         .reply(options.status, (uri, requestBody) => {
+
           let qs = querystring.parse(uri.split('?')[1]);
           let results = [];
+
           for (let profile of profiles) {
             for (let team of profile.user_metadata.teams) {
               let regex = new RegExp(team.id);
               if (regex.test(qs.q)) {
-                //return [_profile];
                 results.push(profile);
               }
             }
@@ -62,7 +63,6 @@ module.exports = function(profiles, done, options) {
 
           return results;
         });
-
 
       done(null, {teamReadScope, teamReadOauthTokenScope});
 
