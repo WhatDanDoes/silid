@@ -148,6 +148,24 @@ context('Team delete agent', function() {
         cy.contains(`Member removed`);
       });
 
+      it('displays progress spinner', () => {
+        cy.on('window:confirm', (str) => {
+          return true;
+        });
+        cy.get('#progress-spinner').should('not.exist');
+        cy.get('tr:nth-of-type(1) button[title=Delete]').click();
+        // 2020-5-21
+        // Cypress goes too fast for this. Cypress also cannot intercept
+        // native `fetch` calls so that the route can be stubbed and delayed.
+        // Shamefully, this is currently manually tested, though I suspect
+        // I will use this opportunity to learn Jest
+        // Despite its name, this test really ensures the spinner disappears
+        // after all is said and done
+        //cy.get('#progress-spinner').should('exist');
+        cy.wait(100);
+        cy.get('#progress-spinner').should('not.exist');
+      });
+
       describe('former member agent interface', () => {
         beforeEach(function() {
           // Leader removes member
