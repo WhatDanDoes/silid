@@ -508,14 +508,13 @@ describe('root/teamSpec', () => {
             stubUserRead((err, apiScopes) => {
               if (err) return done.fail();
 
-
-              // Stub user-read calls subsequent to initial login
-              //stubUserRead((err, apiScopes) => {
-              stubUserAppMetadataRead((err, apiScopes) => {
+              // Get team membership
+              stubTeamRead((err, apiScopes) => {
                 if (err) return done.fail();
-                ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
+                ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
 
-                stubTeamRead((err, apiScopes) => {
+                // Get RSVPs
+                stubTeamRead([], (err, apiScopes) => {
                   if (err) return done.fail();
                   ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
 

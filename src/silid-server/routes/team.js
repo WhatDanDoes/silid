@@ -209,7 +209,7 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
   }
   const pending = req.user.user_metadata.pendingInvitations.filter(invite => invite.uuid === req.params.id);
   for (let p of pending) {
-    p.name = req.body.name;
+    p.name = teamName;
   }
 
   // Update team
@@ -220,8 +220,10 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
   managementClient.updateUserMetadata({id: req.user.user_id}, req.user.user_metadata).then(agent => {
 
     // Refresh team info
+    let agents = [];
     managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
-    managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.id}"` }).then(agents => {
+    managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.id}"` }).then(results => {
+      agents = agents.concat(results);
       const invitations = [];
       agents.forEach(a => {
         if (a.email !== req.user.email) {
@@ -229,28 +231,45 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
         }
       });
 
-      /**
-       * 2020-5-20
-       * https://github.com/sequelize/sequelize/pull/11984#issuecomment-625193209
-       *
-       * Upserting on composite keys has yet to be released. When it is, this
-       * step can be simplified as follows (or similar)...
-       */
-      //  models.Invitation.bulkCreate(invitations, { updateOnDuplicate: ['name', 'updatedAt'], upsertKeys: { fields: ['uuid', 'recipient'] } }).then(result => {
-      //    const teams = collateTeams(agents, req.params.id, req.user.user_id);
-      //    res.status(201).json(teams);
-      //  }).catch(err => {
-      //    res.status(500).json(err);
-      //  });
+      // Update RSVPs
+      managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.rsvps.uuid:"${req.params.id}"` }).then(results => {
+        agents.concat(results);
+        results.forEach(a => {
+          if (a.email !== req.user.email) {
+            invitations.push({ uuid: req.params.id, type: 'team', name: teamName, recipient: a.email });
+          }
+        });
 
-      upsertInvites(invitations, err => {
-        if (err) {
-          return res.status(500).json(err);
-        }
-        const teams = collateTeams(agents, req.params.id, req.user.user_id);
-        res.status(201).json(teams);
+        /**
+         * 2020-5-20
+         * https://github.com/sequelize/sequelize/pull/11984#issuecomment-625193209
+         *
+         * Upserting on composite keys has yet to be released. When it is, this
+         * step can be simplified as follows (or similar)...
+         */
+        //  models.Invitation.bulkCreate(invitations, { updateOnDuplicate: ['name', 'updatedAt'], upsertKeys: { fields: ['uuid', 'recipient'] } }).then(result => {
+        //    const teams = collateTeams(agents, req.params.id, req.user.user_id);
+        //    res.status(201).json(teams);
+        //  }).catch(err => {
+        //    res.status(500).json(err);
+        //  });
+
+        models.Invitation.update({ name: teamName }, { where: {uuid: req.params.id} }).then(results => {
+
+          upsertInvites(invitations, err => {
+            if (err) {
+              return res.status(500).json(err);
+            }
+            const teams = collateTeams(agents, req.params.id, req.user.user_id);
+            res.status(201).json(teams);
+          });
+        }).catch(err => {
+          res.status(500).json(err);
+        });
+
+      }).catch(err => {
+        res.status(err.statusCode).json(err.message.error_description);
       });
-
     }).catch(err => {
       res.status(err.statusCode).json(err.message.error_description);
     });

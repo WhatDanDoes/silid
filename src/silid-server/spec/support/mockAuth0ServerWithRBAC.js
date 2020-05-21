@@ -430,6 +430,27 @@ require('../support/setupKeystore').then(keyStuff => {
 
             return h.response(data);
           }
+
+          /**
+           * For retrieving an agent\'s rsvps
+           */
+          if (request.query.q && /user_metadata\.rsvps\.uuid/.test(request.query.q)) {
+            const results = await models.Agent.findAll(searchParams);
+
+            // Get team ID from search string
+            const teamId = request.query.q.match(/(?<=(["']\b))(?:(?=(\\?))\2.)*?(?=\1)/)[0];
+
+            let data = results.filter(agent => {
+              if (agent.socialProfile.user_metadata && agent.socialProfile.user_metadata.rsvps) {
+                return agent.socialProfile.user_metadata.rsvps.find(rsvp => rsvp.uuid === teamId);
+              }
+              return false;
+            });
+
+            data = data.map(d => ({...d.socialProfile, email: d.socialProfile.email, name: d.socialProfile.name }));
+
+            return h.response(data);
+          }
         }
       });
 

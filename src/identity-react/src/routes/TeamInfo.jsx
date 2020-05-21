@@ -116,7 +116,7 @@ const TeamInfo = (props) => {
         setFlashProps({ message: 'Team updated', variant: 'success' });
       }
     }).catch(err => {
-      console.log(err);
+      console.log(JSON.stringify(err));
     });
   }
 

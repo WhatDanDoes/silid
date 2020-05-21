@@ -461,7 +461,7 @@ describe('teamSpec', () => {
       });
 
       describe('update', () => {
-        let teamId;
+        let teamId, teamReadScope, teamReadOauthTokenScope, teamMembershipReadScope, teamMembershipReadOauthTokenScope;
         beforeEach(done => {
           teamId = uuid.v4();
           _profile.user_metadata = { teams: [{ name: 'Vancouver Warriors', leader: _profile.email, id: teamId }] };
@@ -485,14 +485,23 @@ describe('teamSpec', () => {
               stubUserRead((err, apiScopes) => {
                 if (err) return done.fail();
 
+                // Get team members
                 stubTeamRead((err, apiScopes) => {
                   if (err) return done.fail();
                   ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
+                  teamMembershipReadScope = teamReadScope;
+                  teamMembershipReadOauthTokenScope = teamReadOauthTokenScope;
 
-                  stubUserAppMetadataUpdate((err, apiScopes) => {
+                  // Get RSVPs
+                  stubTeamRead((err, apiScopes) => {
                     if (err) return done.fail();
-                    ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                    done();
+                    ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
+
+                    stubUserAppMetadataUpdate((err, apiScopes) => {
+                      if (err) return done.fail();
+                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                      done();
+                    });
                   });
                 });
               });
@@ -537,6 +546,33 @@ describe('teamSpec', () => {
               expect(_profile.user_metadata.pendingInvitations[1].name).toEqual('Vancouver Riot');
               done();
             });
+        });
+
+        it('updates any database invitations', done => {
+          models.Invitation.create({ name: 'Vancouver Warriors', recipient: 'onecooldude@example.com', uuid: teamId, type: 'team' }).then(results => {
+            authenticatedSession
+              .put(`/team/${teamId}`)
+              .send({
+                name: 'Vancouver Riot'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                models.Invitation.findAll().then(invites => {
+                  expect(invites.length).toEqual(1);
+                  expect(invites[0].name).toEqual('Vancouver Riot');
+                  expect(invites[0].uuid).toEqual(teamId);
+                  done();
+                }).catch(err => {
+                  done.fail(err);
+                });
+              });
+          }).catch(err => {
+            done.fail(err);
+          });
         });
 
         it('returns an error if empty team name provided', done => {
@@ -590,7 +626,7 @@ describe('teamSpec', () => {
         });
 
         describe('Auth0', () => {
-          it('is called to retrieve the agent user_metadata', done => {
+          it('is called to retrieve team membership', done => {
             authenticatedSession
               .put(`/team/${teamId}`)
               .send({
@@ -602,11 +638,31 @@ describe('teamSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(teamReadOauthTokenScope.isDone()).toBe(true);
+                expect(teamMembershipReadOauthTokenScope.isDone()).toBe(true);
+                expect(teamMembershipReadScope.isDone()).toBe(true);
+                done();
+              });
+          });
+
+          it('is called to retrieve outstanding RSVPs', done => {
+            authenticatedSession
+              .put(`/team/${teamId}`)
+              .send({
+                name: 'Vancouver Riot'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                // Doesn't get called because route is re-using token
+                expect(teamReadOauthTokenScope.isDone()).toBe(false);
                 expect(teamReadScope.isDone()).toBe(true);
                 done();
               });
           });
+
 
           it('is called to update the agent user_metadata', done => {
             authenticatedSession
@@ -646,6 +702,7 @@ describe('teamSpec', () => {
                 stubUserRead((err, apiScopes) => {
                   if (err) return done.fail();
 
+                  // Read team membership
                   stubTeamRead([{..._profile},
                                 {..._profile, email: 'someotherguy@example.com', name: 'Some Other Guy',
                                    user_metadata: { teams: [{ name: 'Vancouver Riot', leader: _profile.email, id: teamId }] }
@@ -656,10 +713,16 @@ describe('teamSpec', () => {
                     if (err) return done.fail();
                     ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
 
-                    stubUserAppMetadataUpdate((err, apiScopes) => {
+                    // Get RSVPs
+                    stubTeamRead([], (err, apiScopes) => {
                       if (err) return done.fail();
-                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                      done();
+                      ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
+
+                      stubUserAppMetadataUpdate((err, apiScopes) => {
+                        if (err) return done.fail();
+                        ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                        done();
+                      });
                     });
                   });
                 });
@@ -750,38 +813,44 @@ describe('teamSpec', () => {
                                     }], (err, apiScopes) => {
                         if (err) return done.fail();
 
-                        stubUserAppMetadataUpdate((err, apiScopes) => {
+                        // Get RSVPs
+                        stubTeamRead([], (err, apiScopes) => {
                           if (err) return done.fail();
+                          ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
 
-                          authenticatedSession
-                            .put(`/team/${teamId}`)
-                            .send({
-                              name: 'Vancouver Riot'
-                            })
-                            .set('Accept', 'application/json')
-                            .expect('Content-Type', /json/)
-                            .expect(201)
-                            .end(function(err, res) {
-                              if (err) return done.fail(err);
-                              models.Invitation.findAll().then(invites => {
+                          stubUserAppMetadataUpdate((err, apiScopes) => {
+                            if (err) return done.fail();
 
-                                expect(invites.length).toEqual(2);
+                            authenticatedSession
+                              .put(`/team/${teamId}`)
+                              .send({
+                                name: 'Vancouver Riot'
+                              })
+                              .set('Accept', 'application/json')
+                              .expect('Content-Type', /json/)
+                              .expect(201)
+                              .end(function(err, res) {
+                                if (err) return done.fail(err);
+                                models.Invitation.findAll().then(invites => {
 
-                                expect(invites[0].name).toEqual('Vancouver Riot');
-                                expect(invites[0].type).toEqual('team');
-                                expect(invites[0].uuid).toEqual(teamId);
-                                expect(invites[0].recipient).toEqual('someotherguy@example.com');
+                                  expect(invites.length).toEqual(2);
 
-                                expect(invites[1].name).toEqual('Vancouver Riot');
-                                expect(invites[1].type).toEqual('team');
-                                expect(invites[1].uuid).toEqual(teamId);
-                                expect(invites[1].recipient).toEqual('yetanotherteamplayer@example.com');
+                                  expect(invites[0].name).toEqual('Vancouver Riot');
+                                  expect(invites[0].type).toEqual('team');
+                                  expect(invites[0].uuid).toEqual(teamId);
+                                  expect(invites[0].recipient).toEqual('someotherguy@example.com');
 
-                                done();
-                              }).catch(err => {
-                                done.fail(err);
+                                  expect(invites[1].name).toEqual('Vancouver Riot');
+                                  expect(invites[1].type).toEqual('team');
+                                  expect(invites[1].uuid).toEqual(teamId);
+                                  expect(invites[1].recipient).toEqual('yetanotherteamplayer@example.com');
+
+                                  done();
+                                }).catch(err => {
+                                  done.fail(err);
+                                });
                               });
-                            });
+                          });
                         });
                       });
                     });
