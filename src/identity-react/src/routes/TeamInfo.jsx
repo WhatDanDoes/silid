@@ -1,19 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Redirect } from 'react-router-dom';
-//import TextField from '@material-ui/core/TextField';
 import { createStyles, makeStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
-//import Card from '@material-ui/core/Card';
-//import CardContent from '@material-ui/core/CardContent';
-//import Fab from '@material-ui/core/Fab';
-//import PersonAddIcon from '@material-ui/icons/PersonAdd';
 import Button from '@material-ui/core/Button';
-//import List from '@material-ui/core/List';
-//import ListItem from '@material-ui/core/ListItem';
-//import ListItemIcon from '@material-ui/core/ListItemIcon';
-//import ListItemText from '@material-ui/core/ListItemText';
-//import DeleteForeverOutlinedIcon from '@material-ui/icons/DeleteForeverOutlined';
-//import InboxIcon from '@material-ui/icons/MoveToInbox';
+import CircularProgress from '@material-ui/core/CircularProgress';
 
 import Grid from '@material-ui/core/Grid';
 
@@ -27,7 +17,7 @@ import usePutTeamService from '../services/usePutTeamService';
 import useDeleteTeamService from '../services/useDeleteTeamService';
 import useSendTeamInvitationService from '../services/useSendTeamInvitationService';
 import useRescindTeamInvitationService from '../services/useRescindTeamInvitationService';
-import useDeleteTeamMemberService from '../services/useDeleteTeamMemberService';
+//import useDeleteTeamMemberService from '../services/useDeleteTeamMemberService';
 
 /**
  * For profile data display
@@ -51,6 +41,11 @@ const useStyles = makeStyles((theme) =>
       marginLeft: theme.spacing(1),
       marginRight: theme.spacing(1),
       width: '100%',
+    },
+    // 2020-5-21 https://material-ui.com/components/progress/#CircularIntegration.js
+    fabProgress: {
+      color: 'green',
+      zIndex: 1,
     },
     [theme.breakpoints.down('sm')]: {
       card: {
@@ -78,6 +73,7 @@ const TeamInfo = (props) => {
   const [prevInputState, setPrevInputState] = useState({});
   const [toAgent, setToAgent] = useState(false);
   const [flashProps, setFlashProps] = useState({});
+  const [isWaiting, setIsWaiting] = useState(false);
 
   const [teamInfo, setTeamInfo] = useState({});
 
@@ -86,7 +82,7 @@ const TeamInfo = (props) => {
   let { deleteTeam } = useDeleteTeamService();
   let { sendTeamInvitation } = useSendTeamInvitationService();
   let { rescindTeamInvitation } = useRescindTeamInvitationService();
-  let { deleteTeamMember } = useDeleteTeamMemberService(props.match.params.id);
+//  let { deleteTeamMember, service: deleteTeamMemberService } = useDeleteTeamMemberService(props.match.params.id);
 
   useEffect(() => {
     if (service.status === 'loaded') {
@@ -153,6 +149,44 @@ const TeamInfo = (props) => {
   if (toAgent) {
     return <Redirect to={{ pathname: `/agent`, state: 'Team deleted' }} />
   }
+
+
+  /**
+   * Invite new agent to the team
+   *
+   *
+   */
+  const inviteToTeam = (newData) => {
+    return new Promise((resolve, reject) => {
+      newData.email = newData.email.trim();
+
+      if (!newData.email.length) {
+        setFlashProps({ message: 'Email can\'t be blank', variant: 'error' });
+        reject();
+      }
+      // 2020-5-5 email regex from here: https://redux-form.com/6.5.0/examples/material-ui/
+      else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(newData.email)) {
+        setFlashProps({ message: 'That\'s not a valid email address', variant: 'error' });
+        reject();
+      }
+      else {
+        sendTeamInvitation(teamInfo.id, newData).then((results) => {
+          if (results.message) {
+            setFlashProps({ message: results.message, variant: 'warning' });
+          }
+          else {
+            setFlashProps({ message: 'Invitation sent', variant: 'success' });
+            updateAgent(results);
+          }
+          resolve();
+        }).catch(err => {
+          console.log(err);
+          setFlashProps({ errors: [err], variant: 'error' });
+          reject(err);
+        });
+      }
+    })
+  };
 
   return (
     <div className={classes.root}>
@@ -233,6 +267,7 @@ const TeamInfo = (props) => {
             : ''}
 
             <Grid id="members-table" item className={classes.grid}>
+              { isWaiting && <CircularProgress id="progress-spinner" className={classes.fabProgress} size={68} />}
               <MaterialTable
                 title='Members'
                 columns={[
@@ -244,7 +279,31 @@ const TeamInfo = (props) => {
                       return rowData ? <Link href={`#agent/${rowData.user_id}`}>{rowData.name}</Link> : null;
                     }
                   },
-                  { title: 'Email', field: 'email' }
+                  {
+                    title: 'Email',
+                    field: 'email',
+                    editComponent: (props) => {
+                      return (
+                        <div className="MuiFormControl-root MuiTextField-root">
+                          <div className="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl">
+                            <input
+                              className="MuiInputBase-input MuiInput-input"
+                              type="text"
+                              placeholder="Email"
+                              value={props.value}
+                              onChange={e => props.onChange(e.target.value)}
+                              onKeyDown={evt => {
+                                  if (evt.key === 'Enter') {
+                                    return inviteToTeam({ email: evt.target.value });
+                                  }
+                                }
+                              }
+                            />
+                          </div>
+                        </div>
+                      );
+                    }
+                  }
                 ]}
                 data={teamInfo.members ? teamInfo.members : []}
                 options={{ search: false, paging: false }}
@@ -258,61 +317,42 @@ const TeamInfo = (props) => {
                       onClick:() => {
                         new Promise((resolve, reject) => {
                           if (window.confirm('Remove member?')) {
-                            return deleteTeamMember(rowData.user_id).then(results => {
-                              console.log('results');
-                              console.log(JSON.stringify(results));
-                              if (results.message) {
+                            setIsWaiting(true);
+
+                            const headers = new Headers();
+                            headers.append('Content-Type', 'application/json; charset=utf-8');
+                            fetch(`/team/${teamInfo.id}/agent/${rowData.user_id}`,
+                              {
+                                method: 'DELETE',
+                                headers,
+                              }
+                            )
+                            .then(response => response.json())
+                            .then(response => {
+                              if (response.message) {
                                 teamInfo.members.splice(teamInfo.members.findIndex(m => m.user_id === rowData.user_id), 1);
-                                setFlashProps({ message: results.message, variant: 'success' });
+                                setFlashProps({ message: response.message, variant: 'success' });
+                                resolve();
                               }
                               else {
-                                reject(results);
                                 setFlashProps({ message: 'Deletion cannot be confirmed', variant: 'warning' });
+                                reject(response);
                               }
-
-                            }).catch(err => {
-                              console.log(err);
-                              setFlashProps({ errors: [err], variant: 'error' });
-                              reject(err);
+                            }).catch(error => {
+                              reject(error);
+                            }).finally(() => {
+                              setIsWaiting(false);
                             });
                           }
-                          reject();
+                          else {
+                            setIsWaiting(false);
+                            reject();
+                          }
                         })
                       }
                     })
                   ]}
-                editable={ teamInfo.leader === agent.email ? {
-                  onRowAdd: newData =>
-                    new Promise((resolve, reject) => {
-                      newData.email = newData.email.trim();
-
-                      if (!newData.email.length) {
-                        setFlashProps({ message: 'Email can\'t be blank', variant: 'error' });
-                        reject();
-                      }
-                      // 2020-5-5 email regex from here: https://redux-form.com/6.5.0/examples/material-ui/
-                      else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(newData.email)) {
-                        setFlashProps({ message: 'That\'s not a valid email address', variant: 'error' });
-                        reject();
-                      }
-                      else {
-                        sendTeamInvitation(teamInfo.id, newData).then((results) => {
-                          if (results.message) {
-                            setFlashProps({ message: results.message, variant: 'warning' });
-                          }
-                          else {
-                            setFlashProps({ message: 'Invitation sent', variant: 'success' });
-                            updateAgent(results);
-                          }
-                          resolve();
-                        }).catch(err => {
-                          console.log(err);
-                          setFlashProps({ errors: [err], variant: 'error' });
-                          reject(err);
-                        });
-                      }
-                    }),
-                } : undefined}
+                editable={ teamInfo.leader === agent.email ? { onRowAdd: inviteToTeam } : undefined }
               />
             </Grid>
             {agent.user_metadata &&

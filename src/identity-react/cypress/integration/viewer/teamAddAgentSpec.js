@@ -53,15 +53,15 @@ context('viewer/Team add agent', function() {
 
       describe('add-agent button', () => {
         it('reveals the input form', () => {
-          cy.get('div div div div div div table tbody tr td div button[title="Save"]').should('not.exist');
-          cy.get('div div div div div div table tbody tr td div button[title="Cancel"]').should('not.exist');
-          cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').should('not.exist');
-          cy.get('div div div div div div table tbody tr td div div input[placeholder="Email"]').should('not.exist');
+          cy.get('#members-table table tbody tr td div button[title="Save"]').should('not.exist');
+          cy.get('#members-table table tbody tr td div button[title="Cancel"]').should('not.exist');
+          cy.get('#members-table table tbody tr td div div input[placeholder="Name"]').should('not.exist');
+          cy.get('#members-table table tbody tr td div div input[placeholder="Email"]').should('not.exist');
           cy.get('button span span').contains('add_box').click();
-          cy.get('div div div div div div table tbody tr td div button[title="Save"]').should('exist');
-          cy.get('div div div div div div table tbody tr td div button[title="Cancel"]').should('exist');
-          cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').should('not.exist');
-          cy.get('div div div div div div table tbody tr td div div input[placeholder="Email"]').should('exist');
+          cy.get('#members-table table tbody tr td div button[title="Save"]').should('exist');
+          cy.get('#members-table table tbody tr td div button[title="Cancel"]').should('exist');
+          cy.get('#members-table table tbody tr td div div input[placeholder="Name"]').should('not.exist');
+          cy.get('#members-table table tbody tr td div div input[placeholder="Email"]').should('exist');
         });
 
 
@@ -93,14 +93,14 @@ context('viewer/Team add agent', function() {
 
           describe('add-member-agent-button', () => {
             it('does not allow a blank field', function() {
-              cy.get('div div div div div div table tbody tr td div div input[placeholder="Email"]').clear();
-              cy.get('div div div div div div table tbody tr td div div input[placeholder="Email"]').type('            ');
-              cy.get('div div div div div div table tbody tr td div div input[placeholder="Email"]').should('have.value', '            ');
-              cy.get('div div div div div div table tbody tr td div button[title="Save"]').click();
+              cy.get('#members-table table tbody tr td div div input[placeholder="Email"]').clear();
+              cy.get('#members-table table tbody tr td div div input[placeholder="Email"]').type('            ');
+              cy.get('#members-table table tbody tr td div div input[placeholder="Email"]').should('have.value', '            ');
+              cy.get('#members-table table tbody tr td div button[title="Save"]').click();
               cy.contains('Email can\'t be blank');
               // Try a second time
               cy.get('#flash-message #close-flash').click();
-              cy.get('div div div div div div table tbody tr td div button[title="Save"]').click();
+              cy.get('#members-table  table tbody tr td div button[title="Save"]').click();
               cy.contains('Email can\'t be blank');
             });
 
@@ -126,7 +126,21 @@ context('viewer/Team add agent', function() {
               cy.contains('That\'s not a valid email address');
             });
 
+            it('allows execution by Enter key', () => {
+              cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                expect(results.length).to.eq(0);
+
+                cy.get('#members-table table tbody tr:nth-of-type(2) input[placeholder="Email"]').type('somenewguy@example.com{enter}');
+                cy.wait(300);
+
+                cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                  expect(results.length).to.eq(1);
+                });
+              });
+            });
+
             describe('unknown agent', () => {
+
               it('creates an invitation in the database', function() {
                 cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
                   expect(results.length).to.eq(0);
