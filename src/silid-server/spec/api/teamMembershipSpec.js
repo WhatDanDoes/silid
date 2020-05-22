@@ -205,6 +205,67 @@ describe('teamMembershipSpec', () => {
                 });
             });
 
+            it('converts all email invitations to lowercase', done => {
+              authenticatedSession
+                .put(`/team/${teamId}/agent`)
+                .send({
+                  email: 'SomeBrandNewGuy@Example.Com'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  models.Invitation.findAll().then(invites => {
+
+                    expect(invites.length).toEqual(1);
+                    expect(invites[0].recipient).toEqual('SomeBrandNewGuy@Example.Com'.toLowerCase());
+
+                    expect(res.body.user_metadata.pendingInvitations.length).toEqual(1);
+                    expect(res.body.user_metadata.pendingInvitations[0].recipient).toEqual('SomeBrandNewGuy@Example.Com'.toLowerCase());
+
+                    // Cached profile doesn't match "live" data, so agent needs to be updated
+                    // with a call to Auth0
+                    stubUserRead((err, apiScopes) => {
+                      if (err) return done.fail();
+
+                      stubUserAppMetadataUpdate((err, apiScopes) => {
+                        if (err) return done.fail();
+
+                        // Invitation sent twice to ensure they don't start stacking up
+                        authenticatedSession
+                          .put(`/team/${teamId}/agent`)
+                          .send({
+                            email: 'SOMEBRANDNEWGUY@EXAMPLE.COM'
+                          })
+                          .set('Accept', 'application/json')
+                          .expect('Content-Type', /json/)
+                          .expect(201)
+                          .end(function(err, res) {
+                            if (err) return done.fail(err);
+
+                            models.Invitation.findAll().then(invites => {
+
+                              expect(invites.length).toEqual(1);
+                              expect(invites[0].recipient).toEqual('SOMEBRANDNEWGUY@EXAMPLE.COM'.toLowerCase());
+
+                              expect(res.body.user_metadata.pendingInvitations.length).toEqual(1);
+                              expect(res.body.user_metadata.pendingInvitations[0].recipient).toEqual('SOMEBRANDNEWGUY@EXAMPLE.COM'.toLowerCase());
+
+                              done();
+                            }).catch(err => {
+                              done.fail(err);
+                            });
+                          });
+                      });
+                    });
+                  }).catch(err => {
+                    done.fail(err);
+                  });
+                });
+            });
+
             describe('Auth0', () => {
               it('/oauth/token endpoint is called to retrieve a machine-to-machine access token', done => {
                 authenticatedSession
@@ -266,8 +327,6 @@ describe('teamMembershipSpec', () => {
                     });
                   });
               });
-
-
             });
 
             describe('email', () => {
@@ -894,6 +953,9 @@ describe('teamMembershipSpec', () => {
         });
 
         describe('registered agent', () => {
+
+          const _registeredProfile = {..._profile, name: 'Some Other Guy', email: 'someotherguy@example.com', user_metadata: {} };
+
           let registeredAgent;
           let invitedUserAppMetadataReadScope, invitedUserAppMetadataReadOauthTokenScope;
           let invitedUserAppMetadataUpdateScope, invitedUserAppMetadataUpdateOauthTokenScope;
@@ -901,24 +963,27 @@ describe('teamMembershipSpec', () => {
           beforeEach(done => {
             models.Agent.create({ name: 'Some Other Guy',
                                   email: 'someotherguy@example.com',
-                                  socialProfile: {..._profile, name: 'Some Other Guy', email: 'someotherguy@example.com' } }).then(result => {
+                                  socialProfile: _registeredProfile }).then(result => {
               registeredAgent = result;
 
-              // For the invited agent
-              stubUserAppMetadataRead({..._profile, name: 'Some Other Guy', email: 'someotherguy@example.com', user_metadata: {} }, (err, apiScopes) => {
+              // This resets state between tests
+              _registeredProfile.user_metadata = {};
+
+              // Read the invited agent
+              stubUserAppMetadataRead(_registeredProfile, (err, apiScopes) => {
                 if (err) return done.fail();
                 ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
                 invitedUserAppMetadataReadScope = userAppMetadataReadScope;
                 invitedUserAppMetadataReadOauthTokenScope = userAppMetadataReadOauthTokenScope;
 
-                // For the invited agent
-                stubUserAppMetadataUpdate((err, apiScopes) => {
+                // Update the invited agent
+                stubUserAppMetadataUpdate(_registeredProfile, (err, apiScopes) => {
                   if (err) return done.fail();
                   let {userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes;
                   invitedUserAppMetadataUpdateScope = userAppMetadataUpdateScope;
                   invitedUserAppMetadataUpdateOauthTokenScope = userAppMetadataUpdateOauthTokenScope;
 
-                  // For the team leader
+                  // Read the team leader
                   stubUserAppMetadataUpdate((err, apiScopes) => {
                     if (err) return done.fail();
                     let {userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes;
@@ -969,6 +1034,63 @@ describe('teamMembershipSpec', () => {
               }).catch(err => {
                 done.fail(err);
               });
+            });
+
+            it('converts rsvp recipient email to lowercase', done => {
+              expect(_registeredProfile.user_metadata.rsvps).toBeUndefined();
+              authenticatedSession
+                .put(`/team/${teamId}/agent`)
+                .send({
+                  email: registeredAgent.email.toUpperCase()
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(_registeredProfile.user_metadata.rsvps.length).toEqual(1);
+                  expect(_registeredProfile.user_metadata.rsvps[0].recipient).toEqual(registeredAgent.email.toLowerCase());
+
+                  // Cached profile doesn't match "live" data, so agent needs to be updated
+                  // with a call to Auth0
+                  stubUserRead((err, apiScopes) => {
+                    if (err) return done.fail();
+
+                    // Read the invited agent
+                    stubUserAppMetadataRead(_registeredProfile, (err, apiScopes) => {
+                      if (err) return done.fail();
+
+                      // Update the invited agent
+                      stubUserAppMetadataUpdate(_registeredProfile, (err, apiScopes) => {
+                        if (err) return done.fail();
+
+                        // Read the team leader
+                        stubUserAppMetadataUpdate((err, apiScopes) => {
+                          if (err) return done.fail();
+
+                          // Invitation sent twice to ensure they don't start stacking up
+                          authenticatedSession
+                            .put(`/team/${teamId}/agent`)
+                            .send({
+                              email: registeredAgent.email.toUpperCase()
+                            })
+                            .set('Accept', 'application/json')
+                            .expect('Content-Type', /json/)
+                            .expect(201)
+                            .end(function(err, res) {
+                              if (err) return done.fail(err);
+
+                              expect(_registeredProfile.user_metadata.rsvps.length).toEqual(1);
+                              expect(_registeredProfile.user_metadata.rsvps[0].recipient).toEqual(registeredAgent.email.toLowerCase());
+
+                              done();
+                            });
+                        });
+                      });
+                    });
+                  });
+                });
             });
 
             describe('Auth0', () => {

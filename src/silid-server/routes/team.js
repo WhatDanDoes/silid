@@ -458,9 +458,12 @@ router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(
   if (!req.body.email) {
     return res.status(400).json({ message: 'No email provided' });
   }
+
+  let recipientEmail = req.body.email.trim().toLowerCase();
+
   // Make sure agent isn't already a member of the team
-  models.Agent.findOne({ where: { email: req.body.email.trim().toLowerCase() } }).then(agent => {
-    const invite = { uuid: req.params.id, recipient: req.body.email, type: 'team', name: team.name };
+  models.Agent.findOne({ where: { email: recipientEmail } }).then(agent => {
+    const invite = { uuid: req.params.id, recipient: recipientEmail, type: 'team', name: team.name };
 
     if (agent) {
       let managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
@@ -515,8 +518,7 @@ router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(
       });
     }
     else {
-      models.Invitation.findOne({ where: { uuid: req.params.id, recipient: req.body.email } }).then(invitation => {
-
+      models.Invitation.findOne({ where: { uuid: req.params.id, recipient: recipientEmail } }).then(invitation => {
         if (!invitation) {
 
           /**
@@ -531,8 +533,7 @@ router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(
           // This updates the agent's session data
           // req.login(result, err => {
           //   if (err) return next(err);
-
-          models.Invitation.create(invite).then(results => {
+          models.Invitation.upsert(invite).then(results => {
 
             if (!req.user.user_metadata.pendingInvitations) {
               req.user.user_metadata.pendingInvitations = [];
@@ -541,7 +542,6 @@ router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(
 
             const managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
             managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
-
               inviteAgent(invite, req, res);
             }).catch(err => {
               res.status(500).json(err);
