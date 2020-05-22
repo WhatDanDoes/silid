@@ -288,13 +288,16 @@ const TeamInfo = (props) => {
                           <div className="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl">
                             <input
                               className="MuiInputBase-input MuiInput-input"
+                              autoFocus={true}
                               type="text"
                               placeholder="Email"
-                              value={props.value}
+                              value={props.value ? props.value : ''}
                               onChange={e => props.onChange(e.target.value)}
                               onKeyDown={evt => {
                                   if (evt.key === 'Enter') {
-                                    return inviteToTeam({ email: evt.target.value });
+                                    inviteToTeam({ email: evt.target.value });
+                                    props.onChange('');
+                                    return;
                                   }
                                 }
                               }

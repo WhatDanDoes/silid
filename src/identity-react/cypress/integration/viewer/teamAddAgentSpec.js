@@ -96,11 +96,11 @@ context('viewer/Team add agent', function() {
               cy.get('#members-table table tbody tr td div div input[placeholder="Email"]').clear();
               cy.get('#members-table table tbody tr td div div input[placeholder="Email"]').type('            ');
               cy.get('#members-table table tbody tr td div div input[placeholder="Email"]').should('have.value', '            ');
-              cy.get('#members-table table tbody tr td div button[title="Save"]').click();
+              cy.get('#members-table table tbody tr:nth-child(2) td div button').contains('check').click();
               cy.contains('Email can\'t be blank');
               // Try a second time
               cy.get('#flash-message #close-flash').click();
-              cy.get('#members-table  table tbody tr td div button[title="Save"]').click();
+              cy.get('#members-table table tbody tr:nth-child(2) td div button').contains('check').click();
               cy.contains('Email can\'t be blank');
             });
 
@@ -108,34 +108,46 @@ context('viewer/Team add agent', function() {
               cy.get('div div div div div div table tbody tr td div div input[placeholder="Email"]').type('newteammember@example.com');
               cy.get('div div div div div div table tbody tr td div div input[placeholder="Email"]').clear();
               cy.get('div div div div div div table tbody tr td div div input[placeholder="Email"]').should('have.value', '');
-              cy.get('div div div div div div table tbody tr td div button[title="Save"]').click();
+              cy.get('#members-table table tbody tr:nth-child(2) td div button').contains('check').click();
               cy.contains('Email can\'t be blank');
               // Try a second time
               cy.get('#flash-message #close-flash').click();
-              cy.get('div div div div div div table tbody tr td div button[title="Save"]').click();
+              cy.get('#members-table table tbody tr:nth-child(2) td div button').contains('check').click();
               cy.contains('Email can\'t be blank');
             });
 
             it('does not allow an invalid email', function() {
               cy.get('div div div div div div table tbody tr td div div input[placeholder="Email"]').type('this is not an email');
-              cy.get('div div div div div div table tbody tr td div button[title="Save"]').click();
+              cy.get('#members-table table tbody tr:nth-child(2) td div button').contains('check').click();
               cy.contains('That\'s not a valid email address');
               // Try a second time
               cy.get('#flash-message #close-flash').click();
-              cy.get('div div div div div div table tbody tr td div button[title="Save"]').click();
+              cy.get('#members-table table tbody tr:nth-child(2) td div button').contains('check').click();
               cy.contains('That\'s not a valid email address');
             });
 
-            it('allows execution by Enter key', () => {
-              cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
-                expect(results.length).to.eq(0);
+            it('gives focus to the email input field', () => {
+              cy.focused().should('have.attr', 'placeholder').and('eq', 'Email');
+            });
 
+            describe('execute invitation with Enter key', () => {
+              it('creates an Invitation in the database', () => {
+                cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                  expect(results.length).to.eq(0);
+
+                  cy.get('#members-table table tbody tr:nth-of-type(2) input[placeholder="Email"]').type('somenewguy@example.com{enter}');
+                  cy.wait(300);
+
+                  cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                    expect(results.length).to.eq(1);
+                  });
+                });
+              });
+
+              it('clears input field', () => {
                 cy.get('#members-table table tbody tr:nth-of-type(2) input[placeholder="Email"]').type('somenewguy@example.com{enter}');
                 cy.wait(300);
-
-                cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
-                  expect(results.length).to.eq(1);
-                });
+                cy.get('#members-table table tbody tr:nth-of-type(2) input[placeholder="Email"]').should('have.value', '');
               });
             });
 
