@@ -87,6 +87,17 @@ describe('Invitation', () => {
           done();
         });
       });
+
+      it('converts email to lowercase', done => {
+        _valid.recipient = 'SomeGuy@Example.Com';
+        invitation = new Invitation(_valid);
+        invitation.save().then(obj => {
+          expect(obj.recipient).toEqual('someguy@example.com');
+          done();
+        }).catch(err => {
+          done.fail(err);
+        });
+      });
     });
 
     describe('name', () => {

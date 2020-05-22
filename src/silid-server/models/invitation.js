@@ -61,5 +61,11 @@ module.exports = (sequelize, DataTypes) => {
     ]
   });
 
+  Invitation.addHook('beforeValidate', (invite, options) => {
+    if (invite.recipient) {
+      invite.recipient = invite.recipient.toLowerCase();
+    }
+  });
+
   return Invitation;
 };
