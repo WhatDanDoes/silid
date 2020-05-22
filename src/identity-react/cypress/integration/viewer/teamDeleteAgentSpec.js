@@ -10,6 +10,11 @@ context('Team delete agent', function() {
     _profile = {...this.profile};
   });
 
+  afterEach(() => {
+    cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
+    cy.task('query', 'TRUNCATE TABLE "Invitations" CASCADE;');
+  });
+
   context('authenticated', () => {
 
     let agent, memberAgent;
@@ -32,11 +37,6 @@ context('Team delete agent', function() {
           agent = results[0];
         });
       });
-    });
-
-    afterEach(() => {
-      cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
-      cy.task('query', 'TRUNCATE TABLE "Invitations" CASCADE;');
     });
 
     context('creator agent visit', () => {
@@ -194,6 +194,84 @@ context('Team delete agent', function() {
         });
       });
     });
+  });
+
+
+  context('invited agent with own teams', () => {
+    let agent, memberAgent;
+    beforeEach(function() {
+      // Login/create another agent
+      cy.login('someotherguy@example.com', {..._profile, name: 'Some Other Guy' }, [this.scope.read.agents, this.scope.create.teams]);
+
+      cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
+        memberAgent = results[0];
+
+        // To-be-invited agent creates his own team
+        cy.get('#teams-table button span span').contains('add_box').click();
+        cy.get('#teams-table input[placeholder="Name"]').type('The A-Team');
+        cy.get('#teams-table button[title="Save"]').click();
+
+        // Login/create main test agent
+        cy.login(_profile.email, _profile, [this.scope.read.agents,
+                                            this.scope.create.organizations,
+                                            this.scope.read.organizations,
+                                            this.scope.create.teams,
+                                            this.scope.read.teams,
+                                            this.scope.update.teams,
+                                            this.scope.create.teamMembers,
+                                            this.scope.delete.teamMembers]);
+
+        cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
+          agent = results[0];
+
+          // Team leader creates a own team
+          cy.get('#teams-table button span span').contains('add_box').click();
+          cy.get('#teams-table input[placeholder="Name"]').type('The Mike Tyson Mystery Team');
+          cy.get('#teams-table button[title="Save"]').click();
+          cy.wait(300);
+          cy.contains('The Mike Tyson Mystery Team').click();
+          cy.wait(300);
+
+          // Team leader invites agent
+          cy.get('#members-table button span span').contains('add_box').click();
+          cy.get('input[placeholder="Email"]').type(memberAgent.email);
+          cy.get('button[title="Save"]').click();
+          cy.wait(300);
+
+          // Login invited agent and accept invite
+          cy.login(memberAgent.email, {..._profile, name: memberAgent.name }, [this.scope.read.agents, this.scope.create.teams, this.scope.create.teamMembers]);
+          cy.get('#rsvps-table table tbody tr td button span').contains('check').click();
+          cy.wait(300);
+
+          // Login team leader
+          cy.login(_profile.email, _profile, [this.scope.read.agents,
+                                             this.scope.create.organizations,
+                                             this.scope.read.organizations,
+                                             this.scope.create.teams,
+                                             this.scope.read.teams,
+                                             this.scope.update.teams,
+                                             this.scope.create.teamMembers,
+                                             this.scope.delete.teamMembers]);
+
+          cy.contains('The Mike Tyson Mystery Team').click();
+          cy.wait(300);
+
+          // Delete member agent
+          cy.on('window:confirm', (str) => {
+            return true;
+          });
+          cy.get('tr:nth-of-type(1) button[title=Delete]').click();
+          cy.wait(300);
+        });
+      });
+    });
+
+    it('removes the correct team from the invited agent\'s interface', function() {
+      cy.login(memberAgent.email, {..._profile, name: memberAgent.name }, [this.scope.read.agents, this.scope.create.teams, this.scope.create.teamMembers]);
+      cy.get('#teams-table table tbody').find('tr').its('length').should('eq', 1);
+      cy.get('table tbody tr td').contains('The A-Team');
+    });
+
   });
 });
 

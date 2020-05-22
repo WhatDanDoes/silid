@@ -711,7 +711,7 @@ router.delete('/:id/agent/:agentId', checkPermissions([scope.delete.teamMembers]
       return res.status(404).json( { message: 'That agent is not a member' });
     }
 
-    const teamIndex = invitedAgent.user_metadata.teams.find(t => t.id === req.params.id);
+    const teamIndex = invitedAgent.user_metadata.teams.findIndex(t => t.id === req.params.id);
     invitedAgent.user_metadata.teams.splice(teamIndex, 1);
 
     managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
