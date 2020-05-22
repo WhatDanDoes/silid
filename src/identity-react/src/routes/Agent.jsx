@@ -3,6 +3,7 @@ import { createStyles, makeStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import Link from '@material-ui/core/Link';
 import { useAdminState } from '../auth/Admin';
+import { useAuthState } from '../auth/Auth';
 import ReactJson from 'react-json-view';
 import Flash from '../components/Flash';
 
@@ -69,6 +70,7 @@ const Agent = (props) => {
   const [flashProps, setFlashProps] = useState({});
 
   const admin = useAdminState();
+  const {agent} = useAuthState();
 
   const classes = useStyles();
   const service = useGetAgentService(props.match.params.id, admin.viewingCached);
@@ -97,7 +99,7 @@ const Agent = (props) => {
         {service.status === 'loaded' && service.payload ?
           <>
             <Grid item className={classes.grid}>
-              <TableContainer component={Paper}>
+              <TableContainer id="profile-table" component={Paper}>
                 <Table className={classes.table} aria-label="Agent profile info">
                   <TableBody>
                     <TableRow>
@@ -182,7 +184,7 @@ const Agent = (props) => {
                 ]}
                 data={profileData.user_metadata ? profileData.user_metadata.teams : []}
                 options={{ search: false, paging: false }}
-                editable={{
+                editable={ profileData.email === agent.email ? {
                   onRowAdd: (newData) => new Promise((resolve, reject) => {
                     newData.name = newData.name.trim();
                     if (!newData.name.length) {
@@ -204,7 +206,7 @@ const Agent = (props) => {
                       }).catch(reject);
                     }
                   }),
-                }}
+                }: undefined}
               />
             </Grid>
             <Grid item>
