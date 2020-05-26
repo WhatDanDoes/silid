@@ -3,7 +3,6 @@ import { Redirect } from 'react-router-dom';
 import { createStyles, makeStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import Button from '@material-ui/core/Button';
-import CircularProgress from '@material-ui/core/CircularProgress';
 
 import Grid from '@material-ui/core/Grid';
 
@@ -41,11 +40,6 @@ const useStyles = makeStyles((theme) =>
       marginLeft: theme.spacing(1),
       marginRight: theme.spacing(1),
       width: '100%',
-    },
-    // 2020-5-21 https://material-ui.com/components/progress/#CircularIntegration.js
-    fabProgress: {
-      color: 'green',
-      zIndex: 1,
     },
     [theme.breakpoints.down('sm')]: {
       card: {
@@ -129,6 +123,7 @@ const TeamInfo = (props) => {
     }
 
     if (window.confirm('Delete team?')) {
+      setIsWaiting(true);
       deleteTeam(teamInfo.id).then(results => {
         if (results.statusCode) {
           setFlashProps({ message: results.message, variant: 'error' });
@@ -139,6 +134,8 @@ const TeamInfo = (props) => {
       }).catch(err => {
         console.log('TeamInfo Error');
         console.log(err);
+      }).finally(() => {
+        setIsWaiting(false);
       });
     }
   }
@@ -270,9 +267,9 @@ const TeamInfo = (props) => {
             : ''}
 
             <Grid id="members-table" item className={classes.grid}>
-              { isWaiting && <CircularProgress id="progress-spinner" className={classes.fabProgress} size={68} />}
               <MaterialTable
                 title='Members'
+                isLoading={isWaiting}
                 columns={[
                   {
                     title: 'Name',
@@ -370,6 +367,7 @@ const TeamInfo = (props) => {
                 <Grid id="pending-invitations-table" item className={classes.grid}>
                   <MaterialTable
                     title='Pending Invitations'
+                    isLoading={isWaiting}
                     columns={[
                       { title: 'Email', field: 'recipient', editable: 'never' }
                     ]}

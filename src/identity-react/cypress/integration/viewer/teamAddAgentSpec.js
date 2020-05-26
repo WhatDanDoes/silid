@@ -134,7 +134,7 @@ context('viewer/Team add agent', function() {
               cy.on('window:confirm', (str) => {
                 return true;
               });
-              cy.get('#progress-spinner').should('not.exist');
+              cy.get('div[role="progressbar"] svg circle').should('not.exist');
 
               cy.get('input[placeholder="Email"]').type('somenewguy@example.com');
               cy.get('button[title="Save"]').click();
@@ -145,9 +145,9 @@ context('viewer/Team add agent', function() {
               // I will use this opportunity to learn Jest
               // Despite its name, this test really ensures the spinner disappears
               // after all is said and done
-              //cy.get('#progress-spinner').should('exist');
+              //cy.get('div[role="progressbar"] svg circle').should('exist');
               cy.wait(100);
-              cy.get('#progress-spinner').should('not.exist');
+              cy.get('div[role="progressbar"] svg circle').should('not.exist');
             });
 
             describe('execute invitation with Enter key', () => {
@@ -544,7 +544,7 @@ context('viewer/Team add agent', function() {
                     cy.on('window:confirm', (str) => {
                       return true;
                     });
-                    cy.get('#progress-spinner').should('not.exist');
+                    cy.get('div[role="progressbar"] svg circle').should('not.exist');
 
                     cy.get('#pending-invitations-table button span span').contains('refresh').click();
                     // 2020-5-26
@@ -554,9 +554,9 @@ context('viewer/Team add agent', function() {
                     // I will use this opportunity to learn Jest
                     // Despite its name, this test really ensures the spinner disappears
                     // after all is said and done
-                    //cy.get('#progress-spinner').should('exist');
+                    //cy.get('div[role="progressbar"] svg circle').should('exist');
                     cy.wait(100);
-                    cy.get('#progress-spinner').should('not.exist');
+                    cy.get('div[role="progressbar"] svg circle').should('not.exist');
                   });
                 });
               });
@@ -960,7 +960,8 @@ context('viewer/Team add agent', function() {
                         cy.on('window:confirm', (str) => {
                           return true;
                         });
-                        cy.get('#progress-spinner').should('not.exist');
+
+                        cy.get('div[role="progressbar"] svg circle').should('not.exist');
 
                         cy.get('#rsvps-table table tbody tr td button span').contains('check').click();
                         // 2020-5-26
@@ -970,9 +971,9 @@ context('viewer/Team add agent', function() {
                         // I will use this opportunity to learn Jest
                         // Despite its name, this test really ensures the spinner disappears
                         // after all is said and done
-                        //cy.get('#progress-spinner').should('exist');
+                        //cy.get('div[role="progressbar"] svg circle').should('exist');
                         cy.wait(100);
-                        cy.get('#progress-spinner').should('not.exist');
+                        cy.get('div[role="progressbar"] svg circle').should('not.exist');
                       });
 
                       context('team leader login', () => {

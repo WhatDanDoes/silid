@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createStyles, makeStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
-import CircularProgress from '@material-ui/core/CircularProgress';
 import Link from '@material-ui/core/Link';
 import { useAdminState } from '../auth/Admin';
 import { useAuthState } from '../auth/Auth';
@@ -48,11 +47,6 @@ const useStyles = makeStyles(theme =>
     json: {
       wordWrap: 'break-word',
       wordBreak: 'break-all',
-    },
-    // 2020-5-21 https://material-ui.com/components/progress/#CircularIntegration.js
-    fabProgress: {
-      color: 'green',
-      zIndex: 1,
     },
     [theme.breakpoints.down('sm')]: {
       json: {
@@ -102,6 +96,7 @@ const Agent = (props) => {
         reject();
       }
       else {
+        setIsWaiting(true);
         publishTeam(newData).then(profile => {;
           if (profile.statusCode) {
             setFlashProps({ message: profile.message, variant: 'error' });
@@ -113,7 +108,10 @@ const Agent = (props) => {
             setProfileData(profile);
           }
           resolve();
-        }).catch(reject);
+        }).catch(reject)
+        .finally(() => {
+          setIsWaiting(false);
+        });
       }
     })
   };
@@ -158,9 +156,9 @@ const Agent = (props) => {
              profileData.user_metadata.rsvps.length ?
               <>
                 <Grid id="rsvps-table" item className={classes.grid}>
-                  { isWaiting && <CircularProgress id="progress-spinner" className={classes.fabProgress} size={68} />}
                   <MaterialTable
                     title='RSVPs'
+                    isLoading={isWaiting}
                     columns={[
                       { title: 'Name', field: 'name', editable: 'never' },
                       { title: 'Type', field: 'type', editable: 'never' },
@@ -214,6 +212,7 @@ const Agent = (props) => {
             <Grid id="teams-table" item className={classes.grid}>
               <MaterialTable
                 title='Teams'
+                isLoading={isWaiting}
                 columns={[
                   {
                     title: 'Name',
