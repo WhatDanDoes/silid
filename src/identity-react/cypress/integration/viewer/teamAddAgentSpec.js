@@ -584,10 +584,11 @@ context('viewer/Team add agent', function() {
                   });
                 });
 
-                it('displays a message', () => {
+                it.only('displays a message', () => {
                   cy.get('#pending-invitations-table button[title="Delete"]').click();
                   cy.wait(300);
                   // Are you sure?
+                  cy.get('#pending-invitations-table h6').contains('Are you sure you want to revoke this invitation?');
                   cy.get('#pending-invitations-table button[title="Save"]').contains('check').click();
 
                   cy.contains('Invitation canceled');

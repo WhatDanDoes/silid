@@ -376,6 +376,7 @@ const TeamInfo = (props) => {
                     data={agent.user_metadata.pendingInvitations.filter(i => i.uuid === teamInfo.id).length ?
                           agent.user_metadata.pendingInvitations.filter(i => i.uuid === teamInfo.id) : []}
                     options={{ search: false, paging: false }}
+                    localization={{ body: { editRow: { deleteText: 'Are you sure you want to revoke this invitation?' } } }}
                     editable={ teamInfo.leader === agent.email ? {
                       onRowDelete: oldData =>
                         new Promise((resolve, reject) => {
