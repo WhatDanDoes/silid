@@ -1032,7 +1032,7 @@ context('viewer/Team add agent', function() {
 
                       it('displays a friendly message', () => {
                         cy.get('#rsvps-table table tbody tr td button span').contains('delete_outline').click();
-                        cy.get('#rsvps-table-table h6').contains('Are you sure you want to ignore this invitation?');
+                        cy.get('#rsvps-table table h6').contains('Are you sure you want to ignore this invitation?');
                         // Are you sure?
                         cy.get('#rsvps-table button[title="Save"]').contains('check').click();
                         cy.wait(300);
