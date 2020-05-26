@@ -170,6 +170,7 @@ const TeamInfo = (props) => {
         reject();
       }
       else {
+        setIsWaiting(true);
         sendTeamInvitation(teamInfo.id, newData).then((results) => {
           if (results.message) {
             setFlashProps({ message: results.message, variant: 'warning' });
@@ -183,6 +184,8 @@ const TeamInfo = (props) => {
           console.log(err);
           setFlashProps({ errors: [err], variant: 'error' });
           reject(err);
+        }).finally(() => {
+          setIsWaiting(false);
         });
       }
     })
@@ -397,6 +400,7 @@ const TeamInfo = (props) => {
                         tooltip: 'Re-send invitation',
                         onClick: (event, rowData) =>
                           new Promise((resolve, reject) => {
+                            setIsWaiting(true);
                             sendTeamInvitation(teamInfo.id, { email: rowData.recipient }).then((results) => {
                               setFlashProps({ message: 'Invitation sent', variant: 'success' });
                               updateAgent(results);
@@ -405,6 +409,8 @@ const TeamInfo = (props) => {
                               console.log(err);
                               setFlashProps({ errors: [err], variant: 'error' });
                               reject(err);
+                            }).finally(() => {
+                              setIsWaiting(false);
                             });
                           })
                       }

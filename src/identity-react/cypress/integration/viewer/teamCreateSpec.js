@@ -51,11 +51,10 @@ context('viewer/Team creation', function() {
           cy.get('div div div div div div table tbody tr td div div input[placeholder="Leader"]').should('not.exist');
         });
 
-//        it('yields focus to the first form field', () => {
-//          cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').should('not.exist');
-//          cy.get('button span span').contains('add_box').click();
-//          cy.focused().should('have.attr', 'placeholder').and('eq', 'Name');
-//        });
+        it('gives focus to the team name input field', () => {
+          cy.get('button span span').contains('add_box').click();
+          cy.focused().should('have.attr', 'placeholder').and('eq', 'Name');
+        });
 
         describe('add-team-form', () => {
           beforeEach(() => {
@@ -254,6 +253,21 @@ context('viewer/Team creation', function() {
                 cy.get('table tbody tr td').contains(_profile.email);
 
                 cy.get('table tbody:nth-child(2)').find('tr').its('length').should('eq', 2);
+              });
+
+              describe('executes team creation with Enter key', () => {
+                it('updates the record on the interface', function() {
+                  cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').type('The Mike Tyson Mystery Team{enter}');
+                  cy.wait(300);
+                  cy.get('table tbody tr td').contains('The Mike Tyson Mystery Team');
+                  cy.get('table tbody tr td').contains(_profile.email);
+                });
+
+                it('clears input field', () => {
+                  cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').type('Mystery Incorporated{enter}');
+                  cy.wait(300);
+                  cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').should('have.value', '');
+                });
               });
             });
           });

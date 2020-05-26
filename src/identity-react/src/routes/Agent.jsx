@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createStyles, makeStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
+import CircularProgress from '@material-ui/core/CircularProgress';
 import Link from '@material-ui/core/Link';
 import { useAdminState } from '../auth/Admin';
 import { useAuthState } from '../auth/Auth';
@@ -48,6 +49,11 @@ const useStyles = makeStyles(theme =>
       wordWrap: 'break-word',
       wordBreak: 'break-all',
     },
+    // 2020-5-21 https://material-ui.com/components/progress/#CircularIntegration.js
+    fabProgress: {
+      color: 'green',
+      zIndex: 1,
+    },
     [theme.breakpoints.down('sm')]: {
       json: {
         maxWidth: '90%'
@@ -68,6 +74,7 @@ const Agent = (props) => {
 
   const [profileData, setProfileData] = useState({});
   const [flashProps, setFlashProps] = useState({});
+  const [isWaiting, setIsWaiting] = useState(false);
 
   const admin = useAdminState();
   const {agent} = useAuthState();
@@ -82,6 +89,34 @@ const Agent = (props) => {
       setProfileData(service.payload);
     }
   }, [service]);
+
+
+  /**
+   * Create a new team
+   */
+  const createTeam = (newData) => {
+    return new Promise((resolve, reject) => {
+      newData.name = newData.name.trim();
+      if (!newData.name.length) {
+        setFlashProps({ message: 'Team name can\'t be blank', variant: 'error' });
+        reject();
+      }
+      else {
+        publishTeam(newData).then(profile => {;
+          if (profile.statusCode) {
+            setFlashProps({ message: profile.message, variant: 'error' });
+          }
+          else if (profile.errors) {
+            setFlashProps({ errors: profile.errors, variant: 'error' });
+          }
+          else {
+            setProfileData(profile);
+          }
+          resolve();
+        }).catch(reject);
+      }
+    })
+  };
 
   return (
     <div className={classes.root}>
@@ -123,6 +158,7 @@ const Agent = (props) => {
              profileData.user_metadata.rsvps.length ?
               <>
                 <Grid id="rsvps-table" item className={classes.grid}>
+                  { isWaiting && <CircularProgress id="progress-spinner" className={classes.fabProgress} size={68} />}
                   <MaterialTable
                     title='RSVPs'
                     columns={[
@@ -152,6 +188,7 @@ const Agent = (props) => {
                         tooltip: 'Accept invitation',
                         onClick: (event, rowData) =>
                           new Promise((resolve, reject) => {
+                            setIsWaiting(true);
                             respondToTeamInvitation(rowData.uuid, 'accept').then(results => {
                               if (results.error) {
                                 setFlashProps({ message: results.message, variant: 'error' });
@@ -162,6 +199,8 @@ const Agent = (props) => {
                               resolve();
                             }).catch(err => {
                               reject(err);
+                            }).finally(() => {
+                              setIsWaiting(false);
                             });
                           })
                       }
@@ -179,34 +218,36 @@ const Agent = (props) => {
                     title: 'Name',
                     field: 'name',
                     render: rowData => <Link href={`#team/${rowData.id}`}>{rowData.name}</Link>,
+                    editComponent: (props) => {
+                      return (
+                        <div className="MuiFormControl-root MuiTextField-root">
+                          <div className="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl">
+                            <input
+                              className="MuiInputBase-input MuiInput-input"
+                              autoFocus={true}
+                              type="text"
+                              placeholder="Name"
+                              value={props.value ? props.value : ''}
+                              onChange={e => props.onChange(e.target.value)}
+                              onKeyDown={evt => {
+                                  if (evt.key === 'Enter') {
+                                    createTeam({ name: evt.target.value });
+                                    props.onChange('');
+                                    return;
+                                  }
+                                }
+                              }
+                            />
+                          </div>
+                        </div>
+                      );
+                    }
                   },
                   { title: 'Leader', field: 'leader', editable: 'never' }
                 ]}
                 data={profileData.user_metadata ? profileData.user_metadata.teams : []}
                 options={{ search: false, paging: false }}
-                editable={ profileData.email === agent.email ? {
-                  onRowAdd: (newData) => new Promise((resolve, reject) => {
-                    newData.name = newData.name.trim();
-                    if (!newData.name.length) {
-                      setFlashProps({ message: 'Team name can\'t be blank', variant: 'error' });
-                      reject();
-                    }
-                    else {
-                      publishTeam(newData).then(profile => {;
-                        if (profile.statusCode) {
-                          setFlashProps({ message: profile.message, variant: 'error' });
-                        }
-                        else if (profile.errors) {
-                          setFlashProps({ errors: profile.errors, variant: 'error' });
-                        }
-                        else {
-                          setProfileData(profile);
-                        }
-                        resolve();
-                      }).catch(reject);
-                    }
-                  }),
-                }: undefined}
+                editable={ profileData.email === agent.email ? { onRowAdd: createTeam }: undefined}
               />
             </Grid>
             <Grid item>

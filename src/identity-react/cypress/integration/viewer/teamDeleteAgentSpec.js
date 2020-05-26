@@ -156,7 +156,7 @@ context('Team delete agent', function() {
         cy.get('tr:nth-of-type(1) button[title=Delete]').click();
         // 2020-5-21
         // Cypress goes too fast for this. Cypress also cannot intercept
-        // native `fetch` calls so that the route can be stubbed and delayed.
+        // native `fetch` calls to allow stubbing and delaying the route.
         // Shamefully, this is currently manually tested, though I suspect
         // I will use this opportunity to learn Jest
         // Despite its name, this test really ensures the spinner disappears
