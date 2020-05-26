@@ -18,7 +18,7 @@ import TableCell from '@material-ui/core/TableCell';
 import TableContainer from '@material-ui/core/TableContainer';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
-import MaterialTable from 'material-table';
+import MaterialTable, { MTableEditField } from 'material-table';
 
 import useGetAgentService from '../services/useGetAgentService';
 import usePostTeamService from '../services/usePostTeamService';
@@ -220,27 +220,23 @@ const Agent = (props) => {
                     render: rowData => <Link href={`#team/${rowData.id}`}>{rowData.name}</Link>,
                     editComponent: (props) => {
                       return (
-                        <div className="MuiFormControl-root MuiTextField-root">
-                          <div className="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl">
-                            <input
-                              className="MuiInputBase-input MuiInput-input"
-                              autoFocus={true}
-                              type="text"
-                              maxlength="128"
-                              placeholder="Name"
-                              value={props.value ? props.value : ''}
-                              onChange={e => props.onChange(e.target.value)}
-                              onKeyDown={evt => {
-                                  if (evt.key === 'Enter') {
-                                    createTeam({ name: evt.target.value });
-                                    props.onChange('');
-                                    return;
-                                  }
-                                }
+                        <MTableEditField
+                          autoFocus={true}
+                          type="text"
+                          maxlength="128"
+                          placeholder="Name"
+                          columnDef={props.columnDef}
+                          value={props.value ? props.value : ''}
+                          onChange={value => props.onChange(value) }
+                          onKeyDown={evt => {
+                              if (evt.key === 'Enter') {
+                                createTeam({ name: evt.target.value });
+                                props.onChange('');
+                                return;
                               }
-                            />
-                          </div>
-                        </div>
+                            }
+                          }
+                        />
                       );
                     }
                   },
