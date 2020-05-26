@@ -64,6 +64,7 @@ context('viewer/Authentication', function() {
     it('renders the navbar correctly', function() {
       cy.get('#logout-button').contains('Logout');
       cy.get('img[alt=avatar]').should('have.attr', 'src', this.profile.picture);
+      cy.get('header h6 a').should('contain', 'Identity').and('have.attr', 'href').and('equal', '/');
     });
 
     it('does not render the app-menu', () => {
@@ -80,6 +81,14 @@ context('viewer/Authentication', function() {
         cy.get('#flash-message').should('exist');
         cy.get('#close-flash').click();
         cy.get('#flash-message').should('not.exist');
+      });
+    });
+
+    describe('home link', () => {
+      it('lands in the right spot', () => {
+        cy.contains('Identity').click();
+        cy.wait(100);
+        cy.url().should('match', /\/#\/agent$/);
       });
     });
 
