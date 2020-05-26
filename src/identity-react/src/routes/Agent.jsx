@@ -226,6 +226,7 @@ const Agent = (props) => {
                               className="MuiInputBase-input MuiInput-input"
                               autoFocus={true}
                               type="text"
+                              maxlength="128"
                               placeholder="Name"
                               value={props.value ? props.value : ''}
                               onChange={e => props.onChange(e.target.value)}

@@ -90,6 +90,19 @@ router.get('/:id', checkPermissions([scope.read.teams]), function(req, res, next
 });
 
 router.post('/', checkPermissions([scope.create.teams]), function(req, res, next) {
+  // Make sure incoming data is legit
+  let teamName = req.body.name;
+  if (teamName) {
+    teamName = teamName.trim();
+  }
+
+  if (!teamName) {
+    return res.status(400).json({ errors: [{ message: 'Team requires a name' }] });
+  }
+  else if (teamName.length > 128) {
+    return res.status(400).json({ errors: [{ message: 'Team name is too long' }] });
+  }
+
   let managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
   managementClient.getUser({id: req.user.user_id}).then(agent => {
 
@@ -97,7 +110,7 @@ router.post('/', checkPermissions([scope.create.teams]), function(req, res, next
     if (agent.user_metadata) {
       if (agent.user_metadata.teams) {
         let teams = agent.user_metadata.teams.map(team => team.name);
-        if (teams.includes(req.body.name)) {
+        if (teams.includes(teamName)) {
           return res.status(400).json({ errors: [{ message: 'That team is already registered' }] });
         }
       }
@@ -107,15 +120,6 @@ router.post('/', checkPermissions([scope.create.teams]), function(req, res, next
     }
     else {
       agent.user_metadata = { teams: [] };
-    }
-
-    // Make sure incoming data is legit
-    let teamName = req.body.name;
-    if (teamName) {
-      teamName = teamName.trim();
-    }
-    if (!teamName) {
-      return res.status(400).json({ errors: [{ message: 'Team requires a name' }] });
     }
 
     agent.user_metadata.teams.push({

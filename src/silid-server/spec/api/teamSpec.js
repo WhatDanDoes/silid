@@ -283,6 +283,23 @@ describe('teamSpec', () => {
                 done();
               });
           });
+
+          it('returns an error if team name is over 128 characters long', done => {
+            authenticatedSession
+              .post('/team')
+              .send({
+                name: '!'.repeat(129)
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(400)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.errors.length).toEqual(1);
+                expect(res.body.errors[0].message).toEqual('Team name is too long');
+                done();
+              });
+          });
         });
       });
 
