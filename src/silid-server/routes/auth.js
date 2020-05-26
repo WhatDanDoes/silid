@@ -94,7 +94,9 @@ router.get('/logout', (req, res) => {
   });
   logoutURL.search = searchString;
 
-  res.redirect(logoutURL);
+  req.session.destroy(err => {
+    res.redirect(logoutURL);
+  });
 });
 
 
