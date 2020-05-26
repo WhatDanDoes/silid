@@ -1030,7 +1030,7 @@ context('viewer/Team add agent', function() {
                         cy.get('#teams-table table tbody').contains('No records to display');
                       });
 
-                      it.only('displays a friendly message', () => {
+                      it('displays a friendly message', () => {
                         cy.get('#rsvps-table table tbody tr td button span').contains('delete_outline').click();
                         cy.get('#rsvps-table-table h6').contains('Are you sure you want to ignore this invitation?');
                         // Are you sure?
