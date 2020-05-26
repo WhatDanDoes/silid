@@ -167,6 +167,7 @@ const Agent = (props) => {
                     ]}
                     data={profileData.user_metadata ? profileData.user_metadata.rsvps : []}
                     options={{ search: false, paging: false }}
+                    localization={{ body: { editRow: { deleteText: 'Are you sure you want to ignore this invitation?' } } }}
                     editable={{
                       onRowDelete: (oldData) => new Promise((resolve, reject) => {
                         respondToTeamInvitation(oldData.uuid, 'reject').then(results => {
