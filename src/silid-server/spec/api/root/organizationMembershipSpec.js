@@ -4,6 +4,8 @@ const fixtures = require('sequelize-fixtures');
 const models = require('../../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../../support/stubAuth0Sessions');
+const stubAuth0ManagementApi = require('../../support/stubAuth0ManagementApi');
+const stubUserRead = require('../../support/auth0Endpoints/stubUserRead');
 const mailer = require('../../../mailer');
 const { uuid } = require('uuidv4');
 
@@ -14,6 +16,7 @@ const { uuid } = require('uuidv4');
  * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
  */
 const _identity = require('../../fixtures/sample-auth0-identity-token');
+const _profile = require('../../fixtures/sample-auth0-profile-response');
 
 describe('root/organizationMembershipSpec', () => {
 
@@ -26,12 +29,19 @@ describe('root/organizationMembershipSpec', () => {
     });
   });
 
+  let originalProfile;
   afterEach(() => {
     mailer.transport.sentMail = [];
+    // Through the magic of node I am able to adjust the profile data returned.
+    // This resets the default values
+    _profile.email = originalProfile.email;
   });
 
   let root, organization, agent;
   beforeEach(done => {
+    originalProfile = {..._profile};
+    _profile.email = process.env.ROOT_AGENT;
+
     models.sequelize.sync({force: true}).then(() => {
       fixtures.loadFile(`${__dirname}/../../fixtures/agents.json`, models).then(() => {
         models.Agent.findAll().then(results => {
@@ -64,10 +74,21 @@ describe('root/organizationMembershipSpec', () => {
   describe('authorized', () => {
     let rootSession;
     beforeEach(done => {
-      login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, (err, session) => {
+      stubAuth0ManagementApi((err, apiScopes) => {
         if (err) return done.fail(err);
-        rootSession = session;
-        done();
+
+        login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, (err, session) => {
+          if (err) return done.fail(err);
+          rootSession = session;
+
+          // Cached profile doesn't match "live" data, so agent needs to be updated
+          // with a call to Auth0
+          stubUserRead((err, apiScopes) => {
+            if (err) return done.fail();
+
+            done();
+          });
+        });
       });
     });
 
@@ -81,7 +102,7 @@ describe('root/organizationMembershipSpec', () => {
             rootSession
               .put(`/organization/${organization.id}/agent`)
               .send({
-                email: 'somebrandnewguy@example.com' 
+                email: 'somebrandnewguy@example.com'
               })
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
@@ -107,7 +128,7 @@ describe('root/organizationMembershipSpec', () => {
             rootSession
               .put(`/organization/${organization.id}/agent`)
               .send({
-                email: 'somebrandnewguy@example.com' 
+                email: 'somebrandnewguy@example.com'
               })
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
@@ -136,7 +157,7 @@ describe('root/organizationMembershipSpec', () => {
             rootSession
               .put(`/organization/${organization.id}/agent`)
               .send({
-                email: 'somebrandnewguy@example.com' 
+                email: 'somebrandnewguy@example.com'
               })
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
@@ -162,7 +183,7 @@ describe('root/organizationMembershipSpec', () => {
           rootSession
             .put(`/organization/${organization.id}/agent`)
             .send({
-              email: 'somebrandnewguy@example.com' 
+              email: 'somebrandnewguy@example.com'
             })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
@@ -170,19 +191,25 @@ describe('root/organizationMembershipSpec', () => {
             .end(function(err, res) {
               if (err) return done.fail(err);
 
-              rootSession
-                .put(`/organization/${organization.id}/agent`)
-                .send({
-                  email: 'somebrandnewguy@example.com' 
-                })
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(200)
-                .end(function(err, res) {
-                  if (err) done.fail(err);
-                  expect(res.body.message).toEqual('somebrandnewguy@example.com is already a member of this organization');
-                  done();
-                });
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubUserRead((err, apiScopes) => {
+                if (err) return done.fail();
+
+                rootSession
+                  .put(`/organization/${organization.id}/agent`)
+                  .send({
+                    email: 'somebrandnewguy@example.com'
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(200)
+                  .end(function(err, res) {
+                    if (err) done.fail(err);
+                    expect(res.body.message).toEqual('somebrandnewguy@example.com is already a member of this organization');
+                    done();
+                  });
+              });
             });
         });
 
@@ -190,7 +217,7 @@ describe('root/organizationMembershipSpec', () => {
           rootSession
             .put('/organization/333/agent')
             .send({
-              email: 'somebrandnewguy@example.com' 
+              email: 'somebrandnewguy@example.com'
             })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
@@ -258,7 +285,7 @@ describe('root/organizationMembershipSpec', () => {
             rootSession
               .put(`/organization/${organization.id}/agent`)
               .send({
-                email: knownAgent.email 
+                email: knownAgent.email
               })
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
@@ -284,7 +311,7 @@ describe('root/organizationMembershipSpec', () => {
             rootSession
               .put(`/organization/${organization.id}/agent`)
               .send({
-                email: knownAgent.email 
+                email: knownAgent.email
               })
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
@@ -310,26 +337,33 @@ describe('root/organizationMembershipSpec', () => {
           rootSession
             .put(`/organization/${organization.id}/agent`)
             .send({
-              email: knownAgent.email 
+              email: knownAgent.email
             })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
             .end(function(err, res) {
               if (err) return done.fail(err);
-              rootSession
-                .put(`/organization/${organization.id}/agent`)
-                .send({
-                  email: knownAgent.email 
-                })
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(200)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-                  expect(res.body.message).toEqual(`${knownAgent.email} is already a member of this organization`);
-                  done();
-                });
+
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubUserRead((err, apiScopes) => {
+                if (err) return done.fail();
+
+                rootSession
+                  .put(`/organization/${organization.id}/agent`)
+                  .send({
+                    email: knownAgent.email
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(200)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+                    expect(res.body.message).toEqual(`${knownAgent.email} is already a member of this organization`);
+                    done();
+                  });
+              });
             });
         });
 
@@ -337,7 +371,7 @@ describe('root/organizationMembershipSpec', () => {
           rootSession
             .put('/organization/333/agent')
             .send({
-              email: knownAgent.email 
+              email: knownAgent.email
             })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)

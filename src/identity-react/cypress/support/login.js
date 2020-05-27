@@ -3,7 +3,7 @@
  *
  * This preps an ID token and initiates the client-side login
  */
-Cypress.Commands.add('login', function(email, profile) {
+Cypress.Commands.add('login', function(email, profile, permissions = []) {
   Cypress.log({
     name: 'loginViaAuth0',
   });
@@ -15,11 +15,12 @@ Cypress.Commands.add('login', function(email, profile) {
              body: { token: { ...profile,
                                  email: email,
                                  iss: `https://${Cypress.env('REACT_APP_DOMAIN')}/`,
-                                 aud: Cypress.env('REACT_APP_CLIENT_ID') } }
+                                 aud: Cypress.env('REACT_APP_CLIENT_ID') },
+                     permissions: permissions }
             }).then(function(res) {
     cy.visit('/');
     cy.contains('Login').click();
-    cy.wait(500);
+    cy.wait(300);
   });
 });
 

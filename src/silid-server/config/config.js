@@ -3,11 +3,12 @@ module.exports = {
     username: 'user',
     password: 'pass',
     database: 'silid_development',
-    host: 'postgres',
+    host: 'localhost',
     dialect: 'postgres'
   },
   test: {
     username: 'postgres',
+    password: 'pass',
     database: 'postgres',
     host: 'localhost',
     dialect: 'postgres'

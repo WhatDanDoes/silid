@@ -4,7 +4,10 @@ const fixtures = require('sequelize-fixtures');
 const models = require('../../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../../support/stubAuth0Sessions');
+const stubAuth0ManagementApi = require('../../support/stubAuth0ManagementApi');
+const stubUserRead = require('../../support/auth0Endpoints/stubUserRead');
 const mailer = require('../../../mailer');
+const scope = require('../../../config/permissions');
 
 /**
  * 2019-11-13
@@ -13,6 +16,7 @@ const mailer = require('../../../mailer');
  * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
  */
 const _identity = require('../../fixtures/sample-auth0-identity-token');
+const _profile = require('../../fixtures/sample-auth0-profile-response');
 
 describe('root/organizationSpec', () => {
 
@@ -25,8 +29,18 @@ describe('root/organizationSpec', () => {
     });
   });
 
+  let originalProfile;
+  afterEach(() => {
+    // Through the magic of node I am able to adjust the profile data returned.
+    // This resets the default values
+    _profile.email = originalProfile.email;
+  });
+
   let root, organization, agent;
   beforeEach(done => {
+    originalProfile = {..._profile};
+    _profile.email = process.env.ROOT_AGENT;
+
     models.sequelize.sync({force: true}).then(() => {
       fixtures.loadFile(`${__dirname}/../../fixtures/agents.json`, models).then(() => {
         models.Agent.findAll().then(results => {
@@ -61,10 +75,21 @@ describe('root/organizationSpec', () => {
   describe('authorized', () => {
     let rootSession;
     beforeEach(done => {
-      login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, (err, session) => {
-        if (err) return done.fail(err);
-        rootSession = session;
-        done();
+      stubAuth0ManagementApi((err, apiScopes) => {
+        if (err) return done.fail();
+
+        login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, (err, session) => {
+          if (err) return done.fail(err);
+          rootSession = session;
+
+          // Cached profile doesn't match "live" data, so agent needs to be updated
+          // with a call to Auth0
+          stubUserRead((err, apiScopes) => {
+            if (err) return done.fail();
+
+            done();
+          });
+        });
       });
     });
 
@@ -225,7 +250,7 @@ describe('root/organizationSpec', () => {
           rootSession
             .post('/organization')
             .send({
-              name: 'One Book Canada' 
+              name: 'One Book Canada'
             })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
@@ -266,7 +291,7 @@ describe('root/organizationSpec', () => {
         rootSession
           .post('/organization')
           .send({
-            name: organization.name 
+            name: organization.name
           })
           .set('Accept', 'application/json')
           .expect('Content-Type', /json/)
@@ -538,7 +563,7 @@ describe('root/organizationSpec', () => {
                     expect(results.members.length).toEqual(2);
                     expect(results.members.find(m => m.name === anotherAgent.name)).toBeDefined();
                     expect(results.members.find(m => m.email === anotherAgent.email)).toBeDefined();
- 
+
                     done();
                   }).catch(err => {
                     done.fail(err);
@@ -834,14 +859,27 @@ describe('root/organizationSpec', () => {
     });
   });
 
-  describe('unauthorized', () => {
+  describe('forbidden', () => {
 
-    let unauthorizedSession;
+    let forbiddenSession;
     beforeEach(done => {
-      login({..._identity, email: agent.email}, (err, session) => {
-        if (err) return done.fail(err);
-        unauthorizedSession = session;
-        done();
+      _profile.email = originalProfile.email;
+
+      stubAuth0ManagementApi((err, apiScopes) => {
+        if (err) return done.fail();
+
+        login({..._identity, email: agent.email}, [scope.read.organizations], (err, session) => {
+          if (err) return done.fail(err);
+          forbiddenSession = session;
+
+          // Cached profile doesn't match "live" data, so agent needs to be updated
+          // with a call to Auth0
+          stubUserRead((err, apiScopes) => {
+            if (err) return done.fail();
+
+            done();
+          });
+        });
       });
     });
 
@@ -851,7 +889,7 @@ describe('root/organizationSpec', () => {
           models.Organization.create({ name: 'Mr Worldwide', creatorId: root.id }).then(o => {
             models.Organization.findAll().then(results => {
               expect(results.length).toEqual(2);
-              unauthorizedSession
+              forbiddenSession
                 .get(`/organization`)
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)

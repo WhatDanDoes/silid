@@ -1,66 +1,129 @@
 # silid
 
-This client app was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+`silid` is comprised of two parts:
 
-The server app was produced by `express-generator` and was scrounged from the ruined heap of a now forgotten app with the exact same purpose. It is backed by a `sequelize`/`postgres` pairing.
+1. A client-side app bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+2. A server app produced with `express-generator`. It is backed by a `sequelize`/`postgres` pairing.
 
-The following describes how to deploy the combined application to a local development environment and run end-to-end tests.
+The following describes how to deploy the application to your local development environment and execute tests. These steps are carried out in Ubuntu 18.04 with the latest system upgrades. At the time of writing, the main system dependencies and their versions include:
+
+- Node v10.20.1
+- NPM v6.14.5
+- Docker version 19.03.8, build afacb8b7f0
+- Git version 2.17.1
+
+These are not required versions, but rather the most up-to-date available for the moment. 
+
+# Setup
+
+[Watch the video setup instructions](https://youtu.be/f0DYs0JiIBw)
+
+Clone this repository.
+
+The client-side React application is found in `src/identity-react`.
+
+The `express` server is found in `src/silid-server`.
 
 ## Server
 
-From the `src/silid-server` project directory:
+### Setup
+
+Navigate to the `src/silid-server` project directory and install the dependencies:
 
 ```
+cd src/silid-server
 npm install
+```
+
+For development and testing purposes, the configurations in `.env.example` are sufficient. Copy these to `.env`:
+
+```
 cp .env.example .env
 ```
 
 ### Test
 
-The server has tests of its own, apart from the client-driven e2e tests. These tests require a PostgreSQL development server. Start one with `docker`:
+`silid-server` has tests of its own, apart from the client-driven end-to-end tests. These tests require a PostgreSQL development server. Start one with `docker`:
 
 ```
-docker run --name dev-postgres -p 5432:5432 -d postgres
+docker run --name dev-postgres -p 5432:5432 -e POSTGRES_PASSWORD=pass -d postgres
 ```
 
-Execute server-specific tests:
+Once the image is running, execute the server-specific tests from the `src/silid-server` directory like this:
 
 ```
 npm test
 ```
 
+The tests executed here are the driving force behind the development of the `silid-server`. They do not test the front-end client, but rather the server's various API endpoints, authentication, its database models, and its treatment of the client-side app.
+
+#### Clean up
+
+Before executing the client-driven end-to-end tests, be sure to shutdown the `postgres` database:
+
+```
+docker stop dev-postgres
+```
+
+If you want to start the `postgres` container again, execute:
+
+```
+docker start dev-postgres
+```
+
 ## Client
 
-From the `src/identity-react` project directory:
+### Setup
+
+Navigate to the `src/identity-react` directory and execute:
 
 ```
 npm install
+```
+
+As with the `silid-server`, the configurations in `.env.example` are sufficient for testing purposes:
+
+```
 cp .env.example .env
 ```
 
+### End-to-end tests
+
+As with any web application, this project is comprised of many moving parts. The most obvious include:
+
+1. The `identity-react` client-side application served up by the `create-react-app` build server
+2. The `silid-server` `express` application
+3. The Auth0 mock server with which the `silid-server` interacts
+
+The `silid-server` and Auth0 mock server are bundled together in a Docker composition for convenience. These containers are executed apart from the React build server and the Cypress test framework is executed apart from that. To set up the project for testing, it is convenient to execute each component in a seperate shell.
+
 ### Client build server
 
-In a new shell, from the `src/identity-react` project directory:
+If you've already installed the client's dependencies, you'll likely already be in the correct directory. If not, navigate to the `src/identity-react` directory and start the build server:
 
 ```
 npm start
 ```
 
+This will likely open a browser window. You can leave it open, but it's better to close it.
+
 ### e2e API test server
 
-The client application tests against a local instance of the `silid-server` and a special mock server whose purpose is to return a public key with which to verify an Auth0 access token. These tests _do not_ execute against a live server.
+The client application tests against a local instance of the `silid-server` and a special mock server whose purpose is to return a public key with which to verify an Auth0 access token. These tests _do not_ execute against the live Auth0 server.
 
-The `silid-server`/mock server combo are containerized. In a separate shell, from the `src/silid-server` project directory, launch the e2e API server:
+The `silid-server`/mock server combo are containerized. Open an new shell and navigate to the `src/silid-server` project directory. Start the `silid-server`/Auth0 mock server composition like this:
 
 ```
 docker-compose -f docker-compose.e2e.yml up --build
 ```
 
-Sometimes the database doesn't start on time during the first build. If `stdout` suggests this is the case, restart the server.
+Sometimes the database doesn't start on time during the first build. If `stdout` suggests this is the case, simply restart the server.
 
 ### Execute e2e tests
 
-End-to-end tests depend on `cypress`. They are executed from the `src/identity-react` project directory. Tests may be executed in your preferred browser, or _headlessly_, as may be appropriate in a staging environment.
+End-to-end tests may be executed in your preferred browser, or _headlessly_, as may be appropriate in a staging or CI environment.
+
+These tests depend on `cypress`. Open a third shell and navigate to the `src/identity-react` project directory. 
 
 #### In-browser tests:
 
@@ -158,6 +221,17 @@ Careful, you will lose all your data if you sync the database:
 ```
 docker-compose -f docker-compose.staging.yml exec app node config/seed.js
 ```
+
+
+# Development and Production Deployments
+
+## Auth0
+
+The `silid-sever` machine-to-machine application needs be granted the following permissions on the Auth0 Management API:
+
+- read:users
+- read:roles
+- update:users
 
 ## Deploy to Development (silid-dev.languagetechnology.org)
 

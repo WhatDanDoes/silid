@@ -30,6 +30,12 @@ module.exports = (sequelize, DataTypes) => {
     }
   }, {});
 
+  Agent.addHook('beforeValidate', (agent, options) => {
+    if (agent.email) {
+      agent.email = agent.email.toLowerCase();
+    }
+  });
+
   Agent.associate = function(models) {
     Agent.belongsToMany(models.Organization, {
       through: 'OrganizationMember'

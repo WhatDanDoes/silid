@@ -63,6 +63,9 @@ function Flash(props: Props) {
   const [open, setOpen] = React.useState(true);
 
   const handleClose = (event?: SyntheticEvent, reason?: string) => {
+    if (onClose) {
+      onClose();
+    }
     if (reason === 'clickaway') {
       return;
     }

@@ -4,7 +4,13 @@ const fixtures = require('sequelize-fixtures');
 const models = require('../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
+const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
+const stubAuth0ManagementEndpoint = require('../support/stubAuth0ManagementEndpoint');
+const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
 const mailer = require('../../mailer');
+const scope = require('../../config/permissions');
+const apiScope = require('../../config/apiPermissions');
+const nock = require('nock');
 
 /**
  * 2019-11-13
@@ -13,6 +19,7 @@ const mailer = require('../../mailer');
  * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
  */
 const _identity = require('../fixtures/sample-auth0-identity-token');
+const _profile = require('../fixtures/sample-auth0-profile-response');
 
 describe('organizationSpec', () => {
 
@@ -25,8 +32,11 @@ describe('organizationSpec', () => {
     });
   });
 
+  let originalProfile;
   let organization, agent;
   beforeEach(done => {
+    originalProfile = {..._profile};
+
     models.sequelize.sync({force: true}).then(() => {
       fixtures.loadFile(`${__dirname}/../fixtures/agents.json`, models).then(() => {
         models.Agent.findAll().then(results => {
@@ -50,19 +60,39 @@ describe('organizationSpec', () => {
     });
   });
 
-  describe('authenticated', () => {
+  afterEach(() => {
+    // Through the magic of node I am able to adjust the profile data returned.
+    // This resets the default values
+    _profile.email = originalProfile.email;
+    _profile.name = originalProfile.name;
+  });
 
-    beforeEach(done => {
-      login(_identity, (err, session) => {
-        if (err) return done.fail(err);
-        authenticatedSession = session;
-        done();
-      });
-    });
+  describe('authenticated', () => {
 
     describe('authorized', () => {
 
       describe('create', () => {
+
+        let authenticatedSession;
+        beforeEach(done => {
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
+
+            login(_identity, [scope.create.organizations], (err, session) => {
+              if (err) return done.fail(err);
+              authenticatedSession = session;
+
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubUserRead((err, apiScopes) => {
+                if (err) return done.fail();
+
+                done();
+              });
+            });
+          });
+        });
+
         it('adds a new record to the database', done => {
           models.Organization.findAll().then(results => {
             expect(results.length).toEqual(1);
@@ -70,7 +100,7 @@ describe('organizationSpec', () => {
             authenticatedSession
               .post('/organization')
               .send({
-                name: 'One Book Canada' 
+                name: 'One Book Canada'
               })
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
@@ -111,7 +141,7 @@ describe('organizationSpec', () => {
           authenticatedSession
             .post('/organization')
             .send({
-              name: organization.name 
+              name: organization.name
             })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
@@ -126,6 +156,27 @@ describe('organizationSpec', () => {
       });
 
       describe('read', () => {
+
+        let authenticatedSession;
+        beforeEach(done => {
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
+
+            login(_identity, [scope.read.organizations], (err, session) => {
+              if (err) return done.fail(err);
+              authenticatedSession = session;
+
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubUserRead((err, apiScopes) => {
+                if (err) return done.fail();
+
+                done();
+              });
+            });
+          });
+        });
+
         it('retrieves an existing record from the database', done => {
           authenticatedSession
             .get(`/organization/${organization.id}`)
@@ -266,6 +317,27 @@ describe('organizationSpec', () => {
 
       describe('update', () => {
 
+        let authenticatedSession, userReadScope;
+        beforeEach(done => {
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
+
+            login(_identity, [scope.update.organizations], (err, session) => {
+              if (err) return done.fail(err);
+              authenticatedSession = session;
+
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubUserRead((err, apiScopes) => {
+                if (err) return done.fail();
+                ({userReadScope} = apiScopes);
+
+                done();
+              });
+            });
+          });
+        });
+
         describe('PUT', () => {
           it('updates an existing record in the database', done => {
             authenticatedSession
@@ -344,7 +416,10 @@ describe('organizationSpec', () => {
                     if (err) return done.fail(err);
                     expect(res.body.message).toEqual('Update successful');
 
-                    models.Organization.findOne({ where: { id: organization.id }, include: ['members'] }).then(results => {
+                    models.Organization.findOne({ where: { id: organization.id },
+                                                  include: {model: models.Agent, as: 'members'},
+                                                  order: [[{model: models.Agent, as: 'members'}, 'id', 'DESC']]
+                                                }).then(results => {
                       expect(results.members.length).toEqual(2);
                       expect(results.members[0].name).toEqual(anotherAgent.name);
                       expect(results.members[0].email).toEqual(anotherAgent.email);
@@ -503,22 +578,42 @@ describe('organizationSpec', () => {
               });
 
               it('doesn\'t allow a non-member agent to add a member', done => {
-                login({..._identity, email: anotherAgent.email}, (err, session) => {
+                nock.cleanAll();
+                stubAuth0Sessions((err, sessionStuff) => {
                   if (err) return done.fail(err);
-                  session
-                    .patch('/organization')
-                    .send({
-                      id: organization.id,
-                      memberId: anotherAgent.id
-                    })
-                    .set('Accept', 'application/json')
-                    .expect('Content-Type', /json/)
-                    .expect(403)
-                    .end(function(err, res) {
-                      if (err) return done.fail(err);
-                      expect(res.body.message).toEqual('You are not a member of this organization');
-                      done();
+                  ({ login, pub, prv, keystore } = sessionStuff);
+
+                  _profile.email = anotherAgent.email;
+                  _profile.name = anotherAgent.name;
+
+                  stubAuth0ManagementApi((err, apiScopes) => {
+                    if (err) return done.fail();
+
+                    // Cached profile doesn't match "live" data, so agent needs to be updated
+                    // with a call to Auth0
+                    stubUserRead((err, apiScopes) => {
+                      if (err) return done.fail();
+
+
+                      login({..._identity, email: anotherAgent.email}, [scope.update.organizations], (err, session) => {
+                        if (err) return done.fail(err);
+                        session
+                          .patch('/organization')
+                          .send({
+                            id: organization.id,
+                            memberId: anotherAgent.id
+                          })
+                          .set('Accept', 'application/json')
+                          .expect('Content-Type', /json/)
+                          .expect(403)
+                          .end(function(err, res) {
+                            if (err) return done.fail(err);
+                            expect(res.body.message).toEqual('You are not a member of this organization');
+                            done();
+                          });
+                      });
                     });
+                  });
                 });
               });
             });
@@ -538,7 +633,10 @@ describe('organizationSpec', () => {
                     if (err) return done.fail(err);
                     expect(res.body.message).toEqual('Update successful');
 
-                    models.Organization.findOne({ where: { id: organization.id }, include: ['members'] }).then(results => {
+                    models.Organization.findOne({ where: { id: organization.id },
+                                                  include: {model: models.Agent, as: 'members'},
+                                                  order: [[{model: models.Agent, as: 'members'}, 'id', 'DESC']]
+                                                }).then(results => {
                       expect(results.members.length).toEqual(2);
                       expect(results.members[0].name).toEqual(anotherAgent.name);
                       expect(results.members[0].email).toEqual(anotherAgent.email);
@@ -698,22 +796,42 @@ describe('organizationSpec', () => {
               });
 
               it('doesn\'t allow a non-member agent to add a member', done => {
-                login({..._identity, email: anotherAgent.email}, (err, session) => {
+                nock.cleanAll();
+                stubAuth0Sessions((err, sessionStuff) => {
                   if (err) return done.fail(err);
-                  session
-                    .patch('/organization')
-                    .send({
-                      id: organization.id,
-                      email: anotherAgent.email
-                    })
-                    .set('Accept', 'application/json')
-                    .expect('Content-Type', /json/)
-                    .expect(403)
-                    .end(function(err, res) {
+                  ({ login, pub, prv, keystore } = sessionStuff);
+
+                  _profile.email = anotherAgent.email;
+                  _profile.name = anotherAgent.name;
+
+                  stubAuth0ManagementApi((err, apiScopes) => {
+                    if (err) return done.fail();
+
+                    login({..._identity, email: anotherAgent.email}, [scope.update.organizations], (err, session) => {
                       if (err) return done.fail(err);
-                      expect(res.body.message).toEqual('You are not a member of this organization');
-                      done();
+
+                      // Cached profile doesn't match "live" data, so agent needs to be updated
+                      // with a call to Auth0
+                      stubUserRead((err, apiScopes) => {
+                        if (err) return done.fail();
+
+                        session
+                          .patch('/organization')
+                          .send({
+                            id: organization.id,
+                            email: anotherAgent.email
+                          })
+                          .set('Accept', 'application/json')
+                          .expect('Content-Type', /json/)
+                          .expect(403)
+                          .end(function(err, res) {
+                            if (err) return done.fail(err);
+                            expect(res.body.message).toEqual('You are not a member of this organization');
+                            done();
+                          });
+                      });
                     });
+                  });
                 });
               });
             });
@@ -820,22 +938,42 @@ describe('organizationSpec', () => {
             });
 
             it('doesn\'t allow a non-member agent to add a team', done => {
-              login({..._identity, email: anotherAgent.email}, (err, session) => {
+              nock.cleanAll();
+              stubAuth0Sessions((err, sessionStuff) => {
                 if (err) return done.fail(err);
-                session
-                  .patch('/organization')
-                  .send({
-                    id: organization.id,
-                    teamId: newTeam.id
-                  })
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(403)
-                  .end(function(err, res) {
-                    if (err) done.fail(err);
-                    expect(res.body.message).toEqual('You are not a member of this organization');
-                    done();
+                ({ login, pub, prv, keystore } = sessionStuff);
+
+                _profile.email = anotherAgent.email;
+                _profile.name = anotherAgent.name;
+
+                stubAuth0ManagementApi((err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  login({..._identity, email: anotherAgent.email}, [scope.update.organizations], (err, session) => {
+                    if (err) return done.fail(err);
+
+                    // Cached profile doesn't match "live" data, so agent needs to be updated
+                    // with a call to Auth0
+                    stubUserRead((err, apiScopes) => {
+                      if (err) return done.fail();
+
+                      session
+                        .patch('/organization')
+                        .send({
+                          id: organization.id,
+                          teamId: newTeam.id
+                        })
+                        .set('Accept', 'application/json')
+                        .expect('Content-Type', /json/)
+                        .expect(403)
+                        .end(function(err, res) {
+                          if (err) done.fail(err);
+                          expect(res.body.message).toEqual('You are not a member of this organization');
+                          done();
+                        });
+                    });
                   });
+                });
               });
             });
           });
@@ -843,6 +981,26 @@ describe('organizationSpec', () => {
       });
 
       describe('delete', () => {
+        let authenticatedSession;
+        beforeEach(done => {
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
+
+            login(_identity, [scope.delete.organizations], (err, session) => {
+              if (err) return done.fail(err);
+              authenticatedSession = session;
+
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubUserRead((err, apiScopes) => {
+                if (err) return done.fail();
+
+                done();
+              });
+            });
+          });
+        });
+
         it('removes an existing record from the database', done => {
           authenticatedSession
             .delete('/organization')
@@ -879,15 +1037,12 @@ describe('organizationSpec', () => {
 
     describe('not verified', () => {
 
-      let unverifiedSession;
+      let invitedAgent;
       beforeEach(done => {
         models.Agent.create({ email: 'invitedagent@example.com' }).then(a => {
+          invitedAgent = a;
           models.OrganizationMember.create({ AgentId: a.id, OrganizationId: organization.id }).then(o => {
-            login({..._identity, email: a.email}, (err, session) => {
-              if (err) return done.fail(err);
-              unverifiedSession = session;
-              done();
-            });
+            done();
           }).catch(err => {
             done.fail(err);
           });
@@ -897,7 +1052,33 @@ describe('organizationSpec', () => {
       });
 
       describe('update', () => {
+
         describe('PUT', () => {
+
+          let unverifiedSession;
+          beforeEach(done => {
+            _profile.email = invitedAgent.email;
+            _profile.name = invitedAgent.name;
+
+            stubAuth0ManagementApi((err, apiScopes) => {
+              if (err) return done.fail();
+
+              login({ ..._identity, email: invitedAgent.email }, [scope.update.organizations], (err, session) => {
+                if (err) return done.fail(err);
+
+                // Cached profile doesn't match "live" data, so agent needs to be updated
+                // with a call to Auth0
+                stubUserRead((err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  unverifiedSession = session;
+
+                  done();
+                });
+              });
+            });
+          });
+
           it('returns 403', done => {
             unverifiedSession
               .put('/organization')
@@ -939,11 +1120,28 @@ describe('organizationSpec', () => {
 
         describe('PATCH', () => {
 
-          let anotherAgent;
+          let unverifiedSession, anotherAgent;
           beforeEach(done => {
+            _profile.email = invitedAgent.email;
+            _profile.name = invitedAgent.name;
+
             models.Agent.create({ email: 'buddy@example.com' }).then(a => {
               anotherAgent = a;
-              done();
+              stubAuth0ManagementApi((err, apiScopes) => {
+                if (err) return done.fail();
+
+                login({ ..._identity, email: invitedAgent.email }, [scope.update.organizations], (err, session) => {
+                  unverifiedSession = session;
+
+                  // Cached profile doesn't match "live" data, so agent needs to be updated
+                  // with a call to Auth0
+                  stubUserRead((err, apiScopes) => {
+                    if (err) return done.fail();
+
+                    done();
+                  });
+                });
+              });
             }).catch(err => {
               done.fail(err);
             });
@@ -996,6 +1194,30 @@ describe('organizationSpec', () => {
       });
 
       describe('read', () => {
+
+        let unverifiedSession;
+        beforeEach(done => {
+          _profile.email = invitedAgent.email;
+          _profile.name = invitedAgent.name;
+
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
+
+            login({ ..._identity, email: invitedAgent.email }, [scope.read.organizations], (err, session) => {
+              if (err) return done.fail(err);
+              unverifiedSession = session;
+
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubUserRead((err, apiScopes) => {
+                if (err) return done.fail();
+
+                done();
+              });
+            });
+          });
+        });
+
         it('returns 403 on organization show', done => {
           unverifiedSession
             .get(`/organization/${organization.id}`)
@@ -1011,6 +1233,30 @@ describe('organizationSpec', () => {
       });
 
       describe('delete', () => {
+
+        let unverifiedSession;
+        beforeEach(done => {
+          _profile.email = 'someotherguy@example.com';
+          _profile.name = 'Some Other Guy';
+
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
+
+            login({ ..._identity, email: _profile.email, name: _profile.name }, [scope.delete.organizations], (err, session) => {
+              if (err) return done.fail(err);
+              unverifiedSession = session;
+
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubUserRead((err, apiScopes) => {
+                if (err) return done.fail();
+
+                done();
+              });
+            });
+          });
+        });
+
         it('returns 401', done => {
           unverifiedSession
             .delete('/organization')
@@ -1055,15 +1301,30 @@ describe('organizationSpec', () => {
       });
     });
 
-    describe('unauthorized', () => {
+    describe('forbidden', () => {
 
       let unauthorizedSession;
       beforeEach(done => {
-        models.Agent.create({ email: 'suspiciousagent@example.com' }).then(a => {
-          login({..._identity, email: a.email}, (err, session) => {
-            if (err) return done.fail(err);
-            unauthorizedSession = session;
-            done();
+        models.Agent.create({ email: 'suspiciousagent@example.com', name: 'Suspicious Guy' }).then(a => {
+
+          _profile.email = a.email;
+          _profile.name = a.name;
+
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
+
+            login({..._identity, email: a.email}, [scope.update.organizations, scope.read.organizations, scope.delete.organizations], (err, session) => {
+              if (err) return done.fail(err);
+              unauthorizedSession = session;
+
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubUserRead((err, apiScopes) => {
+                if (err) return done.fail();
+
+                done();
+              });
+            });
           });
         }).catch(err => {
           done.fail(err);

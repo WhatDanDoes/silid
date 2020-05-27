@@ -100,6 +100,41 @@ describe('Agent', () => {
           done.fail(err);
         });
       });
+
+      it('converts emails to lowercase', done => {
+        _valid.email = 'SomeGuy@Example.Com';
+        agent = new Agent(_valid);
+        agent.save().then(obj => {
+          expect(obj.email).toEqual('someguy@example.com');
+          done();
+        }).catch(err => {
+          done.fail(err);
+        });
+      });
+
+      it('does not allow an email to be changed to uppercase', done => {
+        _valid.email = 'SomeGuy@Example.Com';
+        agent = new Agent(_valid);
+        agent.save().then(obj => {
+          expect(obj.email).toEqual('someguy@example.com');
+          expect(agent.email).toEqual('someguy@example.com');
+          obj.email = 'SOMEGUY@EXAMPLE.COM';
+          obj.save().then(obj => {
+            expect(obj.email).toEqual('someguy@example.com');
+            obj.email = 'SOMEGUY@EXAMPLE.COM';
+            obj.update().then(obj => {
+              expect(obj.email).toEqual('someguy@example.com');
+              done();
+            }).catch(err => {
+              done.fail(err);
+            });
+          }).catch(err => {
+            done.fail(err);
+          });
+        }).catch(err => {
+          done.fail(err);
+        });
+      });
     });
 
     describe('socialProfile', () => {

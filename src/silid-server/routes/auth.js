@@ -8,8 +8,14 @@ const util = require('util');
 const querystring = require('querystring');
 const url = require('url');
 
+const apiScope = require('../config/apiPermissions');
+const roles = require('../config/roles');
+
 router.get('/login', (req, res, next) => {
-  const authenticator = passport.authenticate('auth0', { scope: 'openid email profile' });
+  const authenticator = passport.authenticate('auth0', {
+    scope: 'openid email profile',
+    audience: process.env.AUTH0_AUDIENCE
+   });
   return authenticator(req, res, next);
 });
 
@@ -36,14 +42,15 @@ router.get('/callback', passport.authenticate('auth0'), (req, res) => {
         if (err) {
           return res.json(err);
         }
+
         res.redirect(returnTo || '/');
       });
     });
   }
 
-  models.Agent.findOne({ where: { email: req.user._json.email } }).then(result => {
+  models.Agent.findOne({ where: { email: req.user.email } }).then(result => {
     if (!result) {
-      let newAgent = new models.Agent({email: req.user._json.email, name: req.user._json.name});
+      let newAgent = new models.Agent({email: req.user.email, name: req.user.name, socialProfile: req.user});
 
       newAgent.save().then(result => {
         login();
@@ -87,7 +94,9 @@ router.get('/logout', (req, res) => {
   });
   logoutURL.search = searchString;
 
-  res.redirect(logoutURL);
+  req.session.destroy(err => {
+    res.redirect(logoutURL);
+  });
 });
 
 
