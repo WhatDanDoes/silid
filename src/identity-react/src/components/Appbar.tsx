@@ -52,6 +52,13 @@ const useStyles = makeStyles((theme: Theme) =>
       width: 60,
       height: 60,
     },
+    homeLink: {
+      textDecoration: 'none',
+      color: 'white',
+      '&:hover': {
+        textDecoration: 'underline',
+      }
+    }
   })
 );
 
@@ -181,7 +188,7 @@ const Home = (props: IProps) => {
           </>
         )}
         <Typography variant="h6" className={classes.title}>
-          Identity
+          <a className={classes.homeLink} href="/">Identity</a>
         </Typography>
 
         {agent && (

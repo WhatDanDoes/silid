@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { createStyles, makeStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
-//import { useAuthState } from '../auth/Auth';
 import Link from '@material-ui/core/Link';
 import { useAdminState } from '../auth/Admin';
+import { useAuthState } from '../auth/Auth';
 import ReactJson from 'react-json-view';
 import Flash from '../components/Flash';
 
@@ -18,10 +18,11 @@ import TableCell from '@material-ui/core/TableCell';
 import TableContainer from '@material-ui/core/TableContainer';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
-import MaterialTable from 'material-table';
+import MaterialTable, { MTableEditField } from 'material-table';
 
 import useGetAgentService from '../services/useGetAgentService';
 import usePostTeamService from '../services/usePostTeamService';
+import useGetTeamInviteActionService from '../services/useGetTeamInviteActionService';
 
 const useStyles = makeStyles(theme =>
   createStyles({
@@ -67,18 +68,53 @@ const Agent = (props) => {
 
   const [profileData, setProfileData] = useState({});
   const [flashProps, setFlashProps] = useState({});
+  const [isWaiting, setIsWaiting] = useState(false);
 
   const admin = useAdminState();
+  const {agent} = useAuthState();
 
   const classes = useStyles();
   const service = useGetAgentService(props.match.params.id, admin.viewingCached);
   const { publishTeam } = usePostTeamService();
+  const { respondToTeamInvitation } = useGetTeamInviteActionService();
 
   useEffect(() => {
     if (service.status === 'loaded') {
       setProfileData(service.payload);
     }
   }, [service]);
+
+
+  /**
+   * Create a new team
+   */
+  const createTeam = (newData) => {
+    return new Promise((resolve, reject) => {
+      newData.name = newData.name.trim();
+      if (!newData.name.length) {
+        setFlashProps({ message: 'Team name can\'t be blank', variant: 'error' });
+        reject();
+      }
+      else {
+        setIsWaiting(true);
+        publishTeam(newData).then(profile => {;
+          if (profile.statusCode) {
+            setFlashProps({ message: profile.message, variant: 'error' });
+          }
+          else if (profile.errors) {
+            setFlashProps({ errors: profile.errors, variant: 'error' });
+          }
+          else {
+            setProfileData(profile);
+          }
+          resolve();
+        }).catch(reject)
+        .finally(() => {
+          setIsWaiting(false);
+        });
+      }
+    })
+  };
 
   return (
     <div className={classes.root}>
@@ -96,7 +132,7 @@ const Agent = (props) => {
         {service.status === 'loaded' && service.payload ?
           <>
             <Grid item className={classes.grid}>
-              <TableContainer component={Paper}>
+              <TableContainer id="profile-table" component={Paper}>
                 <Table className={classes.table} aria-label="Agent profile info">
                   <TableBody>
                     <TableRow>
@@ -115,42 +151,100 @@ const Agent = (props) => {
                 </Table>
               </TableContainer>
             </Grid>
-            <Grid item className={classes.grid}>
+            {profileData.user_metadata &&
+             profileData.user_metadata.rsvps &&
+             profileData.user_metadata.rsvps.length ?
+              <>
+                <Grid id="rsvps-table" item className={classes.grid}>
+                  <MaterialTable
+                    title='RSVPs'
+                    isLoading={isWaiting}
+                    columns={[
+                      { title: 'Name', field: 'name', editable: 'never' },
+                      { title: 'Type', field: 'type', editable: 'never' },
+                    ]}
+                    data={profileData.user_metadata ? profileData.user_metadata.rsvps : []}
+                    options={{ search: false, paging: false }}
+                    localization={{ body: { editRow: { deleteText: 'Are you sure you want to ignore this invitation?' } } }}
+                    editable={{
+                      onRowDelete: (oldData) => new Promise((resolve, reject) => {
+                        respondToTeamInvitation(oldData.uuid, 'reject').then(results => {
+                          if (results.error) {
+                            setFlashProps({ message: results.message, variant: 'error' });
+                            return reject(results);
+                          }
+                          setFlashProps({ message: 'Invitation ignored', variant: 'warning' });
+                          setProfileData(results);
+                          resolve();
+                        }).catch(err => {
+                          reject(err);
+                        });
+                      }),
+                    }}
+                    actions={[
+                      {
+                        icon: 'check',
+                        tooltip: 'Accept invitation',
+                        onClick: (event, rowData) =>
+                          new Promise((resolve, reject) => {
+                            setIsWaiting(true);
+                            respondToTeamInvitation(rowData.uuid, 'accept').then(results => {
+                              if (results.error) {
+                                setFlashProps({ message: results.message, variant: 'error' });
+                                return reject(results);
+                              }
+                              setFlashProps({ message: 'Welcome to the team', variant: 'success' });
+                              setProfileData(results);
+                              resolve();
+                            }).catch(err => {
+                              reject(err);
+                            }).finally(() => {
+                              setIsWaiting(false);
+                            });
+                          })
+                      }
+                    ]}
+                  />
+                </Grid>
+                <br />
+              </>
+            : '' }
+            <Grid id="teams-table" item className={classes.grid}>
               <MaterialTable
                 title='Teams'
+                isLoading={isWaiting}
                 columns={[
                   {
                     title: 'Name',
                     field: 'name',
                     render: rowData => <Link href={`#team/${rowData.id}`}>{rowData.name}</Link>,
+                    editComponent: (props) => {
+                      return (
+                        <MTableEditField
+                          autoFocus={true}
+                          type="text"
+                          maxlength="128"
+                          placeholder="Name"
+                          columnDef={props.columnDef}
+                          value={props.value ? props.value : ''}
+                          onChange={value => props.onChange(value) }
+                          onKeyDown={evt => {
+                              if (evt.key === 'Enter') {
+                                createTeam({ name: evt.target.value });
+                                props.onChange('');
+                                return;
+                              }
+                            }
+                          }
+                        />
+                      );
+                    }
                   },
                   { title: 'Leader', field: 'leader', editable: 'never' }
                 ]}
                 data={profileData.user_metadata ? profileData.user_metadata.teams : []}
                 options={{ search: false, paging: false }}
-                editable={{
-                  onRowAdd: (newData) => new Promise((resolve, reject) => {
-                    newData.name = newData.name.trim();
-                    if (!newData.name.length) {
-                      setFlashProps({ message: 'Team name can\'t be blank', variant: 'error' });
-                      reject();
-                    }
-                    else {
-                      publishTeam(newData).then(profile => {;
-                        if (profile.statusCode) {
-                          setFlashProps({ message: profile.message, variant: 'error' });
-                        }
-                        else if (profile.errors) {
-                          setFlashProps({ errors: profile.errors, variant: 'error' });
-                        }
-                        else {
-                          setProfileData(profile);
-                        }
-                        resolve();
-                      }).catch(reject);
-                    }
-                  }),
-                }}
+                editable={ profileData.email === agent.email ? { onRowAdd: createTeam }: undefined}
               />
             </Grid>
             <Grid item>

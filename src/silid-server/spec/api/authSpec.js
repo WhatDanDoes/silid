@@ -88,6 +88,19 @@ describe('authSpec', () => {
         });
     });
 
+    it('sets maximum cookie age to one hour', done => {
+      const session = request(app);
+      session
+        .get('/login')
+        .expect(302)
+        .end(function(err, res) {
+          if (err) return done.fail(err);
+          expect(session.cookies.length).toEqual(1);
+          expect(session.cookies[0].expiration_date <= Date.now() + 1000 * 60 * 60).toBe(true);
+          done();
+        });
+    });
+
     it('calls the /authorize endpoint', done => {
       request(app)
         .get('/login')
@@ -627,7 +640,9 @@ describe('authSpec', () => {
           });
         });
 
-        it('displays the correct interface', done => { browser.clickLink('Logout', (err) => { if (err) return done.fail(err);
+        it('displays the correct interface', done => {
+          browser.clickLink('Logout', (err) => {
+            if (err) return done.fail(err);
             browser.assert.elements('a[href="/login"]');
             browser.assert.elements('a[href="/logout"]', 0);
             done();

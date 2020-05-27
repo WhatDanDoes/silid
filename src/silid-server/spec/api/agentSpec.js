@@ -6,6 +6,7 @@ const request = require('supertest');
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
 const stubAuth0ManagementEndpoint = require('../support/stubAuth0ManagementEndpoint');
+const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
 const scope = require('../../config/permissions');
 const apiScope = require('../../config/apiPermissions');
 const jwt = require('jsonwebtoken');
@@ -68,7 +69,7 @@ describe('agentSpec', () => {
 
               // Cached profile doesn't match "live" data, so agent needs to be updated
               // with a call to Auth0
-              stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+              stubUserRead((err, apiScopes) => {
                 if (err) return done.fail();
 
                 stubAuth0ManagementEndpoint([apiScope.create.users], (err, apiScopes) => {
@@ -140,7 +141,7 @@ describe('agentSpec', () => {
 
                 // Cached profile doesn't match "live" data, so agent needs to be updated
                 // with a call to Auth0
-                stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+                stubUserRead((err, apiScopes) => {
                   if (err) return done.fail();
 
                   done();
@@ -207,10 +208,11 @@ describe('agentSpec', () => {
 
                 // Cached profile doesn't match "live" data, so agent needs to be updated
                 // with a call to Auth0
-                stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+                stubUserRead((err, apiScopes) => {
                   if (err) return done.fail();
 
-                  stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+                  // This stub is for the tests defined in this block
+                  stubUserRead((err, apiScopes) => {
                     if (err) return done.fail(err);
                     ({userReadScope, oauthTokenScope} = apiScopes);
 
@@ -277,7 +279,7 @@ describe('agentSpec', () => {
 
               // Cached profile doesn't match "live" data, so agent needs to be updated
               // with a call to Auth0
-              stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+              stubUserRead((err, apiScopes) => {
                 if (err) return done.fail();
 
                 stubAuth0ManagementEndpoint([apiScope.update.users], (err, apiScopes) => {
@@ -380,7 +382,7 @@ describe('agentSpec', () => {
 
               // Cached profile doesn't match "live" data, so agent needs to be updated
               // with a call to Auth0
-              stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+              stubUserRead((err, apiScopes) => {
                 if (err) return done.fail();
 
                 stubAuth0ManagementEndpoint([apiScope.delete.users], (err, apiScopes) => {
@@ -501,7 +503,7 @@ describe('agentSpec', () => {
 
             // Cached profile doesn't match "live" data, so agent needs to be updated
             // with a call to Auth0
-            stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+            stubUserRead((err, apiScopes) => {
               if (err) return done.fail();
 
               done();

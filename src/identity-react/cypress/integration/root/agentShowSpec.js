@@ -14,6 +14,7 @@ context('root/Agent show', function() {
 
   afterEach(() => {
     cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
+    cy.task('query', 'TRUNCATE TABLE "Invitations" CASCADE;');
   });
 
   describe('unauthenticated', done => {
@@ -80,7 +81,7 @@ context('root/Agent show', function() {
             describe('none created', () => {
               it('displays teams table', function() {
                 cy.get('h6').contains('Teams');
-                cy.get('table tbody tr td').contains('No records to display');
+                cy.get('#teams-table table tbody tr td').contains('No records to display');
               });
             });
 
@@ -107,14 +108,14 @@ context('root/Agent show', function() {
 
               it('displays teams in a table', function() {
                 cy.get('h6').contains('Teams');
-                cy.get('table tbody tr td').contains('No records to display').should('not.exist');
-                cy.get('button span span').contains('add_box');
-                cy.get('table thead tr th').contains('Name');
-                cy.get('table tbody tr td').contains(memberAgent.socialProfile.user_metadata.teams[0].name);
-                cy.get('table tbody tr td a').should('contain', memberAgent.socialProfile.user_metadata.teams[0].name).
+                cy.get('#teams-table table tbody tr td').contains('No records to display').should('not.exist');
+                cy.get('#teams-table button span span').should('not.exist');
+                cy.get('#teams-table table thead tr th').contains('Name');
+                cy.get('#teams-table table tbody tr td').contains(memberAgent.socialProfile.user_metadata.teams[0].name);
+                cy.get('#teams-table table tbody tr td a').should('contain', memberAgent.socialProfile.user_metadata.teams[0].name).
                   and('have.attr', 'href').and('equal', `#team/${memberAgent.socialProfile.user_metadata.teams[0].id}`);
-                cy.get('table thead tr th').contains('Leader');
-                cy.get('table tbody tr td').contains(memberAgent.socialProfile.user_metadata.teams[0].leader);
+                cy.get('#teams-table table thead tr th').contains('Leader');
+                cy.get('#teams-table table tbody tr td').contains(memberAgent.socialProfile.user_metadata.teams[0].leader);
               });
             });
           });
@@ -208,14 +209,14 @@ context('root/Agent show', function() {
 
               it('displays teams in a table', function() {
                 cy.get('h6').contains('Teams');
-                cy.get('table tbody tr td').contains('No records to display').should('not.exist');
-                cy.get('button span span').contains('add_box');
-                cy.get('table thead tr th').contains('Name');
-                cy.get('table tbody tr td').contains(root.socialProfile.user_metadata.teams[0].name);
-                cy.get('table tbody tr td a').should('contain', root.socialProfile.user_metadata.teams[0].name).
+                cy.get('#teams-table table tbody tr td').contains('No records to display').should('not.exist');
+                cy.get('#teams-table button span span').contains('add_box');
+                cy.get('#teams-table table thead tr th').contains('Name');
+                cy.get('#teams-table table tbody tr td').contains(root.socialProfile.user_metadata.teams[0].name);
+                cy.get('#teams-table table tbody tr td a').should('contain', root.socialProfile.user_metadata.teams[0].name).
                   and('have.attr', 'href').and('equal', `#team/${root.socialProfile.user_metadata.teams[0].id}`);
-                cy.get('table thead tr th').contains('Leader');
-                cy.get('table tbody tr td').contains(root.socialProfile.user_metadata.teams[0].leader);
+                cy.get('#teams-table table thead tr th').contains('Leader');
+                cy.get('#teams-table table tbody tr td').contains(root.socialProfile.user_metadata.teams[0].leader);
               });
             });
           });
@@ -306,13 +307,13 @@ context('root/Agent show', function() {
 
             it('displays teams in a table', function() {
               cy.get('h6').contains('Teams');
-              cy.get('table tbody tr td').contains('No records to display').should('not.exist');
-              cy.get('button span span').contains('add_box');
-              cy.get('table thead tr th').contains('Name');
-              cy.get('table tbody tr td').contains(memberAgent.socialProfile.user_metadata.teams[0].name);
-              cy.get('table tbody tr td a').should('contain', memberAgent.socialProfile.user_metadata.teams[0].name).
+              cy.get('#teams-table table tbody tr td').contains('No records to display').should('not.exist');
+              cy.get('#teams-table button span span').should('not.exist');
+              cy.get('#teams-table table thead tr th').contains('Name');
+              cy.get('#teams-table table tbody tr td').contains(memberAgent.socialProfile.user_metadata.teams[0].name);
+              cy.get('#teams-table table tbody tr td a').should('contain', memberAgent.socialProfile.user_metadata.teams[0].name).
                 and('have.attr', 'href').and('equal', `#team/${memberAgent.socialProfile.user_metadata.teams[0].id}`);
-              cy.get('table thead tr th').contains('Leader');
+              cy.get('#teams-table table thead tr th').contains('Leader');
               cy.get('table tbody tr td').contains(memberAgent.socialProfile.user_metadata.teams[0].leader);
             });
           });
@@ -405,14 +406,14 @@ context('root/Agent show', function() {
 
             it('displays teams in a table', function() {
               cy.get('h6').contains('Teams');
-              cy.get('table tbody tr td').contains('No records to display').should('not.exist');
-              cy.get('button span span').contains('add_box');
-              cy.get('table thead tr th').contains('Name');
-              cy.get('table tbody tr td').contains(root.socialProfile.user_metadata.teams[0].name);
-              cy.get('table tbody tr td a').should('contain', root.socialProfile.user_metadata.teams[0].name).
+              cy.get('#teams-table table tbody tr td').contains('No records to display').should('not.exist');
+              cy.get('#teams-table button span span').contains('add_box');
+              cy.get('#teams-table table thead tr th').contains('Name');
+              cy.get('#teams-table table tbody tr td').contains(root.socialProfile.user_metadata.teams[0].name);
+              cy.get('#teams-table table tbody tr td a').should('contain', root.socialProfile.user_metadata.teams[0].name).
                 and('have.attr', 'href').and('equal', `#team/${root.socialProfile.user_metadata.teams[0].id}`);
-              cy.get('table thead tr th').contains('Leader');
-              cy.get('table tbody tr td').contains(root.socialProfile.user_metadata.teams[0].leader);
+              cy.get('#teams-table table thead tr th').contains('Leader');
+              cy.get('#teams-table table tbody tr td').contains(root.socialProfile.user_metadata.teams[0].leader);
             });
           });
         });

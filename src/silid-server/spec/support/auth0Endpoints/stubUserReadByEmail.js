@@ -7,24 +7,16 @@ const stubOauthToken =  require('./stubOauthToken');
 const _profile = require('../../fixtures/sample-auth0-profile-response');
 
 /**
- * This stubs the Auth0 endpoint that returns agent profile info
+ * This stubs the Auth0 endpoint that searches by email and returns agent profile info
  *
- * @param object
+ * @param array
  * @param function
- * @param object
  */
-module.exports = function(profile, done, options) {
+module.exports = function(res, done) {
 
-  if (typeof profile === 'function') {
-    if (typeof done === 'object') {
-      options = done;
-    }
-    done = profile;
-    profile = null;
-  }
-
-  if (!options) {
-    options = { status: 200 };
+  if (typeof res === 'function') {
+    done = res;
+    res = [_profile];
   }
 
   require('../setupKeystore').then(singleton => {
@@ -35,16 +27,17 @@ module.exports = function(profile, done, options) {
 
       ({accessToken, oauthTokenScope} = oauthScopes);
 
+      const userReadByEmailOauthTokenScope = oauthScopes;
+
       /**
        * GET `/users/:id`. Get a single user by Auth0 ID
        */
-      const userReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+      const userReadByEmailScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
         .log(console.log)
-        .get(/api\/v2\/users\/.+/)
-        .query({})
-        .reply(options.status, profile || _profile);
+        .get(/api\/v2\/users-by-email\?.+/)
+        .reply(200, res);
 
-      done(null, {userReadScope, oauthTokenScope});
+      done(null, {userReadByEmailScope, userReadByEmailOauthTokenScope});
 
     });
   });

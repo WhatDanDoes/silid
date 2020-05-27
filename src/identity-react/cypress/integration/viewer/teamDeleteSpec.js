@@ -95,24 +95,65 @@ context('Team delete', function() {
       });
 
       context('when team has team members', () => {
-//        beforeEach(function() {
-//          cy.request({ url: `/team/${team.id}/agent`, method: 'PUT', body: { email: anotherAgent.email } }).then((res) => {
-//            cy.visit('/#/').then(() => {
-//              cy.get('#app-menu-button').click();
-//              cy.get('#organization-button').click();
-//              cy.contains('One Book Canada').click();
-//            });
-//          });
-//        });
-//
-//        it('does not allow deletion', function(done) {
-//          cy.on('window:alert', (str) => {
-//            expect(str).to.eq('Remove all team members before deleting the team');
-//            done();
-//          });
-//          cy.get('#organization-team-list').find('.list-item').its('length').should('eq', 1);
-//          cy.get('.delete-team').first().click();
-//        });
+        beforeEach(function() {
+          // Create another team member
+          cy.login('someotherguy@example.com', {..._profile, user_metadata: {
+                                                     teams: [
+                                                       {
+                                                         id: agent.socialProfile.user_metadata.teams[0].id,
+                                                         name: 'The A-Team',
+                                                         leader: _profile.email,
+                                                       }
+                                                     ]
+                                                   }, name: 'Some Other Guy' }, [this.scope.read.agents]);
+          // Login/create main test agent
+          cy.login(_profile.email, _profile, [this.scope.read.agents,
+                                              this.scope.create.teams,
+                                              this.scope.read.teams,
+                                              this.scope.update.teams,
+                                              this.scope.delete.teams,
+                                              this.scope.create.teamMembers ]);
+
+          cy.contains('The A-Team').click();
+          cy.wait(300);
+        });
+
+        it('does not allow deletion', function(done) {
+          cy.on('window:alert', (str) => {
+            expect(str).to.eq('Remove all team members before deleting the team');
+            done();
+          });
+          cy.get('#delete-team').click();
+        });
+      });
+
+      context('when team has pending invitations', () => {
+        beforeEach(function() {
+          // Login/create main test agent
+          cy.login(_profile.email, _profile, [this.scope.read.agents,
+                                              this.scope.create.teams,
+                                              this.scope.read.teams,
+                                              this.scope.update.teams,
+                                              this.scope.delete.teams,
+                                              this.scope.create.teamMembers ]);
+
+          cy.contains('The A-Team').click();
+          cy.wait(300);
+
+          // Invite agent to team
+          cy.get('button span span').contains('add_box').click();
+          cy.get('input[placeholder="Email"]').type('somenewguy@example.com');
+          cy.get('button[title="Save"]').click();
+          cy.wait(300);
+        });
+
+        it('does not allow deletion', function(done) {
+          cy.on('window:alert', (str) => {
+            expect(str).to.eq('Remove all pending invitations before deleting the team');
+            done();
+          });
+          cy.get('#delete-team').click();
+        });
       });
 
       context('when team has no team members', () => {

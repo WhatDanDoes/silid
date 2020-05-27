@@ -38,47 +38,40 @@ context('viewer/Team show', function() {
 
   describe('authenticated', () => {
 
-    let agent, teamId;
+    let agent, anotherAgent, teamId;
     beforeEach(function() {
       teamId = 'some-uuid-v4';
 
-      cy.login(_profile.email, {..._profile, user_metadata: {
-                                               teams: [
-                                                 {
-                                                   id: teamId,
-                                                   name: 'The Calgary Roughnecks',
-                                                   leader: _profile.email,
-                                                 }
-                                               ]
-                                             } }, [this.scope.read.agents]);
+      // Create another team member
+      cy.login('someotherguy@example.com', {..._profile, user_metadata: {
+                                                 teams: [
+                                                   {
+                                                     id: teamId,
+                                                     name: 'The Calgary Roughnecks',
+                                                     leader: _profile.email,
+                                                   }
+                                                 ]
+                                               }, name: 'Some Other Guy' }, [this.scope.read.agents]);
 
-      cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
-        agent = results[0];
-        cy.reload(true);
-        cy.wait(300);
+      cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
+        anotherAgent = results[0];
+
+        cy.login(_profile.email, {..._profile, user_metadata: {
+                                                 teams: [
+                                                   {
+                                                     id: teamId,
+                                                     name: 'The Calgary Roughnecks',
+                                                     leader: _profile.email,
+                                                   }
+                                                 ]
+                                               } }, [this.scope.read.agents]);
+
+        cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
+          agent = results[0];
+          cy.reload(true);
+          cy.wait(300);
+        });
       });
-
-//      // Login/create another agent
-//      cy.login('someotherguy@example.com', _profile, [this.scope.read.agents]);
-//      cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
-//        anotherAgent = results[0];
-//
-//        // Login/create main test agent
-//        cy.login(_profile.email, _profile, [this.scope.read.agents,
-//                                            this.scope.create.organizations,
-//                                            this.scope.read.organizations,
-//                                            this.scope.create.teams,
-//                                            this.scope.read.teams,
-//                                            this.scope.create.organizationMembers,
-//                                            this.scope.create.teamMembers]);
-//        cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
-//          agent = results[0];
-//
-//          cy.request({ url: '/organization',  method: 'POST', body: { name: 'One Book Canada' } }).then((org) => {
-//            organization = org.body;
-//          });
-//        });
-//      });
     });
 
     afterEach(() => {
@@ -104,174 +97,88 @@ context('viewer/Team show', function() {
       });
 
       it('displays appropriate Team interface elements', function() {
-        //cy.get('table tbody tr td').contains('The Calgary Roughnecks');
-        cy.get('table tbody tr td input#team-name-field').should('have.value', 'The Calgary Roughnecks');
+        cy.get('table tbody tr td input#team-name-field').should('have.value', agent.socialProfile.user_metadata.teams[0].name);
         cy.get('table tbody tr td').contains(_profile.email);
         cy.get('button#delete-team').should('exist');
         cy.get('button#save-team').should('not.exist');
         cy.get('button#cancel-team-changes').should('not.exist');
-//        cy.get('button#edit-team').should('exist');
-//        cy.get('button#add-agent').should('exist');
       });
 
       it('displays team members in a table', function() {
         cy.get('h6').contains('Members');
         cy.get('table tbody tr td').contains('No records to display').should('not.exist');
-//        cy.get('button span span').contains('add_box').should('not.exist');
-//        cy.get('table thead tr th').contains('Actions');
-//        cy.get('table tbody tr td button span').contains('edit');
-//        cy.get('table tbody tr td button span').contains('delete_outline');
+        cy.get('button span span').contains('add_box').should('exist');
+
         cy.get('table thead tr th').contains('Name');
-        cy.get('table tbody tr td input#team-name-field').should('have.value', agent.socialProfile.user_metadata.teams[0].name);
-        cy.get('table tbody tr td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
         cy.get('table thead tr th').contains('Email');
-        cy.get('table tbody tr td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+        // Member agent can be deleted
+        cy.get('table tbody tr:nth-of-type(1) button[title=Delete]').should('exist');
+        cy.get('table tbody tr:nth-of-type(1) td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${anotherAgent.socialProfile.user_id}`);
+        cy.get('table tbody tr:nth-of-type(1) td').contains(anotherAgent.socialProfile.email);
+        // Team leader cannot be deleted
+        cy.get('table tbody tr:nth-of-type(2) button[title=Delete]').should('not.exist');
+        cy.get('table tbody tr:nth-of-type(2) td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
+        cy.get('table tbody tr:nth-of-type(2) td').contains(agent.socialProfile.user_metadata.teams[0].leader);
       });
     });
 
-//    context('unverified team member agent visit', () => {
-//
-//      let team;
-//      beforeEach(function() {
-//        cy.request({ url: '/team',  method: 'POST',
-//                     body: { organizationId: organization.id, name: 'Insert Funny Team Name Here' } }).then(res => {
-//          team = res.body;
-//
-//          cy.request({ url: `/team/${team.id}/agent`, method: 'PUT', body: { email: anotherAgent.email } }).then(res => {
-//
-//            cy.login(anotherAgent.email, _profile, [this.scope.read.agents, this.scope.read.teams]);
-//            cy.visit(`/#/team/${team.id}`);
-//          });
-//        });
-//      });
-//
-//      it('lands in the right spot', () => {
-//        cy.url().should('contain', `/#/team/${team.id}`);
-//      });
-//
-//      it('displays appropriate Team interface elements', function() {
-//        cy.get('button#add-agent').should('not.exist');
-//        cy.get('button#edit-team').should('not.exist');
-//        cy.contains('You have not verified your invitation to this team. Check your email.');
-//      });
-//    });
-//
-//    context('verified team member agent visit', () => {
-//
-//      let team;
-//      beforeEach(function() {
-//        cy.request({ url: '/team',  method: 'POST',
-//                     body: { organizationId: organization.id, name: 'Insert Funny Team Name Here' } }).then(res => {
-//          team = res.body;
-//
-//          cy.request({ url: `/team/${team.id}/agent`, method: 'PUT', body: { email: anotherAgent.email } }).then(res => {
-//
-//            // Verify agent membership
-//            cy.task('query', `UPDATE "TeamMembers" SET "verificationCode"=null WHERE "AgentId"=${anotherAgent.id};`).then(([results, metadata]) => {
-//              cy.login(anotherAgent.email, _profile, [this.scope.read.agents, this.scope.read.organizations, this.scope.read.teams]);
-//              cy.visit(`/#/team/${team.id}`);
-//            });
-//          });
-//        });
-//      });
-//
-//      it('lands in the right spot', () => {
-//        cy.url().should('contain', `/#/team/${team.id}`);
-//      });
-//
-//      it('displays appropriate Team interface elements', function() {
-//        cy.get('h3').contains('Insert Funny Team Name Here');
-//        cy.get('button#add-agent').should('not.exist');
-//        cy.get('button#edit-team').should('not.exist');
-//      });
-//    });
-//
-//    context('verified organization member agent visit', () => {
-//
-//      let team;
-//      beforeEach(function() {
-//        cy.request({ url: '/team',  method: 'POST',
-//                     body: { organizationId: organization.id, name: 'Insert Funny Team Name Here' } }).then(res => {
-//          team = res.body;
-//
-//          cy.request({ url: `/organization/${organization.id}/agent`, method: 'PUT', body: { email: anotherAgent.email } }).then(res => {
-//
-//            // Verify agent membership
-//            cy.task('query', `UPDATE "OrganizationMembers" SET "verificationCode"=null WHERE "AgentId"=${anotherAgent.id};`).then(([results, metadata]) => {
-//
-//              cy.login(anotherAgent.email, _profile, [this.scope.read.agents, this.scope.read.organizations, this.scope.read.teams]);
-//              cy.visit('/#/').then(() => {
-//                cy.get('#app-menu-button').click();
-//                cy.get('#organization-button').click();
-//                cy.contains('One Book Canada').click();
-//                cy.contains('Insert Funny Team Name Here').click();
-//              });
-//            });
-//          });
-//        });
-//      });
-//
-//      it('lands in the right spot', () => {
-//        cy.url().should('contain', `/#/team/${team.id}`);
-//      });
-//
-//      it('displays appropriate Team interface elements', function() {
-//        cy.get('h3').contains('Insert Funny Team Name Here');
-//        cy.get('button#add-agent').should('not.exist');
-//        cy.get('button#edit-team').should('not.exist');
-//      });
-//    });
-//
-//    context('unverified organization member agent visit', () => {
-//
-//      let team;
-//      beforeEach(function() {
-//        cy.request({ url: '/team',  method: 'POST',
-//                     body: { organizationId: organization.id, name: 'Insert Funny Team Name Here' } }).then(res => {
-//          team = res.body;
-//
-//          cy.request({ url: `/organization/${organization.id}/agent`, method: 'PUT', body: { email: anotherAgent.email } }).then(res => {
-//
-//            cy.login(anotherAgent.email, _profile, [this.scope.read.agents, this.scope.read.organizations, this.scope.read.teams]);
-//            cy.visit('/#/').then(() => {
-//              cy.get('#app-menu-button').click();
-//              cy.get('#organization-button').click();
-//              cy.contains('One Book Canada').click();
-//            });
-//          });
-//        });
-//      });
-//
-//      it('lands in the right spot', () => {
-//        cy.url().should('contain', `/#/organization/${organization.id}`);
-//      });
-//
-//      it('displays appropriate Team interface elements', function() {
-//        cy.get('button#add-agent').should('not.exist');
-//        cy.get('button#edit-team').should('not.exist');
-//        cy.contains('You have not verified your invitation to this organization. Check your email.');
-//      });
-//    });
-//
-//
-//    context('non-member agent visit', () => {
-//
-//      let team;
-//      beforeEach(function() {
-//        cy.request({ url: '/team',  method: 'POST',
-//                     body: { organizationId: organization.id, name: 'Insert Funny Team Name Here' } }).then(res => {
-//          team = res.body;
-//
-//          cy.login(anotherAgent.email, _profile, [this.scope.read.agents, this.scope.read.organizations, this.scope.read.teams]);
-//        });
-//      });
-//
-//      it('displays a friendly message', () => {
-//        cy.visit(`/#/team/${team.id}`);
-//        cy.wait(500);
-//        cy.get('h3').contains('You are not a member of that team');
-//      });
-//    });
+    context('verified team member agent visit', () => {
+
+      beforeEach(function() {
+        // Membership established in first `beforeEach`
+        cy.login('someotherguy@example.com', {..._profile, name: 'Some Other Guy'}, [this.scope.read.agents]);
+        cy.contains('The Calgary Roughnecks').click();
+        cy.wait(300);
+      });
+
+      it('lands in the right spot', () => {
+        cy.url().should('contain', `/#/team/${teamId}`);
+      });
+
+      it('displays appropriate Team interface elements', function() {
+        cy.get('table tbody tr td input#team-name-field').should('have.value', 'The Calgary Roughnecks');
+        cy.get('table tbody tr td input#team-name-field').should('be.disabled');
+        cy.get('table tbody tr td').contains(_profile.email);
+        cy.get('button#delete-team').should('not.exist');
+        cy.get('button#save-team').should('not.exist');
+        cy.get('button#cancel-team-changes').should('not.exist');
+      });
+
+      it('displays team members in a table', function() {
+        cy.get('h6').contains('Members');
+        cy.get('table tbody tr td').contains('No records to display').should('not.exist');
+        cy.get('table tbody tr td input#team-name-field').should('have.value', agent.socialProfile.user_metadata.teams[0].name);
+
+        // 2020-5-5 Why doesn't this work?
+        // cy.get('button span span').contains('add_box').should('not.exist');
+        cy.get('button span span').should('not.exist');
+
+        cy.get('table thead tr th').contains('Name');
+        cy.get('table thead tr th').contains('Email');
+        cy.get('table tbody tr:nth-of-type(1) button[title=Delete]').should('not.exist');
+        cy.get('table tbody tr:nth-of-type(1) td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
+        cy.get('table tbody tr:nth-of-type(1) td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+        cy.get('table tbody tr:nth-of-type(2) button[title=Delete]').should('not.exist');
+        cy.get('table tbody tr:nth-of-type(2) td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${anotherAgent.socialProfile.user_id}`);
+        cy.get('table tbody tr:nth-of-type(2) td').contains(anotherAgent.socialProfile.email);
+      });
+    });
+
+    context('non-member agent visit', () => {
+
+      let team;
+      beforeEach(function() {
+        // Login/create another agent
+        cy.login('someunknownguy@example.com', _profile, [this.scope.read.agents]);
+        cy.wait(300);
+      });
+
+      it('displays a friendly message', () => {
+        cy.visit(`/#/team/${teamId}`);
+        cy.wait(500);
+        cy.get('h3').contains('You are not a member of that team');
+      });
+    });
   });
 });
 

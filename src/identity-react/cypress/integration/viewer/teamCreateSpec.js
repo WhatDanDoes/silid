@@ -51,11 +51,10 @@ context('viewer/Team creation', function() {
           cy.get('div div div div div div table tbody tr td div div input[placeholder="Leader"]').should('not.exist');
         });
 
-//        it('yields focus to the first form field', () => {
-//          cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').should('not.exist');
-//          cy.get('button span span').contains('add_box').click();
-//          cy.focused().should('have.attr', 'placeholder').and('eq', 'Name');
-//        });
+        it('gives focus to the team name input field', () => {
+          cy.get('button span span').contains('add_box').click();
+          cy.focused().should('have.attr', 'placeholder').and('eq', 'Name');
+        });
 
         describe('add-team-form', () => {
           beforeEach(() => {
@@ -254,6 +253,42 @@ context('viewer/Team creation', function() {
                 cy.get('table tbody tr td').contains(_profile.email);
 
                 cy.get('table tbody:nth-child(2)').find('tr').its('length').should('eq', 2);
+              });
+
+              it('displays progress spinner', () => {
+                cy.on('window:confirm', (str) => {
+                  return true;
+                });
+                cy.get('div[role="progressbar"] svg circle').should('not.exist');
+
+                cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').type('The Mike Tyson Mystery Team');
+                cy.get('div div div div div div table tbody tr td div button[title="Save"]').click();
+
+                // 2020-5-26
+                // Cypress goes too fast for this. Cypress also cannot intercept
+                // native `fetch` calls to allow stubbing and delaying the route.
+                // Shamefully, this is currently manually tested, though I suspect
+                // I will use this opportunity to learn Jest
+                // Despite its name, this test really ensures the spinner disappears
+                // after all is said and done
+                //cy.get('div[role="progressbar"] svg circle').should('exist');
+                cy.wait(100);
+                cy.get('div[role="progressbar"] svg circle').should('not.exist');
+              });
+
+              describe('executes team creation with Enter key', () => {
+                it('updates the record on the interface', function() {
+                  cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').type('The Mike Tyson Mystery Team{enter}');
+                  cy.wait(300);
+                  cy.get('table tbody tr td').contains('The Mike Tyson Mystery Team');
+                  cy.get('table tbody tr td').contains(_profile.email);
+                });
+
+                it('clears input field', () => {
+                  cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').type('Mystery Incorporated{enter}');
+                  cy.wait(300);
+                  cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').should('have.value', '');
+                });
               });
             });
           });
