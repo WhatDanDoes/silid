@@ -449,6 +449,57 @@ function inviteAgent(invite, req, res) {
   });
 }
 
+/**
+ * Manage Invitations for agents unknown to Auth0
+ */
+function createInvitation(req, res, recipientEmail, invite) {
+  models.Invitation.findOne({ where: { uuid: req.params.id, recipient: recipientEmail } }).then(invitation => {
+    if (!invitation) {
+
+      /**
+       * NOTE TO SELF:
+       *
+       * Remember to test this leader user_metadata persistence on client-side
+       *
+       */
+      // Auth0 does not return agent scope
+      // result.scope = req.user.scope;
+      // 2020-4-30 https://stackoverflow.com/a/24498660/1356582
+      // This updates the agent's session data
+      // req.login(result, err => {
+      //   if (err) return next(err);
+      models.Invitation.upsert(invite).then(results => {
+
+        if (!req.user.user_metadata.pendingInvitations) {
+          req.user.user_metadata.pendingInvitations = [];
+        }
+        req.user.user_metadata.pendingInvitations.push(invite);
+
+        const managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+        managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
+          inviteAgent(invite, req, res);
+        }).catch(err => {
+          res.status(500).json(err);
+        });
+
+      }).catch(err => {
+        res.status(500).json(err);
+      });
+    }
+    else {
+      // 2020-5-7 Force updating the timestamp - https://github.com/sequelize/sequelize/issues/3759
+      invitation.changed('updatedAt', true);
+      invitation.save().then(result => {
+        inviteAgent(invite, req, res);
+      }).catch(err => {
+        res.status(500).json(err);
+      });
+    }
+  }).catch(err => {
+    res.status(500).json(err);
+  });
+};
+
 router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(req, res, next) {
   let team;
   if (req.user.user_metadata.teams) {
@@ -473,6 +524,13 @@ router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(
       let managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
       managementClient.getUser({id: agent.socialProfile.user_id}).then(invitedAgent => {
 
+        if (!invitedAgent.user_metadata) {
+          invitedAgent.user_metadata = { teams: [], rsvps: [] };
+        }
+        else if (!invitedAgent.user_metadata.rsvps) {
+          invitedAgent.user_metadata.rsvps = [];
+        }
+
         let isMember;
         if (invitedAgent.user_metadata.teams) {
           isMember = invitedAgent.user_metadata.teams.find(team => team.id === req.params.id);
@@ -482,10 +540,6 @@ router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(
           return res.status(200).json({ message: `${agent.email} is already a member of this team` });
         }
 
-        // Write invite to agent's rsvps
-        if (!invitedAgent.user_metadata.rsvps) {
-          invitedAgent.user_metadata.rsvps = [];
-        }
 
         // Check if this agent already has an invitation (functionality covered by client-side tests, because globally modified `const` profiles are just too hairy)
         const existingInvite = invitedAgent.user_metadata.rsvps.find(rsvp => rsvp.uuid === req.params.id && rsvp.type === 'team' && rsvp.recipient === invitedAgent.email);
@@ -518,55 +572,15 @@ router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(
           res.status(500).json(err);
         });
       }).catch(err => {
+        // This comes into play if agent is manually deleted at Auth0
+        if (err.statusCode === 404) {
+          return createInvitation(req, res, recipientEmail, invite);
+        }
         res.status(500).json(err);
       });
     }
     else {
-      models.Invitation.findOne({ where: { uuid: req.params.id, recipient: recipientEmail } }).then(invitation => {
-        if (!invitation) {
-
-          /**
-           * NOTE TO SELF:
-           *
-           * Remember to test this leader user_metadata persistence on client-side
-           *
-           */
-          // Auth0 does not return agent scope
-          // result.scope = req.user.scope;
-          // 2020-4-30 https://stackoverflow.com/a/24498660/1356582
-          // This updates the agent's session data
-          // req.login(result, err => {
-          //   if (err) return next(err);
-          models.Invitation.upsert(invite).then(results => {
-
-            if (!req.user.user_metadata.pendingInvitations) {
-              req.user.user_metadata.pendingInvitations = [];
-            }
-            req.user.user_metadata.pendingInvitations.push(invite);
-
-            const managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
-            managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
-              inviteAgent(invite, req, res);
-            }).catch(err => {
-              res.status(500).json(err);
-            });
-
-          }).catch(err => {
-            res.status(500).json(err);
-          });
-        }
-        else {
-          // 2020-5-7 Force updating the timestamp - https://github.com/sequelize/sequelize/issues/3759
-          invitation.changed('updatedAt', true);
-          invitation.save().then(result => {
-            inviteAgent(invite, req, res);
-          }).catch(err => {
-            res.status(500).json(err);
-          });
-        }
-      }).catch(err => {
-        res.status(500).json(err);
-      });
+      createInvitation(req, res, recipientEmail, invite);
     }
   }).catch(err => {
     res.status(500).json(err);
@@ -664,8 +678,7 @@ router.delete('/:id/invite', checkPermissions([scope.delete.teamMembers]), funct
             a.user_metadata.rsvps.splice(rsvpIndex, 1);
 
             managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
-            managementClient.updateUser({id: a.user_id}, { user_metadata: a.user_metadata }).then(result => {
-
+            managementClient.updateUser({id: a.user_id}, { user_metadata: a.user_metadata }).then(result => { 
               res.status(201).json(req.user);
             }).catch(err => {
               res.status(err.statusCode).json(err.message.error_description);
