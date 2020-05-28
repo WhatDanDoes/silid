@@ -42,7 +42,7 @@ context('viewer/Agent show', function() {
     let memberAgent;
     beforeEach(function() {
       // A convenient way to create a new agent
-      cy.login('someotherguy@example.com', _profile, [this.scope.read.agents]);
+      cy.login('someotherguy@example.com', _profile);
       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
         memberAgent = results[0];
       });
@@ -50,7 +50,7 @@ context('viewer/Agent show', function() {
 
     describe('viewing member agent\'s profile', () => {
       beforeEach(function() {
-        cy.login('someguy@example.com', _profile, [this.scope.read.agents]);
+        cy.login('someguy@example.com', _profile);
         cy.visit(`/#/agent/${memberAgent.socialProfile.user_id}`);
         cy.wait(300);
       });
@@ -93,11 +93,11 @@ context('viewer/Agent show', function() {
                                                          members: ['someguy@example.com', 'someotherguy@example.com']
                                                        }
                                                      ]
-                                                   } }, [this.scope.read.agents]);
+                                                   } });
 
             cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
               memberAgent = results[0];
-              cy.login('someguy@example.com', _profile, [this.scope.read.agents]);
+              cy.login('someguy@example.com', _profile);
               cy.visit(`/#/agent/${memberAgent.socialProfile.user_id}`);
               cy.wait(300);
             });
@@ -148,7 +148,7 @@ context('viewer/Agent show', function() {
 
       let agent;
       beforeEach(function() {
-        cy.login('someguy@example.com', _profile, [this.scope.read.agents]);
+        cy.login('someguy@example.com', _profile);
         cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
           agent = results[0];
           cy.visit(`/#/agent/${agent.socialProfile.user_id}`);
@@ -194,7 +194,7 @@ context('viewer/Agent show', function() {
                                                          members: ['someguy@example.com']
                                                        }
                                                      ]
-                                                   } }, [this.scope.read.agents]);
+                                                   } });
 
             cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
               agent = results[0];

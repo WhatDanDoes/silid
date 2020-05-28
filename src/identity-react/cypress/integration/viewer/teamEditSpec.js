@@ -19,14 +19,7 @@ context('Team edit', function() {
 
     let agent, organization, team;
     beforeEach(function() {
-      cy.login(_profile.email, _profile, [this.scope.read.agents,
-                                          this.scope.create.organizations,
-                                          this.scope.read.organizations,
-                                          this.scope.create.teams,
-                                          this.scope.read.teams,
-                                          this.scope.update.teams,
-                                          this.scope.create.teamMembers,
-                                         ]);
+      cy.login(_profile.email, _profile);
 
       cy.get('button span span').contains('add_box').click();
       cy.get('input[placeholder="Name"]').type('The A-Team');
@@ -179,43 +172,6 @@ context('Team edit', function() {
                 });
               });
             });
-
-            describe('with insufficient privilege', () => {
-              beforeEach(function() {
-                cy.login(_profile.email, agent.socialProfile, [this.scope.read.agents, this.scope.read.teams]);
-                cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
-                  agent = results[0];
-
-                  cy.contains('The A-Team').click();
-                  cy.wait(300);
-                  cy.get('#team-name-field').clear();
-                  cy.get('#team-name-field').type('The K-Team');
-                  cy.get('button#save-team').click();
-                  cy.wait(300);
-                });
-              });
-
-              it('lands in the proper place', () => {
-                cy.url().should('contain', `/#/team/${agent.socialProfile.user_metadata.teams[0].id}`);
-              });
-
-              it('displays a friendly error message', () => {
-                cy.get('#flash-message').contains('Insufficient scope');
-
-                // Do it again to ensure flash message is reset
-                cy.get('#flash-message #close-flash').click();
-                cy.wait(100);
-                cy.get('button#save-team').click();
-                cy.get('#flash-message').contains('Insufficient scope');
-              });
-
-              it('does not change the record in the team leader\'s user_metadata', () => {
-                cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
-                  expect(results[0].socialProfile.user_metadata.teams.length).to.eq(1);
-                  expect(results[0].socialProfile.user_metadata.teams[0].name).to.eq('The A-Team');
-                });
-              });
-            });
           });
 
           describe('successfully makes changes', () => {
@@ -295,15 +251,7 @@ context('Team edit', function() {
             cy.get('#members-table button[title="Save"]').click();
 
             // Invited member logs in...
-            cy.login('someotherguy@example.com', {..._profile, name: 'Some Other Guy'},
-                      [this.scope.read.agents,
-                       this.scope.create.organizations,
-                       this.scope.read.organizations,
-                       this.scope.update.organizations,
-                       this.scope.create.teams,
-                       this.scope.read.teams,
-                       this.scope.create.teamMembers,
-                       this.scope.delete.teamMembers]);
+            cy.login('someotherguy@example.com', {..._profile, name: 'Some Other Guy'});
 
             cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
               memberAgent = results[0];
@@ -316,14 +264,7 @@ context('Team edit', function() {
                 agent = results[0];
 
                 // Team leader logs in again...
-                cy.login(agent.email, _profile, [this.scope.read.agents,
-                                                 this.scope.create.organizations,
-                                                 this.scope.read.organizations,
-                                                 this.scope.create.teams,
-                                                 this.scope.read.teams,
-                                                 this.scope.update.teams,
-                                                 this.scope.create.teamMembers,
-                                                 this.scope.delete.teamMembers]);
+                cy.login(agent.email, _profile);
 
                 // ... and views the team
                 cy.contains('The A-Team').click();
@@ -340,15 +281,7 @@ context('Team edit', function() {
 
           it('updates team name', function() {
             // Invited member logs in...
-            cy.login(memberAgent.email, {..._profile, name: memberAgent.name},
-                      [this.scope.read.agents,
-                       this.scope.create.organizations,
-                       this.scope.read.organizations,
-                       this.scope.update.organizations,
-                       this.scope.create.teams,
-                       this.scope.read.teams,
-                       this.scope.create.teamMembers,
-                       this.scope.delete.teamMembers]);
+            cy.login(memberAgent.email, {..._profile, name: memberAgent.name});
 
             cy.get('#rsvps-table').should('not.exist');
             cy.get('#teams-table table tbody').find('tr').its('length').should('eq', 1);
@@ -371,15 +304,7 @@ context('Team edit', function() {
               cy.wait(300);
 
               // Invited member logs in...
-              cy.login('someotherguy@example.com', {..._profile, name: 'Some Other Guy'},
-                        [this.scope.read.agents,
-                         this.scope.create.organizations,
-                         this.scope.read.organizations,
-                         this.scope.update.organizations,
-                         this.scope.create.teams,
-                         this.scope.read.teams,
-                         this.scope.create.teamMembers,
-                         this.scope.delete.teamMembers]);
+              cy.login('someotherguy@example.com', {..._profile, name: 'Some Other Guy'});
             });
 
             it('updates pending rsvp', function() {
@@ -394,25 +319,10 @@ context('Team edit', function() {
 
           beforeEach(function() {
             // Invited member logs in, and in does so, creates an account...
-            cy.login('someotherguy@example.com', {..._profile, name: 'Some Other Guy'},
-                      [this.scope.read.agents,
-                       this.scope.create.organizations,
-                       this.scope.read.organizations,
-                       this.scope.update.organizations,
-                       this.scope.create.teams,
-                       this.scope.read.teams,
-                       this.scope.create.teamMembers,
-                       this.scope.delete.teamMembers]);
+            cy.login('someotherguy@example.com', {..._profile, name: 'Some Other Guy'});
 
             // Team leader logs in and...
-            cy.login(_profile.email, _profile, [this.scope.read.agents,
-                                                this.scope.create.organizations,
-                                                this.scope.read.organizations,
-                                                this.scope.create.teams,
-                                                this.scope.read.teams,
-                                                this.scope.update.teams,
-                                                this.scope.create.teamMembers,
-                                               ]);
+            cy.login(_profile.email, _profile);
 
             // ... views the team
             cy.contains('The A-Team').click();
@@ -430,15 +340,7 @@ context('Team edit', function() {
             cy.wait(300);
 
             // Invited member logs back in
-            cy.login('someotherguy@example.com', {..._profile, name: 'Some Other Guy'},
-                      [this.scope.read.agents,
-                       this.scope.create.organizations,
-                       this.scope.read.organizations,
-                       this.scope.update.organizations,
-                       this.scope.create.teams,
-                       this.scope.read.teams,
-                       this.scope.create.teamMembers,
-                       this.scope.delete.teamMembers]);
+            cy.login('someotherguy@example.com', {..._profile, name: 'Some Other Guy'});
           });
 
           describe('has not accepted the invitation', () => {

@@ -20,14 +20,15 @@ context('viewer/Team add agent', function() {
         anotherAgent = results[0];
 
         // Login/create main test agent
-        cy.login(_profile.email, _profile, [this.scope.read.agents,
-                                            this.scope.create.organizations,
-                                            this.scope.read.organizations,
-                                            this.scope.update.organizations,
-                                            this.scope.create.teams,
-                                            this.scope.read.teams,
-                                            this.scope.create.teamMembers,
-                                            this.scope.delete.teamMembers]);
+        cy.login(_profile.email, _profile);//, [this.scope.read.agents,
+                                           // this.scope.update.agents,
+                                           // this.scope.read.organizations,
+                                           // this.scope.create.teams,
+                                           // this.scope.read.teams,
+                                           // this.scope.update.teams,
+                                           // this.scope.delete.teams,
+                                           // this.scope.create.teamMembers,
+                                           // this.scope.delete.teamMembers]);
         cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
           agent = results[0];
         });
@@ -280,15 +281,15 @@ context('viewer/Team add agent', function() {
                     cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
                       expect(results.length).to.eq(1);
 
-                      cy.login('somenewguy@example.com', {..._profile, name: 'Some New Guy'},
-                                [this.scope.read.agents,
-                                 this.scope.create.organizations,
-                                 this.scope.read.organizations,
-                                 this.scope.update.organizations,
-                                 this.scope.create.teams,
-                                 this.scope.read.teams,
-                                 this.scope.create.teamMembers,
-                                 this.scope.delete.teamMembers]);
+                      cy.login('somenewguy@example.com', {..._profile, name: 'Some New Guy'});//,
+//                                [this.scope.read.agents,
+//                                 this.scope.create.organizations,
+//                                 this.scope.read.organizations,
+//                                 this.scope.update.organizations,
+//                                 this.scope.create.teams,
+//                                 this.scope.read.teams,
+//                                 this.scope.create.teamMembers,
+//                                 this.scope.delete.teamMembers]);
 
                       cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
                         expect(results.length).to.eq(0);
@@ -298,15 +299,15 @@ context('viewer/Team add agent', function() {
 
                   describe('RSVP table', () => {
                     beforeEach(function() {
-                      cy.login('somenewguy@example.com', {..._profile, name: 'Some New Guy'},
-                                [this.scope.read.agents,
-                                 this.scope.create.organizations,
-                                 this.scope.read.organizations,
-                                 this.scope.update.organizations,
-                                 this.scope.create.teams,
-                                 this.scope.read.teams,
-                                 this.scope.create.teamMembers,
-                                 this.scope.delete.teamMembers]);
+                      cy.login('somenewguy@example.com', {..._profile, name: 'Some New Guy'});//,
+//                                [this.scope.read.agents,
+//                                 this.scope.create.organizations,
+//                                 this.scope.read.organizations,
+//                                 this.scope.update.organizations,
+//                                 this.scope.create.teams,
+//                                 this.scope.read.teams,
+//                                 this.scope.create.teamMembers,
+//                                 this.scope.delete.teamMembers]);
                     });
 
                     it('displays the team invite', () => {
@@ -387,14 +388,15 @@ context('viewer/Team add agent', function() {
                           cy.wait(300);
 
                           // Login/create main test agent
-                          cy.login(_profile.email, _profile, [this.scope.read.agents,
-                                                              this.scope.create.organizations,
-                                                              this.scope.read.organizations,
-                                                              this.scope.update.organizations,
-                                                              this.scope.create.teams,
-                                                              this.scope.read.teams,
-                                                              this.scope.create.teamMembers,
-                                                              this.scope.delete.teamMembers]);
+                          cy.login(_profile.email, _profile);//, [this.scope.read.agents,
+                                                             // this.scope.update.agents,
+                                                             // this.scope.read.organizations,
+                                                             // this.scope.create.teams,
+                                                             // this.scope.read.teams,
+                                                             // this.scope.update.teams,
+                                                             // this.scope.delete.teams,
+                                                             // this.scope.create.teamMembers,
+                                                             // this.scope.delete.teamMembers]);
 
                           cy.get('#teams-table table tbody tr td a').contains('The A-Team').click();
                           cy.wait(300);
@@ -452,14 +454,14 @@ context('viewer/Team add agent', function() {
                           cy.wait(300);
 
                           // Login/create main test agent
-                          cy.login(_profile.email, _profile, [this.scope.read.agents,
-                                                              this.scope.create.organizations,
-                                                              this.scope.read.organizations,
-                                                              this.scope.update.organizations,
-                                                              this.scope.create.teams,
-                                                              this.scope.read.teams,
-                                                              this.scope.create.teamMembers,
-                                                              this.scope.delete.teamMembers]);
+                          cy.login(_profile.email, _profile);//, [this.scope.read.agents,
+                                                             // this.scope.create.organizations,
+                                                             // this.scope.read.organizations,
+                                                             // this.scope.update.organizations,
+                                                             // this.scope.create.teams,
+                                                             // this.scope.read.teams,
+                                                             // this.scope.create.teamMembers,
+                                                             // this.scope.delete.teamMembers]);
 
                           cy.get('#teams-table table tbody tr td a').contains('The A-Team').click();
                           cy.wait(300);
@@ -855,15 +857,15 @@ context('viewer/Team add agent', function() {
                     cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
                       expect(results.length).to.eq(0);
 
-                      cy.login(anotherAgent.email, {..._profile, name: anotherAgent.name},
-                                [this.scope.read.agents,
-                                 this.scope.create.organizations,
-                                 this.scope.read.organizations,
-                                 this.scope.update.organizations,
-                                 this.scope.create.teams,
-                                 this.scope.read.teams,
-                                 this.scope.create.teamMembers,
-                                 this.scope.delete.teamMembers]);
+                      cy.login(anotherAgent.email, {..._profile, name: anotherAgent.name});//,
+//                                [this.scope.read.agents,
+//                                 this.scope.create.organizations,
+//                                 this.scope.read.organizations,
+//                                 this.scope.update.organizations,
+//                                 this.scope.create.teams,
+//                                 this.scope.read.teams,
+//                                 this.scope.create.teamMembers,
+//                                 this.scope.delete.teamMembers]);
 
                       cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
                         expect(results.length).to.eq(0);
@@ -873,15 +875,16 @@ context('viewer/Team add agent', function() {
 
                   describe('RSVP table', () => {
                     beforeEach(function() {
-                      cy.login(anotherAgent.email, {..._profile, name: anotherAgent.name},
-                                [this.scope.read.agents,
-                                 this.scope.create.organizations,
-                                 this.scope.read.organizations,
-                                 this.scope.update.organizations,
-                                 this.scope.create.teams,
-                                 this.scope.read.teams,
-                                 this.scope.create.teamMembers,
-                                 this.scope.delete.teamMembers]);
+                      cy.login(anotherAgent.email, {..._profile, name: anotherAgent.name});//,
+//                                [this.scope.read.agents,
+//                                 this.scope.update.agents,
+//                                 this.scope.read.organizations,
+//                                 this.scope.create.teams,
+//                                 this.scope.read.teams,
+//                                 this.scope.update.teams,
+//                                 this.scope.delete.teams,
+//                                 this.scope.create.teamMembers,
+//                                 this.scope.delete.teamMembers]);
                     });
 
                     it('displays the team invite', () => {
@@ -944,10 +947,10 @@ context('viewer/Team add agent', function() {
 
                         cy.get('#members-table table thead tr th').contains('Name');
                         cy.get('#members-table table thead tr th').contains('Email');
-                        cy.get('#members-table table tbody tr:nth-of-type(1) td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${anotherAgent.socialProfile.user_id}`);
-                        cy.get('#members-table table tbody tr:nth-of-type(1) td').contains(anotherAgent.email);
-                        cy.get('#members-table table tbody tr:nth-of-type(2) td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
-                        cy.get('#members-table table tbody tr:nth-of-type(2) td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+                        cy.get('#members-table table tbody tr:nth-of-type(1) td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
+                        cy.get('#members-table table tbody tr:nth-of-type(1) td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+                        cy.get('#members-table table tbody tr:nth-of-type(2) td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${anotherAgent.socialProfile.user_id}`);
+                        cy.get('#members-table table tbody tr:nth-of-type(2) td').contains(anotherAgent.email);
                      });
 
                       it('displays a friendly message', () => {
@@ -982,14 +985,14 @@ context('viewer/Team add agent', function() {
                           cy.wait(300);
 
                           // Login/create main test agent
-                          cy.login(_profile.email, _profile, [this.scope.read.agents,
-                                                              this.scope.create.organizations,
-                                                              this.scope.read.organizations,
-                                                              this.scope.update.organizations,
-                                                              this.scope.create.teams,
-                                                              this.scope.read.teams,
-                                                              this.scope.create.teamMembers,
-                                                              this.scope.delete.teamMembers]);
+                          cy.login(_profile.email, _profile);//, [this.scope.read.agents,
+                                                             // this.scope.create.organizations,
+                                                             // this.scope.read.organizations,
+                                                             // this.scope.update.organizations,
+                                                             // this.scope.create.teams,
+                                                             // this.scope.read.teams,
+                                                             // this.scope.create.teamMembers,
+                                                             // this.scope.delete.teamMembers]);
 
                           cy.get('#teams-table table tbody tr td a').contains('The A-Team').click();
                           cy.wait(300);
@@ -1048,14 +1051,14 @@ context('viewer/Team add agent', function() {
                           cy.wait(300);
 
                           // Login/create main test agent
-                          cy.login(_profile.email, _profile, [this.scope.read.agents,
-                                                              this.scope.create.organizations,
-                                                              this.scope.read.organizations,
-                                                              this.scope.update.organizations,
-                                                              this.scope.create.teams,
-                                                              this.scope.read.teams,
-                                                              this.scope.create.teamMembers,
-                                                              this.scope.delete.teamMembers]);
+                          cy.login(_profile.email, _profile);//, [this.scope.read.agents,
+                                                             // this.scope.create.organizations,
+                                                             // this.scope.read.organizations,
+                                                             // this.scope.update.organizations,
+                                                             // this.scope.create.teams,
+                                                             // this.scope.read.teams,
+                                                             // this.scope.create.teamMembers,
+                                                             // this.scope.delete.teamMembers]);
 
                           cy.get('#teams-table table tbody tr td a').contains('The A-Team').click();
                           cy.wait(300);
@@ -1085,15 +1088,15 @@ context('viewer/Team add agent', function() {
                 cy.wait(300);
 
                 // Accept invitation
-                cy.login(anotherAgent.email, {..._profile, name: anotherAgent.name},
-                          [this.scope.read.agents,
-                           this.scope.create.organizations,
-                           this.scope.read.organizations,
-                           this.scope.update.organizations,
-                           this.scope.create.teams,
-                           this.scope.read.teams,
-                           this.scope.create.teamMembers,
-                           this.scope.delete.teamMembers]);
+                cy.login(anotherAgent.email, {..._profile, name: anotherAgent.name});//,
+//                          [this.scope.read.agents,
+//                           this.scope.create.organizations,
+//                           this.scope.read.organizations,
+//                           this.scope.update.organizations,
+//                           this.scope.create.teams,
+//                           this.scope.read.teams,
+//                           this.scope.create.teamMembers,
+//                           this.scope.delete.teamMembers]);
                 cy.get('#rsvps-table table tbody tr td button span').contains('check').click();
                 cy.wait(300);
               });
@@ -1101,14 +1104,14 @@ context('viewer/Team add agent', function() {
               it('shows an error message when a duplicate agent is added', function() {
 
                 // Login team leader and send invite to same agent
-                cy.login(_profile.email, _profile, [this.scope.read.agents,
-                                                    this.scope.create.organizations,
-                                                    this.scope.read.organizations,
-                                                    this.scope.update.organizations,
-                                                    this.scope.create.teams,
-                                                    this.scope.read.teams,
-                                                    this.scope.create.teamMembers,
-                                                    this.scope.delete.teamMembers]);
+                cy.login(_profile.email, _profile);//, [this.scope.read.agents,
+                                                   // this.scope.create.organizations,
+                                                   // this.scope.read.organizations,
+                                                   // this.scope.update.organizations,
+                                                   // this.scope.create.teams,
+                                                   // this.scope.read.teams,
+                                                   // this.scope.create.teamMembers,
+                                                   // this.scope.delete.teamMembers]);
 
                 cy.contains('The A-Team').click();
                 cy.wait(300);

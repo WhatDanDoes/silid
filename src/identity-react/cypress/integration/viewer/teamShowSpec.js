@@ -51,7 +51,7 @@ context('viewer/Team show', function() {
                                                      leader: _profile.email,
                                                    }
                                                  ]
-                                               }, name: 'Some Other Guy' }, [this.scope.read.agents]);
+                                               }, name: 'Some Other Guy' });
 
       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
         anotherAgent = results[0];
@@ -64,7 +64,7 @@ context('viewer/Team show', function() {
                                                      leader: _profile.email,
                                                    }
                                                  ]
-                                               } }, [this.scope.read.agents]);
+                                               } });
 
         cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
           agent = results[0];
@@ -126,7 +126,7 @@ context('viewer/Team show', function() {
 
       beforeEach(function() {
         // Membership established in first `beforeEach`
-        cy.login('someotherguy@example.com', {..._profile, name: 'Some Other Guy'}, [this.scope.read.agents]);
+        cy.login('someotherguy@example.com', {..._profile, name: 'Some Other Guy'});
         cy.contains('The Calgary Roughnecks').click();
         cy.wait(300);
       });
@@ -169,7 +169,7 @@ context('viewer/Team show', function() {
       let team;
       beforeEach(function() {
         // Login/create another agent
-        cy.login('someunknownguy@example.com', _profile, [this.scope.read.agents]);
+        cy.login('someunknownguy@example.com', _profile);
         cy.wait(300);
       });
 

@@ -17,12 +17,7 @@ context('Team delete', function() {
   let agent, anotherAgent;
   beforeEach(function() {
     // Login/create main test agent
-    cy.login(_profile.email, _profile, [this.scope.read.agents,
-                                        this.scope.create.teams,
-                                        this.scope.read.teams,
-                                        this.scope.update.teams,
-                                        this.scope.delete.teams,
-                                        this.scope.create.teamMembers ]);
+    cy.login(_profile.email, _profile);
 
     cy.get('button span span').contains('add_box').click();
     cy.get('input[placeholder="Name"]').type('The A-Team');
@@ -35,58 +30,6 @@ context('Team delete', function() {
   });
 
   describe('Deleting', () => {
-    describe('unsuccessfully', () => {
-      describe('without sufficient privilege', () => {
-
-        beforeEach(function() {
-          cy.login(_profile.email, agent.socialProfile, [this.scope.read.agents, this.scope.read.teams]);
-          cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
-            agent = results[0];
-
-            cy.contains('The A-Team').click();
-            cy.wait(300);
-          });
-        });
-
-        it('lands in the proper place', () => {
-          cy.on('window:confirm', (str) => {
-            return true;
-          });
-          cy.get('#delete-team').click();
-          cy.url().should('contain', `/#/team/${agent.socialProfile.user_metadata.teams[0].id}`);
-        });
-
-        it('displays a friendly error message', () => {
-          cy.on('window:confirm', (str) => {
-            return true;
-          });
-          cy.get('#delete-team').click();
-          cy.get('#flash-message').contains('Insufficient scope');
-
-          // Do it again to ensure flash message is reset
-          cy.get('#flash-message #close-flash').click();
-          cy.wait(100);
-          cy.get('#delete-team').click();
-          cy.get('#flash-message').contains('Insufficient scope');
-        });
-
-        it('does not remove the record from the team leader\'s user_metadata', () => {
-          cy.on('window:confirm', (str) => {
-            return true;
-          });
-          cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
-            expect(results.length).to.eq(1);
-            expect(results[0].socialProfile.user_metadata.teams.length).to.eq(1);
-            cy.get('#delete-team').click();
-            cy.wait(300);
-            cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
-              expect(results[0].socialProfile.user_metadata.teams.length).to.eq(1);
-            });
-          });
-        });
-      });
-    });
-
     describe('successfully', () => {
 
       beforeEach(() => {
@@ -105,14 +48,9 @@ context('Team delete', function() {
                                                          leader: _profile.email,
                                                        }
                                                      ]
-                                                   }, name: 'Some Other Guy' }, [this.scope.read.agents]);
+                                                   }, name: 'Some Other Guy' });
           // Login/create main test agent
-          cy.login(_profile.email, _profile, [this.scope.read.agents,
-                                              this.scope.create.teams,
-                                              this.scope.read.teams,
-                                              this.scope.update.teams,
-                                              this.scope.delete.teams,
-                                              this.scope.create.teamMembers ]);
+          cy.login(_profile.email, _profile);
 
           cy.contains('The A-Team').click();
           cy.wait(300);
@@ -130,12 +68,7 @@ context('Team delete', function() {
       context('when team has pending invitations', () => {
         beforeEach(function() {
           // Login/create main test agent
-          cy.login(_profile.email, _profile, [this.scope.read.agents,
-                                              this.scope.create.teams,
-                                              this.scope.read.teams,
-                                              this.scope.update.teams,
-                                              this.scope.delete.teams,
-                                              this.scope.create.teamMembers ]);
+          cy.login(_profile.email, _profile);
 
           cy.contains('The A-Team').click();
           cy.wait(300);
