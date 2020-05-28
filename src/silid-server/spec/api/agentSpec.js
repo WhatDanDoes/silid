@@ -520,7 +520,7 @@ describe('agentSpec', () => {
       });
 
       describe('update', () => {
-        it('returns 403', done => {
+        it('returns 401', done => {
           forbiddenSession
             .put('/agent')
             .send({
@@ -529,10 +529,10 @@ describe('agentSpec', () => {
             })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
-            .expect(403)
+            .expect(401)
             .end(function(err, res) {
               if (err) return done.fail(err);
-              expect(res.body.message).toEqual('Insufficient scope');
+              expect(res.body.message).toEqual('Unauthorized');
               done();
             });
         });
@@ -546,7 +546,7 @@ describe('agentSpec', () => {
             })
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
-            .expect(403)
+            .expect(401)
             .end(function(err, res) {
               if (err) done.fail(err);
               models.Agent.findOne({ where: { id: agent.id }}).then(results => {
