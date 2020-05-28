@@ -806,7 +806,7 @@ context('viewer/Team add agent', function() {
                 });
 
                 // This can happen if an agent is deleted manually at Auth0
-                it.only('removes hanging pending invitation if agent is already a member', () => {
+                it('removes hanging pending invitation if agent is already a member', () => {
 
                   // Accept invitation
                   cy.login(anotherAgent.email, {..._profile, name: anotherAgent.name});
