@@ -90,7 +90,6 @@ context('viewer/Agent show', function() {
                                                          id: 'some-uuid-v4',
                                                          name: 'The Calgary Roughnecks',
                                                          leader: 'someguy@example.com',
-                                                         members: ['someguy@example.com', 'someotherguy@example.com']
                                                        }
                                                      ]
                                                    } });
@@ -191,7 +190,6 @@ context('viewer/Agent show', function() {
                                                          id: 'some-uuid-v4',
                                                          name: 'The Calgary Roughnecks',
                                                          leader: 'someguy@example.com',
-                                                         members: ['someguy@example.com']
                                                        }
                                                      ]
                                                    } });
