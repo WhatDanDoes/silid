@@ -111,14 +111,14 @@ context('viewer/Team show', function() {
 
         cy.get('table thead tr th').contains('Name');
         cy.get('table thead tr th').contains('Email');
-        // Member agent can be deleted
-        cy.get('table tbody tr:nth-of-type(1) button[title=Delete]').should('exist');
-        cy.get('table tbody tr:nth-of-type(1) td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${anotherAgent.socialProfile.user_id}`);
-        cy.get('table tbody tr:nth-of-type(1) td').contains(anotherAgent.socialProfile.email);
         // Team leader cannot be deleted
-        cy.get('table tbody tr:nth-of-type(2) button[title=Delete]').should('not.exist');
-        cy.get('table tbody tr:nth-of-type(2) td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
-        cy.get('table tbody tr:nth-of-type(2) td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+        cy.get('table tbody tr:nth-of-type(1) button[title=Delete]').should('not.exist');
+        cy.get('table tbody tr:nth-of-type(1) td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
+        cy.get('table tbody tr:nth-of-type(1) td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+        // Member agent can be deleted
+        cy.get('table tbody tr:nth-of-type(2) button[title=Delete]').should('exist');
+        cy.get('table tbody tr:nth-of-type(2) td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${anotherAgent.socialProfile.user_id}`);
+        cy.get('table tbody tr:nth-of-type(2) td').contains(anotherAgent.socialProfile.email);
       });
     });
 

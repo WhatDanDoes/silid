@@ -835,7 +835,7 @@ context('viewer/Team add agent', function() {
                     cy.wait(300);
 
                     cy.get('#members-table table tbody').find('tr').its('length').should('eq', 2);
-                    cy.get('#members-table table tbody tr:nth-of-type(1) td').should('contain', anotherAgent.name);
+                    cy.get('#members-table table tbody tr:nth-of-type(2) td').should('contain', anotherAgent.name);
                     cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 1);
                     cy.get('#pending-invitations-table table tbody tr td').should('contain', anotherAgent.email);
 
@@ -987,10 +987,10 @@ context('viewer/Team add agent', function() {
                         it('adds the new agent to the team members table', () => {
                           cy.get('#members-table table thead tr th').contains('Name');
                           cy.get('#members-table table thead tr th').contains('Email');
-                          cy.get('#members-table table tbody tr:nth-of-type(1) td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${anotherAgent.socialProfile.user_id}`);
-                          cy.get('#members-table table tbody tr:nth-of-type(1) td').contains(anotherAgent.email);
-                          cy.get('#members-table table tbody tr:nth-of-type(2) td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
-                          cy.get('#members-table table tbody tr:nth-of-type(2) td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+                          cy.get('#members-table table tbody tr:nth-of-type(1) td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
+                          cy.get('#members-table table tbody tr:nth-of-type(1) td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+                          cy.get('#members-table table tbody tr:nth-of-type(2) td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${anotherAgent.socialProfile.user_id}`);
+                          cy.get('#members-table table tbody tr:nth-of-type(2) td').contains(anotherAgent.email);
                         });
                       });
                     });
@@ -1117,7 +1117,7 @@ context('viewer/Team add agent', function() {
                   cy.wait(300);
 
                   cy.get('#members-table table tbody').find('tr').its('length').should('eq', 2);
-                  cy.get('#members-table table tbody tr:nth-of-type(1) td').should('contain', anotherAgent.name);
+                  cy.get('#members-table table tbody tr:nth-of-type(2) td').should('contain', anotherAgent.name);
                   cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 1);
                   cy.get('#pending-invitations-table table tbody tr td').should('contain', anotherAgent.email);
 
