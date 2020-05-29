@@ -43,6 +43,16 @@ function collateTeams(agents, teamId, agentId) {
     teams.members.push({ name: agent.name, email: agent.email, user_id: agent.user_id });
   });
 
+  teams.members.sort((a, b) => {
+    if (a.name < b.name) {
+      return -1;
+    }
+    if (a.name > b.name) {
+      return 1;
+    }
+    return 0;
+  });
+
   return teams;
 }
 

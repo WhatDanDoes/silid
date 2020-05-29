@@ -90,11 +90,11 @@ describe('teamSpec', () => {
                     if (err) return done.fail();
                     ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
 
-                      stubUserAppMetadataUpdate((err, apiScopes) => {
-                        if (err) return done.fail();
-                        ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                        done();
-                      });
+                    stubUserAppMetadataUpdate((err, apiScopes) => {
+                      if (err) return done.fail();
+                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                      done();
+                    });
                   });
                 });
               });
@@ -324,7 +324,15 @@ describe('teamSpec', () => {
                 stubUserRead((err, apiScopes) => {
                   if (err) return done.fail();
 
-                  stubTeamRead((err, apiScopes) => {
+                  stubTeamRead([_profile,
+                                {..._profile,
+                                  name: 'A Aaronson',
+                                  email: 'aaaronson@example.com',
+                                  user_id: _profile.user_id + 1,
+                                  user_metadata: {
+                                    teams: [{ name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId }]
+                                  }
+                                }], (err, apiScopes) => {
                     if (err) return done.fail();
                     ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
 
@@ -350,7 +358,10 @@ describe('teamSpec', () => {
                 expect(res.body.name).toEqual('The Calgary Roughnecks');
                 expect(res.body.leader).toEqual(_profile.email);
                 expect(res.body.id).toEqual(teamId);
-                expect(res.body.members).toEqual([{ name: _profile.name, email: _profile.email, user_id: _profile.user_id }]);
+                // Alphabetical according to name
+                expect(res.body.members.length).toEqual(2);
+                expect(res.body.members[0]).toEqual({ name: 'A Aaronson', email: 'aaaronson@example.com', user_id: _profile.user_id + 1 });
+                expect(res.body.members[1]).toEqual({ name: _profile.name, email: _profile.email, user_id: _profile.user_id });
 
                 done();
               });
