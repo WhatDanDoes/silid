@@ -954,34 +954,819 @@ describe('teamMembershipSpec', () => {
 
         describe('registered agent', () => {
 
-          const _registeredProfile = {..._profile, name: 'Some Other Guy', email: 'someotherguy@example.com', user_metadata: {} };
+          describe('with Auth0 profile', () => {
+            const _registeredProfile = {..._profile, name: 'Some Other Guy', email: 'someotherguy@example.com' };
 
-          let registeredAgent;
-          let invitedUserAppMetadataReadScope, invitedUserAppMetadataReadOauthTokenScope;
-          let invitedUserAppMetadataUpdateScope, invitedUserAppMetadataUpdateOauthTokenScope;
-          let teamLeaderAppMetadataUpdateScope, teamLeaderAppMetadataUpdateOauthTokenScope;
-          beforeEach(done => {
-            models.Agent.create({ name: 'Some Other Guy',
-                                  email: 'someotherguy@example.com',
-                                  socialProfile: _registeredProfile }).then(result => {
-              registeredAgent = result;
+            let registeredAgent;
+            let invitedUserAppMetadataReadScope, invitedUserAppMetadataReadOauthTokenScope;
+            let invitedUserAppMetadataUpdateScope, invitedUserAppMetadataUpdateOauthTokenScope;
+            let teamLeaderAppMetadataUpdateScope, teamLeaderAppMetadataUpdateOauthTokenScope;
+            beforeEach(done => {
+              models.Agent.create({ name: 'Some Other Guy',
+                                    email: 'someotherguy@example.com',
+                                    socialProfile: _registeredProfile }).then(result => {
+                registeredAgent = result;
 
-              // This resets state between tests
-              _registeredProfile.user_metadata = {};
+                // This resets state between tests
+                //_registeredProfile.user_metadata = {};
+                delete _registeredProfile.user_metadata;
 
-              // Read the invited agent
-              stubUserAppMetadataRead(_registeredProfile, (err, apiScopes) => {
-                if (err) return done.fail();
-                ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
-                invitedUserAppMetadataReadScope = userAppMetadataReadScope;
-                invitedUserAppMetadataReadOauthTokenScope = userAppMetadataReadOauthTokenScope;
-
-                // Update the invited agent
-                stubUserAppMetadataUpdate(_registeredProfile, (err, apiScopes) => {
+                // Read the invited agent
+                stubUserAppMetadataRead(_registeredProfile, (err, apiScopes) => {
                   if (err) return done.fail();
-                  let {userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes;
-                  invitedUserAppMetadataUpdateScope = userAppMetadataUpdateScope;
-                  invitedUserAppMetadataUpdateOauthTokenScope = userAppMetadataUpdateOauthTokenScope;
+                  ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
+                  invitedUserAppMetadataReadScope = userAppMetadataReadScope;
+                  invitedUserAppMetadataReadOauthTokenScope = userAppMetadataReadOauthTokenScope;
+
+                  // Update the invited agent
+                  stubUserAppMetadataUpdate(_registeredProfile, (err, apiScopes) => {
+                    if (err) return done.fail();
+                    let {userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes;
+                    invitedUserAppMetadataUpdateScope = userAppMetadataUpdateScope;
+                    invitedUserAppMetadataUpdateOauthTokenScope = userAppMetadataUpdateOauthTokenScope;
+
+                    // Read the team leader
+                    stubUserAppMetadataUpdate((err, apiScopes) => {
+                      if (err) return done.fail();
+                      let {userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes;
+                      teamLeaderAppMetadataUpdateScope = userAppMetadataUpdateScope;
+                      teamLeaderAppMetadataUpdateOauthTokenScope = userAppMetadataUpdateOauthTokenScope;
+
+                      done();
+                    });
+                  });
+                });
+              }).catch(err => {
+                done.fail(err);
+              });
+            });
+
+            describe('is sent a new invite', () => {
+              it('does not add an invitation to the database', done => {
+                models.Agent.findAll().then(results => {
+                  expect(results.length).toEqual(2);
+                  expect(results[0].id).toEqual(agent.id);
+                  expect(results[1].id).toEqual(registeredAgent.id);
+
+                  models.Invitation.findAll().then(results => {
+                    expect(results.length).toEqual(0);
+
+                    authenticatedSession
+                      .put(`/team/${teamId}/agent`)
+                      .send({
+                        email: registeredAgent.email
+                      })
+                      .set('Accept', 'application/json')
+                      .expect('Content-Type', /json/)
+                      .expect(201)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+
+                        models.Invitation.findAll().then(results => {
+                          expect(results.length).toEqual(0);
+
+                          done();
+                        }).catch(err => {
+                          done.fail(err);
+                        });
+                      });
+                  }).catch(err => {
+                    done.fail(err);
+                  });
+                }).catch(err => {
+                  done.fail(err);
+                });
+              });
+
+              it('converts rsvp recipient email to lowercase', done => {
+                expect(_registeredProfile.user_metadata).toBeUndefined();
+                authenticatedSession
+                  .put(`/team/${teamId}/agent`)
+                  .send({
+                    email: registeredAgent.email.toUpperCase()
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    expect(_registeredProfile.user_metadata.rsvps.length).toEqual(1);
+                    expect(_registeredProfile.user_metadata.rsvps[0].recipient).toEqual(registeredAgent.email.toLowerCase());
+
+                    // Cached profile doesn't match "live" data, so agent needs to be updated
+                    // with a call to Auth0
+                    stubUserRead((err, apiScopes) => {
+                      if (err) return done.fail();
+
+                      // Read the invited agent
+                      stubUserAppMetadataRead(_registeredProfile, (err, apiScopes) => {
+                        if (err) return done.fail();
+
+                        // Update the invited agent
+                        stubUserAppMetadataUpdate(_registeredProfile, (err, apiScopes) => {
+                          if (err) return done.fail();
+
+                          // Read the team leader
+                          stubUserAppMetadataUpdate((err, apiScopes) => {
+                            if (err) return done.fail();
+
+                            // Invitation sent twice to ensure they don't start stacking up
+                            authenticatedSession
+                              .put(`/team/${teamId}/agent`)
+                              .send({
+                                email: registeredAgent.email.toUpperCase()
+                              })
+                              .set('Accept', 'application/json')
+                              .expect('Content-Type', /json/)
+                              .expect(201)
+                              .end(function(err, res) {
+                                if (err) return done.fail(err);
+
+                                expect(_registeredProfile.user_metadata.rsvps.length).toEqual(1);
+                                expect(_registeredProfile.user_metadata.rsvps[0].recipient).toEqual(registeredAgent.email.toLowerCase());
+
+                                done();
+                              });
+                          });
+                        });
+                      });
+                    });
+                  });
+              });
+
+              describe('Auth0', () => {
+                describe('invited agent', () => {
+                  it('/oauth/token endpoint is called to retrieve a machine-to-machine access token', done => {
+                    authenticatedSession
+                      .put(`/team/${teamId}/agent`)
+                      .send({
+                        email: registeredAgent.email
+                      })
+                      .set('Accept', 'application/json')
+                      .expect('Content-Type', /json/)
+                      .expect(201)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+                        expect(invitedUserAppMetadataReadOauthTokenScope.isDone()).toBe(true);
+                        done();
+                      });
+                  });
+
+                  it('is called to see if the agent already exists', done => {
+                    authenticatedSession
+                      .put(`/team/${teamId}/agent`)
+                      .send({
+                        email: registeredAgent.email
+                      })
+                      .set('Accept', 'application/json')
+                      .expect('Content-Type', /json/)
+                      .expect(201)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+                        expect(invitedUserAppMetadataReadScope.isDone()).toBe(true);
+                        done();
+                      });
+                  });
+
+                  it('is called to write the pending invitation to user_metadata', done => {
+                    authenticatedSession
+                      .put(`/team/${teamId}/agent`)
+                      .send({
+                        email: registeredAgent.email
+                      })
+                      .set('Accept', 'application/json')
+                      .expect('Content-Type', /json/)
+                      .expect(201)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+
+                        expect(invitedUserAppMetadataUpdateScope.isDone()).toBe(true);
+                        expect(invitedUserAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+
+                        done();
+                      });
+                  });
+                });
+
+                describe('team leader', () => {
+                  it('/oauth/token endpoint is called to retrieve a machine-to-machine access token', done => {
+                    authenticatedSession
+                      .put(`/team/${teamId}/agent`)
+                      .send({ email: registeredAgent.email })
+                      .set('Accept', 'application/json')
+                      .expect('Content-Type', /json/)
+                      .expect(201)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+                        expect(teamLeaderAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                        done();
+                      });
+                  });
+
+                  it('writes the pending invitation to user_metadata', done => {
+                    authenticatedSession
+                      .put(`/team/${teamId}/agent`)
+                      .send({
+                        email: registeredAgent.email
+                      })
+                      .set('Accept', 'application/json')
+                      .expect('Content-Type', /json/)
+                      .expect(201)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+
+                        expect(teamLeaderAppMetadataUpdateScope.isDone()).toBe(true);
+
+                        done();
+                      });
+                  });
+                });
+              });
+
+              describe('email', () => {
+                describe('notification', () => {
+                  it('sends an email to notify agent of team membership invitation', function(done) {
+                    expect(mailer.transport.sentMail.length).toEqual(0);
+                    authenticatedSession
+                      .put(`/team/${teamId}/agent`)
+                      .send({
+                        email: registeredAgent.email
+                      })
+                      .set('Accept', 'application/json')
+                      .expect('Content-Type', /json/)
+                      .expect(201)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+                        expect(mailer.transport.sentMail.length).toEqual(1);
+                        expect(mailer.transport.sentMail[0].data.to).toEqual(registeredAgent.email);
+                        expect(mailer.transport.sentMail[0].data.from).toEqual(process.env.NOREPLY_EMAIL);
+                        expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity team invitation');
+
+                        expect(mailer.transport.sentMail[0].data.text).toContain('You have been invited to join a team:');
+                        expect(mailer.transport.sentMail[0].data.text).toContain('The Calgary Roughnecks');
+                        expect(mailer.transport.sentMail[0].data.text).toContain('Login at the link below to view the invitation:');
+                        expect(mailer.transport.sentMail[0].data.text).toContain(process.env.SERVER_DOMAIN);
+
+                        done();
+                      });
+                  });
+                });
+
+                describe('invitation verification', () => {
+
+                  let verificationUrl;
+                  beforeEach(done => {
+                    authenticatedSession
+                      .put(`/team/${teamId}/agent`)
+                      .send({
+                        email: registeredAgent.email
+                      })
+                      .set('Accept', 'application/json')
+                      .expect('Content-Type', /json/)
+                      .expect(201)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+
+                        verificationUrl = `/team/${teamId}/invite`;
+
+                        // This reset the profile for the invited agent
+                        _profile.email_verified = true;
+                        _profile.user_metadata = {
+                          rsvps: [{name: 'The Calgary Roughnecks', uuid: teamId, recipient: registeredAgent.email, type: 'team'}],
+                        };
+                        _profile.email = registeredAgent.email;
+                        _profile.name = registeredAgent.name;
+
+                        done();
+                      });
+                  });
+
+                  describe('while authenticated', () => {
+                    let invitedAgentSession;
+                    beforeEach(done => {
+                      stubAuth0ManagementApi((err, apiScopes) => {
+                        if (err) return done.fail();
+
+                        login({..._identity, email: registeredAgent.email, name: registeredAgent.name },
+                              [scope.create.teamMembers, scope.delete.teamMembers], (err, session) => {
+                          if (err) return done.fail(err);
+                          invitedAgentSession = session;
+
+                          done();
+                        });
+                      });
+                    });
+
+                    describe('the agent may', () => {
+
+                      beforeEach(done => {
+                        // Cached profile doesn't match "live" data, so agent needs to be updated
+                        // with a call to Auth0
+                        stubUserRead((err, apiScopes) => {
+                          if (err) return done.fail();
+                          stubUserReadQuery([{..._profile,
+                                             email: 'someguy@example.com',
+                                             name: 'Some Guy',
+                                             user_metadata: {
+                                               pendingInvitations: [{name: 'The Calgary Roughnecks', uuid: teamId, recipient: registeredAgent.email, type: 'team'}],
+                                               teams: [{name: 'The Calgary Roughnecks', id: teamId, leader: 'someguy@example.com'}]
+                                             }}], (err, apiScopes) => {
+                            if (err) return done.fail(err);
+                            // Update the invited agent
+                            stubUserAppMetadataUpdate((err, apiScopes) => {
+                              if (err) return done.fail(err);
+
+                              // Update the team leader
+                              stubUserAppMetadataUpdate((err, apiScopes) => {
+                                if (err) return done.fail(err);
+
+                                done();
+                              });
+                            });
+                          });
+                        });
+                      });
+
+                      describe('accept the invitation', () => {
+
+                        it('writes team membership to the agent\'s user_metadata', done => {
+                          expect(_profile.user_metadata.teams).toBeUndefined();
+                          invitedAgentSession
+                            .get(`${verificationUrl}/accept`)
+                            .set('Accept', 'application/json')
+                            .expect('Content-Type', /json/)
+                            .expect(201)
+                            .end(function(err, res) {
+                              if (err) return done.fail(err);
+
+                              expect(_profile.user_metadata.teams).toBeDefined();
+                              expect(_profile.user_metadata.teams.length).toEqual(1);
+                              expect(_profile.user_metadata.teams[0].name).toEqual('The Calgary Roughnecks');
+                              expect(_profile.user_metadata.teams[0].id).toEqual(teamId);
+                              expect(_profile.user_metadata.teams[0].leader).toEqual('someguy@example.com');
+
+                              done();
+                            });
+                        });
+
+                        it('removes the invitation from the agent\'s user_metadata', done => {
+                          // Note the flip-flop from testing _profile to testing res.body
+                          // The _profile constant is getting manipulated by the mocks.
+                          // This is happening twice-over because both the invited agent
+                          // and the team leader are being updated. The state of the
+                          // _profile reflects that of the team leader because he is the
+                          // last to be updated.
+                          expect(_profile.user_metadata.rsvps.length).toEqual(1);
+                          invitedAgentSession
+                            .get(`${verificationUrl}/accept`)
+                            .set('Accept', 'application/json')
+                            .expect('Content-Type', /json/)
+                            .expect(201)
+                            .end(function(err, res) {
+                              if (err) return done.fail(err);
+
+                              expect(res.body.user_metadata.rsvps.length).toEqual(0);
+
+                              done();
+                            });
+                        });
+
+                        it('doesn\'t barf if the team doesn\'t exist', done => {
+                          invitedAgentSession
+                            .get('/team/333/invite/accept')
+                            .set('Accept', 'application/json')
+                            .expect('Content-Type', /json/)
+                            .expect(404)
+                            .end(function(err, res) {
+                              if (err) return done.fail(err);
+
+                              expect(res.body.message).toEqual('No such invitation');
+
+                              done();
+                            });
+                        });
+
+                        it('removes the invitation from the team leader\'s user_metadata', done => {
+                          // Cf. note above...
+                          // Before verification, _profile represents the invited agent's profile.
+                          // The mocks modify _profile. By test's end, the profile belongs to the
+                          // team leader.
+                          expect(_profile.user_metadata.pendingInvitations).toBeUndefined();
+                          invitedAgentSession
+                            .get(`${verificationUrl}/accept`)
+                            .set('Accept', 'application/json')
+                            .expect('Content-Type', /json/)
+                            .expect(201)
+                            .end(function(err, res) {
+                              if (err) return done.fail(err);
+
+                              // _profile reflects state of team leader. Cf. above...
+                              expect(_profile.user_metadata.pendingInvitations.length).toEqual(0);
+
+                              done();
+                            });
+                        });
+
+                        describe('agent is already a member of the team', () => {
+                          beforeEach(done => {
+                            // Agent accepts invite
+                            invitedAgentSession
+                              .get(`${verificationUrl}/accept`)
+                              .set('Accept', 'application/json')
+                              .expect('Content-Type', /json/)
+                              .expect(201)
+                              .end(function(err, res) {
+                                if (err) return done.fail(err);
+
+                                // Try adding the agent again
+                                stubUserRead((err, apiScopes) => {
+                                  if (err) return done.fail();
+
+                                  // This stubs the call for info on the agent who is already a team member
+                                  stubUserAppMetadataRead({..._profile,
+                                                           user_metadata: { teams: [
+                                                             {name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId }
+                                                           ] } }, (err, apiScopes) => {
+                                    if (err) return done.fail();
+                                    done();
+                                   });
+                                });
+                              });
+                          });
+
+                          it('returns a friendly message if agent is already a member of the team', done => {
+                            authenticatedSession
+                              .put(`/team/${teamId}/agent`)
+                              .send({
+                                email: registeredAgent.email
+                              })
+                              .set('Accept', 'application/json')
+                              .expect('Content-Type', /json/)
+                              .expect(200)
+                              .end(function(err, res) {
+                                if (err) return done.fail(err);
+
+                                expect(res.body.message).toEqual(`${registeredAgent.email} is already a member of this team`);
+                                done();
+                              });
+                          });
+
+                          it('does not write a new invitation to the team leader\'s pending invitations', done => {
+                            // Cf. note above...
+                            // Before verification, _profile represents the invited agent's profile.
+                            // The agent has verified, and thus the _profile belongs to the team leader
+                            expect(_profile.user_metadata.pendingInvitations.length).toEqual(0);
+
+                            authenticatedSession
+                              .put(`/team/${teamId}/agent`)
+                              .send({
+                                email: registeredAgent.email
+                              })
+                              .set('Accept', 'application/json')
+                              .expect('Content-Type', /json/)
+                              .expect(200)
+                              .end(function(err, res) {
+                                if (err) return done.fail(err);
+
+                                expect(_profile.user_metadata.pendingInvitations.length).toEqual(0);
+                                done();
+                              });
+                          });
+
+                          it('does not call Auth0 to update the invited agent', done => {
+                            stubUserAppMetadataUpdate((err, apiScopes) => {
+                              if (err) return done.fail();
+                              let {userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes;
+
+                              authenticatedSession
+                                .put(`/team/${teamId}/agent`)
+                                .send({
+                                  email: registeredAgent.email
+                                })
+                                .set('Accept', 'application/json')
+                                .expect('Content-Type', /json/)
+                                .expect(200)
+                                .end(function(err, res) {
+                                  if (err) return done.fail(err);
+
+                                  expect(userAppMetadataUpdateScope.isDone()).toBe(false);
+                                  expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                                  done();
+                                });
+                            });
+                          });
+                        });
+                      });
+
+                      describe('reject the invitation', () => {
+
+                        it('does not write team membership to the agent\'s user_metadata', done => {
+                          // Note the flip-flop from testing _profile to testing res.body. Cf. above...
+                          expect(_profile.user_metadata.teams).toBeUndefined();
+                          invitedAgentSession
+                            .get(`${verificationUrl}/reject`)
+                            .set('Accept', 'application/json')
+                            .expect('Content-Type', /json/)
+                            .expect(201)
+                            .end(function(err, res) {
+                              if (err) return done.fail(err);
+
+                              expect(res.body.user_metadata.teams.length).toEqual(0);
+
+                              done();
+                            });
+                        });
+
+                        it('removes the invitation from the agent\'s user_metadata', done => {
+                          // Note the flip-flop from testing _profile to testing res.body. Cf. above...
+                          expect(_profile.user_metadata.rsvps.length).toEqual(1);
+                          invitedAgentSession
+                            .get(`${verificationUrl}/reject`)
+                            .set('Accept', 'application/json')
+                            .expect('Content-Type', /json/)
+                            .expect(201)
+                            .end(function(err, res) {
+                              if (err) return done.fail(err);
+
+                              expect(res.body.user_metadata.rsvps.length).toEqual(0);
+
+                              done();
+                            });
+                        });
+
+                        it('doesn\'t barf if the team doesn\'t exist', done => {
+                          invitedAgentSession
+                            .get('/team/333/invite/reject')
+                            .set('Accept', 'application/json')
+                            .expect('Content-Type', /json/)
+                            .expect(404)
+                            .end(function(err, res) {
+                              if (err) return done.fail(err);
+
+                              expect(res.body.message).toEqual('No such invitation');
+
+                              done();
+                            });
+                        });
+
+                        it('removes the invitation from the team leader\'s user_metadata', done => {
+                          invitedAgentSession
+                            .get(`${verificationUrl}/reject`)
+                            .set('Accept', 'application/json')
+                            .expect('Content-Type', /json/)
+                            .expect(201)
+                            .end(function(err, res) {
+                              if (err) return done.fail(err);
+
+                              // _profile reflects state of team leader. Cf. above...
+                              expect(_profile.user_metadata.pendingInvitations.length).toEqual(0);
+
+                              done();
+                            });
+                        });
+                      });
+                    });
+                  });
+
+                  describe('while not authenticated', () => {
+                    it('redirects to /login', function(done) {
+                      request(app)
+                        .get(`${verificationUrl}/accept`)
+                        .set('Accept', 'application/json')
+                        .expect(302)
+                        .end(function(err, res) {
+                          if (err) return done.fail(err);
+
+                          expect(res.headers.location).toEqual(`/login`);
+                          done();
+                        });
+                    });
+                  });
+                });
+              });
+            });
+
+            describe('is re-sent an invite', () => {
+              beforeEach(done => {
+                authenticatedSession
+                  .put(`/team/${teamId}/agent`)
+                  .send({
+                    email: 'somebrandnewguy@example.com'
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    stubUserRead((err, apiScopes) => {
+                      if (err) return done.fail();
+
+                      done();
+                    });
+                  });
+              });
+
+              it('sends an email to notify agent of team membership invitation', function(done) {
+                expect(mailer.transport.sentMail.length).toEqual(1);
+                authenticatedSession
+                  .put(`/team/${teamId}/agent`)
+                  .send({
+                    email: 'somebrandnewguy@example.com'
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+                    expect(mailer.transport.sentMail.length).toEqual(2);
+                    expect(mailer.transport.sentMail[0].data.to).toEqual('somebrandnewguy@example.com');
+                    expect(mailer.transport.sentMail[0].data.from).toEqual(process.env.NOREPLY_EMAIL);
+                    expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity team invitation');
+
+                    expect(mailer.transport.sentMail[0].data.text).toContain('You have been invited to join a team:');
+                    expect(mailer.transport.sentMail[0].data.text).toContain('The Calgary Roughnecks');
+                    expect(mailer.transport.sentMail[0].data.text).toContain('Login at the link below to view the invitation:');
+                    expect(mailer.transport.sentMail[0].data.text).toContain(process.env.SERVER_DOMAIN);
+
+                    done();
+                  });
+              });
+            });
+
+            describe('has invitation rescinded', () => {
+
+              let verificationUrl;
+
+              beforeEach(done => {
+                authenticatedSession
+                  .put(`/team/${teamId}/agent`)
+                  .send({
+                    email: registeredAgent.email
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    verificationUrl = `/team/${teamId}/invite`;
+
+                    // For the team leader permission check
+                    stubUserRead((err, apiScopes) => {
+                      if (err) return done.fail();
+
+                      // Update the team leader
+                      stubUserAppMetadataUpdate((err, apiScopes) => {
+                        if (err) return done.fail();
+                        let {userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes;
+                        teamLeaderAppMetadataUpdateScope = userAppMetadataUpdateScope;
+                        teamLeaderAppMetadataUpdateOauthTokenScope = userAppMetadataUpdateOauthTokenScope;
+
+                        // Retrieve the invited agent
+                        stubUserAppMetadataRead({ ...registeredAgent.socialProfile,
+                                                  user_metadata: {...registeredAgent.socialProfile.user_metadata, rsvps: [{uuid: teamId}]}
+                                                }, (err, apiScopes) => {
+                          if (err) return done.fail();
+                          ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
+                          invitedUserAppMetadataReadScope = userAppMetadataReadScope;
+                          invitedUserAppMetadataReadOauthTokenScope = userAppMetadataReadOauthTokenScope;
+
+                          // Update the previously invited agent
+                          stubUserAppMetadataUpdate((err, apiScopes) => {
+                            if (err) return done.fail();
+                            let {userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes;
+                            invitedUserAppMetadataUpdateScope = userAppMetadataUpdateScope;
+                            invitedUserAppMetadataUpdateOauthTokenScope = userAppMetadataUpdateOauthTokenScope;
+
+                            done();
+                          });
+                        });
+                      });
+                    });
+                  });
+              });
+
+              it('calls Auth0 to remove the invitation from the invited agent\'s user_metadata', done => {
+                authenticatedSession
+                  .delete(verificationUrl)
+                  .send({
+                    email: registeredAgent.email
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    expect(invitedUserAppMetadataReadScope.isDone()).toBe(true);
+                    expect(invitedUserAppMetadataUpdateScope.isDone()).toBe(true);
+
+                    done();
+                  });
+              });
+
+              it('removes the invitation from the team leader\'s user_metadata', done => {
+                // Cf. above... reverse thing happening here. Invited
+                // agent is last to be modified, so the _profile represents him
+                expect(_profile.user_metadata.pendingInvitations.length).toEqual(1);
+                authenticatedSession
+                  .delete(verificationUrl)
+                  .send({
+                    email: registeredAgent.email
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    expect(res.body.user_metadata.pendingInvitations.length).toEqual(0);
+                    expect(teamLeaderAppMetadataUpdateScope.isDone()).toBe(true);
+
+                    done();
+                  });
+              });
+
+              it('doesn\'t barf if the team doesn\'t exist', done => {
+                authenticatedSession
+                  .delete('/team/333/invite')
+                  .send({
+                    email: registeredAgent.email
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(404)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    expect(res.body.message).toEqual('No such invitation');
+
+                    done();
+                  });
+              });
+
+              it('doesn\'t barf if the invitation doesn\'t exist', done => {
+                authenticatedSession
+                  .delete(verificationUrl)
+                  .send({
+                    email: registeredAgent.email
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    stubUserRead((err, apiScopes) => {
+                      if (err) return done.fail(err);
+
+                      authenticatedSession
+                        .delete(verificationUrl)
+                        .send({
+                          email: registeredAgent.email
+                        })
+                        .set('Accept', 'application/json')
+                        .expect('Content-Type', /json/)
+                        .expect(404)
+                        .end(function(err, res) {
+                          if (err) return done.fail(err);
+
+                          expect(res.body.message).toEqual('No such invitation');
+
+                          done();
+                        });
+                    });
+                  });
+              });
+            });
+          });
+
+          describe('deleted at Auth0', () => {
+            // Error format lifted from real-life Auth0 error
+            const _notFoundError = { name: 'Not Found', message: 'The user does not exist.', statusCode: 404,
+                                     requestInfo: { method: 'get', url: 'https://silid.auth0.com/api/v2/users/google-oauth2%7C113715000000000000000' } };
+
+            let registeredAgent;
+            let invitedUserAppMetadataReadScope, invitedUserAppMetadataReadOauthTokenScope;
+            let teamLeaderAppMetadataUpdateScope, teamLeaderAppMetadataUpdateOauthTokenScope;
+            beforeEach(done => {
+              models.Agent.create({ name: 'Some Other Guy',
+                                    email: 'someotherguy@example.com',
+                                    socialProfile: {..._profile, name: 'Some Other Guy', email: 'someotherguy@example.com' } }).then(result => {
+                registeredAgent = result;
+
+                // This resets state between tests
+                //_registeredProfile.user_metadata = {};
+                //delete _registeredProfile.user_metadata;
+
+                // Read the invited agent
+                stubUserAppMetadataRead(_notFoundError, (err, apiScopes) => {
+                  if (err) return done.fail();
+                  ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
+                  invitedUserAppMetadataReadScope = userAppMetadataReadScope;
+                  invitedUserAppMetadataReadOauthTokenScope = userAppMetadataReadOauthTokenScope;
 
                   // Read the team leader
                   stubUserAppMetadataUpdate((err, apiScopes) => {
@@ -992,19 +1777,15 @@ describe('teamMembershipSpec', () => {
 
                     done();
                   });
-                });
+                }, { status: 404 });
+              }).catch(err => {
+                done.fail(err);
               });
-            }).catch(err => {
-              done.fail(err);
             });
-          });
 
-          describe('is sent a new invite', () => {
-            it('does not add an invitation to the database', done => {
+            it('adds an invitation to the database', done => {
               models.Agent.findAll().then(results => {
                 expect(results.length).toEqual(2);
-                expect(results[0].id).toEqual(agent.id);
-                expect(results[1].id).toEqual(registeredAgent.id);
 
                 models.Invitation.findAll().then(results => {
                   expect(results.length).toEqual(0);
@@ -1021,7 +1802,11 @@ describe('teamMembershipSpec', () => {
                       if (err) return done.fail(err);
 
                       models.Invitation.findAll().then(results => {
-                        expect(results.length).toEqual(0);
+                        expect(results.length).toEqual(1);
+                        expect(results[0].recipient).toEqual(registeredAgent.email);
+                        expect(results[0].name).toEqual('The Calgary Roughnecks');
+                        expect(results[0].uuid).toEqual(teamId);
+                        expect(results[0].type).toEqual('team');
 
                         done();
                       }).catch(err => {
@@ -1036,710 +1821,6 @@ describe('teamMembershipSpec', () => {
               });
             });
 
-            it('converts rsvp recipient email to lowercase', done => {
-              expect(_registeredProfile.user_metadata.rsvps).toBeUndefined();
-              authenticatedSession
-                .put(`/team/${teamId}/agent`)
-                .send({
-                  email: registeredAgent.email.toUpperCase()
-                })
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(201)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-
-                  expect(_registeredProfile.user_metadata.rsvps.length).toEqual(1);
-                  expect(_registeredProfile.user_metadata.rsvps[0].recipient).toEqual(registeredAgent.email.toLowerCase());
-
-                  // Cached profile doesn't match "live" data, so agent needs to be updated
-                  // with a call to Auth0
-                  stubUserRead((err, apiScopes) => {
-                    if (err) return done.fail();
-
-                    // Read the invited agent
-                    stubUserAppMetadataRead(_registeredProfile, (err, apiScopes) => {
-                      if (err) return done.fail();
-
-                      // Update the invited agent
-                      stubUserAppMetadataUpdate(_registeredProfile, (err, apiScopes) => {
-                        if (err) return done.fail();
-
-                        // Read the team leader
-                        stubUserAppMetadataUpdate((err, apiScopes) => {
-                          if (err) return done.fail();
-
-                          // Invitation sent twice to ensure they don't start stacking up
-                          authenticatedSession
-                            .put(`/team/${teamId}/agent`)
-                            .send({
-                              email: registeredAgent.email.toUpperCase()
-                            })
-                            .set('Accept', 'application/json')
-                            .expect('Content-Type', /json/)
-                            .expect(201)
-                            .end(function(err, res) {
-                              if (err) return done.fail(err);
-
-                              expect(_registeredProfile.user_metadata.rsvps.length).toEqual(1);
-                              expect(_registeredProfile.user_metadata.rsvps[0].recipient).toEqual(registeredAgent.email.toLowerCase());
-
-                              done();
-                            });
-                        });
-                      });
-                    });
-                  });
-                });
-            });
-
-            describe('Auth0', () => {
-              describe('invited agent', () => {
-                it('/oauth/token endpoint is called to retrieve a machine-to-machine access token', done => {
-                  authenticatedSession
-                    .put(`/team/${teamId}/agent`)
-                    .send({
-                      email: registeredAgent.email
-                    })
-                    .set('Accept', 'application/json')
-                    .expect('Content-Type', /json/)
-                    .expect(201)
-                    .end(function(err, res) {
-                      if (err) return done.fail(err);
-                      expect(invitedUserAppMetadataReadOauthTokenScope.isDone()).toBe(true);
-                      done();
-                    });
-                });
-
-                it('is called to see if the agent already exists', done => {
-                  authenticatedSession
-                    .put(`/team/${teamId}/agent`)
-                    .send({
-                      email: registeredAgent.email
-                    })
-                    .set('Accept', 'application/json')
-                    .expect('Content-Type', /json/)
-                    .expect(201)
-                    .end(function(err, res) {
-                      if (err) return done.fail(err);
-                      expect(invitedUserAppMetadataReadScope.isDone()).toBe(true);
-                      done();
-                    });
-                });
-
-                it('is called to write the pending invitation to user_metadata', done => {
-                  authenticatedSession
-                    .put(`/team/${teamId}/agent`)
-                    .send({
-                      email: registeredAgent.email
-                    })
-                    .set('Accept', 'application/json')
-                    .expect('Content-Type', /json/)
-                    .expect(201)
-                    .end(function(err, res) {
-                      if (err) return done.fail(err);
-
-                      expect(invitedUserAppMetadataUpdateScope.isDone()).toBe(true);
-                      expect(invitedUserAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
-
-                      done();
-                    });
-                });
-              });
-
-              describe('team leader', () => {
-                it('/oauth/token endpoint is called to retrieve a machine-to-machine access token', done => {
-                  authenticatedSession
-                    .put(`/team/${teamId}/agent`)
-                    .send({
-                      email: registeredAgent.email
-                    })
-                    .set('Accept', 'application/json')
-                    .expect('Content-Type', /json/)
-                    .expect(201)
-                    .end(function(err, res) {
-                      if (err) return done.fail(err);
-                      expect(teamLeaderAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
-                      done();
-                    });
-                });
-
-                it('writes the pending invitation to user_metadata', done => {
-                  authenticatedSession
-                    .put(`/team/${teamId}/agent`)
-                    .send({
-                      email: registeredAgent.email
-                    })
-                    .set('Accept', 'application/json')
-                    .expect('Content-Type', /json/)
-                    .expect(201)
-                    .end(function(err, res) {
-                      if (err) return done.fail(err);
-
-                      expect(teamLeaderAppMetadataUpdateScope.isDone()).toBe(true);
-
-                      done();
-                    });
-                });
-              });
-            });
-
-            describe('email', () => {
-              describe('notification', () => {
-                it('sends an email to notify agent of team membership invitation', function(done) {
-                  expect(mailer.transport.sentMail.length).toEqual(0);
-                  authenticatedSession
-                    .put(`/team/${teamId}/agent`)
-                    .send({
-                      email: registeredAgent.email
-                    })
-                    .set('Accept', 'application/json')
-                    .expect('Content-Type', /json/)
-                    .expect(201)
-                    .end(function(err, res) {
-                      if (err) return done.fail(err);
-                      expect(mailer.transport.sentMail.length).toEqual(1);
-                      expect(mailer.transport.sentMail[0].data.to).toEqual(registeredAgent.email);
-                      expect(mailer.transport.sentMail[0].data.from).toEqual(process.env.NOREPLY_EMAIL);
-                      expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity team invitation');
-
-                      expect(mailer.transport.sentMail[0].data.text).toContain('You have been invited to join a team:');
-                      expect(mailer.transport.sentMail[0].data.text).toContain('The Calgary Roughnecks');
-                      expect(mailer.transport.sentMail[0].data.text).toContain('Login at the link below to view the invitation:');
-                      expect(mailer.transport.sentMail[0].data.text).toContain(process.env.SERVER_DOMAIN);
-
-                      done();
-                    });
-                });
-              });
-
-              describe('invitation verification', () => {
-
-                let verificationUrl;
-                beforeEach(done => {
-                  authenticatedSession
-                    .put(`/team/${teamId}/agent`)
-                    .send({
-                      email: registeredAgent.email
-                    })
-                    .set('Accept', 'application/json')
-                    .expect('Content-Type', /json/)
-                    .expect(201)
-                    .end(function(err, res) {
-                      if (err) return done.fail(err);
-
-                      verificationUrl = `/team/${teamId}/invite`;
-
-                      // This reset the profile for the invited agent
-                      _profile.email_verified = true;
-                      _profile.user_metadata = {
-                        rsvps: [{name: 'The Calgary Roughnecks', uuid: teamId, recipient: registeredAgent.email, type: 'team'}],
-                      };
-                      _profile.email = registeredAgent.email;
-                      _profile.name = registeredAgent.name;
-
-                      done();
-                    });
-                });
-
-                describe('while authenticated', () => {
-                  let invitedAgentSession;
-                  beforeEach(done => {
-                    stubAuth0ManagementApi((err, apiScopes) => {
-                      if (err) return done.fail();
-
-                      login({..._identity, email: registeredAgent.email, name: registeredAgent.name },
-                            [scope.create.teamMembers, scope.delete.teamMembers], (err, session) => {
-                        if (err) return done.fail(err);
-                        invitedAgentSession = session;
-
-                        done();
-                      });
-                    });
-                  });
-
-                  describe('the agent may', () => {
-
-                    beforeEach(done => {
-                      // Cached profile doesn't match "live" data, so agent needs to be updated
-                      // with a call to Auth0
-                      stubUserRead((err, apiScopes) => {
-                        if (err) return done.fail();
-                        stubUserReadQuery([{..._profile,
-                                           email: 'someguy@example.com',
-                                           name: 'Some Guy',
-                                           user_metadata: {
-                                             pendingInvitations: [{name: 'The Calgary Roughnecks', uuid: teamId, recipient: registeredAgent.email, type: 'team'}],
-                                             teams: [{name: 'The Calgary Roughnecks', id: teamId, leader: 'someguy@example.com'}]
-                                           }}], (err, apiScopes) => {
-                          if (err) return done.fail(err);
-                          // Update the invited agent
-                          stubUserAppMetadataUpdate((err, apiScopes) => {
-                            if (err) return done.fail(err);
-
-                            // Update the team leader
-                            stubUserAppMetadataUpdate((err, apiScopes) => {
-                              if (err) return done.fail(err);
-
-                              done();
-                            });
-                          });
-                        });
-                      });
-                    });
-
-                    describe('accept the invitation', () => {
-
-                      it('writes team membership to the agent\'s user_metadata', done => {
-                        expect(_profile.user_metadata.teams).toBeUndefined();
-                        invitedAgentSession
-                          .get(`${verificationUrl}/accept`)
-                          .set('Accept', 'application/json')
-                          .expect('Content-Type', /json/)
-                          .expect(201)
-                          .end(function(err, res) {
-                            if (err) return done.fail(err);
-
-                            expect(_profile.user_metadata.teams).toBeDefined();
-                            expect(_profile.user_metadata.teams.length).toEqual(1);
-                            expect(_profile.user_metadata.teams[0].name).toEqual('The Calgary Roughnecks');
-                            expect(_profile.user_metadata.teams[0].id).toEqual(teamId);
-                            expect(_profile.user_metadata.teams[0].leader).toEqual('someguy@example.com');
-
-                            done();
-                          });
-                      });
-
-                      it('removes the invitation from the agent\'s user_metadata', done => {
-                        // Note the flip-flop from testing _profile to testing res.body
-                        // The _profile constant is getting manipulated by the mocks.
-                        // This is happening twice-over because both the invited agent
-                        // and the team leader are being updated. The state of the
-                        // _profile reflects that of the team leader because he is the
-                        // last to be updated.
-                        expect(_profile.user_metadata.rsvps.length).toEqual(1);
-                        invitedAgentSession
-                          .get(`${verificationUrl}/accept`)
-                          .set('Accept', 'application/json')
-                          .expect('Content-Type', /json/)
-                          .expect(201)
-                          .end(function(err, res) {
-                            if (err) return done.fail(err);
-
-                            expect(res.body.user_metadata.rsvps.length).toEqual(0);
-
-                            done();
-                          });
-                      });
-
-                      it('doesn\'t barf if the team doesn\'t exist', done => {
-                        invitedAgentSession
-                          .get('/team/333/invite/accept')
-                          .set('Accept', 'application/json')
-                          .expect('Content-Type', /json/)
-                          .expect(404)
-                          .end(function(err, res) {
-                            if (err) return done.fail(err);
-
-                            expect(res.body.message).toEqual('No such invitation');
-
-                            done();
-                          });
-                      });
-
-                      it('removes the invitation from the team leader\'s user_metadata', done => {
-                        // Cf. note above...
-                        // Before verification, _profile represents the invited agent's profile.
-                        // The mocks modify _profile. By test's end, the profile belongs to the
-                        // team leader.
-                        expect(_profile.user_metadata.pendingInvitations).toBeUndefined();
-                        invitedAgentSession
-                          .get(`${verificationUrl}/accept`)
-                          .set('Accept', 'application/json')
-                          .expect('Content-Type', /json/)
-                          .expect(201)
-                          .end(function(err, res) {
-                            if (err) return done.fail(err);
-
-                            // _profile reflects state of team leader. Cf. above...
-                            expect(_profile.user_metadata.pendingInvitations.length).toEqual(0);
-
-                            done();
-                          });
-                      });
-
-                      describe('agent is already a member of the team', () => {
-                        beforeEach(done => {
-                          // Agent accepts invite
-                          invitedAgentSession
-                            .get(`${verificationUrl}/accept`)
-                            .set('Accept', 'application/json')
-                            .expect('Content-Type', /json/)
-                            .expect(201)
-                            .end(function(err, res) {
-                              if (err) return done.fail(err);
-
-                              // Try adding the agent again
-                              stubUserRead((err, apiScopes) => {
-                                if (err) return done.fail();
-
-                                // This stubs the call for info on the agent who is already a team member
-                                stubUserAppMetadataRead({..._profile,
-                                                         user_metadata: { teams: [
-                                                           {name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId }
-                                                         ] } }, (err, apiScopes) => {
-                                  if (err) return done.fail();
-                                  done();
-                                 });
-                              });
-                            });
-                        });
-
-                        it('returns a friendly message if agent is already a member of the team', done => {
-                          authenticatedSession
-                            .put(`/team/${teamId}/agent`)
-                            .send({
-                              email: registeredAgent.email
-                            })
-                            .set('Accept', 'application/json')
-                            .expect('Content-Type', /json/)
-                            .expect(200)
-                            .end(function(err, res) {
-                              if (err) return done.fail(err);
-
-                              expect(res.body.message).toEqual(`${registeredAgent.email} is already a member of this team`);
-                              done();
-                            });
-                        });
-
-                        it('does not write a new invitation to the team leader\'s pending invitations', done => {
-                          // Cf. note above...
-                          // Before verification, _profile represents the invited agent's profile.
-                          // The agent has verified, and thus the _profile belongs to the team leader
-                          expect(_profile.user_metadata.pendingInvitations.length).toEqual(0);
-
-                          authenticatedSession
-                            .put(`/team/${teamId}/agent`)
-                            .send({
-                              email: registeredAgent.email
-                            })
-                            .set('Accept', 'application/json')
-                            .expect('Content-Type', /json/)
-                            .expect(200)
-                            .end(function(err, res) {
-                              if (err) return done.fail(err);
-
-                              expect(_profile.user_metadata.pendingInvitations.length).toEqual(0);
-                              done();
-                            });
-                        });
-
-                        it('does not call Auth0 to update the invited agent', done => {
-                          stubUserAppMetadataUpdate((err, apiScopes) => {
-                            if (err) return done.fail();
-                            let {userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes;
-
-                            authenticatedSession
-                              .put(`/team/${teamId}/agent`)
-                              .send({
-                                email: registeredAgent.email
-                              })
-                              .set('Accept', 'application/json')
-                              .expect('Content-Type', /json/)
-                              .expect(200)
-                              .end(function(err, res) {
-                                if (err) return done.fail(err);
-
-                                expect(userAppMetadataUpdateScope.isDone()).toBe(false);
-                                expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
-                                done();
-                              });
-                          });
-                        });
-                      });
-                    });
-
-                    describe('reject the invitation', () => {
-
-                      it('does not write team membership to the agent\'s user_metadata', done => {
-                        // Note the flip-flop from testing _profile to testing res.body. Cf. above...
-                        expect(_profile.user_metadata.teams).toBeUndefined();
-                        invitedAgentSession
-                          .get(`${verificationUrl}/reject`)
-                          .set('Accept', 'application/json')
-                          .expect('Content-Type', /json/)
-                          .expect(201)
-                          .end(function(err, res) {
-                            if (err) return done.fail(err);
-
-                            expect(res.body.user_metadata.teams.length).toEqual(0);
-
-                            done();
-                          });
-                      });
-
-                      it('removes the invitation from the agent\'s user_metadata', done => {
-                        // Note the flip-flop from testing _profile to testing res.body. Cf. above...
-                        expect(_profile.user_metadata.rsvps.length).toEqual(1);
-                        invitedAgentSession
-                          .get(`${verificationUrl}/reject`)
-                          .set('Accept', 'application/json')
-                          .expect('Content-Type', /json/)
-                          .expect(201)
-                          .end(function(err, res) {
-                            if (err) return done.fail(err);
-
-                            expect(res.body.user_metadata.rsvps.length).toEqual(0);
-
-                            done();
-                          });
-                      });
-
-                      it('doesn\'t barf if the team doesn\'t exist', done => {
-                        invitedAgentSession
-                          .get('/team/333/invite/reject')
-                          .set('Accept', 'application/json')
-                          .expect('Content-Type', /json/)
-                          .expect(404)
-                          .end(function(err, res) {
-                            if (err) return done.fail(err);
-
-                            expect(res.body.message).toEqual('No such invitation');
-
-                            done();
-                          });
-                      });
-
-                      it('removes the invitation from the team leader\'s user_metadata', done => {
-                        invitedAgentSession
-                          .get(`${verificationUrl}/reject`)
-                          .set('Accept', 'application/json')
-                          .expect('Content-Type', /json/)
-                          .expect(201)
-                          .end(function(err, res) {
-                            if (err) return done.fail(err);
-
-                            // _profile reflects state of team leader. Cf. above...
-                            expect(_profile.user_metadata.pendingInvitations.length).toEqual(0);
-
-                            done();
-                          });
-                      });
-                    });
-                  });
-                });
-
-                describe('while not authenticated', () => {
-                  it('redirects to /login', function(done) {
-                    request(app)
-                      .get(`${verificationUrl}/accept`)
-                      .set('Accept', 'application/json')
-                      .expect(302)
-                      .end(function(err, res) {
-                        if (err) return done.fail(err);
-
-                        expect(res.headers.location).toEqual(`/login`);
-                        done();
-                      });
-                  });
-                });
-              });
-            });
-          });
-
-          describe('is re-sent an invite', () => {
-            beforeEach(done => {
-              authenticatedSession
-                .put(`/team/${teamId}/agent`)
-                .send({
-                  email: 'somebrandnewguy@example.com'
-                })
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(201)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-
-                  stubUserRead((err, apiScopes) => {
-                    if (err) return done.fail();
-
-                    done();
-                  });
-                });
-            });
-
-            it('sends an email to notify agent of team membership invitation', function(done) {
-              expect(mailer.transport.sentMail.length).toEqual(1);
-              authenticatedSession
-                .put(`/team/${teamId}/agent`)
-                .send({
-                  email: 'somebrandnewguy@example.com'
-                })
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(201)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-                  expect(mailer.transport.sentMail.length).toEqual(2);
-                  expect(mailer.transport.sentMail[0].data.to).toEqual('somebrandnewguy@example.com');
-                  expect(mailer.transport.sentMail[0].data.from).toEqual(process.env.NOREPLY_EMAIL);
-                  expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity team invitation');
-
-                  expect(mailer.transport.sentMail[0].data.text).toContain('You have been invited to join a team:');
-                  expect(mailer.transport.sentMail[0].data.text).toContain('The Calgary Roughnecks');
-                  expect(mailer.transport.sentMail[0].data.text).toContain('Login at the link below to view the invitation:');
-                  expect(mailer.transport.sentMail[0].data.text).toContain(process.env.SERVER_DOMAIN);
-
-                  done();
-                });
-            });
-          });
-
-          describe('has invitation rescinded', () => {
-
-            let verificationUrl;
-
-            beforeEach(done => {
-              authenticatedSession
-                .put(`/team/${teamId}/agent`)
-                .send({
-                  email: registeredAgent.email
-                })
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(201)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-
-                  verificationUrl = `/team/${teamId}/invite`;
-
-                  // For the team leader permission check
-                  stubUserRead((err, apiScopes) => {
-                    if (err) return done.fail();
-
-                    // Update the team leader
-                    stubUserAppMetadataUpdate((err, apiScopes) => {
-                      if (err) return done.fail();
-                      let {userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes;
-                      teamLeaderAppMetadataUpdateScope = userAppMetadataUpdateScope;
-                      teamLeaderAppMetadataUpdateOauthTokenScope = userAppMetadataUpdateOauthTokenScope;
-
-                      // Retrieve the invited agent
-                      stubUserAppMetadataRead({ ...registeredAgent.socialProfile,
-                                                user_metadata: {...registeredAgent.socialProfile.user_metadata, rsvps: [{uuid: teamId}]}
-                                              }, (err, apiScopes) => {
-                        if (err) return done.fail();
-                        ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
-                        invitedUserAppMetadataReadScope = userAppMetadataReadScope;
-                        invitedUserAppMetadataReadOauthTokenScope = userAppMetadataReadOauthTokenScope;
-
-                        // Update the previously invited agent
-                        stubUserAppMetadataUpdate((err, apiScopes) => {
-                          if (err) return done.fail();
-                          let {userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes;
-                          invitedUserAppMetadataUpdateScope = userAppMetadataUpdateScope;
-                          invitedUserAppMetadataUpdateOauthTokenScope = userAppMetadataUpdateOauthTokenScope;
-
-                          done();
-                        });
-                      });
-                    });
-                  });
-                });
-            });
-
-            it('calls Auth0 to remove the invitation from the invited agent\'s user_metadata', done => {
-              authenticatedSession
-                .delete(verificationUrl)
-                .send({
-                  email: registeredAgent.email
-                })
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(201)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-
-                  expect(invitedUserAppMetadataReadScope.isDone()).toBe(true);
-                  expect(invitedUserAppMetadataUpdateScope.isDone()).toBe(true);
-
-                  done();
-                });
-            });
-
-            it('removes the invitation from the team leader\'s user_metadata', done => {
-              // Cf. above... reverse thing happening here. Invited
-              // agent is last to be modified, so the _profile represents him
-              expect(_profile.user_metadata.pendingInvitations.length).toEqual(1);
-              authenticatedSession
-                .delete(verificationUrl)
-                .send({
-                  email: registeredAgent.email
-                })
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(201)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-
-                  expect(res.body.user_metadata.pendingInvitations.length).toEqual(0);
-                  expect(teamLeaderAppMetadataUpdateScope.isDone()).toBe(true);
-
-                  done();
-                });
-            });
-
-            it('doesn\'t barf if the team doesn\'t exist', done => {
-              authenticatedSession
-                .delete('/team/333/invite')
-                .send({
-                  email: registeredAgent.email
-                })
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(404)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-
-                  expect(res.body.message).toEqual('No such invitation');
-
-                  done();
-                });
-            });
-
-            it('doesn\'t barf if the invitation doesn\'t exist', done => {
-              authenticatedSession
-                .delete(verificationUrl)
-                .send({
-                  email: registeredAgent.email
-                })
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(201)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-
-                  stubUserRead((err, apiScopes) => {
-                    if (err) return done.fail(err);
-
-                    authenticatedSession
-                      .delete(verificationUrl)
-                      .send({
-                        email: registeredAgent.email
-                      })
-                      .set('Accept', 'application/json')
-                      .expect('Content-Type', /json/)
-                      .expect(404)
-                      .end(function(err, res) {
-                        if (err) return done.fail(err);
-
-                        expect(res.body.message).toEqual('No such invitation');
-
-                        done();
-                      });
-                  });
-                });
-            });
           });
         });
       });

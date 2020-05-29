@@ -15,19 +15,13 @@ context('viewer/Team add agent', function() {
     let agent, anotherAgent;
     beforeEach(function() {
       // Login/create another agent
-      cy.login('someotherguy@example.com', {..._profile, name: 'Some Other Guy'}, [this.scope.read.agents]);
+      cy.login('someotherguy@example.com', {..._profile, name: 'Some Other Guy'});
       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
         anotherAgent = results[0];
 
         // Login/create main test agent
-        cy.login(_profile.email, _profile, [this.scope.read.agents,
-                                            this.scope.create.organizations,
-                                            this.scope.read.organizations,
-                                            this.scope.update.organizations,
-                                            this.scope.create.teams,
-                                            this.scope.read.teams,
-                                            this.scope.create.teamMembers,
-                                            this.scope.delete.teamMembers]);
+        cy.login(_profile.email, _profile);
+
         cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
           agent = results[0];
         });
@@ -280,15 +274,7 @@ context('viewer/Team add agent', function() {
                     cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
                       expect(results.length).to.eq(1);
 
-                      cy.login('somenewguy@example.com', {..._profile, name: 'Some New Guy'},
-                                [this.scope.read.agents,
-                                 this.scope.create.organizations,
-                                 this.scope.read.organizations,
-                                 this.scope.update.organizations,
-                                 this.scope.create.teams,
-                                 this.scope.read.teams,
-                                 this.scope.create.teamMembers,
-                                 this.scope.delete.teamMembers]);
+                      cy.login('somenewguy@example.com', {..._profile, name: 'Some New Guy'});
 
                       cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
                         expect(results.length).to.eq(0);
@@ -298,15 +284,7 @@ context('viewer/Team add agent', function() {
 
                   describe('RSVP table', () => {
                     beforeEach(function() {
-                      cy.login('somenewguy@example.com', {..._profile, name: 'Some New Guy'},
-                                [this.scope.read.agents,
-                                 this.scope.create.organizations,
-                                 this.scope.read.organizations,
-                                 this.scope.update.organizations,
-                                 this.scope.create.teams,
-                                 this.scope.read.teams,
-                                 this.scope.create.teamMembers,
-                                 this.scope.delete.teamMembers]);
+                      cy.login('somenewguy@example.com', {..._profile, name: 'Some New Guy'});
                     });
 
                     it('displays the team invite', () => {
@@ -387,14 +365,7 @@ context('viewer/Team add agent', function() {
                           cy.wait(300);
 
                           // Login/create main test agent
-                          cy.login(_profile.email, _profile, [this.scope.read.agents,
-                                                              this.scope.create.organizations,
-                                                              this.scope.read.organizations,
-                                                              this.scope.update.organizations,
-                                                              this.scope.create.teams,
-                                                              this.scope.read.teams,
-                                                              this.scope.create.teamMembers,
-                                                              this.scope.delete.teamMembers]);
+                          cy.login(_profile.email, _profile);
 
                           cy.get('#teams-table table tbody tr td a').contains('The A-Team').click();
                           cy.wait(300);
@@ -452,14 +423,7 @@ context('viewer/Team add agent', function() {
                           cy.wait(300);
 
                           // Login/create main test agent
-                          cy.login(_profile.email, _profile, [this.scope.read.agents,
-                                                              this.scope.create.organizations,
-                                                              this.scope.read.organizations,
-                                                              this.scope.update.organizations,
-                                                              this.scope.create.teams,
-                                                              this.scope.read.teams,
-                                                              this.scope.create.teamMembers,
-                                                              this.scope.delete.teamMembers]);
+                          cy.login(_profile.email, _profile);
 
                           cy.get('#teams-table table tbody tr td a').contains('The A-Team').click();
                           cy.wait(300);
@@ -840,6 +804,50 @@ context('viewer/Team add agent', function() {
 
                   cy.get('#pending-invitations-table').should('not.exist');
                 });
+
+                // This can happen if an agent is deleted manually at Auth0
+                it('removes hanging pending invitation if agent is already a member', () => {
+
+                  // Accept invitation
+                  cy.login(anotherAgent.email, {..._profile, name: anotherAgent.name});
+                  cy.get('#rsvps-table table tbody tr td button span').contains('check').click();
+                  cy.wait(300);
+
+                  cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
+                    agent = results[0];
+
+                    expect(agent.socialProfile.user_metadata.teams.length).to.eq(1);
+
+                    // Login team leader
+                    cy.login(_profile.email, {..._profile, user_metadata: {
+                                                             ...agent.socialProfile.user_metadata,
+                                                             pendingInvitations: [
+                                                               {
+                                                                name: agent.socialProfile.user_metadata.teams[0].name,
+                                                                uuid: agent.socialProfile.user_metadata.teams[0].id,
+                                                                type: 'team',
+                                                                recipient: anotherAgent.email
+                                                               }
+                                                             ]
+                                                           } });
+
+                    cy.contains(agent.socialProfile.user_metadata.teams[0].name).click();
+                    cy.wait(300);
+
+                    cy.get('#members-table table tbody').find('tr').its('length').should('eq', 2);
+                    cy.get('#members-table table tbody tr:nth-of-type(2) td').should('contain', anotherAgent.name);
+                    cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 1);
+                    cy.get('#pending-invitations-table table tbody tr td').should('contain', anotherAgent.email);
+
+                    // Remove the hanging invitation
+                    cy.get('#pending-invitations-table button[title="Delete"]').click();
+                    cy.get('#pending-invitations-table button[title="Save"]').contains('check').click();
+                    cy.wait(300);
+
+                    cy.get('#pending-invitations-table').should('not.exist');
+                    cy.contains('Invitation canceled');
+                  });
+                });
               });
 
               context('is logged in', () => {
@@ -855,15 +863,7 @@ context('viewer/Team add agent', function() {
                     cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
                       expect(results.length).to.eq(0);
 
-                      cy.login(anotherAgent.email, {..._profile, name: anotherAgent.name},
-                                [this.scope.read.agents,
-                                 this.scope.create.organizations,
-                                 this.scope.read.organizations,
-                                 this.scope.update.organizations,
-                                 this.scope.create.teams,
-                                 this.scope.read.teams,
-                                 this.scope.create.teamMembers,
-                                 this.scope.delete.teamMembers]);
+                      cy.login(anotherAgent.email, {..._profile, name: anotherAgent.name});
 
                       cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
                         expect(results.length).to.eq(0);
@@ -873,15 +873,7 @@ context('viewer/Team add agent', function() {
 
                   describe('RSVP table', () => {
                     beforeEach(function() {
-                      cy.login(anotherAgent.email, {..._profile, name: anotherAgent.name},
-                                [this.scope.read.agents,
-                                 this.scope.create.organizations,
-                                 this.scope.read.organizations,
-                                 this.scope.update.organizations,
-                                 this.scope.create.teams,
-                                 this.scope.read.teams,
-                                 this.scope.create.teamMembers,
-                                 this.scope.delete.teamMembers]);
+                      cy.login(anotherAgent.email, {..._profile, name: anotherAgent.name});
                     });
 
                     it('displays the team invite', () => {
@@ -944,10 +936,10 @@ context('viewer/Team add agent', function() {
 
                         cy.get('#members-table table thead tr th').contains('Name');
                         cy.get('#members-table table thead tr th').contains('Email');
-                        cy.get('#members-table table tbody tr:nth-of-type(1) td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${anotherAgent.socialProfile.user_id}`);
-                        cy.get('#members-table table tbody tr:nth-of-type(1) td').contains(anotherAgent.email);
-                        cy.get('#members-table table tbody tr:nth-of-type(2) td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
-                        cy.get('#members-table table tbody tr:nth-of-type(2) td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+                        cy.get('#members-table table tbody tr:nth-of-type(1) td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
+                        cy.get('#members-table table tbody tr:nth-of-type(1) td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+                        cy.get('#members-table table tbody tr:nth-of-type(2) td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${anotherAgent.socialProfile.user_id}`);
+                        cy.get('#members-table table tbody tr:nth-of-type(2) td').contains(anotherAgent.email);
                      });
 
                       it('displays a friendly message', () => {
@@ -982,14 +974,7 @@ context('viewer/Team add agent', function() {
                           cy.wait(300);
 
                           // Login/create main test agent
-                          cy.login(_profile.email, _profile, [this.scope.read.agents,
-                                                              this.scope.create.organizations,
-                                                              this.scope.read.organizations,
-                                                              this.scope.update.organizations,
-                                                              this.scope.create.teams,
-                                                              this.scope.read.teams,
-                                                              this.scope.create.teamMembers,
-                                                              this.scope.delete.teamMembers]);
+                          cy.login(_profile.email, _profile);
 
                           cy.get('#teams-table table tbody tr td a').contains('The A-Team').click();
                           cy.wait(300);
@@ -1002,10 +987,10 @@ context('viewer/Team add agent', function() {
                         it('adds the new agent to the team members table', () => {
                           cy.get('#members-table table thead tr th').contains('Name');
                           cy.get('#members-table table thead tr th').contains('Email');
-                          cy.get('#members-table table tbody tr:nth-of-type(1) td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${anotherAgent.socialProfile.user_id}`);
-                          cy.get('#members-table table tbody tr:nth-of-type(1) td').contains(anotherAgent.email);
-                          cy.get('#members-table table tbody tr:nth-of-type(2) td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
-                          cy.get('#members-table table tbody tr:nth-of-type(2) td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+                          cy.get('#members-table table tbody tr:nth-of-type(1) td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
+                          cy.get('#members-table table tbody tr:nth-of-type(1) td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+                          cy.get('#members-table table tbody tr:nth-of-type(2) td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${anotherAgent.socialProfile.user_id}`);
+                          cy.get('#members-table table tbody tr:nth-of-type(2) td').contains(anotherAgent.email);
                         });
                       });
                     });
@@ -1048,14 +1033,7 @@ context('viewer/Team add agent', function() {
                           cy.wait(300);
 
                           // Login/create main test agent
-                          cy.login(_profile.email, _profile, [this.scope.read.agents,
-                                                              this.scope.create.organizations,
-                                                              this.scope.read.organizations,
-                                                              this.scope.update.organizations,
-                                                              this.scope.create.teams,
-                                                              this.scope.read.teams,
-                                                              this.scope.create.teamMembers,
-                                                              this.scope.delete.teamMembers]);
+                          cy.login(_profile.email, _profile);
 
                           cy.get('#teams-table table tbody tr td a').contains('The A-Team').click();
                           cy.wait(300);
@@ -1085,15 +1063,7 @@ context('viewer/Team add agent', function() {
                 cy.wait(300);
 
                 // Accept invitation
-                cy.login(anotherAgent.email, {..._profile, name: anotherAgent.name},
-                          [this.scope.read.agents,
-                           this.scope.create.organizations,
-                           this.scope.read.organizations,
-                           this.scope.update.organizations,
-                           this.scope.create.teams,
-                           this.scope.read.teams,
-                           this.scope.create.teamMembers,
-                           this.scope.delete.teamMembers]);
+                cy.login(anotherAgent.email, {..._profile, name: anotherAgent.name});
                 cy.get('#rsvps-table table tbody tr td button span').contains('check').click();
                 cy.wait(300);
               });
@@ -1101,14 +1071,7 @@ context('viewer/Team add agent', function() {
               it('shows an error message when a duplicate agent is added', function() {
 
                 // Login team leader and send invite to same agent
-                cy.login(_profile.email, _profile, [this.scope.read.agents,
-                                                    this.scope.create.organizations,
-                                                    this.scope.read.organizations,
-                                                    this.scope.update.organizations,
-                                                    this.scope.create.teams,
-                                                    this.scope.read.teams,
-                                                    this.scope.create.teamMembers,
-                                                    this.scope.delete.teamMembers]);
+                cy.login(_profile.email, _profile);
 
                 cy.contains('The A-Team').click();
                 cy.wait(300);
@@ -1128,6 +1091,49 @@ context('viewer/Team add agent', function() {
                 cy.wait(300);
 
                 cy.contains(`${anotherAgent.email} is already a member of this team`);
+              });
+
+              // This can happen if an agent is deleted manually at Auth0
+              it('shows an error if agent is a member but reinvited via hanging pending invitation', function() {
+                cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
+                  agent = results[0];
+
+                  expect(agent.socialProfile.user_metadata.teams.length).to.eq(1);
+
+                  // Login team leader and send invite to same agent
+                  cy.login(_profile.email, {..._profile, user_metadata: {
+                                                           ...agent.socialProfile.user_metadata,
+                                                           pendingInvitations: [
+                                                             {
+                                                              name: agent.socialProfile.user_metadata.teams[0].name,
+                                                              uuid: agent.socialProfile.user_metadata.teams[0].id,
+                                                              type: 'team',
+                                                              recipient: anotherAgent.email
+                                                             }
+                                                           ]
+                                                         } });
+
+                  cy.contains('The A-Team').click();
+                  cy.wait(300);
+
+                  cy.get('#members-table table tbody').find('tr').its('length').should('eq', 2);
+                  cy.get('#members-table table tbody tr:nth-of-type(2) td').should('contain', anotherAgent.name);
+                  cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 1);
+                  cy.get('#pending-invitations-table table tbody tr td').should('contain', anotherAgent.email);
+
+                  // Resend the invitation
+                  cy.get('#pending-invitations-table button span span').contains('refresh').click();
+                  cy.wait(300);
+
+                  cy.contains(`${anotherAgent.email} is already a member of this team`);
+                  cy.get('#flash-message #close-flash').click();
+
+                  // Re-resend the invitation
+                  cy.get('#pending-invitations-table button span span').contains('refresh').click();
+                  cy.wait(300);
+
+                  cy.contains(`${anotherAgent.email} is already a member of this team`);
+                });
               });
             });
           });

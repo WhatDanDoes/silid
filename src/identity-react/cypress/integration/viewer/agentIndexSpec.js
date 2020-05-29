@@ -40,7 +40,7 @@ context('viewer/Agent Index', function() {
 
     context('first visit', () => {
       beforeEach(function() {
-        cy.login(_profile.email, _profile, [this.scope.read.agents]);
+        cy.login(_profile.email, _profile);
       });
 
       it('lands in the right spot', () => {
@@ -79,7 +79,7 @@ context('viewer/Agent Index', function() {
                                                          members: ['someguy@example.com']
                                                        }
                                                      ]
-                                                   } }, [this.scope.read.agents]);
+                                                   } });
 
             cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
               agent = results[0];

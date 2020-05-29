@@ -397,8 +397,13 @@ const TeamInfo = (props) => {
                           new Promise((resolve, reject) => {
                             setIsWaiting(true);
                             sendTeamInvitation(teamInfo.id, { email: rowData.recipient }).then((results) => {
-                              setFlashProps({ message: 'Invitation sent', variant: 'success' });
-                              updateAgent(results);
+                              if (results.message) {
+                                setFlashProps({ message: results.message, variant: 'warning' });
+                              }
+                              else {
+                                setFlashProps({ message: 'Invitation sent', variant: 'success' });
+                                updateAgent(results);
+                              }
                               resolve();
                             }).catch(err => {
                               console.log(err);

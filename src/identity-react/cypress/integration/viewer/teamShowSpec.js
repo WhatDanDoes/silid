@@ -51,7 +51,7 @@ context('viewer/Team show', function() {
                                                      leader: _profile.email,
                                                    }
                                                  ]
-                                               }, name: 'Some Other Guy' }, [this.scope.read.agents]);
+                                               }, name: 'Some Other Guy' });
 
       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
         anotherAgent = results[0];
@@ -64,7 +64,7 @@ context('viewer/Team show', function() {
                                                      leader: _profile.email,
                                                    }
                                                  ]
-                                               } }, [this.scope.read.agents]);
+                                               } });
 
         cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
           agent = results[0];
@@ -111,14 +111,14 @@ context('viewer/Team show', function() {
 
         cy.get('table thead tr th').contains('Name');
         cy.get('table thead tr th').contains('Email');
-        // Member agent can be deleted
-        cy.get('table tbody tr:nth-of-type(1) button[title=Delete]').should('exist');
-        cy.get('table tbody tr:nth-of-type(1) td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${anotherAgent.socialProfile.user_id}`);
-        cy.get('table tbody tr:nth-of-type(1) td').contains(anotherAgent.socialProfile.email);
         // Team leader cannot be deleted
-        cy.get('table tbody tr:nth-of-type(2) button[title=Delete]').should('not.exist');
-        cy.get('table tbody tr:nth-of-type(2) td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
-        cy.get('table tbody tr:nth-of-type(2) td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+        cy.get('table tbody tr:nth-of-type(1) button[title=Delete]').should('not.exist');
+        cy.get('table tbody tr:nth-of-type(1) td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
+        cy.get('table tbody tr:nth-of-type(1) td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+        // Member agent can be deleted
+        cy.get('table tbody tr:nth-of-type(2) button[title=Delete]').should('exist');
+        cy.get('table tbody tr:nth-of-type(2) td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${anotherAgent.socialProfile.user_id}`);
+        cy.get('table tbody tr:nth-of-type(2) td').contains(anotherAgent.socialProfile.email);
       });
     });
 
@@ -126,7 +126,7 @@ context('viewer/Team show', function() {
 
       beforeEach(function() {
         // Membership established in first `beforeEach`
-        cy.login('someotherguy@example.com', {..._profile, name: 'Some Other Guy'}, [this.scope.read.agents]);
+        cy.login('someotherguy@example.com', {..._profile, name: 'Some Other Guy'});
         cy.contains('The Calgary Roughnecks').click();
         cy.wait(300);
       });
@@ -169,7 +169,7 @@ context('viewer/Team show', function() {
       let team;
       beforeEach(function() {
         // Login/create another agent
-        cy.login('someunknownguy@example.com', _profile, [this.scope.read.agents]);
+        cy.login('someunknownguy@example.com', _profile);
         cy.wait(300);
       });
 
