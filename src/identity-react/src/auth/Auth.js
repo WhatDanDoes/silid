@@ -31,8 +31,12 @@ export function AuthProvider({children}) {
     window.location.href = '/logout';
   };
 
+  function updateAgent(a) {
+    setState({...state, agent: a})
+  };
+
   return (
-    <AuthContext.Provider value={{ ...state, logout: logout}}>
+    <AuthContext.Provider value={{ ...state, updateAgent: updateAgent, logout: logout}}>
       {state.status === 'pending' ? (
         'Loading...'
       ) : state.status === 'error' ? (
@@ -50,7 +54,7 @@ export function AuthProvider({children}) {
 }
 
 export function useAuthState() {
-  const state = React.useContext(AuthContext)
+  const state = React.useContext(AuthContext);
   const isPending = state.status === 'pending';
   const isError = state.status === 'error';
   const isSuccess = state.status === 'success';

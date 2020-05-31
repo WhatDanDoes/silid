@@ -13,11 +13,8 @@ context('viewer/Team creation', function() {
   context('authenticated', () => {
     let organization, agent;
     beforeEach(function() {
-      cy.login(_profile.email, _profile, [this.scope.read.agents,
-                                          this.scope.create.organizations,
-                                          this.scope.read.organizations,
-                                          this.scope.create.teams,
-                                          this.scope.read.teams]);
+      cy.login(_profile.email, _profile);
+
       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
         agent = results[0];
 
@@ -51,11 +48,10 @@ context('viewer/Team creation', function() {
           cy.get('div div div div div div table tbody tr td div div input[placeholder="Leader"]').should('not.exist');
         });
 
-//        it('yields focus to the first form field', () => {
-//          cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').should('not.exist');
-//          cy.get('button span span').contains('add_box').click();
-//          cy.focused().should('have.attr', 'placeholder').and('eq', 'Name');
-//        });
+        it('gives focus to the team name input field', () => {
+          cy.get('button span span').contains('add_box').click();
+          cy.focused().should('have.attr', 'placeholder').and('eq', 'Name');
+        });
 
         describe('add-team-form', () => {
           beforeEach(() => {
@@ -94,50 +90,6 @@ context('viewer/Team creation', function() {
           });
 
           describe('add-team-button', () => {
-            context('without sufficient privilege', () => {
-              beforeEach(function() {
-                cy.login(_profile.email, agent.socialProfile, [this.scope.read.agents, this.scope.read.teams]);
-                cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
-                  agent = results[0];
-                  cy.get('#flash-message #close-flash').click();
-
-                  cy.get('button span span').contains('add_box').click();
-                  cy.get('input[placeholder="Name"]').type('The A-Team');
-                  cy.get('button[title="Save"]').click();
-
-                  cy.wait(300);
-                });
-              });
-
-              it('displays a friendly error message no matter how many times you try', function() {
-                cy.get('#flash-message').contains('Insufficient scope');
-                cy.get('#flash-message #close-flash').click();
-
-                cy.get('button span span').contains('add_box').click();
-                cy.get('input[placeholder="Name"]').type('The A-Team');
-                cy.get('button[title="Save"]').click();
-                cy.wait(300);
-
-                cy.get('#flash-message').contains('Insufficient scope');
-              });
-
-              it('does not add a record to the agent\'s user_metadata', () => {
-                cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
-                  expect(results.length).to.eq(1);
-                  expect(results[0].socialProfile.user_metadata.teams).to.eq(undefined);
-
-                  cy.get('button span span').contains('add_box').click();
-                  cy.get('input[placeholder="Name"]').type('The A-Team');
-                  cy.get('button[title="Save"]').click();
-                  cy.wait(300);
-
-                  cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
-                    expect(results[0].socialProfile.user_metadata.teams).to.eq(undefined);
-                  });
-                });
-              });
-            });
-
             context('invalid form', () => {
               describe('name field', () => {
                 it('does not allow a blank field', function() {
@@ -254,6 +206,42 @@ context('viewer/Team creation', function() {
                 cy.get('table tbody tr td').contains(_profile.email);
 
                 cy.get('table tbody:nth-child(2)').find('tr').its('length').should('eq', 2);
+              });
+
+              it('displays progress spinner', () => {
+                cy.on('window:confirm', (str) => {
+                  return true;
+                });
+                cy.get('div[role="progressbar"] svg circle').should('not.exist');
+
+                cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').type('The Mike Tyson Mystery Team');
+                cy.get('div div div div div div table tbody tr td div button[title="Save"]').click();
+
+                // 2020-5-26
+                // Cypress goes too fast for this. Cypress also cannot intercept
+                // native `fetch` calls to allow stubbing and delaying the route.
+                // Shamefully, this is currently manually tested, though I suspect
+                // I will use this opportunity to learn Jest
+                // Despite its name, this test really ensures the spinner disappears
+                // after all is said and done
+                //cy.get('div[role="progressbar"] svg circle').should('exist');
+                cy.wait(100);
+                cy.get('div[role="progressbar"] svg circle').should('not.exist');
+              });
+
+              describe('executes team creation with Enter key', () => {
+                it('updates the record on the interface', function() {
+                  cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').type('The Mike Tyson Mystery Team{enter}');
+                  cy.wait(300);
+                  cy.get('table tbody tr td').contains('The Mike Tyson Mystery Team');
+                  cy.get('table tbody tr td').contains(_profile.email);
+                });
+
+                it('clears input field', () => {
+                  cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').type('Mystery Incorporated{enter}');
+                  cy.wait(300);
+                  cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').should('have.value', '');
+                });
               });
             });
           });

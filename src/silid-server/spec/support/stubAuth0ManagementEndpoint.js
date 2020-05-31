@@ -50,36 +50,6 @@ module.exports = function(permissions, done) {
       });
 
     /**
-     * GET `/users/:id`. Get a single user by Auth0 ID
-     */
-    const userReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-      .log(console.log)
-      .get(/api\/v2\/users\/.+/)
-      .query({})
-      .reply(200, _profile);
-
-    /**
-     * Search for a team by ID
-     *
-     * GET `/users`
-     */
-    const teamReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-      .log(console.log)
-      .get(/api\/v2\/users/)
-      .query({ search_engine: 'v3', q: /.+/ })
-      .reply(200, (uri, requestBody) => {
-        let qs = querystring.parse(uri.split('?')[1]);
-        for (let team of _profile.user_metadata.teams) {
-          let regex = new RegExp(team.id);
-          if (regex.test(qs.q)) {
-            return [_profile];
-          }
-        }
-        return [];
-      });
-
-
-    /**
      * POST `/users`
      *
      * Auth0 requires a connection for this endpoint. It is called `Initial-Connection`
@@ -145,55 +115,10 @@ module.exports = function(permissions, done) {
         ]
       });
 
-    /**
-     * GET `/users-by-email`
-     */
-    const userReadByEmailScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-      .log(console.log)
-      .get(/api\/v2\/users-by-email/)
-      .query({ 'email': /.+/i })
-      .reply(200, {
-        "user_id": "auth0|507f1f77bcf86c0000000000",
-        "email": "doesnotreallymatterforthemoment@example.com",
-        "email_verified": false,
-        "identities": [
-          {
-            "connection": "Initial-Connection",
-          }
-        ]
-      });
-
-    /**
-     * GET `/users/:id/roles`
-     */
-    const userAssignRolesScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-      .log(console.log)
-      .post(/api\/v2\/users\/.+\/roles/, {
-                              'roles': /.+/i,
-      })
-      .reply(200, { });
-
-    /**
-     * GET `/roles`
-     */
-    const getRolesScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-      .log(console.log)
-      .get('/api/v2/roles')
-      .reply(200, [
-        {
-          "id": "123",
-          "name": "viewer",
-          "description": "View all roles"
-        }
-      ]);
-
-
     done(null, {
                 oauthTokenScope,
-                userCreateScope, userReadScope, userDeleteScope, userReadByEmailScope,
-                userAssignRolesScope,
-                getRolesScope,
-                updateTeamScope, teamReadScope,
+                userCreateScope, userDeleteScope,
+                updateTeamScope,
     });
   });
 };

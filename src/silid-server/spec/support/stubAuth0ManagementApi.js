@@ -1,39 +1,42 @@
 /**
- * Stub all the commonly used Auth0 Management API endpoints
- *
- * The real functionality is embodied in `stubAuth0ManagementEndpoint` This
- * function simply wraps frequent stubbing requirements
+ * Stub all the Auth0 Management API endpoints used on login
  *
  * @param function
  */
 const apiScope = require('../../config/apiPermissions');
-const stubAuth0ManagementEndpoint = require('../support/stubAuth0ManagementEndpoint');
+const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
+const stubRolesRead = require('../support/auth0Endpoints/stubRolesRead');
+const stubUserAssignRoles = require('../support/auth0Endpoints/stubUserAssignRoles');
 
 module.exports = function(done) {
 
-  let userReadScope, getRolesScope, userAssignRolesScope, tokenScope;
+  let userReadScope, getRolesScope, userAssignRolesScope;
 
   /**
    * This layer stubs the endpoints required for the retrieving the agent's
-   * metadata on login
+   * OIDC profile data on login
    */
-  stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+  stubUserRead((err, apiScopes) => {
     if (err) return done(err);
-    ({userReadScope, oauthTokenScope} = apiScopes);
+    ({userReadScope} = apiScopes);
 
     /**
      * The following two layers stub the endpoints required for the
      * `viewer` role-check in `lib/checkPermissions`
      */
-    stubAuth0ManagementEndpoint([apiScope.read.roles], (err, apiScopes) => {
+    stubRolesRead((err, apiScopes) => {
       if (err) return done(err);
-      ({getRolesScope} = apiScopes);
+      ({rolesReadScope} = apiScopes);
 
-      stubAuth0ManagementEndpoint([apiScope.read.roles, apiScope.update.users], (err, apiScopes) => {
+      /**
+       * If basic `viewer` permissions are not assigned (they won't be on
+       * initial login), assign the agent the `viewer role
+       */
+      stubUserAssignRoles((err, apiScopes) => {
         if (err) return done(err);
-        ({userAssignRolesScope, oauthTokenScope} = apiScopes);
+        ({userAssignRolesScope} = apiScopes);
 
-        done(null, {userReadScope, getRolesScope, userAssignRolesScope, oauthTokenScope});
+        done(null, {userReadScope, rolesReadScope, userAssignRolesScope});
       });
     });
   });

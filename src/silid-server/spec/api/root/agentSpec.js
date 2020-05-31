@@ -436,8 +436,6 @@ describe('root/agentSpec', () => {
       describe('/agent/:id', () => {
         let oauthTokenScope, userReadScope;
         beforeEach(done => {
-          const stubUserRead = require('../../support/auth0Endpoints/stubUserRead');
-
           stubUserRead((err, apiScopes) => {
             if (err) return done.fail(err);
             ({userReadScope, oauthTokenScope} = apiScopes);
@@ -490,63 +488,71 @@ describe('root/agentSpec', () => {
         });
       });
 
-      describe('/agent/:id/cached', () => {
-        let oauthTokenScope, userReadScope;
-        beforeEach(done => {
-          const stubUserRead = require('../../support/auth0Endpoints/stubUserRead');
-
-          stubUserRead((err, apiScopes) => {
-            if (err) return done.fail(err);
-            ({userReadScope, oauthTokenScope} = apiScopes);
-            done();
-          });
-        });
-
-
-        it('retrieves root agent\'s own record from the database', done => {
-          rootSession
-            .get(`/agent/${root.id}/cached`)
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(200)
-            .end(function(err, res) {
-              if (err) return done.fail(err);
-
-              expect(res.body.email).toEqual(root.email);
-              expect(res.body.isSuper).toEqual(true);
-              done();
-            });
-        });
-
-        it('retrieves another agent\'s record from the database', done => {
-          rootSession
-            .get(`/agent/${agent.id}/cached`)
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(200)
-            .end(function(err, res) {
-              if (err) return done.fail(err);
-
-              expect(res.body.email).toEqual(agent.email);
-              expect(res.body.isSuper).toEqual(false);
-              done();
-            });
-        });
-
-        it('doesn\'t barf if record doesn\'t exist', done => {
-          rootSession
-            .get('/agent/33/cached')
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(404)
-            .end(function(err, res) {
-              if (err) done.fail(err);
-
-              expect(res.body.message).toEqual('No such agent');
-              done();
-            });
-        });
-      });
+        /**
+         * 2020-5-5
+         *
+         * These tests and corresponding functionality are deprecated for the
+         * forseeable future. 
+         *
+         * See notes on the route.
+         */
+//      describe('/agent/:id/cached', () => {
+//        let oauthTokenScope, userReadScope;
+//        beforeEach(done => {
+//          const stubUserRead = require('../../support/auth0Endpoints/stubUserRead');
+//
+//          stubUserRead((err, apiScopes) => {
+//            if (err) return done.fail(err);
+//            ({userReadScope, oauthTokenScope} = apiScopes);
+//            done();
+//          });
+//        });
+//
+//
+//        it('retrieves root agent\'s own record from the database', done => {
+//          rootSession
+//            .get(`/agent/${root.id}/cached`)
+//            .set('Accept', 'application/json')
+//            .expect('Content-Type', /json/)
+//            .expect(200)
+//            .end(function(err, res) {
+//              if (err) return done.fail(err);
+//
+//              expect(res.body.email).toEqual(root.email);
+//              expect(res.body.isSuper).toEqual(true);
+//              done();
+//            });
+//        });
+//
+//        it('retrieves another agent\'s record from the database', done => {
+//          rootSession
+//            .get(`/agent/${agent.id}/cached`)
+//            .set('Accept', 'application/json')
+//            .expect('Content-Type', /json/)
+//            .expect(200)
+//            .end(function(err, res) {
+//              if (err) return done.fail(err);
+//
+//              expect(res.body.email).toEqual(agent.email);
+//              expect(res.body.isSuper).toEqual(false);
+//              done();
+//            });
+//        });
+//
+//        it('doesn\'t barf if record doesn\'t exist', done => {
+//          rootSession
+//            .get('/agent/33/cached')
+//            .set('Accept', 'application/json')
+//            .expect('Content-Type', /json/)
+//            .expect(404)
+//            .end(function(err, res) {
+//              if (err) done.fail(err);
+//
+//              expect(res.body.message).toEqual('No such agent');
+//              done();
+//            });
+//        });
+//      });
     });
 
     describe('create', () => {
@@ -846,14 +852,14 @@ describe('root/agentSpec', () => {
 
       describe('agent who has visited', () => {
         beforeEach(done => {
-      stubAuth0ManagementApi((err, apiScopes) => {
-        if (err) return done.fail(err);
-
-          // This ensures agent has a socialProfile (because he's visited);
-          login({..._identity, email: agent.email}, (err, session) => {
+          stubAuth0ManagementApi((err, apiScopes) => {
             if (err) return done.fail(err);
-            done();
-          });
+  
+            // This ensures agent has a socialProfile (because he's visited);
+            login({..._identity, email: agent.email}, (err, session) => {
+              if (err) return done.fail(err);
+              done();
+            });
           });
         });
 
@@ -925,8 +931,11 @@ describe('root/agentSpec', () => {
           if (err) return done.fail(err);
           unauthorizedSession = session;
 
-          stubAuth0ManagementEndpoint([apiScope.read.users],(err, apiScopes) => {
-            if (err) return done.fail(err);
+          // Cached profile doesn't match "live" data, so agent needs to be updated
+          // with a call to Auth0
+          stubUserRead((err, apiScopes) => {
+            if (err) return done.fail();
+
             done();
           });
         });
@@ -949,21 +958,26 @@ describe('root/agentSpec', () => {
         });
       });
 
-      describe('/agent/:id/cached', () => {
-        it('returns 403 with message', done => {
-          unauthorizedSession
-            .get(`/agent/${root.id}/cached`)
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(403)
-            .end(function(err, res) {
-              if (err) return done.fail(err);
-              expect(res.body.message).toEqual('Forbidden');
-
-              done();
-            });
-        });
-      });
+      /**
+       * 2020-5-5
+       *
+       * This is almost certainly fit for the pit
+       */
+//      describe('/agent/:id/cached', () => {
+//        it('returns 403 with message', done => {
+//          unauthorizedSession
+//            .get(`/agent/${root.id}/cached`)
+//            .set('Accept', 'application/json')
+//            .expect('Content-Type', /json/)
+//            .expect(403)
+//            .end(function(err, res) {
+//              if (err) return done.fail(err);
+//              expect(res.body.message).toEqual('Forbidden');
+//
+//              done();
+//            });
+//        });
+//      });
     });
   });
 });

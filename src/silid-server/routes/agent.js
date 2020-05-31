@@ -64,34 +64,42 @@ router.get('/', checkPermissions([scope.read.agents]), function(req, res, next) 
 
 router.get('/:id/:cached?', checkPermissions([scope.read.agents]), function(req, res, next) {
 
-  if (req.params.cached && req.agent.isSuper) {
-    models.Agent.findOne({ where: { id: req.params.id } }).then(result => {
-      if (!result) {
-        result = { message: 'No such agent' };
-        return res.status(404).json(result);
-      }
-
-      const managementClient = getManagementClient(apiScope.read.users);
-      managementClient.getUsersByEmail(result.email).then(users => {
-        res.status(200).json(result);
-      }).catch(err => {
-        res.status(err.statusCode).json(err.message.error_description);
-      });
-    }).catch(err => {
-      res.status(500).json(err);
-    });
-  }
-  else if (req.params.cached && !req.agent.isSuper) {
-    return res.status(403).json( { message: 'Forbidden' });
-  }
-  else {
+  /**
+   * 2020-5-5
+   *
+   * Upon reflection, I'm not sure this ever made any sense.
+   * Will save for now, but this will likely disappear.
+   *
+   * See corresponding tests in `api/root/agentSpec`
+   */
+//  if (req.params.cached && req.agent.isSuper) {
+//    models.Agent.findOne({ where: { id: req.params.id } }).then(result => {
+//      if (!result) {
+//        result = { message: 'No such agent' };
+//        return res.status(404).json(result);
+//      }
+//
+//      const managementClient = getManagementClient(apiScope.read.users);
+//      managementClient.getUsersByEmail(result.email).then(users => {
+//        res.status(200).json(result);
+//      }).catch(err => {
+//        res.status(err.statusCode).json(err.message.error_description);
+//      });
+//    }).catch(err => {
+//      res.status(500).json(err);
+//    });
+//  }
+//  else if (req.params.cached && !req.agent.isSuper) {
+//    return res.status(403).json( { message: 'Forbidden' });
+//  }
+//  else {
     const managementClient = getManagementClient(apiScope.read.users);
     managementClient.getUser({id: req.params.id}).then(agent => {
       res.status(200).json(agent);
     }).catch(err => {
       res.status(err.statusCode).json(err.message.error_description);
     });
-  }
+//  }
 });
 
 router.post('/', checkPermissions([scope.create.agents]), function(req, res, next) {
