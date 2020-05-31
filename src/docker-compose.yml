@@ -6,7 +6,7 @@
 #   * consider how to coalesce DB service ENV vars with other services
 #   * see if it makes sense to connect cypress test container here
 #
-version: "3.7"
+version: "3"
 services:
   # silid server app serving the primary UI
   app:
@@ -61,7 +61,9 @@ services:
     # client app sends a premature exit status; PM2 watcher added for workaround this
     command: ["pm2-runtime", "start", "./node_modules/react-scripts/scripts/start.js"]
     volumes:
+      - ./identity-react:/srv/app/client/
       - client-node_modules:/srv/app/client/node_modules
+      - client-build:/srv/app/client/build
 
   # supporting data base for the application
   postgres:
@@ -80,4 +82,5 @@ volumes:
   app-build:
   auth0-node_modules:
   client-node_modules:
+  client-build:
   silid-postgres-data:
