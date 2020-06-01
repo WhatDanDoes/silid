@@ -22,10 +22,10 @@ module.exports = {
     migrationStorage: 'none'
   },
   staging: {
-    username: 'user',
-    password: 'pass',
-    database: 'silid_staging',
-    host: 'postgres',
+    username: process.env.POSTGRES_USER || 'user',
+    password: process.env.POSTGRES_PASSWORD || 'pass',
+    database: process.env.POSTGRES_DB || 'silid_staging',
+    host: process.env.POSTGRES_HOST || 'postgres',
     dialect: 'postgres'
   },
   development_aws: {
