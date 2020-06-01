@@ -23,6 +23,9 @@ const teamRouter = require('./routes/team');
 
 const app = express();
 
+// TODO: delete this debug line
+console.log(process.env);
+
 /**
  * view engine setup
  */
