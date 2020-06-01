@@ -27,7 +27,7 @@ module.exports = {
   teamManager: [
     scope.read.agents,
     scope.read.teams, scope.update.teams,
-    scope.create.teamMembers, scope.read.teamMembers, scope.delete.teamMembers,
+    scope.create.teamMembers, scope.delete.teamMembers,
   ],
   teamMember: [
     scope.read.agents,
@@ -35,8 +35,9 @@ module.exports = {
     scope.read.teamMembers
   ],
   viewer: [
-    scope.read.agents,
+    scope.create.teamMembers, scope.delete.teamMembers,
+    scope.create.teams, scope.read.teams, scope.update.teams, scope.delete.teams,
+    scope.read.agents, scope.update.agents,
     scope.read.organizations,
-    scope.read.teams,
   ],
 };

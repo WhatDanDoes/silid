@@ -41,10 +41,9 @@ function updateDbAndVerify(permissions, req, res, next) {
         console.log('these aren\'t equal');
       }
     }
-
     if (!req.agent || profileChanged) {
 
-      const managementClient = getManagementClient(apiScope.read.users);
+      let managementClient = getManagementClient(apiScope.read.users);
       managementClient.getUser({id: socialProfile.user_id}).then(results => {
 
         models.Agent.update(
@@ -70,6 +69,7 @@ function updateDbAndVerify(permissions, req, res, next) {
             models.Agent.create({ name: socialProfile.name, email: socialProfile.email, socialProfile: socialProfile }).then(agent => {
               req.agent = agent;
 
+              // This almost certainly superfluous. Revisit
               if (req.agent.isSuper) {
                 return next();
               }
@@ -135,6 +135,62 @@ function updateDbAndVerify(permissions, req, res, next) {
   });
 };
 
+
+/**
+ * When an agent is unknown (i.e., has not logged in before), he
+ * may have invitations waiting in the database. These need to be
+ * handed off to Auth0 user_metadata
+ */
+function checkForInvites(req, done) {
+  models.Invitation.findAll({where: { recipient: req.user.email }, order: [['updatedAt', 'DESC']]}).then(invites => {
+    if (invites.length) {
+      if (!req.user.user_metadata) {
+        req.user.user_metadata = { rsvps: [], teams: [] };
+      }
+
+      if (!req.user.user_metadata.rsvps) {
+        req.user.user_metadata.rsvps = [];
+      }
+
+      if (!req.user.user_metadata.teams) {
+        req.user.user_metadata.teams = [];
+      }
+
+      for (let invite of invites) {
+        let teamIndex = req.user.user_metadata.teams.findIndex(team => team.id === invite.uuid);
+        let rsvpIndex = req.user.user_metadata.rsvps.findIndex(rsvp => rsvp.uuid === invite.uuid);
+
+        if (teamIndex > -1) {
+          req.user.user_metadata.teams[teamIndex].name = invite.name;
+        }
+        else if (rsvpIndex > -1) {
+          req.user.user_metadata.rsvps[rsvpIndex].name = invite.name;
+        }
+        else {
+          req.user.user_metadata.rsvps.push({ uuid: invite.uuid, type: invite.type, name: invite.name, recipient: invite.recipient });
+        }
+      }
+
+      managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+      managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
+
+        models.Invitation.destroy({ where: { recipient: req.user.email } }).then(results => {
+          done();
+        }).catch(err => {
+          done(err);
+        });
+      }).catch(err => {
+        done(err);
+      });
+    }
+    else {
+      done();
+    }
+  }).catch(err => {
+    done(err);
+  });
+};
+
 /**
  * This is called subsequent to the `passport.authenticate` function.
  * `passport` attaches a `user` property to `req`
@@ -159,7 +215,13 @@ const checkPermissions = function(permissions) {
     }
 
     if (isViewer) {
-      updateDbAndVerify(permissions, req, res, next);
+      // Functionality covered by client-side tests
+      checkForInvites(req, err => {
+        if (err) {
+          return res.status(500).json(err);
+        }
+        updateDbAndVerify(permissions, req, res, next);
+      });
     }
     else {
       // Not a viewer? Assign role
@@ -172,7 +234,13 @@ const checkPermissions = function(permissions) {
         managementClient = getManagementClient([apiScope.read.roles, apiScope.update.users].join(' '));
         managementClient.users.assignRoles({ id: req.user.user_id }, { roles: [roleId] }).then(results => {
           req.user.scope = [...new Set(req.user.scope.concat(roles.viewer))];
-          updateDbAndVerify(permissions, req, res, next);
+
+          checkForInvites(req, err => {
+            if (err) {
+              return res.status(500).json(err);
+            }
+            updateDbAndVerify(permissions, req, res, next);
+          });
         }).catch(err => {
           res.status(err.statusCode).json(err.message.error_description);
         });

@@ -6,7 +6,6 @@ const request = require('supertest');
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
 const stubAuth0ManagementEndpoint = require('../support/stubAuth0ManagementEndpoint');
-const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
 const mailer = require('../../mailer');
 const { uuid } = require('uuidv4');
 const scope = require('../../config/permissions');
@@ -21,7 +20,7 @@ const apiScope = require('../../config/apiPermissions');
 const _identity = require('../fixtures/sample-auth0-identity-token');
 const _profile = require('../fixtures/sample-auth0-profile-response');
 
-describe('organizationMembershipSpec', () => {
+describe('teamMembershipSpec', () => {
 
   let login, pub, prv, keystore;
   beforeAll(done => {
@@ -36,8 +35,11 @@ describe('organizationMembershipSpec', () => {
     mailer.transport.sentMail = [];
   });
 
-  let organization, agent;
+  let originalProfile;
+  let team, organization, agent;
   beforeEach(done => {
+    originalProfile = {..._profile};
+
     models.sequelize.sync({force: true}).then(() => {
       fixtures.loadFile(`${__dirname}/../fixtures/agents.json`, models).then(() => {
         models.Agent.findAll().then(results => {
@@ -45,7 +47,18 @@ describe('organizationMembershipSpec', () => {
           fixtures.loadFile(`${__dirname}/../fixtures/organizations.json`, models).then(() => {
             models.Organization.findAll().then(results => {
               organization = results[0];
-              done();
+              fixtures.loadFile(`${__dirname}/../fixtures/teams.json`, models).then(() => {
+                models.Team.findAll().then(results => {
+                  team = results[0];
+                  done();
+                }).catch(err => {
+                  done.fail(err);
+                });
+              }).catch(err => {
+                done.fail(err);
+              });
+            }).catch(err => {
+              done.fail(err);
             });
           }).catch(err => {
             done.fail(err);
@@ -61,23 +74,31 @@ describe('organizationMembershipSpec', () => {
     });
   });
 
+  afterEach(() => {
+    // Through the magic of node I am able to adjust the profile data returned.
+    // This resets the default values
+    _profile.email = originalProfile.email;
+    _profile.name = originalProfile.name;
+  });
+
   describe('authenticated', () => {
 
     describe('authorized', () => {
 
       describe('create', () => {
+
         let authenticatedSession;
         beforeEach(done => {
           stubAuth0ManagementApi((err, apiScopes) => {
             if (err) return done.fail();
 
-            login(_identity, [scope.create.organizationMembers], (err, session) => {
+            login(_identity, [scope.create.teamMembers], (err, session) => {
               if (err) return done.fail(err);
               authenticatedSession = session;
 
               // Cached profile doesn't match "live" data, so agent needs to be updated
               // with a call to Auth0
-              stubUserRead((err, apiScopes) => {
+              stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
                 if (err) return done.fail();
 
                 done();
@@ -88,12 +109,12 @@ describe('organizationMembershipSpec', () => {
 
         describe('unknown agent', () => {
           it('returns the agent added to the membership', done => {
-            models.Organization.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
+            models.Team.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
               expect(results.length).toEqual(1);
               expect(results[0].members.length).toEqual(1);
 
               authenticatedSession
-                .put(`/organization/${organization.id}/agent`)
+                .put(`/team/${team.id}/agent`)
                 .send({
                   email: 'somebrandnewguy@example.com'
                 })
@@ -113,13 +134,13 @@ describe('organizationMembershipSpec', () => {
             });
           });
 
-          it('adds a new agent to organization membership', done => {
-            models.Organization.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
+          it('adds a new agent to team membership', done => {
+            models.Team.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
               expect(results.length).toEqual(1);
               expect(results[0].members.length).toEqual(1);
 
               authenticatedSession
-                .put(`/organization/${organization.id}/agent`)
+                .put(`/team/${team.id}/agent`)
                 .send({
                   email: 'somebrandnewguy@example.com'
                 })
@@ -127,9 +148,9 @@ describe('organizationMembershipSpec', () => {
                 .expect('Content-Type', /json/)
                 .expect(201)
                 .end(function(err, res) {
-                  if (err) done.fail(err);
+                  if (err) return done.fail(err);
 
-                  models.Organization.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
+                  models.Team.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
                     expect(results.length).toEqual(1);
                     expect(results[0].members.length).toEqual(2);
                     expect(results[0].members.map(a => a.email).includes('somebrandnewguy@example.com')).toBe(true);
@@ -148,7 +169,7 @@ describe('organizationMembershipSpec', () => {
               expect(results).toBe(null);
 
               authenticatedSession
-                .put(`/organization/${organization.id}/agent`)
+                .put(`/team/${team.id}/agent`)
                 .send({
                   email: 'somebrandnewguy@example.com'
                 })
@@ -156,7 +177,7 @@ describe('organizationMembershipSpec', () => {
                 .expect('Content-Type', /json/)
                 .expect(201)
                 .end(function(err, res) {
-                  if (err) done.fail(err);
+                  if (err) return done.fail(err);
 
                   models.Agent.findOne({ where: { email: 'somebrandnewguy@example.com' } }).then(results => {
                     expect(results.email).toEqual('somebrandnewguy@example.com');
@@ -171,10 +192,9 @@ describe('organizationMembershipSpec', () => {
             });
           });
 
-
           it('returns a friendly message if the agent is already a member', done => {
             authenticatedSession
-              .put(`/organization/${organization.id}/agent`)
+              .put(`/team/${team.id}/agent`)
               .send({
                 email: 'somebrandnewguy@example.com'
               })
@@ -182,15 +202,15 @@ describe('organizationMembershipSpec', () => {
               .expect('Content-Type', /json/)
               .expect(201)
               .end(function(err, res) {
-                if (err) done.fail(err);
+                if (err) return done.fail(err);
 
                 // Cached profile doesn't match "live" data, so agent needs to be updated
                 // with a call to Auth0
-                stubUserRead((err, apiScopes) => {
+                stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
                   if (err) return done.fail();
 
                   authenticatedSession
-                    .put(`/organization/${organization.id}/agent`)
+                    .put(`/team/${team.id}/agent`)
                     .send({
                       email: 'somebrandnewguy@example.com'
                     })
@@ -198,17 +218,17 @@ describe('organizationMembershipSpec', () => {
                     .expect('Content-Type', /json/)
                     .expect(200)
                     .end(function(err, res) {
-                      if (err) done.fail(err);
-                      expect(res.body.message).toEqual('somebrandnewguy@example.com is already a member of this organization');
+                      if (err) return done.fail(err);
+                      expect(res.body.message).toEqual('somebrandnewguy@example.com is already a member of this team');
                       done();
                     });
                 });
               });
           });
 
-          it('doesn\'t barf if organization doesn\'t exist', done => {
+          it('doesn\'t barf if team doesn\'t exist', done => {
             authenticatedSession
-              .put('/organization/333/agent')
+              .put('/team/333/agent')
               .send({
                 email: 'somebrandnewguy@example.com'
               })
@@ -217,7 +237,7 @@ describe('organizationMembershipSpec', () => {
               .expect(404)
               .end(function(err, res) {
                 if (err) return done.fail(err);
-                expect(res.body.message).toEqual('No such organization');
+                expect(res.body.message).toEqual('No such team');
                 done();
               });
           });
@@ -227,7 +247,7 @@ describe('organizationMembershipSpec', () => {
               it('sends an email to notify agent of new membership', function(done) {
                 expect(mailer.transport.sentMail.length).toEqual(0);
                 authenticatedSession
-                  .put(`/organization/${organization.id}/agent`)
+                  .put(`/team/${team.id}/agent`)
                   .send({
                     email: 'somebrandnewguy@example.com'
                   })
@@ -239,11 +259,11 @@ describe('organizationMembershipSpec', () => {
                     expect(mailer.transport.sentMail.length).toEqual(1);
                     expect(mailer.transport.sentMail[0].data.to).toEqual('somebrandnewguy@example.com');
                     expect(mailer.transport.sentMail[0].data.from).toEqual(process.env.NOREPLY_EMAIL);
-                    expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity organization invitation');
+                    expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity team invitation');
 
                     models.Agent.findOne({ where: { email: 'somebrandnewguy@example.com' } }).then(a => {
-                      models.OrganizationMember.findOne({ where: { AgentId: a.id } }).then(results => {
-                        expect(mailer.transport.sentMail[0].data.text).toContain(`You have been invited to join ${organization.name}`);
+                      models.TeamMember.findOne({ where: { AgentId: a.id } }).then(results => {
+                        expect(mailer.transport.sentMail[0].data.text).toContain(`You have been invited to join ${team.name}`);
                         expect(mailer.transport.sentMail[0].data.text).toContain(`Click or copy-paste the link below to accept:`);
                         expect(mailer.transport.sentMail[0].data.text).toContain(`${process.env.SERVER_DOMAIN}/verify/${results.verificationCode}`);
                         done();
@@ -262,7 +282,7 @@ describe('organizationMembershipSpec', () => {
 
               beforeEach(done => {
                 authenticatedSession
-                  .put(`/organization/${organization.id}/agent`)
+                  .put(`/team/${team.id}/agent`)
                   .send({
                     email: 'somebrandnewguy@example.com'
                   })
@@ -272,7 +292,7 @@ describe('organizationMembershipSpec', () => {
                   .end(function(err, res) {
                     if (err) return done.fail(err);
                     models.Agent.findOne({ where: { email: 'somebrandnewguy@example.com' } }).then(a => {
-                      models.OrganizationMember.findOne({ where: { AgentId: a.id } }).then(results => {
+                      models.TeamMember.findOne({ where: { AgentId: a.id } }).then(results => {
 
                         unverifiedMembership = results;
                         verificationUrl = `/verify/${results.verificationCode}`;
@@ -298,7 +318,7 @@ describe('organizationMembershipSpec', () => {
                     .end(function(err, res) {
                       if (err) return done.fail(err);
 
-                      models.OrganizationMember.findOne({ where: { AgentId: unverifiedMembership.AgentId } }).then(results => {
+                      models.TeamMember.findOne({ where: { AgentId: unverifiedMembership.AgentId } }).then(results => {
                         expect(results.verificationCode).toBe(null);
                         done();
                       }).catch(err => {
@@ -355,7 +375,7 @@ describe('organizationMembershipSpec', () => {
                     .end(function(err, res) {
                       if (err) return done.fail(err);
 
-                      models.OrganizationMember.findOne({ where: { AgentId: unverifiedMembership.AgentId } }).then(results => {
+                      models.TeamMember.findOne({ where: { AgentId: unverifiedMembership.AgentId } }).then(results => {
                         expect(results.verificationCode).toBe(null);
                         done();
                       }).catch(err => {
@@ -405,12 +425,12 @@ describe('organizationMembershipSpec', () => {
           });
 
           it('returns the agent added to the membership', done => {
-            models.Organization.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
+            models.Team.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
               expect(results.length).toEqual(1);
               expect(results[0].members.length).toEqual(1);
 
               authenticatedSession
-                .put(`/organization/${organization.id}/agent`)
+                .put(`/team/${team.id}/agent`)
                 .send({
                   email: knownAgent.email
                 })
@@ -418,7 +438,7 @@ describe('organizationMembershipSpec', () => {
                 .expect('Content-Type', /json/)
                 .expect(201)
                 .end(function(err, res) {
-                  if (err) done.fail(err);
+                  if (err) return done.fail(err);
                   expect(res.body.name).toEqual(knownAgent.name);
                   expect(res.body.email).toEqual(knownAgent.email);
                   expect(res.body.id).toEqual(knownAgent.id);
@@ -430,13 +450,13 @@ describe('organizationMembershipSpec', () => {
             });
           });
 
-          it('adds the agent to organization membership', done => {
-            models.Organization.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
+          it('adds the agent to team membership', done => {
+            models.Team.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
               expect(results.length).toEqual(1);
               expect(results[0].members.length).toEqual(1);
 
               authenticatedSession
-                .put(`/organization/${organization.id}/agent`)
+                .put(`/team/${team.id}/agent`)
                 .send({
                   email: knownAgent.email
                 })
@@ -446,7 +466,7 @@ describe('organizationMembershipSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  models.Organization.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
+                  models.Team.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
                     expect(results.length).toEqual(1);
                     expect(results[0].members.length).toEqual(2);
                     expect(results[0].members.map(a => a.id).includes(knownAgent.id)).toBe(true);
@@ -462,7 +482,7 @@ describe('organizationMembershipSpec', () => {
 
           it('returns a friendly message if the agent is already a member', done => {
             authenticatedSession
-              .put(`/organization/${organization.id}/agent`)
+              .put(`/team/${team.id}/agent`)
               .send({
                 email: knownAgent.email
               })
@@ -474,11 +494,11 @@ describe('organizationMembershipSpec', () => {
 
                 // Cached profile doesn't match "live" data, so agent needs to be updated
                 // with a call to Auth0
-                stubUserRead((err, apiScopes) => {
+                stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
                   if (err) return done.fail();
 
                   authenticatedSession
-                    .put(`/organization/${organization.id}/agent`)
+                    .put(`/team/${team.id}/agent`)
                     .send({
                       email: knownAgent.email
                     })
@@ -487,16 +507,16 @@ describe('organizationMembershipSpec', () => {
                     .expect(200)
                     .end(function(err, res) {
                       if (err) return done.fail(err);
-                      expect(res.body.message).toEqual(`${knownAgent.email} is already a member of this organization`);
+                      expect(res.body.message).toEqual(`${knownAgent.email} is already a member of this team`);
                       done();
                     });
                 });
               });
           });
 
-          it('doesn\'t barf if organization doesn\'t exist', done => {
+          it('doesn\'t barf if team doesn\'t exist', done => {
             authenticatedSession
-              .put('/organization/333/agent')
+              .put('/team/333/agent')
               .send({
                 email: knownAgent.email
               })
@@ -504,8 +524,8 @@ describe('organizationMembershipSpec', () => {
               .expect('Content-Type', /json/)
               .expect(404)
               .end(function(err, res) {
-                if (err) done.fail(err);
-                expect(res.body.message).toEqual('No such organization');
+                if (err) return done.fail(err);
+                expect(res.body.message).toEqual('No such team');
                 done();
               });
           });
@@ -515,7 +535,7 @@ describe('organizationMembershipSpec', () => {
               it('sends an email to notify agent of new membership', function(done) {
                 expect(mailer.transport.sentMail.length).toEqual(0);
                 authenticatedSession
-                  .put(`/organization/${organization.id}/agent`)
+                  .put(`/team/${team.id}/agent`)
                   .send({
                     email: knownAgent.email
                   })
@@ -527,17 +547,13 @@ describe('organizationMembershipSpec', () => {
                     expect(mailer.transport.sentMail.length).toEqual(1);
                     expect(mailer.transport.sentMail[0].data.to).toEqual(knownAgent.email);
                     expect(mailer.transport.sentMail[0].data.from).toEqual(process.env.NOREPLY_EMAIL);
-                    expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity organization invitation');
+                    expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity team invitation');
 
-                    models.Agent.findOne({ where: { email: knownAgent.email } }).then(a => {
-                      models.OrganizationMember.findOne({ where: { AgentId: a.id } }).then(results => {
-                        expect(mailer.transport.sentMail[0].data.text).toContain(`You have been invited to join ${organization.name}`);
-                        expect(mailer.transport.sentMail[0].data.text).toContain(`Click or copy-paste the link below to accept:`);
-                        expect(mailer.transport.sentMail[0].data.text).toContain(`${process.env.SERVER_DOMAIN}/verify/${results.verificationCode}`);
-                        done();
-                      }).catch(err => {
-                        done.fail(err);
-                      });
+                    models.TeamMember.findOne({ where: { AgentId: knownAgent.id } }).then(results => {
+                      expect(mailer.transport.sentMail[0].data.text).toContain(`You have been invited to join ${team.name}`);
+                      expect(mailer.transport.sentMail[0].data.text).toContain(`Click or copy-paste the link below to accept:`);
+                      expect(mailer.transport.sentMail[0].data.text).toContain(`${process.env.SERVER_DOMAIN}/verify/${results.verificationCode}`);
+                      done();
                     }).catch(err => {
                       done.fail(err);
                     });
@@ -550,7 +566,7 @@ describe('organizationMembershipSpec', () => {
 
               beforeEach(done => {
                 authenticatedSession
-                  .put(`/organization/${organization.id}/agent`)
+                  .put(`/team/${team.id}/agent`)
                   .send({
                     email: knownAgent.email
                   })
@@ -559,16 +575,12 @@ describe('organizationMembershipSpec', () => {
                   .expect(201)
                   .end(function(err, res) {
                     if (err) return done.fail(err);
-                    models.Agent.findOne({ where: { email: knownAgent.email } }).then(a => {
-                      models.OrganizationMember.findOne({ where: { AgentId: a.id } }).then(results => {
+                    models.TeamMember.findOne({ where: { AgentId: knownAgent.id } }).then(results => {
 
-                        unverifiedMembership = results;
-                        verificationUrl = `/verify/${results.verificationCode}`;
+                      unverifiedMembership = results;
+                      verificationUrl = `/verify/${results.verificationCode}`;
 
-                        done();
-                      }).catch(err => {
-                        done.fail(err);
-                      });
+                      done();
                     }).catch(err => {
                       done.fail(err);
                     });
@@ -586,7 +598,7 @@ describe('organizationMembershipSpec', () => {
                     .end(function(err, res) {
                       if (err) return done.fail(err);
 
-                      models.OrganizationMember.findOne({ where: { AgentId: unverifiedMembership.AgentId } }).then(results => {
+                      models.TeamMember.findOne({ where: { AgentId: unverifiedMembership.AgentId } }).then(results => {
                         expect(results.verificationCode).toBe(null);
                         done();
                       }).catch(err => {
@@ -643,7 +655,7 @@ describe('organizationMembershipSpec', () => {
                     .end(function(err, res) {
                       if (err) return done.fail(err);
 
-                      models.OrganizationMember.findOne({ where: { AgentId: unverifiedMembership.AgentId } }).then(results => {
+                      models.TeamMember.findOne({ where: { AgentId: unverifiedMembership.AgentId } }).then(results => {
                         expect(results.verificationCode).toBe(null);
                         done();
                       }).catch(err => {
@@ -679,37 +691,32 @@ describe('organizationMembershipSpec', () => {
               });
             });
           });
-
         });
       });
 
       describe('delete', () => {
-        let authenticatedSession;
-        beforeEach(done => {
-          stubAuth0ManagementApi((err, apiScopes) => {
-            if (err) return done.fail();
-
-            login(_identity, [scope.delete.organizationMembers], (err, session) => {
-              if (err) return done.fail(err);
-              authenticatedSession = session;
-
-              // Cached profile doesn't match "live" data, so agent needs to be updated
-              // with a call to Auth0
-              stubUserRead((err, apiScopes) => {
-                if (err) return done.fail();
-
-                done();
-              });
-            });
-          });
-        });
-
-        let knownAgent;
+        let knownAgent, authenticatedSession;
         beforeEach(done => {
           models.Agent.create({ email: 'weknowthisguy@example.com', name: 'Well-known Guy' }).then(result => {
             knownAgent = result;
-            organization.addMember(knownAgent).then(result => {
-              done();
+            team.addMember(knownAgent).then(result => {
+
+              stubAuth0ManagementApi((err, apiScopes) => {
+                if (err) return done.fail();
+
+                login(_identity, [scope.delete.teamMembers], (err, session) => {
+                  if (err) return done.fail(err);
+                  authenticatedSession = session;
+
+                  // Cached profile doesn't match "live" data, so agent needs to be updated
+                  // with a call to Auth0
+                  stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
+                    if (err) return done.fail();
+
+                    done();
+                  });
+                });
+              });
             }).catch(err => {
               done.fail(err);
             });
@@ -718,9 +725,9 @@ describe('organizationMembershipSpec', () => {
           });
         });
 
-        it('removes an existing member record from the organization', done => {
+        it('removes an existing member record from the team', done => {
           authenticatedSession
-            .delete(`/organization/${organization.id}/agent/${knownAgent.id}`)
+            .delete(`/team/${team.id}/agent/${knownAgent.id}`)
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
@@ -731,27 +738,27 @@ describe('organizationMembershipSpec', () => {
             });
         });
 
-        it('doesn\'t barf if organization doesn\'t exist', done => {
+        it('doesn\'t barf if team doesn\'t exist', done => {
           authenticatedSession
-            .delete(`/organization/333/agent/${knownAgent.id}`)
+            .delete(`/team/333/agent/${knownAgent.id}`)
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(404)
             .end(function(err, res) {
-              if (err) done.fail(err);
-              expect(res.body.message).toEqual('No such organization');
+              if (err) return done.fail(err);
+              expect(res.body.message).toEqual('No such team');
               done();
             });
         });
 
         it('doesn\'t barf if the agent doesn\'t exist', done => {
           authenticatedSession
-            .delete(`/organization/${organization.id}/agent/333`)
+            .delete(`/team/${team.id}/agent/333`)
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(404)
             .end(function(err, res) {
-              if (err) done.fail(err);
+              if (err) return done.fail(err);
               expect(res.body.message).toEqual('That agent is not a member');
               done();
             });
@@ -759,19 +766,19 @@ describe('organizationMembershipSpec', () => {
 
         it('sends an email to notify agent of membership revocation', function(done) {
           expect(mailer.transport.sentMail.length).toEqual(0);
-          organization.addMember(knownAgent).then(result => {
+          team.addMember(knownAgent).then(result => {
             authenticatedSession
-              .delete(`/organization/${organization.id}/agent/${knownAgent.id}`)
+              .delete(`/team/${team.id}/agent/${knownAgent.id}`)
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
               .end(function(err, res) {
-                if (err) done.fail(err);
+                if (err) return done.fail(err);
                 expect(mailer.transport.sentMail.length).toEqual(1);
                 expect(mailer.transport.sentMail[0].data.to).toEqual(knownAgent.email);
                 expect(mailer.transport.sentMail[0].data.from).toEqual(process.env.NOREPLY_EMAIL);
                 expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity membership update');
-                expect(mailer.transport.sentMail[0].data.text).toContain(`You are no longer a member of ${organization.name}`);
+                expect(mailer.transport.sentMail[0].data.text).toContain(`You are no longer a member of ${team.name}`);
                 done();
               });
           }).catch(err => {
@@ -781,28 +788,26 @@ describe('organizationMembershipSpec', () => {
       });
     });
 
-    describe('forbidden', () => {
-      let originalProfile;
-
-      let forbiddenSession, suspiciousAgent;
+    describe('unauthorized', () => {
+      let unauthorizedSession, suspiciousAgent;
       beforeEach(done => {
-
-        originalProfile = {..._profile};
-        _profile.email = 'suspiciousagent@example.com';
-        _profile.name = 'Suspicious Guy';
-
-        models.Agent.create({ email: 'suspiciousagent@example.com' }).then(a => {
+        models.Agent.create({ email: 'suspiciousagent@example.com', name: 'Suspicious Guy' }).then(a => {
           suspiciousAgent = a;
+
+          _profile.email = suspiciousAgent.email;
+          _profile.name = suspiciousAgent.name;
+
+
           stubAuth0ManagementApi((err, apiScopes) => {
             if (err) return done.fail();
 
-            login({ ..._identity, email: suspiciousAgent.email }, [scope.create.organizationMembers], (err, session) => {
+            login({ ..._identity, email: suspiciousAgent.email }, [scope.create.teamMembers], (err, session) => {
               if (err) return done.fail(err);
-              forbiddenSession = session;
+              unauthorizedSession = session;
 
               // Cached profile doesn't match "live" data, so agent needs to be updated
               // with a call to Auth0
-              stubUserRead((err, apiScopes) => {
+              stubAuth0ManagementEndpoint([apiScope.read.users], (err, apiScopes) => {
                 if (err) return done.fail();
 
                 done();
@@ -814,17 +819,10 @@ describe('organizationMembershipSpec', () => {
         });
       });
 
-      afterEach(() => {
-        // Through the magic of node I am able to adjust the profile data returned.
-        // This resets the default values
-        _profile.email = originalProfile.email;
-        _profile.name = originalProfile.name;
-      });
-
       describe('create', () => {
         it('doesn\'t allow a non-member agent to add a member', done => {
-          forbiddenSession
-            .put(`/organization/${organization.id}/agent`)
+          unauthorizedSession
+            .put(`/team/${team.id}/agent`)
             .send({
               email: suspiciousAgent.email
             })
@@ -833,7 +831,7 @@ describe('organizationMembershipSpec', () => {
             .expect(403)
             .end(function(err, res) {
               if (err) return done.fail(err);
-              expect(res.body.message).toEqual('You are not a member of this organization');
+              expect(res.body.message).toEqual('You are not a member of this team');
               done();
             });
         });
@@ -844,7 +842,7 @@ describe('organizationMembershipSpec', () => {
         beforeEach(done => {
           models.Agent.create({ email: 'weknowthisguy@example.com', name: 'Well-known Guy' }).then(result => {
             knownAgent = result;
-            organization.addMember(knownAgent).then(result => {
+            team.addMember(knownAgent).then(result => {
               done();
             }).catch(err => {
               done.fail(err);
@@ -855,8 +853,8 @@ describe('organizationMembershipSpec', () => {
         });
 
         it('returns 403', done => {
-          forbiddenSession
-            .delete(`/organization/${organization.id}/agent/${knownAgent.id}`)
+          unauthorizedSession
+            .delete(`/team/${team.id}/agent/${knownAgent.id}`)
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(403)
@@ -868,18 +866,18 @@ describe('organizationMembershipSpec', () => {
         });
 
         it('does not remove the record from the database', done => {
-          models.Organization.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
+          models.Team.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
             expect(results.length).toEqual(1);
             expect(results[0].members.length).toEqual(2);
 
-            forbiddenSession
-              .delete(`/organization/${organization.id}/agent/${knownAgent.id}`)
+            unauthorizedSession
+              .delete(`/team/${team.id}/agent/${knownAgent.id}`)
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(403)
               .end(function(err, res) {
                 if (err) return done.fail(err);
-                models.Organization.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
+                models.Team.findAll({ include: [ 'creator', { model: models.Agent, as: 'members' } ] }).then(results => {
                   expect(results.length).toEqual(1);
                   expect(results[0].members.length).toEqual(2);
                   done();
@@ -896,11 +894,9 @@ describe('organizationMembershipSpec', () => {
   });
 
   describe('not authenticated', () => {
-
-    it('redirects to /login', done => {
+    it('redirects to login', done => {
       request(app)
-        .get('/organization')
-        .send({ name: 'Some org' })
+        .get('/team')
         .set('Accept', 'application/json')
         .expect(302)
         .end(function(err, res) {

@@ -135,6 +135,9 @@ require('../support/setupKeystore').then(keyStuff => {
 
             socialProfile._json.sub = agent.socialProfile.user_id;
             socialProfile.user_id = agent.socialProfile.user_id;
+            if (agent.socialProfile) {
+              socialProfile = {...agent.socialProfile, ...socialProfile};
+            }
             agent.socialProfile = socialProfile;
             await agent.save();
           }
@@ -402,18 +405,49 @@ require('../support/setupKeystore').then(keyStuff => {
               return false;
             });
 
-            /**
-             * **WARNING**
-             *
-             * Note to future self:
-             *
-             * The data structure returned here is completely contrived. The mock
-             * depends on the database. Incoming Auth0 data is shoe-horned into
-             * their `Profile` object. A `Profile` instance is very different than the
-             * social data actually provided by Auth0. This makes it look like mock
-             * data is Auth0 data for the purpose of testing.
-             */
-            data = data.map(d => ({...d.socialProfile, email: d.socialProfile._json.email, name: d.socialProfile._json.name }));
+            data = data.map(d => ({...d.socialProfile, email: d.socialProfile.email, name: d.socialProfile.name }));
+
+            return h.response(data);
+          }
+
+          /**
+           * For retrieving a team leader's pendingInvitations
+           */
+          if (request.query.q && /user_metadata\.pendingInvitations\.uuid/.test(request.query.q)) {
+            const results = await models.Agent.findAll(searchParams);
+
+            // Get team ID from search string
+            const teamId = request.query.q.match(/(?<=(["']\b))(?:(?=(\\?))\2.)*?(?=\1)/)[0];
+
+            let data = results.filter(agent => {
+              if (agent.socialProfile.user_metadata && agent.socialProfile.user_metadata.pendingInvitations) {
+                return agent.socialProfile.user_metadata.pendingInvitations.find(invite => invite.uuid === teamId);
+              }
+              return false;
+            });
+
+            data = data.map(d => ({...d.socialProfile, email: d.socialProfile.email, name: d.socialProfile.name }));
+
+            return h.response(data);
+          }
+
+          /**
+           * For retrieving an agent\'s rsvps
+           */
+          if (request.query.q && /user_metadata\.rsvps\.uuid/.test(request.query.q)) {
+            const results = await models.Agent.findAll(searchParams);
+
+            // Get team ID from search string
+            const teamId = request.query.q.match(/(?<=(["']\b))(?:(?=(\\?))\2.)*?(?=\1)/)[0];
+
+            let data = results.filter(agent => {
+              if (agent.socialProfile.user_metadata && agent.socialProfile.user_metadata.rsvps) {
+                return agent.socialProfile.user_metadata.rsvps.find(rsvp => rsvp.uuid === teamId);
+              }
+              return false;
+            });
+
+            data = data.map(d => ({...d.socialProfile, email: d.socialProfile.email, name: d.socialProfile.name }));
 
             return h.response(data);
           }
