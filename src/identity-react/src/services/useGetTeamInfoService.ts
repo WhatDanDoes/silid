@@ -25,7 +25,7 @@ const useTeamInfoService = (id: number) => {
         }
       })
       .catch(error => setResult({ status: 'error', error }));
-  }, [id]);
+  }, [id, admin.isEnabled]);
 
   return result;
 };
