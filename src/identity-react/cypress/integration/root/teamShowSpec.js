@@ -113,7 +113,7 @@ context('root/Team show', function() {
           beforeEach(() => {
             cy.login(_profile.email, _profile);
             cy.get('#app-menu-button').click();
-            cy.wait(100);
+            cy.wait(200);
             cy.get('#admin-switch').uncheck();
             cy.visit(`/#/team/${teamId}`);
             cy.wait(200);
@@ -189,7 +189,7 @@ context('root/Team show', function() {
         context('switched off', () => {
           beforeEach(() => {
             cy.get('#app-menu-button').click();
-            cy.wait(100);
+            cy.wait(200);
             cy.get('#admin-switch').uncheck();
             cy.wait(200);
             cy.get('#app-menu').contains('Profile').click();
