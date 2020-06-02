@@ -33,7 +33,7 @@ describe('checkPermissions', function() {
 
   beforeEach(done => {
     nock.cleanAll();
-    _profile.scope = [ 'read:agents', 'read:organizations', 'read:teams' ];
+    _profile.scope = roles.viewer;
 
     /**
      * Agents need basic viewing privileges. This stubs the
@@ -969,7 +969,7 @@ describe('checkPermissions', function() {
 
       // This may prove a bit flaky...
       // The status code stuff happens outside anything asynchronous
-      checkPermissions([scope.update.agents])(request, response, err => {
+      checkPermissions([scope.create.agents])(request, response, err => {
         done.fail('Should not get here');
       });
 
