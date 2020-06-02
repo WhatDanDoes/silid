@@ -9,7 +9,7 @@ import Grid from '@material-ui/core/Grid';
 import Flash from '../components/Flash';
 
 import { useAuthState } from '../auth/Auth';
-//import { useAdminState } from '../auth/Admin';
+import { useAdminState } from '../auth/Admin';
 
 import useGetTeamInfoService from '../services/useGetTeamInfoService';
 import usePutTeamService from '../services/usePutTeamService';
@@ -62,7 +62,7 @@ const TeamInfo = (props) => {
   const classes = useStyles();
 
   const {agent, updateAgent} = useAuthState();
-//  const admin = useAdminState();
+  const admin = useAdminState();
 
   const [prevInputState, setPrevInputState] = useState({});
   const [toAgent, setToAgent] = useState(false);
@@ -205,7 +205,7 @@ const TeamInfo = (props) => {
             </Grid>
             <Grid item className={classes.grid}>
               <TableContainer component={Paper}>
-                <Table className={classes.table} aria-label="Team profile info">
+                <Table id="team-profile-info" className={classes.table} aria-label="Team profile info">
                   <TableBody>
                     <TableRow>
                       <TableCell align="right" component="th" scope="row">Name:</TableCell>
@@ -228,7 +228,7 @@ const TeamInfo = (props) => {
                 </Table>
               </TableContainer>
             </Grid>
-            {teamInfo.leader === agent.email ?
+            {teamInfo.leader === agent.email || admin.isEnabled ?
               <Grid item className={classes.grid}>
                 <TableContainer>
                   <Table className={classes.table} aria-label="Team delete">
@@ -312,7 +312,7 @@ const TeamInfo = (props) => {
                       icon: 'delete_outline',
                       isFreeAction: false,
                       tooltip: 'Delete',
-                      hidden: rowData.email === teamInfo.leader || teamInfo.leader !== agent.email,
+                      hidden: rowData.email === teamInfo.leader || (teamInfo.leader !== agent.email && !admin.isEnabled),
                       onClick:() => {
                         new Promise((resolve, reject) => {
                           if (window.confirm('Remove member?')) {
@@ -351,7 +351,7 @@ const TeamInfo = (props) => {
                       }
                     })
                   ]}
-                editable={ teamInfo.leader === agent.email ? { onRowAdd: inviteToTeam } : undefined }
+                editable={ teamInfo.leader === agent.email || admin.isEnabled ? { onRowAdd: inviteToTeam } : undefined }
               />
             </Grid>
             {agent.user_metadata &&

@@ -20,15 +20,19 @@ const getManagementClient = require('../lib/getManagementClient');
  * @param array
  * @param string
  * @param string
+ * @param boolean
  *
  * @returns array
  */
-function collateTeams(agents, teamId, agentId) {
-  const agentIndex = agents.findIndex(a => a.user_id === agentId);
+function collateTeams(agents, teamId, agentId, isSuper=false) {
+  let agentIndex = agents.findIndex(a => a.user_id === agentId);
 
   // Requesting agent is not a member of the team
-  if (agentIndex < 0) {
+  if (agentIndex < 0 && !isSuper) {
     return;
+  }
+  else if (agentIndex < 0 && isSuper) {
+    agentIndex = 0;
   }
 
   const teamIndex = agents[agentIndex].user_metadata.teams.findIndex(t => t.id === teamId);
@@ -80,12 +84,12 @@ router.get('/', checkPermissions([scope.read.teams]), function(req, res, next) {
   });
 });
 
-router.get('/:id', checkPermissions([scope.read.teams]), function(req, res, next) {
+router.get('/:id/:admin?', checkPermissions([scope.read.teams]), function(req, res, next) {
   const managementClient = getManagementClient(apiScope.read.usersAppMetadata);
   managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.id}"` }).then(agents => {
     if (agents.length) {
 
-      const teams = collateTeams(agents, req.params.id, req.user.user_id);
+      const teams = collateTeams(agents, req.params.id, req.user.user_id, req.user.user_metadata.isSuper && req.params.admin);
 
       if (!teams) {
         return res.status(403).json({ message: 'You are not a member of that team' });
@@ -688,7 +692,7 @@ router.delete('/:id/invite', checkPermissions([scope.delete.teamMembers]), funct
             a.user_metadata.rsvps.splice(rsvpIndex, 1);
 
             managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
-            managementClient.updateUser({id: a.user_id}, { user_metadata: a.user_metadata }).then(result => { 
+            managementClient.updateUser({id: a.user_id}, { user_metadata: a.user_metadata }).then(result => {
               res.status(201).json(req.user);
             }).catch(err => {
               res.status(err.statusCode).json(err.message.error_description);

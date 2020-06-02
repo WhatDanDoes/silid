@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Service } from '../types/Service';
 import { Team } from '../types/Team';
+import { useAdminState } from '../auth/Admin';
 
 const useTeamInfoService = (id: number) => {
+  const admin = useAdminState();
+
   const [result, setResult] = useState<Service<Team>>({
     status: 'loading'
   });
@@ -11,7 +14,7 @@ const useTeamInfoService = (id: number) => {
     const headers = new Headers();
     headers.append('Content-Type', 'application/json; charset=utf-8');
 
-    fetch(`/team/${id}`, { headers })
+    fetch(`/team/${id}${admin.isEnabled ? '/admin' : ''}`, { headers })
       .then(response => response.json())
       .then(response => {
         if (response.message) {
