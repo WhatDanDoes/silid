@@ -73,7 +73,7 @@ describe('root/teamSpec', () => {
         beforeEach(done => {
           teamId = uuid.v4();
 
-          _profile.user_metadata = { teams: [{ name: 'The Calgary Roughnecks', leader: _profile.email, members: [_profile.email], id: teamId }] };
+          _profile.user_metadata = { teams: [{ name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId }] };
           stubAuth0ManagementApi((err, apiScopes) => {
             if (err) return done.fail();
 
@@ -213,7 +213,6 @@ describe('root/teamSpec', () => {
               expect(res.body.name).toEqual('The Calgary Roughnecks');
               expect(res.body.leader).toEqual(_profile.email);
               expect(res.body.id).toEqual(teamId);
-              expect(res.body.members).toEqual([{ name: _profile.name, email: _profile.email, user_id: _profile.user_id }]);
 
               done();
             });
@@ -360,7 +359,7 @@ describe('root/teamSpec', () => {
       describe('unsuccessfully', () =>{
         beforeEach(done => {
           // Witness node module caching magic
-          _profile.user_metadata = { teams: [ {name: 'The Calgary Roughnecks', leader: _profile.email, members: [_profile.email] } ] };
+          _profile.user_metadata = { teams: [ {name: 'The Calgary Roughnecks', leader: _profile.email } ] };
 
           stubAuth0ManagementApi((err, apiScopes) => {
             if (err) return done.fail();
@@ -491,9 +490,8 @@ describe('root/teamSpec', () => {
       let teamId;
       beforeEach(done => {
         teamId = uuid.v4();
-        _profile.user_metadata = { teams: [{ name: 'Vancouver Warriors', leader: process.env.ROOT_AGENT, members: [process.env.ROOT_AGENT], id: teamId }] };
-        _profile.user_metadata.teams.push({ name: 'Georgia Swarm', leader: 'someotherguy@example.com',
-                                            members: ['someotherguy@example.com', _profile.email], id: uuid.v4() });
+        _profile.user_metadata = { teams: [{ name: 'Vancouver Warriors', leader: process.env.ROOT_AGENT, id: teamId }] };
+        _profile.user_metadata.teams.push({ name: 'Georgia Swarm', leader: 'someotherguy@example.com', id: uuid.v4() });
 
         stubAuth0ManagementApi((err, apiScopes) => {
           if (err) return done.fail();
@@ -545,7 +543,6 @@ describe('root/teamSpec', () => {
             expect(res.body.name).toEqual('Vancouver Riot');
             expect(res.body.leader).toEqual(_profile.email);
             expect(res.body.id).toEqual(teamId);
-            expect(res.body.members).toEqual([{ name: _profile.name, email: _profile.email, user_id: _profile.user_id }]);
 
             done();
           });
@@ -983,55 +980,47 @@ describe('root/teamSpec', () => {
 
     describe('delete', () => {
 
-      let rootTeamId, nonRootTeamId;
-      beforeEach(done => {
-        rootTeamId = uuid.v4();
-        nonRootTeamId = uuid.v4();
+      describe('one of root\'s own teams', () => {
 
-        _profile.user_metadata = { teams: [{ name: 'Saskatchewan Rush', leader: process.env.ROOT_AGENT, members: [process.env.ROOT_AGENT], id: rootTeamId }] };
-        // This is completely contrived for test purposes. Real-world metadata
-        // look or behave like this. (Notice `root` is not a team leader or member)
-        _profile.user_metadata.teams.push({ name: 'Philadelphia Wings', leader: 'someotherguy@example.com',
-                                            members: ['someotherguy@example.com', _profile.email], id: nonRootTeamId });
+        let rootTeamId;
+        beforeEach(done => {
 
-        stubAuth0ManagementApi((err, apiScopes) => {
-          if (err) return done.fail();
+          rootTeamId = uuid.v4();
+          _profile.user_metadata = { teams: [{ name: 'Saskatchewan Rush', leader: process.env.ROOT_AGENT, id: rootTeamId }] };
 
-          login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, [scope.delete.teams], (err, session) => {
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
 
-            if (err) return done.fail(err);
-            rootSession = session;
+            login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, [scope.delete.teams], (err, session) => {
 
-            // Cached profile doesn't match "live" data, so agent needs to be updated
-            // with a call to Auth0
-            stubUserRead((err, apiScopes) => {
-              if (err) return done.fail();
+              if (err) return done.fail(err);
+              rootSession = session;
 
-
-
-              // Stub user-read calls subsequent to initial login
-              //stubUserRead((err, apiScopes) => {
-              stubUserAppMetadataRead((err, apiScopes) => {
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubUserRead((err, apiScopes) => {
                 if (err) return done.fail();
-                ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
 
-                stubTeamRead((err, apiScopes) => {
+                stubUserAppMetadataRead((err, apiScopes) => {
                   if (err) return done.fail();
-                  ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
+                  ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
 
-                  stubUserAppMetadataUpdate((err, apiScopes) => {
+                  stubTeamRead((err, apiScopes) => {
                     if (err) return done.fail();
-                    ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                    done();
+                    ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
+
+                    stubUserAppMetadataUpdate((err, apiScopes) => {
+                      if (err) return done.fail();
+                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                      done();
+                    });
                   });
                 });
               });
             });
           });
         });
-      });
 
-      describe('one of root\'s own teams', () => {
         it('allows removal from Auth0', done => {
           rootSession
             .delete(`/team/${rootTeamId}`)
@@ -1092,6 +1081,50 @@ describe('root/teamSpec', () => {
       });
 
       describe('another agent\'s team', () => {
+
+        const teamLeaderProfile = {..._profile, name: 'Some Other Guy', email: 'someotherguy@example.com', user_id: _profile.user_id + 1 };
+
+        let nonRootTeamId;
+        beforeEach(done => {
+          nonRootTeamId = uuid.v4();
+
+          teamLeaderProfile.user_metadata = {
+            teams: [{ name: 'Philadelphia Wings', leader: 'someotherguy@example.com', id: nonRootTeamId }]
+          };
+
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
+
+            login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, [scope.delete.teams], (err, session) => {
+
+              if (err) return done.fail(err);
+              rootSession = session;
+
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubUserRead((err, apiScopes) => {
+                if (err) return done.fail();
+
+                stubUserAppMetadataRead((err, apiScopes) => {
+                  if (err) return done.fail();
+                  ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
+
+                  stubTeamRead([teamLeaderProfile], (err, apiScopes) => {
+                    if (err) return done.fail();
+                    ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
+
+                    stubUserAppMetadataUpdate(teamLeaderProfile, (err, apiScopes) => {
+                      if (err) return done.fail();
+                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                      done();
+                    });
+                  });
+                });
+              });
+            });
+          });
+        });
+
         it('allows removal of another team of which root is neither leader nor member', done => {
           rootSession
             .delete(`/team/${nonRootTeamId}`)
@@ -1105,8 +1138,29 @@ describe('root/teamSpec', () => {
             });
         });
 
+        // 2020-6-3
+        // Seems like a strange test, but the potential problem was revealed
+        // while developing super-agent team CRUD functionality. Once upon a
+        // time, the call to update the deletion was always called on the
+        // authenticated agent. This simply ensures that is no longer the case.
+        it('does not touch the super agent\'s user_metadata', done => {
+          expect(teamLeaderProfile.user_metadata.teams.length).toEqual(1);
+          expect(_profile.user_metadata).toBeUndefined();
+          rootSession
+            .delete(`/team/${nonRootTeamId}`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(201)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(teamLeaderProfile.user_metadata.teams.length).toEqual(0);
+              expect(_profile.user_metadata).toBeUndefined();
+              done();
+            });
+        });
+
         describe('Auth0', () => {
-          it('is called to retrieve the agent user_metadata', done => {
+          it('is called to retrieve a team\'s member agent user_metadata', done => {
             rootSession
               .delete(`/team/${nonRootTeamId}`)
               .set('Accept', 'application/json')
@@ -1130,26 +1184,25 @@ describe('root/teamSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-
                 expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
                 expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                 done();
               });
           });
         });
-      });
 
-      it('doesn\'t barf if team doesn\'t exist', done => {
-        rootSession
-          .delete('/team/333')
-          .set('Accept', 'application/json')
-          .expect('Content-Type', /json/)
-          .expect(404)
-          .end(function(err, res) {
-            if (err) return done.fail(err);
-            expect(res.body.message).toEqual('No such team');
-            done();
-          });
+        it('doesn\'t barf if team doesn\'t exist', done => {
+          rootSession
+            .delete('/team/333')
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(404)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(res.body.message).toEqual('No such team');
+              done();
+            });
+        });
       });
     });
   });

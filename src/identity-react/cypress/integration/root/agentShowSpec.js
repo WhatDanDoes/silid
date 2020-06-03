@@ -97,7 +97,7 @@ context('root/Agent show', function() {
                                                              members: [memberAgent.socialProfile.email]
                                                            }
                                                          ]
-                                                       } }, [this.scope.read.agents]);
+                                                       } });
 
                 cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${memberAgent.socialProfile.email}' LIMIT 1;`).then(([results, metadata]) => {
                   memberAgent = results[0];
