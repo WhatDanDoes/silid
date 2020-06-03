@@ -323,19 +323,10 @@ router.delete('/:id', checkPermissions([scope.delete.teams]), function(req, res,
       if (!req.agent.isSuper && req.user.email !== agent.user_metadata.teams[teamIndex].leader) {
         return res.status(403).json({ message: 'Unauthorized' });
       }
-
       agent.user_metadata.teams.splice(teamIndex, 1);
-
       managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
-      managementClient.updateUserMetadata({id: req.user.user_id}, agent.user_metadata).then(agent => {
-        // Auth0 does not return agent scope
-        agent.scope = req.user.scope;
-        // 2020-4-30 https://stackoverflow.com/a/24498660/1356582
-        // This updates the agent's session data
-        req.login(agent, err => {
-          if (err) return next(err);
-          res.status(201).json({ message: 'Team deleted', agent: agent });
-        });
+      managementClient.updateUserMetadata({id: agent.user_id}, agent.user_metadata).then(agent => {
+        res.status(201).json({ message: 'Team deleted', agent: agent });
       }).catch(err => {
         res.status(err.statusCode).json(err.message.error_description);
       });
