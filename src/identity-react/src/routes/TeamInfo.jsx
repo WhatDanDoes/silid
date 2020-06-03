@@ -144,7 +144,11 @@ const TeamInfo = (props) => {
    * Redirect to `/agent` when this team is deleted
    */
   if (toAgent) {
-    return <Redirect to={{ pathname: `/agent`, state: 'Team deleted' }} />
+    if (teamInfo.leader === agent.email) {
+      return <Redirect to={{ pathname: `/agent`, state: 'Team deleted' }} />
+    }
+    const leader = teamInfo.members.find(m => m.email === teamInfo.leader);
+    return <Redirect to={{ pathname: `/agent/${leader.user_id}`, state: 'Team deleted' }} />
   }
 
 
