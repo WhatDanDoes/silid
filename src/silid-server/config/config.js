@@ -28,18 +28,11 @@ module.exports = {
     host: process.env.POSTGRES_HOST || 'postgres',
     dialect: 'postgres'
   },
-  development_aws: {
-    username: process.env.DATABASE_USER_DEV,
-    password: process.env.DATABASE_PASSWORD_DEV,
-    database: 'postgres',
-    host: process.env.DATABASE_HOST_DEV,
-    dialect: 'postgres'
-  },
   production: {
-    username: process.env.DATABASE_USER_PROD,
-    password: process.env.DATABASE_PASSWORD_PROD,
-    database: 'postgres',
-    host: process.env.DATABASE_HOST_PROD,
+    username: process.env.POSTGRES_USER,
+    password: process.env.POSTGRES_PASSWORD,
+    database: process.env.POSTGRES_DB,
+    host: process.env.POSTGRES_HOST,
     dialect: 'postgres'
   }
 };
