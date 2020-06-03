@@ -61,7 +61,8 @@ router.get('/admin/:page?/:cached?', checkPermissions(roles.sudo), function(req,
 router.get('/', checkPermissions([scope.read.agents]), function(req, res, next) {
   const managementClient = getManagementClient(apiScope.read.users);
   managementClient.getUser({id: req.user.user_id}).then(agent => {
-    res.status(200).json({...req.user, ...agent });
+    const refreshedAgent = {...req.user, ...{...agent, user_metadata: {...req.user.user_metadata, ...agent.user_metadata} } };
+    res.status(200).json(refreshedAgent);
   }).catch(err => {
     res.status(err.statusCode).json(err.message.error_description);
   });
