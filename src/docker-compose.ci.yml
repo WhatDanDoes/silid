@@ -15,24 +15,29 @@ services:
       - /app/node_modules
       - /app/build
     environment:
-      - LETSENCRYPT_EMAIL=daniel@capitolhill.ca
-      - LETSENCRYPT_HOST=id.whatdandoes.info
-      - VIRTUAL_HOST=id.whatdandoes.info
-      #
       - AUTH0_AUDIENCE=https://id.languagetechnology.org/
-      - AUTH0_CLIENT_ID=tjrl8aOQEx9AtQhFffuWmvP6bcHM7nXB
-      - AUTH0_CLIENT_SECRET=some_secret
+      - AUTH0_CLIENT_ID=KdUmLO7eZSAgY1AXEdryBkPth8jKSryz
       - AUTH0_DOMAIN=silid.auth0.com
-      - CALLBACK_URL=http://localhost:3001/callback
-      - NOREPLY_EMAIL=noreply@example.com
-      - NOREPLY_PASSWORD=secret
-      - ROOT_AGENT=root@example.com
-      - SERVER_DOMAIN=http://localhost:3001
       #
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=pass
-      - POSTGRES_DB=silid_staging
-      - POSTGRES_HOST=postgres
+      - CALLBACK_URL=https://silid.languagetechnology.org/callback
+      - CLIENT_DOMAIN=https://silid.languagetechnology.org
+      #
+      - NOREPLY_EMAIL=noreply@languagetechnology.org
+      - NODE_ENV=production
+      #
+      - POSTGRES_USER=siliduser
+      - POSTGRES_DB=postgres
+      - POSTGRES_HOST=ss1fejs6cgbasrw.ctndsrrgblv3.us-east-1.rds.amazonaws.com
+      - PORT=5001
+      #
+      - REACT_APP_API_DOMAIN=https://silid.languagetechnology.org/
+      - REACT_APP_CALLBACK_URL=https://silid.languagetechnology.org/callback
+      - REACT_APP_CLIENT_ID=tjrl8aOQEx9AtQhFffuWmvP6bcHM7nXB
+      - REACT_APP_DOMAIN=silid.auth0.com
+      - REACT_APP_SITE_TITLE='Identity App'
+      - ROOT_AGENT=dan.bidulock@wycliffe.ca
+      #
+      - SERVER_DOMAIN=https://silid.languagetechnology.org
 
   postgres:
     image: postgres
