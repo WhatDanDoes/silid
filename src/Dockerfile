@@ -1,20 +1,21 @@
-FROM node
-#
-# Set arg to environment variable
-#
-ARG environment
-ENV NODE_ENV=${environment}
+FROM node:10.20.1
+
+ARG NODE_ENV
+ARG PORT=3001
+
+ENV NODE_ENV=$NODE_ENV
+ENV PORT=$PORT
+
 #
 # Build client app
 #
-RUN mkdir -p /srv/app/client
 WORKDIR /srv/app/client
 
-COPY ./identity-react/package.json /srv/app/client
-COPY ./identity-react/package-lock.json /srv/app/client
-COPY ./identity-react /srv/app/client
+COPY ./identity-react/package.json .
+COPY ./identity-react/package-lock.json .
+COPY ./identity-react .
 
-RUN npm install
+RUN npm install --production
 RUN npm run build
 
 #
@@ -25,7 +26,7 @@ WORKDIR /app
 COPY ./silid-server/package.json .
 COPY ./silid-server/package-lock.json .
 
-RUN npm install
+RUN npm install --production
 
 COPY ./silid-server .
 
@@ -33,6 +34,7 @@ COPY ./silid-server .
 # Copy client build
 RUN cp -R /srv/app/client/build/* /app/build
 
-EXPOSE 3001
-CMD npm start
+EXPOSE $PORT
+
+CMD NODE_ENV=$NODE_ENV npm start
 
