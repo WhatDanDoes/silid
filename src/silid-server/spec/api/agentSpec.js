@@ -132,7 +132,6 @@ describe('agentSpec', () => {
           beforeEach(done => {
             stubAuth0ManagementApi((err, apiScopes) => {
               if (err) return done.fail(err);
-
               ({userReadScope, oauthTokenScope} = apiScopes);
 
               login(_identity, [scope.read.agents], (err, session) => {
@@ -144,7 +143,12 @@ describe('agentSpec', () => {
                 stubUserRead((err, apiScopes) => {
                   if (err) return done.fail();
 
-                  done();
+                  stubUserRead((err, apiScopes) => {
+                    if (err) return done.fail(err);
+                    ({userReadScope, oauthTokenScope} = apiScopes);
+
+                    done();
+                  });
                 });
               });
             });
@@ -192,6 +196,25 @@ describe('agentSpec', () => {
                 expect(res.body.isSuper).toBeUndefined();
                 done();
               });
+          });
+
+
+          describe('Auth0', () => {
+            it('is called to retrieve a the agent\'s user_metadata', done => {
+              authenticatedSession
+                .get('/agent')
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(oauthTokenScope.isDone()).toBe(true);
+                  expect(userReadScope.isDone()).toBe(true);
+
+                  done();
+                });
+            });
           });
         });
 

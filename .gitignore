@@ -1,7 +1,11 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# environment config
+.env*
+!.env.example
+# TODO: Omit
+!.env.e2e
 
 # dependencies
-**/node_modules
+node_modules
 /.pnp
 .pnp.js
 
@@ -15,24 +19,10 @@ src/silid-server/build/**
 
 # misc
 .DS_Store
-src/identity-react/.env.local
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-**/.env
 
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# src/identity-react/amplify
-# src/identity-react/src/aws-exports.js
-
-src/identity-node/.sequelizerc
-src/identity-node/.serverless/
-src/identity-node/config.json
-src/identity-node/serverless.env.yaml
 
 # vim clutter
 *.sw*

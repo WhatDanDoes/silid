@@ -7,16 +7,18 @@ export interface Agents {
   message?: string;
 }
 
-const useGetAgentDirectoryService = (page, getCached) => {
+const useGetAgentDirectoryService = (page) => {
   const [result, setResult] = useState<Service<Agents>>({
     status: 'loading'
   });
 
   useEffect(() => {
+    setResult({ status: 'loading' });
+
     const headers = new Headers();
     headers.append('Content-Type', 'application/json; charset=utf-8');
 
-    fetch(`/agent/admin/${page-1}${getCached ? '/cached' : ''}`, { headers, credentials: 'include', mode: 'no-cors' })
+    fetch(`/agent/admin/${page}`, { headers, credentials: 'include', mode: 'no-cors' })
       .then(response => response.json())
       .then(response => {
         if (response.message) {
@@ -27,7 +29,8 @@ const useGetAgentDirectoryService = (page, getCached) => {
         }
       })
       .catch(error => setResult({ status: 'error', error }));
-  }, [page, getCached]);
+
+  }, [page]);
 
   return result;
 };

@@ -63,8 +63,8 @@ context('root/Agent Index', function() {
         });
 
         it('displays the agents', () => {
-          cy.get('#agent-list').should('exist');
-          cy.get('#agent-list').find('.agent-button').its('length').should('eq', 2);
+          cy.get('#agent-directory-table').should('exist');
+          cy.get('#agent-directory-table').find('.agent-button').its('length').should('eq', 2);
           cy.get('.agent-button').first().contains(agents[0].name);
           cy.get('.agent-button').first().contains(agents[0].email);
           cy.get('.agent-button a').first().should('have.attr', 'href').and('include', `#agent/${agents[0].socialProfile.user_id}`);

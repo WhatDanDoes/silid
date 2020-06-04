@@ -100,35 +100,33 @@ describe('root/agentSpec', () => {
 
       describe('/agent', () => {
 
+        let oauthTokenScope, userReadScope;
+        beforeEach(done => {
+          stubUserRead((err, apiScopes) => {
+            if (err) return done.fail(err);
+            ({userReadScope, oauthTokenScope} = apiScopes);
+
+            done();
+          });
+        });
+
+        it('attaches isSuper flag to user_metadata for app-configured root agent', done => {
+          rootSession
+            .get('/agent')
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(200)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+
+              expect(res.body.email).toEqual(_profile.email);
+              expect(res.body.user_metadata.isSuper).toBe(true);
+              done();
+            });
+        });
+
         describe('Auth0', () => {
-//          fit('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
-//            rootSession
-//              .get('/agent')
-//              .set('Accept', 'application/json')
-//              .expect('Content-Type', /json/)
-//              .expect(200)
-//              .end(function(err, res) {
-//                if (err) return done.fail(err);
-//                expect(oauthTokenScope.isDone()).toBe(true);
-//                done();
-//              });
-//          });
-
-//          it('calls Auth0 to read the agent at the Auth0-defined connection', done => {
-//            rootSession
-//              .get('/agent')
-//              .set('Accept', 'application/json')
-//              .expect('Content-Type', /json/)
-//              .expect(200)
-//              .end(function(err, res) {
-//                if (err) return done.fail(err);
-//
-//                expect(userReadScope.isDone()).toBe(true);
-//                done();
-//              });
-//          });
-
-          it('attaches isSuper flag to user_metadata for app-configured root agent', done => {
+          it('is called to retrieve root agent profile data', done => {
             rootSession
               .get('/agent')
               .set('Accept', 'application/json')
@@ -136,9 +134,8 @@ describe('root/agentSpec', () => {
               .expect(200)
               .end(function(err, res) {
                 if (err) return done.fail(err);
-
-                expect(res.body.email).toEqual(_profile.email);
-                expect(res.body.user_metadata.isSuper).toBe(true);
+                expect(oauthTokenScope.isDone()).toBe(true);
+                expect(userReadScope.isDone()).toBe(true);
                 done();
               });
           });
@@ -492,7 +489,7 @@ describe('root/agentSpec', () => {
          * 2020-5-5
          *
          * These tests and corresponding functionality are deprecated for the
-         * forseeable future. 
+         * forseeable future.
          *
          * See notes on the route.
          */
@@ -854,7 +851,7 @@ describe('root/agentSpec', () => {
         beforeEach(done => {
           stubAuth0ManagementApi((err, apiScopes) => {
             if (err) return done.fail(err);
-  
+
             // This ensures agent has a socialProfile (because he's visited);
             login({..._identity, email: agent.email}, (err, session) => {
               if (err) return done.fail(err);
