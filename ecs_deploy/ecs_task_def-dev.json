@@ -3,9 +3,9 @@
     {
       "portMappings": [
         {
-          "hostPort": 5001,
+          "hostPort": 4001,
           "protocol": "tcp",
-          "containerPort": 5001
+          "containerPort": 4001
         }
       ],
       "cpu": 1,
@@ -23,7 +23,7 @@
          { "name":  "NOREPLY_EMAIL",
            "value": "noreply@languagetechnology.org" },
          { "name":  "NODE_ENV",
-           "value": "production" },
+           "value": "development" },
          { "name":  "POSTGRES_USER",
            "value": "siliduser" },
          { "name":  "POSTGRES_DB",
@@ -31,7 +31,7 @@
          { "name":  "POSTGRES_HOST",
            "value": "ss1e8pfmqwgebvu.ctndsrrgblv3.us-east-1.rds.amazonaws.com" },
          { "name":  "PORT",
-           "value": "5001" },
+           "value": "4001" },
          { "name":  "REACT_APP_API_DOMAIN",
            "value": "https://silid.languagetechnology.org/" },
          { "name":  "REACT_APP_CALLBACK_URL",
@@ -51,7 +51,7 @@
       "workingDirectory": "/app",
       "memoryReservation": 128,
       "volumesFrom": [],
-      "image": "117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server:latest",
+      "image": "117995318043.dkr.ecr.us-east-1.amazonaws.com/silid-server-dev:latest",
       "essential": true,
       "name": "silid-server"
     }
@@ -60,7 +60,7 @@
   "memory": "512",
   "taskRoleArn": "arn:aws:iam::117995318043:role/ecsTaskExecutionRole",
   "requiresCompatibilities": ["EC2"],
-  "family": "silid-server-task",
+  "family": "silid-server-dev-task",
   "requiresCompatibilities": ["EC2"],
   "networkMode": "host",
   "cpu": "128",
