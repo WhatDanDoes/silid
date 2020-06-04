@@ -32,7 +32,7 @@ COPY ./silid-server .
 
 
 # Copy client build
-RUN cp -R /srv/app/client/build/* /app/build
+RUN mkdir -p /app/build && cp -R /srv/app/client/build/* /app/build
 
 EXPOSE $PORT
 
