@@ -1,9 +1,9 @@
 module.exports = {
   development: {
-    username: 'user',
-    password: 'pass',
-    database: 'silid_development',
-    host: 'localhost',
+    username: process.env.POSTGRES_USER || 'user',
+    password: process.env.POSTGRES_PASSWORD || 'pass',
+    database: process.env.POSTGRES_DB ||'silid_development',
+    host: process.env.POSTGRES_HOST || 'localhost',
     dialect: 'postgres'
   },
   test: {
