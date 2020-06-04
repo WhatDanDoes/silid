@@ -1,0 +1,43 @@
+# 2019-10-24 Swiped from here: https://codewithhugo.com/node-postgres-express-docker-compose/
+# docker-compose.yml
+version: "3"
+services:
+  app:
+    build: .
+    network_mode: host
+    depends_on:
+      - auth0
+    environment:
+      DATABASE_URL: postgres://user:pass@postgres:5432/postgres
+      NODE_ENV: e2e
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    command: npm run dev
+    volumes:
+      - .:/app/
+      - /app/node_modules
+  auth0:
+    build:
+      context: .
+      dockerfile: ./spec/support/mockAuth0Server-Dockerfile
+    network_mode: host
+    depends_on:
+      - postgres
+    environment:
+      NODE_ENV: e2e
+      PORT: 3002
+    ports:
+      - "3002:3002"
+    volumes:
+      - .:/app/
+      - /app/node_modules
+  postgres:
+    image: postgres
+    ports:
+      - "35432:5432"
+    network_mode: host
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: postgres
