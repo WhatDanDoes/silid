@@ -29,7 +29,7 @@
          { "name":  "POSTGRES_DB",
            "value": "postgres" },
          { "name":  "POSTGRES_HOST",
-           "value": "ss1fejs6cgbasrw.ctndsrrgblv3.us-east-1.rds.amazonaws.com" },
+           "value": "ss1e8pfmqwgebvu.ctndsrrgblv3.us-east-1.rds.amazonaws.com" },
          { "name":  "PORT",
            "value": "5001" },
          { "name":  "REACT_APP_API_DOMAIN",
