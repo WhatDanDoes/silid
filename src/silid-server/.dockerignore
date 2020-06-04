@@ -3,9 +3,6 @@
 **/*Dockerfile*
 **/*docker-compose*
 
-# environment config
-**/.env*
-
 # dependencies
 **/node_modules
 **/.pnp
@@ -16,8 +13,6 @@
 
 # production
 **/build
-src/identity-react/build
-src/silid-server/build/**
 
 # misc
 **/.DS_Store
