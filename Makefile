@@ -35,24 +35,24 @@ silid-compose-down:
 
 # the following commands can be used after containers are running
 silid-compose-rebuild:
-	cd src/; docker-compose up --build --detach app
-	cd src/; docker-compose up --build --detach client
+	cd src/; docker-compose up --build app
+	cd src/; docker-compose up --build client
 
 silid-compose-rebuild-app:
-	cd src/; docker-compose up --build --detach app
+	cd src/; docker-compose up --build app
 
 silid-compose-rebuild-client:
-	cd src/; docker-compose up --build --detach client
+	cd src/; docker-compose up --build client
 
 silid-compose-restart:
-	cd src/; docker-compose restart --detach app
-	cd src/; docker-compose restart --detach client
+	cd src/; docker-compose restart app
+	cd src/; docker-compose restart client
 
 silid-compose-restart-app:
-	cd src/; docker-compose restart --detach app
+	cd src/; docker-compose restart app
 
 silid-compose-restart-client:
-	cd src/; docker-compose restart --detach client
+	cd src/; docker-compose restart client
 
 
 # Execute silid platform end-to-end tests
