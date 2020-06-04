@@ -399,25 +399,31 @@ describe('teamMembershipSpec', () => {
                         // with a call to Auth0
                         stubUserRead((err, apiScopes) => {
                           if (err) return done.fail();
-                          stubUserAppMetadataUpdate((err, apiScopes) => {
-                            if (err) return done.fail();
-                            newAgentSession
-                              .get('/agent')
-                              .set('Accept', 'application/json')
-                              .expect('Content-Type', /json/)
-                              .expect(200)
-                              .end(function(err, res) {
-                                if (err) return done.fail(err);
 
-                                expect(_profile.user_metadata).toBeDefined();
-                                expect(_profile.user_metadata.rsvps.length).toEqual(1);
-                                expect(_profile.user_metadata.rsvps[0].name).toEqual('The Calgary Roughnecks');
-                                expect(_profile.user_metadata.rsvps[0].uuid).toEqual(teamId);
-                                expect(_profile.user_metadata.rsvps[0].type).toEqual('team');
-                                expect(_profile.user_metadata.rsvps[0].recipient).toEqual(_profile.email);
+                          // For GET /agent
+                          stubUserRead((err, apiScopes) => {
+                            if (err) return done.fail(err);
 
-                                done();
-                              });
+                            stubUserAppMetadataUpdate((err, apiScopes) => {
+                              if (err) return done.fail();
+                              newAgentSession
+                                .get('/agent')
+                                .set('Accept', 'application/json')
+                                .expect('Content-Type', /json/)
+                                .expect(200)
+                                .end(function(err, res) {
+                                  if (err) return done.fail(err);
+
+                                  expect(_profile.user_metadata).toBeDefined();
+                                  expect(_profile.user_metadata.rsvps.length).toEqual(1);
+                                  expect(_profile.user_metadata.rsvps[0].name).toEqual('The Calgary Roughnecks');
+                                  expect(_profile.user_metadata.rsvps[0].uuid).toEqual(teamId);
+                                  expect(_profile.user_metadata.rsvps[0].type).toEqual('team');
+                                  expect(_profile.user_metadata.rsvps[0].recipient).toEqual(_profile.email);
+
+                                  done();
+                                });
+                            });
                           });
                         });
                       });
@@ -439,24 +445,30 @@ describe('teamMembershipSpec', () => {
                           stubUserRead((err, apiScopes) => {
                             if (err) return done.fail();
 
-                            stubUserAppMetadataUpdate((err, apiScopes) => {
-                              if (err) return done.fail();
-                              newAgentSession
-                                .get('/agent')
-                                .set('Accept', 'application/json')
-                                .expect('Content-Type', /json/)
-                                .expect(200)
-                                .end(function(err, res) {
-                                  if (err) return done.fail(err);
+                            // For GET /agent
+                            stubUserRead((err, apiScopes) => {
+                              if (err) return done.fail(err);
 
-                                  models.Invitation.findAll().then(invites => {
-                                    expect(invites.length).toEqual(0);
 
-                                    done();
-                                  }).catch(err => {
-                                    done.fail(err);
+                              stubUserAppMetadataUpdate((err, apiScopes) => {
+                                if (err) return done.fail();
+                                newAgentSession
+                                  .get('/agent')
+                                  .set('Accept', 'application/json')
+                                  .expect('Content-Type', /json/)
+                                  .expect(200)
+                                  .end(function(err, res) {
+                                    if (err) return done.fail(err);
+
+                                    models.Invitation.findAll().then(invites => {
+                                      expect(invites.length).toEqual(0);
+
+                                      done();
+                                    }).catch(err => {
+                                      done.fail(err);
+                                    });
                                   });
-                                });
+                              });
                             });
                           });
                         });
@@ -483,22 +495,27 @@ describe('teamMembershipSpec', () => {
                         stubUserRead((err, apiScopes) => {
                           if (err) return done.fail();
 
-                          stubUserAppMetadataUpdate((err, apiScopes) => {
-                            if (err) return done.fail();
+                          // For GET /agent
+                          stubUserRead((err, apiScopes) => {
+                            if (err) return done.fail(err);
 
-                            // Simulates first login action. Invite is written to metadata and removed from DB
-                            invitedAgentSession
-                              .get('/agent')
-                              .set('Accept', 'application/json')
-                              .expect('Content-Type', /json/)
-                              .expect(200)
-                              .end(function(err, res) {
-                                if (err) return done.fail(err);
+                            stubUserAppMetadataUpdate((err, apiScopes) => {
+                              if (err) return done.fail();
 
-                                expect(_profile.user_metadata.rsvps.length).toEqual(1);
+                              // Simulates first login action. Invite is written to metadata and removed from DB
+                              invitedAgentSession
+                                .get('/agent')
+                                .set('Accept', 'application/json')
+                                .expect('Content-Type', /json/)
+                                .expect(200)
+                                .end(function(err, res) {
+                                  if (err) return done.fail(err);
 
-                                done();
-                              });
+                                  expect(_profile.user_metadata.rsvps.length).toEqual(1);
+
+                                  done();
+                                });
+                            });
                           });
                         });
                       });

@@ -20,15 +20,19 @@ const getManagementClient = require('../lib/getManagementClient');
  * @param array
  * @param string
  * @param string
+ * @param boolean
  *
  * @returns array
  */
-function collateTeams(agents, teamId, agentId) {
-  const agentIndex = agents.findIndex(a => a.user_id === agentId);
+function collateTeams(agents, teamId, agentId, isSuper=false) {
+  let agentIndex = agents.findIndex(a => a.user_id === agentId);
 
   // Requesting agent is not a member of the team
-  if (agentIndex < 0) {
+  if (agentIndex < 0 && !isSuper) {
     return;
+  }
+  else if (agentIndex < 0 && isSuper) {
+    agentIndex = 0;
   }
 
   const teamIndex = agents[agentIndex].user_metadata.teams.findIndex(t => t.id === teamId);
@@ -80,12 +84,12 @@ router.get('/', checkPermissions([scope.read.teams]), function(req, res, next) {
   });
 });
 
-router.get('/:id', checkPermissions([scope.read.teams]), function(req, res, next) {
+router.get('/:id/:admin?', checkPermissions([scope.read.teams]), function(req, res, next) {
   const managementClient = getManagementClient(apiScope.read.usersAppMetadata);
   managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.id}"` }).then(agents => {
     if (agents.length) {
 
-      const teams = collateTeams(agents, req.params.id, req.user.user_id);
+      const teams = collateTeams(agents, req.params.id, req.user.user_id, req.user.user_metadata.isSuper && req.params.admin);
 
       if (!teams) {
         return res.status(403).json({ message: 'You are not a member of that team' });
@@ -319,19 +323,10 @@ router.delete('/:id', checkPermissions([scope.delete.teams]), function(req, res,
       if (!req.agent.isSuper && req.user.email !== agent.user_metadata.teams[teamIndex].leader) {
         return res.status(403).json({ message: 'Unauthorized' });
       }
-
       agent.user_metadata.teams.splice(teamIndex, 1);
-
       managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
-      managementClient.updateUserMetadata({id: req.user.user_id}, agent.user_metadata).then(agent => {
-        // Auth0 does not return agent scope
-        agent.scope = req.user.scope;
-        // 2020-4-30 https://stackoverflow.com/a/24498660/1356582
-        // This updates the agent's session data
-        req.login(agent, err => {
-          if (err) return next(err);
-          res.status(201).json({ message: 'Team deleted', agent: agent });
-        });
+      managementClient.updateUserMetadata({id: agent.user_id}, agent.user_metadata).then(agent => {
+        res.status(201).json({ message: 'Team deleted', agent: agent });
       }).catch(err => {
         res.status(err.statusCode).json(err.message.error_description);
       });
@@ -688,7 +683,7 @@ router.delete('/:id/invite', checkPermissions([scope.delete.teamMembers]), funct
             a.user_metadata.rsvps.splice(rsvpIndex, 1);
 
             managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
-            managementClient.updateUser({id: a.user_id}, { user_metadata: a.user_metadata }).then(result => { 
+            managementClient.updateUser({id: a.user_id}, { user_metadata: a.user_metadata }).then(result => {
               res.status(201).json(req.user);
             }).catch(err => {
               res.status(err.statusCode).json(err.message.error_description);
