@@ -67,6 +67,7 @@
   "placementConstraints": [],
   "memory": "512",
   "taskRoleArn": "arn:aws:iam::117995318043:role/ecsTaskExecutionRole",
+  "executionRoleArn": "arn:aws:iam::117995318043:role/ecsTaskExecutionRole",
   "requiresCompatibilities": ["EC2"],
   "family": "silid-server-task",
   "requiresCompatibilities": ["EC2"],
