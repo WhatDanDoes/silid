@@ -265,7 +265,6 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
         p.name = teamName;
       }
 
-
       // Update team
       teamIndex = teamLeader.user_metadata.teams.findIndex(t => t.id === req.params.id);
       if (teamIndex >= 0) {
