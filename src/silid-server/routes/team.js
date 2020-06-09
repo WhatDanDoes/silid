@@ -738,16 +738,18 @@ router.delete('/:id/agent/:agentId', checkPermissions([scope.delete.teamMembers]
 
   const team = req.user.user_metadata.teams.find(t => t.id === req.params.id);
 
-  if (!team) {
-    return res.status(404).json({ message: 'No such team' });
-  }
+  if (!req.agent.isSuper) {
+    if (!team) {
+      return res.status(404).json({ message: 'No such team' });
+    }
 
-  if (!req.agent.isSuper && req.user.email !== team.leader) {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
+    if (req.user.email !== team.leader) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
 
-  if(req.user.user_id === req.params.agentId) {
-    return res.status(200).json({ message: 'Team leader cannot be removed from team' });
+    if(req.user.user_id === req.params.agentId) {
+      return res.status(200).json({ message: 'Team leader cannot be removed from team' });
+    }
   }
 
   let managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
@@ -757,6 +759,9 @@ router.delete('/:id/agent/:agentId', checkPermissions([scope.delete.teamMembers]
     }
 
     const teamIndex = invitedAgent.user_metadata.teams.findIndex(t => t.id === req.params.id);
+    if (teamIndex < 0) {
+      return res.status(404).json({ message: 'No such team' });
+    }
     invitedAgent.user_metadata.teams.splice(teamIndex, 1);
 
     managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
