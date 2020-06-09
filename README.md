@@ -168,15 +168,11 @@ AUTH0_DOMAIN=silid.auth0.com
 AUTH0_AUDIENCE=https://id.languagetechnology.org/
 NOREPLY_EMAIL=noreply@example.com
 NOREPLY_PASSWORD=secret
-AUTH0_CLIENT_ID=tjrl8aOQEx9AtQhFffuWmvP6bcHM7nXB
-AUTH0_CLIENT_SECRET=some_secret_key
-CALLBACK_URL=https://example.com/callback
-DATABASE_HOST_DEV=example1.rds.amazonaws.com
-DATABASE_USER_DEV=user
-DATABASE_PASSWORD_DEV=password
-DATABASE_HOST_PROD=example2.rds.amazonaws.com
-DATABASE_USER_PROD=user
-DATABASE_PASSWORD_PROD=password
+AUTH0_CLIENT_ID=KdUmLO7eZSAgY1AXEdryBkPth8jKSryz
+AUTH0_CLIENT_SECRET=YoPBzOtKvlNUBME_ZPUuJwh8zTipDp5IFRZNMx1IO7H8Lzk10qNYnEeCBKpoQCr_
+CALLBACK_URL=https://id.whatdandoes.info/callback
+SERVER_DOMAIN=https://id.whatdandoes.info
+ROOT_AGENT=dan.bidulock@wycliffe.ca
 ```
 
 Install dependencies:
@@ -222,16 +218,23 @@ Careful, you will lose all your data if you sync the database:
 docker-compose -f docker-compose.staging.yml exec app node config/seed.js
 ```
 
-
 # Development and Production Deployments
 
 ## Auth0
 
-The `silid-sever` machine-to-machine application needs be granted the following permissions on the Auth0 Management API:
+At the moment, a `viewer` role with the permissions listed below must be configured for the `silid-sever` machine-to-machine application at Auth0:
 
-- read:users
-- read:roles
-- update:users
+- create:team-member
+- create:teams
+- delete:team-member
+- delete:teams
+- read:agents
+- read:organizations
+- read:teams
+- update:agents
+- update:teams
+
+The role and the permissions defined therein are subject to change without notice. These may eventually be eliminated entirely.
 
 ## Deploy to Development (silid-dev.languagetechnology.org)
 
