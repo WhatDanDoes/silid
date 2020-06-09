@@ -34,9 +34,8 @@ context('Team delete agent', function() {
 
     context('creator agent visit', () => {
 
-      let team;
       beforeEach(function() {
-        // Team leader logged in. Create's team...
+        // Team leader logged in. Creates team...
         cy.get('button span span').contains('add_box').click();
         cy.get('input[placeholder="Name"]').type('The A-Team');
         cy.get('button[title="Save"]').click();
