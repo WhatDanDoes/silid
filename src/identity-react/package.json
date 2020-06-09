@@ -32,7 +32,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "test:headless": "docker run --rm -it -v $PWD:/e2e -w /e2e --network host cypress/included:4.7.0",
+    "test:headless": "docker run --rm -it -v $PWD:/e2e -w /e2e --network host cypress/included:4.8.0",
     "test:headless:log": "docker run --rm -it -e ELECTRON_ENABLE_LOGGING=1 -v $PWD:/e2e -w /e2e --network host cypress/included:4.7.0",
     "eject": "react-scripts eject",
     "dev": "npm-run-all --parallel start server",
