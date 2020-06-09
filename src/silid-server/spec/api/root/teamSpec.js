@@ -978,7 +978,7 @@ describe('root/teamSpec', () => {
                     if (err) return done.fail();
                     ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
 
-                    stubUserAppMetadataUpdate((err, apiScopes) => {
+                    stubUserAppMetadataUpdate(teamLeaderProfile, (err, apiScopes) => {
                       if (err) return done.fail();
                       ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
                       done();

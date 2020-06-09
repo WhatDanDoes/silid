@@ -276,7 +276,7 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
       managementClient.updateUserMetadata({id: teamLeader.user_id}, teamLeader.user_metadata).then(agent => {
 
         // Update retrieved team membership list
-        const replaceIndex = agents.findIndex(agent => agent.user_id === req.user.user_id);
+        const replaceIndex = agents.findIndex(agent => agent.user_id === teamLeader.user_id);
         if (replaceIndex >= 0) {
           agents[replaceIndex] = agent;
         }
