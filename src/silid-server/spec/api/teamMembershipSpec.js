@@ -11,7 +11,6 @@ const stubUserAppMetadataUpdate = require('../support/auth0Endpoints/stubUserApp
 const stubUserAppMetadataRead = require('../support/auth0Endpoints/stubUserAppMetadataRead');
 const mailer = require('../../mailer');
 const uuid = require('uuid');
-const nock = require('nock');
 const scope = require('../../config/permissions');
 const apiScope = require('../../config/apiPermissions');
 
