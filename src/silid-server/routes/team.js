@@ -732,22 +732,25 @@ router.delete('/:id/invite', checkPermissions([scope.delete.teamMembers]), funct
 
 router.delete('/:id/agent/:agentId', checkPermissions([scope.delete.teamMembers]), function(req, res, next) {
 
-  if (!req.user.user_metadata || !req.user.user_metadata.teams) {
-    return res.status(404).json({ message: 'No such team' });
-  }
+  let team;
+  if (!req.agent.isSuper) {
+    if (!req.user.user_metadata || !req.user.user_metadata.teams) {
+      return res.status(404).json({ message: 'No such team' });
+    }
 
-  const team = req.user.user_metadata.teams.find(t => t.id === req.params.id);
+    team = req.user.user_metadata.teams.find(t => t.id === req.params.id);
 
-  if (!team) {
-    return res.status(404).json({ message: 'No such team' });
-  }
+    if (!team) {
+      return res.status(404).json({ message: 'No such team' });
+    }
 
-  if (!req.agent.isSuper && req.user.email !== team.leader) {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
+    if (req.user.email !== team.leader) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
 
-  if(req.user.user_id === req.params.agentId) {
-    return res.status(200).json({ message: 'Team leader cannot be removed from team' });
+    if (req.user.user_id === req.params.agentId) {
+      return res.status(403).json({ message: 'Team leader cannot be removed from team' });
+    }
   }
 
   let managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
@@ -757,7 +760,14 @@ router.delete('/:id/agent/:agentId', checkPermissions([scope.delete.teamMembers]
     }
 
     const teamIndex = invitedAgent.user_metadata.teams.findIndex(t => t.id === req.params.id);
-    invitedAgent.user_metadata.teams.splice(teamIndex, 1);
+    if (teamIndex < 0) {
+      return res.status(404).json({ message: 'No such team' });
+    }
+    team = invitedAgent.user_metadata.teams.splice(teamIndex, 1)[0];
+
+    if (invitedAgent.email === team.leader) {
+      return res.status(403).json({ message: 'Team leader cannot be removed from team' });
+    }
 
     managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
     managementClient.updateUser({id: invitedAgent.user_id}, { user_metadata: invitedAgent.user_metadata }).then(result => {
