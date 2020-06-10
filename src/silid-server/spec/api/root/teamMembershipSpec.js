@@ -551,13 +551,13 @@ describe('root/teamMembershipSpec', () => {
         let teamId;
         beforeEach(done => {
 
-          // Member agent profile
+          // Team leader profile
           teamId = uuid.v4();
           agentProfile.email = 'leader@example.com';
-          agentProfile.name = 'Team Member';
+          agentProfile.name = 'Team Leader';
           agentProfile.user_metadata = { teams: [ {name: 'The Calgary Roughnecks', leader: 'leader@example.com', id: teamId } ] };
 
-          // Team leader profile
+          // Member agent/root profile
           _profile.user_metadata = { teams: [ {name: 'The Calgary Roughnecks', leader: 'leader@example.com', id: teamId } ] };
 
           stubAuth0ManagementApi((err, apiScopes) => {
@@ -665,6 +665,135 @@ describe('root/teamMembershipSpec', () => {
               if (err) return done.fail(err);
               expect(mailer.transport.sentMail.length).toEqual(1);
               expect(mailer.transport.sentMail[0].data.to).toEqual(_profile.email);
+              expect(mailer.transport.sentMail[0].data.from).toEqual(process.env.NOREPLY_EMAIL);
+              expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity membership update');
+              expect(mailer.transport.sentMail[0].data.text).toContain(`You are no longer a member of The Calgary Roughnecks`);
+              done();
+            });
+        });
+      });
+
+      describe('from team with which root has no affiliation', () => {
+
+        const agentProfile = { ..._profile, user_id: `${_profile.user_id + 1}`};
+
+        let teamId;
+        beforeEach(done => {
+
+          // Team leader profile
+          teamId = uuid.v4();
+          agentProfile.email = 'teammember@example.com';
+          agentProfile.name = 'Team Member';
+          agentProfile.user_metadata = { teams: [ {name: 'The Calgary Roughnecks', leader: 'leader@example.com', id: teamId } ] };
+
+          // Root
+          _profile.user_metadata = { };
+
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail();
+
+            login(_identity, (err, session) => {
+              if (err) return done.fail(err);
+              rootSession = session;
+
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubUserRead((err, apiScopes) => {
+                if (err) return done.fail();
+
+                // Retrieve the member agent
+                stubUserAppMetadataRead(agentProfile, (err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  // Update the agent
+                  stubUserAppMetadataUpdate(agentProfile, (err, apiScopes) => {
+                    if (err) return done.fail();
+
+                    done();
+                  });
+                });
+              });
+            });
+          });
+        });
+
+        it('removes an existing member record from the team', done => {
+          expect(agentProfile.user_metadata.teams.length).toEqual(1);
+          rootSession
+            .delete(`/team/${teamId}/agent/${agentProfile.user_id}`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(201)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(agentProfile.user_metadata.teams.length).toEqual(0);
+              done();
+            });
+        });
+
+        it('doesn\'t barf if team doesn\'t exist', done => {
+          rootSession
+            .delete(`/team/333/agent/${agentProfile.user_id}`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(404)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(res.body.message).toEqual('No such team');
+              done();
+            });
+        });
+
+        it('doesn\'t barf if the agent doesn\'t exist', done => {
+          // This first call just clears the mocks
+          rootSession
+            .delete(`/team/${teamId}/agent/333`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(201)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubUserRead((err, apiScopes) => {
+                if (err) return done.fail();
+
+                // Retrieve the member agent
+                stubUserAppMetadataRead(agentProfile, (err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  // Update the agent
+                  stubUserAppMetadataUpdate(agentProfile, (err, apiScopes) => {
+                    if (err) return done.fail();
+
+                    rootSession
+                      .delete(`/team/${teamId}/agent/333`)
+                      .set('Accept', 'application/json')
+                      .expect('Content-Type', /json/)
+                      .expect(404)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+                        expect(res.body.message).toEqual('That agent is not a member');
+                        done();
+                      });
+                  });
+                }, { status: 404 });
+              });
+            });
+        });
+
+        it('sends an email to notify former member of membership revocation', function(done) {
+          expect(mailer.transport.sentMail.length).toEqual(0);
+          rootSession
+            .delete(`/team/${teamId}/agent/${agentProfile.user_id}`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(201)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(mailer.transport.sentMail.length).toEqual(1);
+              expect(mailer.transport.sentMail[0].data.to).toEqual(agentProfile.email);
               expect(mailer.transport.sentMail[0].data.from).toEqual(process.env.NOREPLY_EMAIL);
               expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity membership update');
               expect(mailer.transport.sentMail[0].data.text).toContain(`You are no longer a member of The Calgary Roughnecks`);

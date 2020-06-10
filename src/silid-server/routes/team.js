@@ -732,13 +732,14 @@ router.delete('/:id/invite', checkPermissions([scope.delete.teamMembers]), funct
 
 router.delete('/:id/agent/:agentId', checkPermissions([scope.delete.teamMembers]), function(req, res, next) {
 
-  if (!req.user.user_metadata || !req.user.user_metadata.teams) {
-    return res.status(404).json({ message: 'No such team' });
-  }
-
-  const team = req.user.user_metadata.teams.find(t => t.id === req.params.id);
-
+  let team;
   if (!req.agent.isSuper) {
+    if (!req.user.user_metadata || !req.user.user_metadata.teams) {
+      return res.status(404).json({ message: 'No such team' });
+    }
+
+    team = req.user.user_metadata.teams.find(t => t.id === req.params.id);
+
     if (!team) {
       return res.status(404).json({ message: 'No such team' });
     }
@@ -762,7 +763,7 @@ router.delete('/:id/agent/:agentId', checkPermissions([scope.delete.teamMembers]
     if (teamIndex < 0) {
       return res.status(404).json({ message: 'No such team' });
     }
-    invitedAgent.user_metadata.teams.splice(teamIndex, 1);
+    team = invitedAgent.user_metadata.teams.splice(teamIndex, 1)[0];
 
     managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
     managementClient.updateUser({id: invitedAgent.user_id}, { user_metadata: invitedAgent.user_metadata }).then(result => {

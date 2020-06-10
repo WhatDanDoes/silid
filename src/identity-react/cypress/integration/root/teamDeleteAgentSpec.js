@@ -209,7 +209,7 @@ context('root/Team delete agent', function() {
             cy.get('#members-table tr:nth-of-type(1) td').contains(regularAgent.socialProfile.user_metadata.teams[0].leader);
           });
 
-          it.only('displays the correct success message', () => {
+          it('displays the correct success message', () => {
             cy.on('window:confirm', (str) => {
               return true;
             });
