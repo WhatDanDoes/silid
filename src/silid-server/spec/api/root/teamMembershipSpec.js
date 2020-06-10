@@ -46,22 +46,13 @@ describe('root/teamMembershipSpec', () => {
     _profile.email = process.env.ROOT_AGENT;
 
     models.sequelize.sync({force: true}).then(() => {
-//      fixtures.loadFile(`${__dirname}/../../fixtures/agents.json`, models).then(() => {
-//        models.Agent.findAll().then(results => {
-//          regularAgent = results[0];
-          models.Agent.create({ email: process.env.ROOT_AGENT, name: 'Professor Fresh' }).then(results => {
-            root = results;
-            expect(root.isSuper).toBe(true);
-            done();
-          }).catch(err => {
-            done.fail(err);
-          });
-//        }).catch(err => {
-//          done.fail(err);
-//        });
-//      }).catch(err => {
-//        done.fail(err);
-//      });
+      models.Agent.create({ email: process.env.ROOT_AGENT, name: 'Professor Fresh' }).then(results => {
+        root = results;
+        expect(root.isSuper).toBe(true);
+        done();
+      }).catch(err => {
+        done.fail(err);
+      });
     }).catch(err => {
       done.fail(err);
     });
@@ -505,21 +496,16 @@ describe('root/teamMembershipSpec', () => {
                 stubUserAppMetadataRead(agentProfile, (err, apiScopes) => {
                   if (err) return done.fail();
 
-                  // Update the agent
-//                  stubUserAppMetadataUpdate(agentProfile, (err, apiScopes) => {
-//                    if (err) return done.fail();
-
-                    rootSession
-                      .delete(`/team/${teamId}/agent/333`)
-                      .set('Accept', 'application/json')
-                      .expect('Content-Type', /json/)
-                      .expect(404)
-                      .end(function(err, res) {
-                        if (err) return done.fail(err);
-                        expect(res.body.message).toEqual('That agent is not a member');
-                        done();
-                      });
-//                  });
+                  rootSession
+                    .delete(`/team/${teamId}/agent/333`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(404)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(res.body.message).toEqual('That agent is not a member');
+                      done();
+                    });
                 }, { status: 404 });
               });
             });
@@ -540,6 +526,40 @@ describe('root/teamMembershipSpec', () => {
               expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity membership update');
               expect(mailer.transport.sentMail[0].data.text).toContain(`You are no longer a member of The Calgary Roughnecks`);
               done();
+            });
+        });
+
+        it('doesn\'t let you delete the team leader', done => {
+          // This first call just clears the mocks
+          rootSession
+            .delete(`/team/333/agent/333`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(404)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubUserRead((err, apiScopes) => {
+                if (err) return done.fail();
+
+                // Retrieve the member agent
+                stubUserAppMetadataRead((err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  rootSession
+                    .delete(`/team/${teamId}/agent/${_profile.user_id}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(403)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(res.body.message).toEqual('Team leader cannot be removed from team');
+                      done();
+                    });
+                });
+              });
             });
         });
       });
@@ -671,6 +691,40 @@ describe('root/teamMembershipSpec', () => {
               done();
             });
         });
+
+        it('doesn\'t let you delete the team leader', done => {
+          // This first call just clears the mocks
+          rootSession
+            .delete(`/team/333/agent/333`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(404)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubUserRead((err, apiScopes) => {
+                if (err) return done.fail();
+
+                // Retrieve the member agent
+                stubUserAppMetadataRead(agentProfile, (err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  rootSession
+                    .delete(`/team/${teamId}/agent/${agentProfile.user_id}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(403)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(res.body.message).toEqual('Team leader cannot be removed from team');
+                      done();
+                    });
+                });
+              });
+            });
+        });
       });
 
       describe('from team with which root has no affiliation', () => {
@@ -798,6 +852,40 @@ describe('root/teamMembershipSpec', () => {
               expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity membership update');
               expect(mailer.transport.sentMail[0].data.text).toContain(`You are no longer a member of The Calgary Roughnecks`);
               done();
+            });
+        });
+
+        it('doesn\'t let you delete the team leader', done => {
+          // This first call just clears the mocks
+          rootSession
+            .delete(`/team/333/agent/333`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(404)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubUserRead((err, apiScopes) => {
+                if (err) return done.fail();
+
+                // Retrieve the member agent
+                stubUserAppMetadataRead({...agentProfile, name: 'Team Leader', email: 'leader@example.com', user_id: _profile.user_id + 2 }, (err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  rootSession
+                    .delete(`/team/${teamId}/agent/${agentProfile.user_id}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(403)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(res.body.message).toEqual('Team leader cannot be removed from team');
+                      done();
+                    });
+                });
+              });
             });
         });
       });

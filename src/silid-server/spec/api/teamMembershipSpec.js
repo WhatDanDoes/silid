@@ -1995,7 +1995,7 @@ describe('teamMembershipSpec', () => {
             .delete(`/team/${teamId}/agent/${_profile.user_id}`)
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
-            .expect(200)
+            .expect(403)
             .end(function(err, res) {
               if (err) return done.fail(err);
               expect(res.body.message).toEqual('Team leader cannot be removed from team');
