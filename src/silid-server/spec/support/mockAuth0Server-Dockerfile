@@ -1,15 +1,17 @@
-FROM node
+FROM node:10.20.1
 
 WORKDIR /app
 
 COPY ./package.json .
 COPY ./package-lock.json .
 
+# support for checking that the database is ready
+RUN apt-get update && apt-get install -y postgresql-client \
+      && rm -rf /var/lib/apt/lists/*
 RUN npm install
 
 COPY . .
 
 EXPOSE 3002
 
-#CMD node spec/support/mockAuth0Server.js
 CMD node spec/support/mockAuth0ServerWithRBAC.js
