@@ -1,5 +1,5 @@
 module.exports = {
-  development: {
+  dev: {
     username: process.env.POSTGRES_USER || 'user',
     password: process.env.POSTGRES_PASSWORD || 'pass',
     database: process.env.POSTGRES_DB ||'silid_development',
