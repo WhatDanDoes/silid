@@ -1,45 +1,38 @@
 module.exports = {
   development: {
-    username: 'user',
-    password: 'pass',
-    database: 'silid_development',
-    host: 'localhost',
+    username: process.env.POSTGRES_USER || 'user',
+    password: process.env.POSTGRES_PASSWORD || 'pass',
+    database: process.env.POSTGRES_DB ||'silid_development',
+    host: process.env.POSTGRES_HOST || 'localhost',
     dialect: 'postgres'
   },
   test: {
-    username: 'postgres',
-    password: 'pass',
-    database: 'postgres',
-    host: 'localhost',
+    username: process.env.POSTGRES_USER || 'user',
+    password: process.env.POSTGRES_PASSWORD || 'pass',
+    database: process.env.POSTGRES_DB || 'postgres',
+    host: process.env.POSTGRES_HOST || 'localhost',
     dialect: 'postgres'
   },
   e2e: {
-    username: 'user',
-    password: 'pass',
-    database: 'postgres',
-    host: 'localhost',
+    username: process.env.POSTGRES_USER || 'user',
+    password: process.env.POSTGRES_PASSWORD || 'pass',
+    database: process.env.POSTGRES_DB || 'postgres',
+    host: process.env.POSTGRES_HOST || 'localhost',
     dialect: 'postgres',
     migrationStorage: 'none'
   },
   staging: {
-    username: 'user',
-    password: 'pass',
-    database: 'silid_staging',
-    host: 'postgres',
-    dialect: 'postgres'
-  },
-  development_aws: {
-    username: process.env.DATABASE_USER_DEV,
-    password: process.env.DATABASE_PASSWORD_DEV,
-    database: 'postgres',
-    host: process.env.DATABASE_HOST_DEV,
+    username: process.env.POSTGRES_USER || 'user',
+    password: process.env.POSTGRES_PASSWORD || 'pass',
+    database: process.env.POSTGRES_DB || 'silid_staging',
+    host: process.env.POSTGRES_HOST || 'postgres',
     dialect: 'postgres'
   },
   production: {
-    username: process.env.DATABASE_USER_PROD,
-    password: process.env.DATABASE_PASSWORD_PROD,
-    database: 'postgres',
-    host: process.env.DATABASE_HOST_PROD,
+    username: process.env.POSTGRES_USER,
+    password: process.env.POSTGRES_PASSWORD,
+    database: process.env.POSTGRES_DB,
+    host: process.env.POSTGRES_HOST,
     dialect: 'postgres'
   }
 };
