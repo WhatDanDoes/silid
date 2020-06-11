@@ -2043,7 +2043,9 @@ describe('teamMembershipSpec', () => {
           let authenticatedSession, teamId, invitedAgent;
           beforeEach(done => {
             teamId = uuid.v4();
-            invitedAgent = {..._profile, name: 'Some Guy', email: 'someguy@example.com', user_metadata: { rsvps: [ {name: 'Team No Longer Exists', leader: _profile.email, id: teamId } ] } };
+            invitedAgent = {..._profile, name: 'Some Guy', email: 'someguy@example.com', user_metadata: {
+              rsvps: [ {name: 'Team No Longer Exists', leader: _profile.email, uuid: teamId, type: 'team' } ]
+            } };
             verificationUrl = `/team/${teamId}/invite`;
 
             stubAuth0ManagementApi((err, apiScopes) => {
@@ -2076,7 +2078,7 @@ describe('teamMembershipSpec', () => {
 
           describe('accept', () => {
             it('removes the orphaned rsvp from user_metadata', done => {
-              expect(invitedAgent.user_metadata.rspvs.length).toEqual(1);
+              expect(invitedAgent.user_metadata.rsvps.length).toEqual(1);
               authenticatedSession
                 .get(`${verificationUrl}/accept`)
                 .set('Accept', 'application/json')
@@ -2084,7 +2086,7 @@ describe('teamMembershipSpec', () => {
                 .expect(404)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
-                  expect(invitedAgent.user_metadata.rspvs.length).toEqual(0);
+                  expect(invitedAgent.user_metadata.rsvps.length).toEqual(0);
                   done();
                 });
             });
