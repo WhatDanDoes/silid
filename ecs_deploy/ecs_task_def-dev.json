@@ -23,7 +23,7 @@
          { "name":  "NOREPLY_EMAIL",
            "value": "noreply@languagetechnology.org" },
          { "name":  "NODE_ENV",
-           "value": "development" },
+           "value": "production" },
          { "name":  "POSTGRES_USER",
            "value": "siliduser" },
          { "name":  "POSTGRES_DB",
