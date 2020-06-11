@@ -20,15 +20,20 @@ services:
       - app-node_modules:/app/node_modules
       - app-build:/app/build
     environment:
-      - NODE_ENV=dev
+      - NODE_ENV=development
       - PORT=3001
       # vv--[.env.development]--vv
       - AUTH0_AUDIENCE=https://id.languagetechnology.org/
+      - AUTH0_CLIENT_ID=KdUmLO7eZSAgY1AXEdryBkPth8jKSryz
+      #- AUTH0_CLIENT_SECRET=define this in silid-server/.env
+      - AUTH0_DOMAIN=silid.auth0.com
       - SERVER_DOMAIN=http://localhost:3001
       - CLIENT_DOMAIN=http://localhost:3000
       - CALLBACK_URL=http://localhost:3001/callback
       - ROOT_AGENT=root@example.com
       - DATABASE_URL='postgres://user:pass@localhost:5432/postgres'
+      - NOREPLY_EMAIL=noreply@example.com
+      - NOREPLY_PASSWORD=secret
 
   # client build server
   client:
@@ -42,12 +47,6 @@ services:
       - ./identity-react:/srv/app/client/
       - client-node_modules:/srv/app/client/node_modules
       - client-build:/srv/app/client/build
-    environment:
-      # vv--[.env]--vv
-      - REACT_APP_DOMAIN=silid.auth0.com
-      - REACT_APP_CLIENT_ID=tjrl8aOQEx9AtQhFffuWmvP6bcHM7nXB
-      - REACT_APP_CALLBACK_URL=https://example.com/callback
-
   # supporting data base for the application
   postgres:
     image: postgres:10.12
