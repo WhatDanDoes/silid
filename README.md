@@ -46,7 +46,7 @@ cp .env.example .env
 `silid-server` has tests of its own, apart from the client-driven end-to-end tests. These tests require a PostgreSQL development server. Start one with `docker`:
 
 ```
-docker run --name dev-postgres -p 5432:5432 -e POSTGRES_PASSWORD=pass -d postgres
+docker run --name dev-postgres -p 5432:5432 -e POSTGRES_PASSWORD=pass -e POSTGRES_USER=user -d postgres
 ```
 
 Once the image is running, execute the server-specific tests from the `src/silid-server` directory like this:
@@ -168,15 +168,11 @@ AUTH0_DOMAIN=silid.auth0.com
 AUTH0_AUDIENCE=https://id.languagetechnology.org/
 NOREPLY_EMAIL=noreply@example.com
 NOREPLY_PASSWORD=secret
-AUTH0_CLIENT_ID=tjrl8aOQEx9AtQhFffuWmvP6bcHM7nXB
-AUTH0_CLIENT_SECRET=some_secret_key
-CALLBACK_URL=https://example.com/callback
-DATABASE_HOST_DEV=example1.rds.amazonaws.com
-DATABASE_USER_DEV=user
-DATABASE_PASSWORD_DEV=password
-DATABASE_HOST_PROD=example2.rds.amazonaws.com
-DATABASE_USER_PROD=user
-DATABASE_PASSWORD_PROD=password
+AUTH0_CLIENT_ID=KdUmLO7eZSAgY1AXEdryBkPth8jKSryz
+AUTH0_CLIENT_SECRET=secret
+CALLBACK_URL=https://id.whatdandoes.info/callback
+SERVER_DOMAIN=https://id.whatdandoes.info
+ROOT_AGENT=dan.bidulock@wycliffe.ca
 ```
 
 Install dependencies:
@@ -221,6 +217,24 @@ Careful, you will lose all your data if you sync the database:
 ```
 docker-compose -f docker-compose.staging.yml exec app node config/seed.js
 ```
+
+# Development and Production Deployments
+
+## Auth0 Role/Permissions Configuration
+
+At the moment, a `viewer` role with the permissions listed below must be configured for the `silid-sever` machine-to-machine application at Auth0:
+
+- create:team-member
+- create:teams
+- delete:team-member
+- delete:teams
+- read:agents
+- read:organizations
+- read:teams
+- update:agents
+- update:teams
+
+The role and the permissions defined therein are subject to change without notice. These may eventually be eliminated entirely.
 
 # AWS Prod Topology
 

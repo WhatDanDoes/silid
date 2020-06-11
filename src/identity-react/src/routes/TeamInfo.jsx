@@ -214,7 +214,7 @@ const TeamInfo = (props) => {
                     <TableRow>
                       <TableCell align="right" component="th" scope="row">Name:</TableCell>
                       <TableCell  lign="left">
-                        <input id="team-name-field" value={teamInfo.name || ''} disabled={agent.email !== teamInfo.leader}
+                        <input id="team-name-field" value={teamInfo.name || ''} disabled={agent.email !== teamInfo.leader && !admin.isEnabled}
                           onChange={e => {
                               if (!prevInputState.name) {
                                 setPrevInputState({ name: teamInfo.name });

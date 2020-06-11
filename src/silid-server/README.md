@@ -14,7 +14,7 @@ cp .env.example .env
 Start a PostgreSQL development server:
 
 ```
-docker run --name dev-postgres -p 5432:5432 -d postgres
+docker run --name dev-postgres -p 5432:5432 -e POSTGRES_PASSWORD=pass -e POSTGRES_USER=user -d postgres
 ```
 
 Execute tests:

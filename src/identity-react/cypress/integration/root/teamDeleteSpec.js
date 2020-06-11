@@ -160,7 +160,7 @@ context('root/Team delete', function() {
                   root = results[0];
 
                   cy.get('#app-menu-button').click();
-                  cy.wait(100); // This seems to only be required on `uncheck`
+                  cy.wait(200); // This seems to only be required on `uncheck`
                   cy.get('#admin-switch').uncheck();
                   cy.get('#app-menu').contains('Profile').click();
                   cy.contains('The Calgary Roughnecks').click();
@@ -195,7 +195,7 @@ context('root/Team delete', function() {
                 root = results[0];
 
                 cy.get('#app-menu-button').click();
-                cy.wait(100); // This seems to only be required on `uncheck`
+                cy.wait(200); // This seems to only be required on `uncheck`
                 cy.get('#admin-switch').uncheck();
                 cy.get('#app-menu').contains('Profile').click();
                 cy.wait(200);

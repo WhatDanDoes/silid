@@ -53,10 +53,20 @@ module.exports = function(profiles, done, options) {
           let results = [];
 
           for (let profile of profiles) {
-            for (let team of profile.user_metadata.teams) {
-              let regex = new RegExp(team.id);
-              if (regex.test(qs.q)) {
-                results.push(profile);
+            if (/teams/.test(qs.q)) {
+              for (let team of profile.user_metadata.teams) {
+                let regex = new RegExp(team.id);
+                if (regex.test(qs.q)) {
+                  results.push(profile);
+                }
+              }
+            }
+            else if (/rsvps/.test(qs.q) && profile.user_metadata.rsvps) {
+              for (let rsvp of profile.user_metadata.rsvps) {
+                let regex = new RegExp(rsvp.id);
+                if (regex.test(qs.q)) {
+                  results.push(profile);
+                }
               }
             }
           }

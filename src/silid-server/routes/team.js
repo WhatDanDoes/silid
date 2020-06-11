@@ -204,59 +204,82 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
   if (!teamName) {
     return res.status(400).json({ errors: [{ message: 'Team requires a name' }] });
   }
-  // Make sure edited name isn't a duplicate
-  const nameCount = req.user.user_metadata.teams.reduce((n, team) => n + (team.name === teamName), 0);
-  if (nameCount > 0) {
-    return res.status(400).json({ errors: [{ message: 'That team is already registered' }] });
+
+  if (!req.user.user_metadata.teams) {
+    req.user.user_metadata.teams = [];
   }
 
   // Find the team
-  const teamIndex = req.user.user_metadata.teams.findIndex(t => t.id === req.params.id);
-  if (teamIndex < 0) {
+  let teamIndex = req.user.user_metadata.teams.findIndex(t => t.id === req.params.id);
+  if (teamIndex < 0 && !req.agent.isSuper) {
     return res.status(404).json({ message: 'No such team' });
   }
 
   // Decide permission
-  if (req.user.email !== req.user.user_metadata.teams[teamIndex].leader) {
+  if (teamIndex >= 0 && req.user.email !== req.user.user_metadata.teams[teamIndex].leader && !req.agent.isSuper) {
     return res.status(403).json({ message: 'Unauthorized' });
   }
 
-  // Update any pendingInvitations
-  if (!req.user.user_metadata.pendingInvitations) {
-    req.user.user_metadata.pendingInvitations = [];
-  }
-  const pending = req.user.user_metadata.pendingInvitations.filter(invite => invite.uuid === req.params.id);
-  for (let p of pending) {
-    p.name = teamName;
-  }
+  // Refresh team info
+  let agents = [];
+  let managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
+  managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.id}"` }).then(results => {
 
-  // Update team
-  req.user.user_metadata.teams[teamIndex].name = teamName;
+    if (!results.length) {
+      return res.status(404).json({ message: 'No such team' });
+    }
 
-  // Update user_metadata at Auth0
-  let managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
-  managementClient.updateUserMetadata({id: req.user.user_id}, req.user.user_metadata).then(agent => {
+    // Find the team leader
+    const leaderEmail = results[0].user_metadata.teams.find(team => team.id === req.params.id).leader;
+    const teamLeader = results.find(agent => agent.email === leaderEmail);
 
-    // Refresh team info
-    let agents = [];
-    managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
-    managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.id}"` }).then(results => {
-      agents = agents.concat(results);
-      const invitations = [];
-      agents.forEach(a => {
-        if (a.email !== req.user.email) {
+    // Make sure edited name isn't a duplicate
+    const nameCount = teamLeader.user_metadata.teams.reduce((n, team) => n + (team.name === teamName), 0);
+    if (nameCount > 0) {
+      return res.status(400).json({ errors: [{ message: 'That team is already registered' }] });
+    }
+
+    agents = agents.concat(results);
+    const invitations = [];
+    agents.forEach(a => {
+      if (a.email !== leaderEmail) {
+        invitations.push({ uuid: req.params.id, type: 'team', name: teamName, recipient: a.email });
+      }
+    });
+
+    // Update RSVPs
+    managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.rsvps.uuid:"${req.params.id}"` }).then(results => {
+      agents.concat(results);
+      results.forEach(a => {
+        if (a.email !== leaderEmail) {
           invitations.push({ uuid: req.params.id, type: 'team', name: teamName, recipient: a.email });
         }
       });
 
-      // Update RSVPs
-      managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.rsvps.uuid:"${req.params.id}"` }).then(results => {
-        agents.concat(results);
-        results.forEach(a => {
-          if (a.email !== req.user.email) {
-            invitations.push({ uuid: req.params.id, type: 'team', name: teamName, recipient: a.email });
-          }
-        });
+      // Update any pendingInvitations
+      if (!teamLeader.user_metadata.pendingInvitations) {
+        teamLeader.user_metadata.pendingInvitations = [];
+      }
+      const pending = teamLeader.user_metadata.pendingInvitations.filter(invite => invite.uuid === req.params.id);
+      for (let p of pending) {
+        p.name = teamName;
+      }
+
+      // Update team
+      teamIndex = teamLeader.user_metadata.teams.findIndex(t => t.id === req.params.id);
+      if (teamIndex >= 0) {
+        teamLeader.user_metadata.teams[teamIndex].name = teamName;
+      }
+
+      // Update user_metadata at Auth0
+      managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+      managementClient.updateUserMetadata({id: teamLeader.user_id}, teamLeader.user_metadata).then(agent => {
+
+        // Update retrieved team membership list
+        const replaceIndex = agents.findIndex(agent => agent.user_id === teamLeader.user_id);
+        if (replaceIndex >= 0) {
+          agents[replaceIndex] = agent;
+        }
 
         /**
          * 2020-5-20
@@ -278,7 +301,7 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
             if (err) {
               return res.status(500).json(err);
             }
-            const teams = collateTeams(agents, req.params.id, req.user.user_id);
+            const teams = collateTeams(agents, req.params.id, teamLeader.user_id, req.user.user_metadata.isSuper);
             res.status(201).json(teams);
           });
         }).catch(err => {
@@ -709,22 +732,25 @@ router.delete('/:id/invite', checkPermissions([scope.delete.teamMembers]), funct
 
 router.delete('/:id/agent/:agentId', checkPermissions([scope.delete.teamMembers]), function(req, res, next) {
 
-  if (!req.user.user_metadata || !req.user.user_metadata.teams) {
-    return res.status(404).json({ message: 'No such team' });
-  }
+  let team;
+  if (!req.agent.isSuper) {
+    if (!req.user.user_metadata || !req.user.user_metadata.teams) {
+      return res.status(404).json({ message: 'No such team' });
+    }
 
-  const team = req.user.user_metadata.teams.find(t => t.id === req.params.id);
+    team = req.user.user_metadata.teams.find(t => t.id === req.params.id);
 
-  if (!team) {
-    return res.status(404).json({ message: 'No such team' });
-  }
+    if (!team) {
+      return res.status(404).json({ message: 'No such team' });
+    }
 
-  if (!req.agent.isSuper && req.user.email !== team.leader) {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
+    if (req.user.email !== team.leader) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
 
-  if(req.user.user_id === req.params.agentId) {
-    return res.status(200).json({ message: 'Team leader cannot be removed from team' });
+    if (req.user.user_id === req.params.agentId) {
+      return res.status(403).json({ message: 'Team leader cannot be removed from team' });
+    }
   }
 
   let managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
@@ -734,7 +760,14 @@ router.delete('/:id/agent/:agentId', checkPermissions([scope.delete.teamMembers]
     }
 
     const teamIndex = invitedAgent.user_metadata.teams.findIndex(t => t.id === req.params.id);
-    invitedAgent.user_metadata.teams.splice(teamIndex, 1);
+    if (teamIndex < 0) {
+      return res.status(404).json({ message: 'No such team' });
+    }
+    team = invitedAgent.user_metadata.teams.splice(teamIndex, 1)[0];
+
+    if (invitedAgent.email === team.leader) {
+      return res.status(403).json({ message: 'Team leader cannot be removed from team' });
+    }
 
     managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
     managementClient.updateUser({id: invitedAgent.user_id}, { user_metadata: invitedAgent.user_metadata }).then(result => {

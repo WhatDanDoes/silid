@@ -50,20 +50,20 @@ context('viewer/Agent Index', function() {
       describe('profile highlights', () => {
         it('displays fields in a table', function() {
           cy.get('h3').contains('Profile');
-          cy.get('table tbody tr th').contains('Name:');
-          cy.get('table tbody tr td').contains(this.profile.name);
-          cy.get('table tbody tr th').contains('Email:');
-          cy.get('table tbody tr td').contains(this.profile.email);
-          cy.get('table tbody tr th').contains('Locale:');
-          cy.get('table tbody tr td').contains(this.profile.locale);
+          cy.get('#profile-table table tbody tr th').contains('Name:');
+          cy.get('#profile-table table tbody tr td').contains(this.profile.name);
+          cy.get('#profile-table table tbody tr th').contains('Email:');
+          cy.get('#profile-table table tbody tr td').contains(this.profile.email);
+          cy.get('#profile-table table tbody tr th').contains('Locale:');
+          cy.get('#profile-table table tbody tr td').contains(this.profile.locale);
         });
       });
 
       describe('teams', () => {
         describe('none created', () => {
           it('displays teams table', function() {
-            cy.get('h6').contains('Teams');
-            cy.get('table tbody tr td').contains('No records to display');
+            cy.get('#teams-table h6').contains('Teams');
+            cy.get('#teams-table table tbody tr td').contains('No records to display');
           });
         });
 
@@ -89,15 +89,15 @@ context('viewer/Agent Index', function() {
           });
 
           it('displays teams in a table', function() {
-            cy.get('h6').contains('Teams');
-            cy.get('table tbody tr td').contains('No records to display').should('not.exist');
-            cy.get('button span span').contains('add_box');
-            cy.get('table thead tr th').contains('Name');
-            cy.get('table tbody tr td').contains(agent.socialProfile.user_metadata.teams[0].name);
-            cy.get('table tbody tr td a').should('contain', agent.socialProfile.user_metadata.teams[0].name).
+            cy.get('#teams-table h6').contains('Teams');
+            cy.get('#teams-table table tbody tr td').contains('No records to display').should('not.exist');
+            cy.get('#teams-table button span span').contains('add_box');
+            cy.get('#teams-table table thead tr th').contains('Name');
+            cy.get('#teams-table table tbody tr td').contains(agent.socialProfile.user_metadata.teams[0].name);
+            cy.get('#teams-table table tbody tr td a').should('contain', agent.socialProfile.user_metadata.teams[0].name).
               and('have.attr', 'href').and('equal', `#team/${agent.socialProfile.user_metadata.teams[0].id}`);
-            cy.get('table thead tr th').contains('Leader');
-            cy.get('table tbody tr td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+            cy.get('#teams-table table thead tr th').contains('Leader');
+            cy.get('#teams-table table tbody tr td').contains(agent.socialProfile.user_metadata.teams[0].leader);
           });
         });
       });

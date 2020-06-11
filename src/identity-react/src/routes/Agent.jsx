@@ -223,7 +223,7 @@ const Agent = (props) => {
                         <MTableEditField
                           autoFocus={true}
                           type="text"
-                          maxlength="128"
+                          maxLength="128"
                           placeholder="Name"
                           columnDef={props.columnDef}
                           value={props.value ? props.value : ''}
