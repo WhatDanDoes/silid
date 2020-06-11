@@ -71,8 +71,7 @@ if (process.env.NODE_ENV === 'e2e') {
 
 if (
   process.env.NODE_ENV === 'production' ||
-  process.env.NODE_ENV === 'staging' ||
-  process.env.NODE_ENV === 'development_aws'
+  process.env.NODE_ENV === 'staging'
 ) {
   app.use(express.static(path.join(__dirname, 'build')));
   app.use(express.static(path.join(__dirname, 'public')));

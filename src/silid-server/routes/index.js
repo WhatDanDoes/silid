@@ -14,8 +14,7 @@ const clientProxy = httpProxy.createProxyServer();
 let staticPath;
 if (
   process.env.NODE_ENV === 'production' ||
-  process.env.NODE_ENV === 'staging' ||
-  process.env.NODE_ENV === 'development_aws'
+  process.env.NODE_ENV === 'staging'
 ) {
   staticPath = path.join(__dirname, '/../build');
 } else {

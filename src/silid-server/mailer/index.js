@@ -20,7 +20,7 @@ module.exports = (function() {
       port: 25,
       ignoreTLS: true
     };
-  } else if (env === 'development_aws' || env === 'production') {
+  } else if (env === 'production') {
     // configure AWS SDK
     aws.config.loadFromPath('config/aws.json');
     transport = {
