@@ -30,7 +30,7 @@ services:
       - SERVER_DOMAIN=http://localhost:3001
       - CLIENT_DOMAIN=http://localhost:3000
       - CALLBACK_URL=http://localhost:3001/callback
-      - ROOT_AGENT=root@example.com
+      - ROOT_AGENT=dan.bidulock@wycliffe.ca
       - DATABASE_URL='postgres://user:pass@localhost:5432/postgres'
       - NOREPLY_EMAIL=noreply@example.com
       - NOREPLY_PASSWORD=secret
