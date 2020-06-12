@@ -2033,6 +2033,234 @@ describe('teamMembershipSpec', () => {
           });
         });
       });
+
+
+      describe('weird mangled data edge cases', () => {
+        let userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope, verificationUrl;
+
+        describe('orphaned rsvp', () => {
+
+          let authenticatedSession, teamId;
+          beforeEach(done => {
+            teamId = uuid.v4();
+
+            _profile.user_metadata = { rsvps: [ {name: 'Team No Longer Exists', recipient: _profile.email, uuid: teamId, type: 'team' } ]}
+
+            verificationUrl = `/team/${teamId}/invite`;
+
+            stubAuth0ManagementApi((err, apiScopes) => {
+              if (err) return done.fail();
+
+              login({..._identity, name: 'Some Cool Guy', email: 'somecoolguy@example.com'}, [scope.create.teamMembers, scope.delete.teamMembers], (err, session) => {
+                if (err) return done.fail(err);
+                authenticatedSession = session;
+
+                // Cached profile doesn't match "live" data, so agent needs to be updated
+                // with a call to Auth0
+                stubUserRead((err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  // No pending invite found
+                  stubUserReadQuery([], (err, apiScopes) => {
+                    if (err) return done.fail();
+
+                    stubUserAppMetadataUpdate((err, apiScopes) => {
+                      if (err) return done.fail();
+                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+
+                      done();
+                    });
+                  });
+                });
+              });
+            });
+          });
+
+          describe('accept', () => {
+            it('removes the orphaned rsvp from user_metadata', done => {
+              expect(_profile.user_metadata.rsvps.length).toEqual(1);
+              authenticatedSession
+                .get(`${verificationUrl}/accept`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(404)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+                  expect(_profile.user_metadata.rsvps.length).toEqual(0);
+                  done();
+                });
+            });
+
+            describe('Auth0', () => {
+              it('is called to save the updated user_metadata', done => {
+                authenticatedSession
+                  .get(`${verificationUrl}/accept`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(404)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+                    expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+                    // 2020-6-12 I may be making unnecessary token requests.
+                    // The managment client doesn't seem to care about the
+                    // specifics of scope. Cf. management client initialization
+                    // in this route.
+                    expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                    done();
+                 });
+              });
+            });
+          });
+
+          describe('reject', () => {
+            it('removes the orphaned rsvp from user_metadata', done => {
+              expect(_profile.user_metadata.rsvps.length).toEqual(1);
+              authenticatedSession
+                .get(`${verificationUrl}/reject`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(404)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+                  expect(_profile.user_metadata.rsvps.length).toEqual(0);
+                  done();
+                });
+            });
+
+            describe('Auth0', () => {
+              it('is called to save the updated user_metadata', done => {
+                authenticatedSession
+                  .get(`${verificationUrl}/reject`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(404)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+                    expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+                    // 2020-6-12 See note above
+                    expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                    done();
+                 });
+              });
+            });
+          });
+        });
+
+        describe('orphaned pending invitation', () => {
+          let authenticatedSession, teamId;
+          beforeEach(done => {
+            teamId = uuid.v4();
+
+            _profile.user_metadata = { pendingInvitations: [ {name: 'Team No Longer Exists', recipient: 'somebrandnewguy@example.com', uuid: teamId, type: 'team' } ] };
+            verificationUrl = `/team/${teamId}/invite`;
+
+            stubAuth0ManagementApi((err, apiScopes) => {
+              if (err) return done.fail();
+
+              login({..._identity, name: 'Some Guy', email: 'someguy@example.com'}, [scope.create.teamMembers, scope.delete.teamMembers], (err, session) => {
+                if (err) return done.fail(err);
+                authenticatedSession = session;
+
+                // Cached profile doesn't match "live" data, so agent needs to be updated
+                // with a call to Auth0
+                stubUserRead((err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  // No pending invite found
+                  stubUserReadQuery([], (err, apiScopes) => {
+                    if (err) return done.fail();
+
+                    stubUserAppMetadataUpdate((err, apiScopes) => {
+                      if (err) return done.fail();
+                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+
+                      done();
+                    });
+                  });
+                });
+              });
+            });
+          });
+
+          describe('resend', () => {
+            it('removes the orphaned invite from user_metadata', done => {
+              expect(_profile.user_metadata.pendingInvitations.length).toEqual(1);
+              authenticatedSession
+                .put(`/team/${teamId}/agent`)
+                .send({
+                  email: 'somebrandnewguy@example.com'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(404)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+                  expect(_profile.user_metadata.pendingInvitations.length).toEqual(0);
+                  done();
+                });
+            });
+
+            describe('Auth0', () => {
+              it('is called to save the updated user_metadata', done => {
+                authenticatedSession
+                  .put(`/team/${teamId}/agent`)
+                  .send({
+                    email: 'somebrandnewguy@example.com'
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(404)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+                    expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+                    expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                    done();
+                 });
+              });
+            });
+          });
+
+          describe('rescind', () => {
+            it('removes the orphaned pending invite from user_metadata', done => {
+              expect(_profile.user_metadata.pendingInvitations.length).toEqual(1);
+              authenticatedSession
+                .delete(verificationUrl)
+                .send({
+                  email: 'somebrandnewguy@example.com'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(404)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(_profile.user_metadata.pendingInvitations.length).toEqual(0);
+
+                  done();
+                });
+            });
+
+            describe('Auth0', () => {
+              it('is called to save the updated user_metadata', done => {
+                authenticatedSession
+                  .delete(verificationUrl)
+                  .send({
+                    email: 'somebrandnewguy@example.com'
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(404)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+                    expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+                    expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                    done();
+                 });
+              });
+            });
+          });
+        });
+      });
     });
 
     describe('unauthorized', () => {
