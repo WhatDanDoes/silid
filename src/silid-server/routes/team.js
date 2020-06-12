@@ -531,7 +531,7 @@ function createInvitation(req, res, recipientEmail, invite) {
 router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(req, res, next) {
   let team;
   if (req.user.user_metadata.teams) {
-    team = req.user.user_metadata.teams.find(team => team.id === req.params.id && team.leader === req.user.email);
+    team = req.user.user_metadata.teams.find(team => team.id === req.params.id);
   }
 
   if (!team) {
@@ -619,7 +619,7 @@ router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(
  * Accept or reject team invitation
  */
 router.get('/:id/invite/:action', checkPermissions([scope.create.teamMembers]), function(req, res, next) {
-  const rsvpIndex = req.user.user_metadata.rsvps.findIndex(rsvp => rsvp.uuid === req.params.id && rsvp.type === 'team' && rsvp.recipient === req.user.email);
+  const rsvpIndex = req.user.user_metadata.rsvps.findIndex(rsvp => rsvp.uuid === req.params.id);
   if (rsvpIndex < 0) {
     return res.status(404).json({ message: 'No such invitation' });
   }
