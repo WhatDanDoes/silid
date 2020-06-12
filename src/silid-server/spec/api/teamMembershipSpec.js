@@ -2064,7 +2064,7 @@ describe('teamMembershipSpec', () => {
                   stubUserReadQuery([], (err, apiScopes) => {
                     if (err) return done.fail();
 
-                    stubUserAppMetadataUpdate(invitedAgent, (err, apiScopes) => {
+                    stubUserAppMetadataUpdate((err, apiScopes) => {
                       if (err) return done.fail();
                       ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
 
