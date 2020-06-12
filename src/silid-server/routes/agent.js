@@ -58,54 +58,87 @@ router.get('/admin/:page?/:cached?', checkPermissions(roles.sudo), function(req,
   }
 });
 
+/**
+ * Direct manipulation of user_metadata has caused inconsistencies, which cause crashes.
+ * The following strips any null values that may have been unwittingly introduced.
+ *
+ * @param object
+ * @return boolean
+ */
+function checkForNulls(agent) {
+  let nullsFound = false;
+  if (agent.user_metadata) {
+
+    if (agent.user_metadata.teams) {
+      const teams = agent.user_metadata.teams.filter(team => !!team);
+      if (teams.length < agent.user_metadata.teams.length) {
+        nullsFound = true;
+        agent.user_metadata.teams = teams;
+      }
+    }
+
+    if (agent.user_metadata.rsvps) {
+      const rsvps = agent.user_metadata.rsvps.filter(rsvp => !!rsvp);
+      if (rsvps.length < agent.user_metadata.rsvps.length) {
+        nullsFound = true;
+        agent.user_metadata.rsvps = rsvps;
+      }
+    }
+
+    if (agent.user_metadata.pendingInvitations) {
+      const pendingInvitations = agent.user_metadata.pendingInvitations.filter(rsvp => !!rsvp);
+      if (pendingInvitations.length < agent.user_metadata.pendingInvitations.length) {
+        nullsFound = true;
+        agent.user_metadata.pendingInvitations = pendingInvitations;
+      }
+    }
+  }
+
+  return nullsFound;
+};
+
 router.get('/', checkPermissions([scope.read.agents]), function(req, res, next) {
-  const managementClient = getManagementClient(apiScope.read.users);
+  let managementClient = getManagementClient(apiScope.read.users);
   managementClient.getUser({id: req.user.user_id}).then(agent => {
-    const refreshedAgent = {...req.user, ...{...agent, user_metadata: {...req.user.user_metadata, ...agent.user_metadata} } };
-    res.status(200).json(refreshedAgent);
+
+    const nullsFound = checkForNulls(agent);
+    if (nullsFound) {
+      managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+      managementClient.updateUser({id: agent.user_id}, { user_metadata: agent.user_metadata }).then(agent => {
+        const refreshedAgent = {...req.user, ...{...agent, user_metadata: {...req.user.user_metadata, ...agent.user_metadata} } };
+        res.status(201).json(refreshedAgent);
+      }).catch(err => {
+        res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+      });
+    }
+    else {
+      const refreshedAgent = {...req.user, ...{...agent, user_metadata: {...req.user.user_metadata, ...agent.user_metadata} } };
+      res.status(200).json(refreshedAgent);
+    }
   }).catch(err => {
     res.status(err.statusCode).json(err.message.error_description);
   });
 });
 
-router.get('/:id/:cached?', checkPermissions([scope.read.agents]), function(req, res, next) {
+router.get('/:id', checkPermissions([scope.read.agents]), function(req, res, next) {
+  let managementClient = getManagementClient(apiScope.read.users);
+  managementClient.getUser({id: req.params.id}).then(agent => {
 
-  /**
-   * 2020-5-5
-   *
-   * Upon reflection, I'm not sure this ever made any sense.
-   * Will save for now, but this will likely disappear.
-   *
-   * See corresponding tests in `api/root/agentSpec`
-   */
-//  if (req.params.cached && req.agent.isSuper) {
-//    models.Agent.findOne({ where: { id: req.params.id } }).then(result => {
-//      if (!result) {
-//        result = { message: 'No such agent' };
-//        return res.status(404).json(result);
-//      }
-//
-//      const managementClient = getManagementClient(apiScope.read.users);
-//      managementClient.getUsersByEmail(result.email).then(users => {
-//        res.status(200).json(result);
-//      }).catch(err => {
-//        res.status(err.statusCode).json(err.message.error_description);
-//      });
-//    }).catch(err => {
-//      res.status(500).json(err);
-//    });
-//  }
-//  else if (req.params.cached && !req.agent.isSuper) {
-//    return res.status(403).json( { message: 'Forbidden' });
-//  }
-//  else {
-    const managementClient = getManagementClient(apiScope.read.users);
-    managementClient.getUser({id: req.params.id}).then(agent => {
+    const nullsFound = checkForNulls(agent);
+    if (nullsFound) {
+      managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+      managementClient.updateUser({id: req.params.id}, { user_metadata: agent.user_metadata }).then(result => {
+        res.status(201).json(result);
+      }).catch(err => {
+        res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+      });
+    }
+    else {
       res.status(200).json(agent);
-    }).catch(err => {
-      res.status(err.statusCode).json(err.message.error_description);
-    });
-//  }
+    }
+  }).catch(err => {
+    res.status(err.statusCode).json(err.message.error_description);
+  });
 });
 
 router.post('/', checkPermissions([scope.create.agents]), function(req, res, next) {

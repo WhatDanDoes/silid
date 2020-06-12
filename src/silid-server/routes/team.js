@@ -529,90 +529,107 @@ function createInvitation(req, res, recipientEmail, invite) {
 };
 
 router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(req, res, next) {
+  if (!req.body.email) {
+    return res.status(400).json({ message: 'No email provided' });
+  }
+
   let team;
   if (req.user.user_metadata.teams) {
     team = req.user.user_metadata.teams.find(team => team.id === req.params.id);
   }
 
+  let managementClient;
   if (!team) {
-    return res.status(404).json({ message: 'No such team' });
+    if (!req.user.user_metadata.pendingInvitations) {
+      req.user.user_metadata.pendingInvitations = [];
+    }
+    let inviteIndex = req.user.user_metadata.pendingInvitations.findIndex(i => i.uuid === req.params.id && i.type === 'team' && i.recipient === req.body.email);
+    if (inviteIndex < 0) {
+      return res.status(404).json({ message: 'No such team' });
+    }
+    req.user.user_metadata.pendingInvitations.splice(inviteIndex, 1);
+    managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+
+    managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
+      req.user = {...req.user, ...result};
+      res.status(404).json(req.user);
+    }).catch(err => {
+      res.status(500).json(err);
+    });
   }
+  else {
+    let recipientEmail = req.body.email.trim().toLowerCase();
 
-  if (!req.body.email) {
-    return res.status(400).json({ message: 'No email provided' });
-  }
+    // Make sure agent isn't already a member of the team
+    models.Agent.findOne({ where: { email: recipientEmail } }).then(agent => {
+      const invite = { uuid: req.params.id, recipient: recipientEmail, type: 'team', name: team.name };
 
-  let recipientEmail = req.body.email.trim().toLowerCase();
+      if (agent) {
+        managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
+        managementClient.getUser({id: agent.socialProfile.user_id}).then(invitedAgent => {
 
-  // Make sure agent isn't already a member of the team
-  models.Agent.findOne({ where: { email: recipientEmail } }).then(agent => {
-    const invite = { uuid: req.params.id, recipient: recipientEmail, type: 'team', name: team.name };
-
-    if (agent) {
-      let managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
-      managementClient.getUser({id: agent.socialProfile.user_id}).then(invitedAgent => {
-
-        if (!invitedAgent.user_metadata) {
-          invitedAgent.user_metadata = { teams: [], rsvps: [] };
-        }
-        else if (!invitedAgent.user_metadata.rsvps) {
-          invitedAgent.user_metadata.rsvps = [];
-        }
-
-        let isMember;
-        if (invitedAgent.user_metadata.teams) {
-          isMember = invitedAgent.user_metadata.teams.find(team => team.id === req.params.id);
-        }
-
-        if (isMember) {
-          return res.status(200).json({ message: `${agent.email} is already a member of this team` });
-        }
-
-
-        // Check if this agent already has an invitation (functionality covered by client-side tests, because globally modified `const` profiles are just too hairy)
-        const existingInvite = invitedAgent.user_metadata.rsvps.find(rsvp => rsvp.uuid === req.params.id && rsvp.type === 'team' && rsvp.recipient === invitedAgent.email);
-        if (existingInvite) {
-          return inviteAgent(invite, req, res);
-        }
-
-        invitedAgent.user_metadata.rsvps.push(invite);
-        managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
-        managementClient.updateUser({id: invitedAgent.user_id}, { user_metadata: invitedAgent.user_metadata }).then(result => {
-
-          // Write invite to team leader's pendingInvitations
-          if (!req.user.user_metadata.pendingInvitations) {
-            req.user.user_metadata.pendingInvitations = [];
+          if (!invitedAgent.user_metadata) {
+            invitedAgent.user_metadata = { teams: [], rsvps: [] };
           }
-          req.user.user_metadata.pendingInvitations.push(invite);
+          else if (!invitedAgent.user_metadata.rsvps) {
+            invitedAgent.user_metadata.rsvps = [];
+          }
 
-          // 2020-5-12 Interesting... if you don't get a new client, it recycles the OAuth token
-          // This is probably totally unnecessary
+          let isMember;
+          if (invitedAgent.user_metadata.teams) {
+            isMember = invitedAgent.user_metadata.teams.find(team => team.id === req.params.id);
+          }
+
+          if (isMember) {
+            return res.status(200).json({ message: `${agent.email} is already a member of this team` });
+          }
+
+
+          // Check if this agent already has an invitation (functionality covered by client-side tests, because globally modified `const` profiles are just too hairy)
+          const existingInvite = invitedAgent.user_metadata.rsvps.find(rsvp => rsvp.uuid === req.params.id && rsvp.type === 'team' && rsvp.recipient === invitedAgent.email);
+          if (existingInvite) {
+            return inviteAgent(invite, req, res);
+          }
+
+          invitedAgent.user_metadata.rsvps.push(invite);
           managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
-          managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
+          managementClient.updateUser({id: invitedAgent.user_id}, { user_metadata: invitedAgent.user_metadata }).then(result => {
 
-            req.user = {...req.user, ...result};
-            inviteAgent(invite, req, res);
+            // Write invite to team leader's pendingInvitations
+            if (!req.user.user_metadata.pendingInvitations) {
+              req.user.user_metadata.pendingInvitations = [];
+            }
+            req.user.user_metadata.pendingInvitations.push(invite);
 
+            // 2020-5-12 Interesting... if you don't get a new client, it recycles the OAuth token
+            // This is probably totally unnecessary
+            managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+            managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
+
+              req.user = {...req.user, ...result};
+              inviteAgent(invite, req, res);
+
+            }).catch(err => {
+              res.status(500).json(err);
+            });
           }).catch(err => {
             res.status(500).json(err);
           });
         }).catch(err => {
+          // This comes into play if agent is manually deleted at Auth0
+          if (err.statusCode === 404) {
+            return createInvitation(req, res, recipientEmail, invite);
+          }
           res.status(500).json(err);
         });
-      }).catch(err => {
-        // This comes into play if agent is manually deleted at Auth0
-        if (err.statusCode === 404) {
-          return createInvitation(req, res, recipientEmail, invite);
-        }
-        res.status(500).json(err);
-      });
-    }
-    else {
-      createInvitation(req, res, recipientEmail, invite);
-    }
-  }).catch(err => {
-    res.status(500).json(err);
-  });
+      }
+      else {
+        createInvitation(req, res, recipientEmail, invite);
+      }
+    }).catch(err => {
+      res.status(500).json(err);
+    });
+  }
 });
 
 /**
@@ -670,7 +687,12 @@ router.get('/:id/invite/:action', checkPermissions([scope.create.teamMembers]), 
       });
     }
     else {
-      res.status(404).json({ message: 'No such invitation' });
+      req.user.user_metadata.rsvps.splice(rsvpIndex, 1);
+      managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
+        res.status(404).json(result);
+      }).catch(err => {
+        res.status(err.statusCode).json(err.message.error_description);
+      });
     }
   }).catch(err => {
     res.status(err.statusCode).json(err.message.error_description);
@@ -700,23 +722,29 @@ router.delete('/:id/invite', checkPermissions([scope.delete.teamMembers]), funct
       if (!deleted) {
         models.Agent.findOne({ where: { email: req.body.email.trim().toLowerCase() } }).then(invitedAgent => {
 
-          managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
-          managementClient.getUser({id: invitedAgent.socialProfile.user_id}).then(a => {
-            const rsvpIndex = a.user_metadata.rsvps.findIndex(r => r.uuid === req.params.id);
-            a.user_metadata.rsvps.splice(rsvpIndex, 1);
+          if (invitedAgent) {
+            managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
+            managementClient.getUser({id: invitedAgent.socialProfile.user_id}).then(a => {
+              const rsvpIndex = a.user_metadata.rsvps.findIndex(r => r.uuid === req.params.id);
+              a.user_metadata.rsvps.splice(rsvpIndex, 1);
 
-            managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
-            managementClient.updateUser({id: a.user_id}, { user_metadata: a.user_metadata }).then(result => {
-              res.status(201).json(req.user);
+              managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+              managementClient.updateUser({id: a.user_id}, { user_metadata: a.user_metadata }).then(result => {
+                res.status(201).json(req.user);
+              }).catch(err => {
+                res.status(err.statusCode).json(err.message.error_description);
+              });
             }).catch(err => {
               res.status(err.statusCode).json(err.message.error_description);
             });
-          }).catch(err => {
-            res.status(err.statusCode).json(err.message.error_description);
-          });
+          }
+          else {
+            res.status(404).json(req.user);
+          }
         }).catch(err => {
           res.status(500).json(err);
         });
+
       }
       else {
         res.status(201).json(req.user);
