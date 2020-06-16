@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const models = require('../models');
 const mailer = require('../mailer');
-
+const uuid = require('uuid');
 
 /**
  * Configs must match those defined for RBAC at Auth0
@@ -11,6 +11,8 @@ const scope = require('../config/permissions');
 const roles = require('../config/roles');
 const checkPermissions = require('../lib/checkPermissions');
 
+const apiScope = require('../config/apiPermissions');
+const getManagementClient = require('../lib/getManagementClient');
 
 /* GET organization listing. */
 router.get('/admin', checkPermissions(roles.sudo), function(req, res, next) {
@@ -70,16 +72,72 @@ router.get('/:id', checkPermissions([scope.read.organizations]), function(req, r
 });
 
 router.post('/', checkPermissions([scope.create.organizations]), function(req, res, next) {
-  req.body.creatorId = req.agent.id;
+//  req.body.creatorId = req.agent.id;
+//
+//  req.agent.createOrganization(req.body).then(org => {
+//    res.status(201).json(org);
+//  }).catch(err => {
+//    let status = 500;
+//    if (err instanceof models.Sequelize.UniqueConstraintError) {
+//      status = 200;
+//    }
+//    res.status(status).json(err);
+//  });
 
-  req.agent.createOrganization(req.body).then(org => {
-    res.status(201).json(org);
-  }).catch(err => {
-    let status = 500;
-    if (err instanceof models.Sequelize.UniqueConstraintError) {
-      status = 200;
+  // Make sure incoming data is legit
+  let orgName = req.body.name;
+  if (orgName) {
+    orgName = orgName.trim();
+  }
+
+  if (!orgName) {
+    return res.status(400).json({ errors: [{ message: 'Organization requires a name' }] });
+  }
+  else if (orgName.length > 128) {
+    return res.status(400).json({ errors: [{ message: 'Organization name is too long' }] });
+  }
+
+  let managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
+  managementClient.getUser({id: req.user.user_id}).then(agent => {
+
+    // No duplicate team names
+    if (agent.user_metadata) {
+      if (agent.user_metadata.organizations) {
+        let organizations = agent.user_metadata.organizations.map(org => org.name);
+        if (organizations.includes(orgName)) {
+          return res.status(400).json({ errors: [{ message: 'That organization is already registered' }] });
+        }
+      }
+      else {
+        agent.user_metadata.organizations = [];
+      }
     }
-    res.status(status).json(err);
+    else {
+      agent.user_metadata = { organizations: [] };
+    }
+
+    agent.user_metadata.organizations.push({
+      id: uuid.v4(),
+      name: orgName,
+      organizer: req.user.email,
+    });
+
+    managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+    managementClient.updateUser({id: req.user.user_id}, { user_metadata: agent.user_metadata }).then(result => {
+      // Auth0 does not return agent scope
+      result.scope = req.user.scope;
+      // 2020-4-30 https://stackoverflow.com/a/24498660/1356582
+      // This updates the agent's session data
+      req.login(result, err => {
+        if (err) return next(err);
+
+        res.status(201).json(result);
+      });
+    }).catch(err => {
+      res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+    });
+  }).catch(err => {
+    res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
   });
 });
 
