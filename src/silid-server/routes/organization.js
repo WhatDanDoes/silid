@@ -38,52 +38,56 @@ router.get('/', checkPermissions([scope.read.organizations]), function(req, res,
 });
 
 
-router.get('/:id', checkPermissions([scope.read.organizations]), function(req, res, next) {
-  models.Organization.findOne({ where: { id: req.params.id },
-                                include: [ { model: models.Agent, as: 'creator' },
-                                           { model: models.Agent, as: 'members' },
-                                           { model: models.Team, as: 'teams',
-                                             include: [{ model: models.Agent, as: 'members' }] } ] }).then(result => {
-    if (!result) {
-      return res.status(404).json({ message: 'No such organization' });
+router.get('/:id/:admin?', checkPermissions([scope.read.organizations]), function(req, res, next) {
+  const managementClient = getManagementClient(apiScope.read.usersAppMetadata);
+  managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.organizations.id:"${req.params.id}"` }).then(organizers => {
+    if (organizers.length) {
+
+      // Get the organization
+      const organization = organizers[0].user_metadata.organizations.find(org => org.id === req.params.id);
+
+      managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.organizationId:"${req.params.id}"` }).then(agents => {
+
+        // Get all the teams belonging to this organization
+        let teamIds = [];
+        let teams = [];
+        for (let agent of agents) {
+          let t = agent.user_metadata.teams.filter(team => {
+            if (team.organizationId === req.params.id && teamIds.indexOf(team.id) < 0) {
+              teamIds.push(team.id);
+              return true;
+            }
+            return false;
+          });
+          teams = teams.concat(t);
+        }
+        // Sort teams alphabetically by team name
+        teams.sort((a, b) => {
+          if (a.name < b.name) {
+            return -1;
+          }
+          if (a.name > b.name) {
+            return 1;
+          }
+          return 0;
+        });
+
+        organization.teams = teams;
+
+        return res.status(200).json(organization);
+      }).catch(err => {
+        res.status(err.statusCode).json(err.message.error_description);
+      });
     }
-
-    const memberIds = result.members.map(member => member.id);
-    const memberIdIndex = memberIds.indexOf(req.agent.id);
-
-    // Super agent gets all-access pass
-    if (!req.agent.isSuper) {
-
-      // Make sure agent is a member
-      if (memberIdIndex < 0) {
-        return res.status(403).json({ message: 'You are not a member of that organization' });
-      }
-
-      // Make sure agent is email verified
-      if (result.members[memberIdIndex].OrganizationMember.verificationCode) {
-        return res.status(403).json({ message: 'You have not verified your invitation to this organization. Check your email.' });
-      }
+    else {
+      res.status(404).json({ message: 'No such organization' });
     }
-
-    res.status(200).json(result);
   }).catch(err => {
-    res.status(500).json(err);
+    res.status(err.statusCode).json(err.message.error_description);
   });
 });
 
 router.post('/', checkPermissions([scope.create.organizations]), function(req, res, next) {
-//  req.body.creatorId = req.agent.id;
-//
-//  req.agent.createOrganization(req.body).then(org => {
-//    res.status(201).json(org);
-//  }).catch(err => {
-//    let status = 500;
-//    if (err instanceof models.Sequelize.UniqueConstraintError) {
-//      status = 200;
-//    }
-//    res.status(status).json(err);
-//  });
-
   // Make sure incoming data is legit
   let orgName = req.body.name;
   if (orgName) {
