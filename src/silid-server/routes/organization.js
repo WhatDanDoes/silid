@@ -30,13 +30,27 @@ router.get('/admin', checkPermissions(roles.sudo), function(req, res, next) {
 
 
 router.get('/', checkPermissions([scope.read.organizations]), function(req, res, next) {
-  req.agent.getOrganizations().then(orgs => {
-    res.json(orgs);
+  const managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
+  managementClient.getUser({id: req.user.user_id}).then(agent => {
+
+    if (agent.user_metadata && agent.user_metadata.organizations) {
+      const orgs = agent.user_metadata.organizations.sort((a, b) => {
+        if (a.name < b.name) {
+          return -1;
+        }
+        if (a.name > b.name) {
+          return 1;
+        }
+        return 0;
+      });
+
+      return res.status(200).json(orgs);
+    }
+    res.status(404).json([]);
   }).catch(err => {
-    res.status(500).json(err);
+    res.status(err.statusCode).json(err.message.error_description);
   });
 });
-
 
 router.get('/:id/:admin?', checkPermissions([scope.read.organizations]), function(req, res, next) {
   const managementClient = getManagementClient(apiScope.read.usersAppMetadata);

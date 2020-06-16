@@ -110,26 +110,45 @@ describe('root/organizationSpec', () => {
       });
 
       describe('/organization', () => {
+
+        let organizationId, anotherOrganizationId;
+        beforeEach(done => {
+          // Manufacture some orgs
+          organizationId = uuid.v4();
+          anotherOrganizationId = uuid.v4();
+          done();
+        });
+
         it('retrieves only the root agent\'s organization', done => {
-          models.Organization.create({ name: 'Mr Worldwide', creatorId: root.id }).then(o => {
-            models.Organization.findAll().then(results => {
-              expect(results.length).toEqual(2);
-              rootSession
-                .get(`/organization`)
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(200)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-                  expect(res.body.length).toEqual(1);
-                  expect(res.body[0].name).toEqual('Mr Worldwide');
-                  done();
-                });
-            }).catch(err => {
-              done.fail(err);
-            });
-          }).catch(err => {
-            done.fail(err);
+          _profile.user_metadata = {
+            organizations: [
+              {name: 'The National Lacrosse League', organizer: _profile.email, id: anotherOrganizationId },
+              {name: 'One Book Canada', organizer: _profile.email, id: organizationId }
+            ]
+          };
+
+          stubUserAppMetadataRead((err, apiScopes) => {
+            if (err) return done.fail();
+            let {userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes;
+
+            expect(_profile.user_metadata.organizations.length).toEqual(2);
+            rootSession
+              .get(`/organization`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.length).toEqual(2);
+                expect(res.body[0]).toEqual({name: 'One Book Canada', organizer: _profile.email, id: organizationId });
+                expect(res.body[1]).toEqual({name: 'The National Lacrosse League', organizer: _profile.email, id: anotherOrganizationId });
+
+                // Auth0 is the souce
+                expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(true);
+                expect(userAppMetadataReadScope.isDone()).toBe(true);
+
+                done();
+              });
           });
         });
       });
@@ -1058,57 +1077,6 @@ describe('root/organizationSpec', () => {
             expect(res.body.message).toEqual('No such organization');
             done();
           });
-      });
-    });
-  });
-
-  describe('forbidden', () => {
-
-    let forbiddenSession;
-    beforeEach(done => {
-      _profile.email = originalProfile.email;
-
-      stubAuth0ManagementApi((err, apiScopes) => {
-        if (err) return done.fail();
-
-        login({..._identity, email: agent.email}, [scope.read.organizations], (err, session) => {
-          if (err) return done.fail(err);
-          forbiddenSession = session;
-
-          // Cached profile doesn't match "live" data, so agent needs to be updated
-          // with a call to Auth0
-          stubUserRead((err, apiScopes) => {
-            if (err) return done.fail();
-
-            done();
-          });
-        });
-      });
-    });
-
-    describe('read', () => {
-      describe('/organization', () => {
-        it('returns only the organizations created by the requesting agent', done => {
-          models.Organization.create({ name: 'Mr Worldwide', creatorId: root.id }).then(o => {
-            models.Organization.findAll().then(results => {
-              expect(results.length).toEqual(2);
-              forbiddenSession
-                .get(`/organization`)
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(200)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-                  expect(res.body.length).toEqual(1);
-                  done();
-                });
-            }).catch(err => {
-              done.fail(err);
-            });
-          }).catch(err => {
-            done.fail(err);
-          });
-        });
       });
     });
   });
