@@ -4,6 +4,8 @@ const models = require('../models');
 const mailer = require('../mailer');
 const uuid = require('uuid');
 
+const upsertInvites = require('../lib/upsertInvites');
+
 /**
  * Configs must match those defined for RBAC at Auth0
  */
@@ -52,6 +54,42 @@ router.get('/', checkPermissions([scope.read.organizations]), function(req, res,
   });
 });
 
+/**
+ * Consolidates an organization's member teams
+ *
+ * @param array
+ * @param object
+ * @param string
+ */
+function consolidateTeams(agents, org, id) {
+  // Get all the teams belonging to this organization
+  let teamIds = [];
+  let teams = [];
+  for (let agent of agents) {
+    let t = agent.user_metadata.teams.filter(team => {
+      if (team.organizationId === id && teamIds.indexOf(team.id) < 0) {
+        teamIds.push(team.id);
+        return true;
+      }
+      return false;
+    });
+    teams = teams.concat(t);
+  }
+  // Sort teams alphabetically by team name
+  teams.sort((a, b) => {
+    if (a.name < b.name) {
+      return -1;
+    }
+    if (a.name > b.name) {
+      return 1;
+    }
+    return 0;
+  });
+
+  org.teams = teams;
+  return org;
+}
+
 router.get('/:id/:admin?', checkPermissions([scope.read.organizations]), function(req, res, next) {
   const managementClient = getManagementClient(apiScope.read.usersAppMetadata);
   managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.organizations.id:"${req.params.id}"` }).then(organizers => {
@@ -63,30 +101,7 @@ router.get('/:id/:admin?', checkPermissions([scope.read.organizations]), functio
       managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.organizationId:"${req.params.id}"` }).then(agents => {
 
         // Get all the teams belonging to this organization
-        let teamIds = [];
-        let teams = [];
-        for (let agent of agents) {
-          let t = agent.user_metadata.teams.filter(team => {
-            if (team.organizationId === req.params.id && teamIds.indexOf(team.id) < 0) {
-              teamIds.push(team.id);
-              return true;
-            }
-            return false;
-          });
-          teams = teams.concat(t);
-        }
-        // Sort teams alphabetically by team name
-        teams.sort((a, b) => {
-          if (a.name < b.name) {
-            return -1;
-          }
-          if (a.name > b.name) {
-            return 1;
-          }
-          return 0;
-        });
-
-        organization.teams = teams;
+        consolidateTeams(agents, organization, req.params.id)
 
         return res.status(200).json(organization);
       }).catch(err => {
@@ -115,41 +130,51 @@ router.post('/', checkPermissions([scope.create.organizations]), function(req, r
     return res.status(400).json({ errors: [{ message: 'Organization name is too long' }] });
   }
 
-  let managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
-  managementClient.getUser({id: req.user.user_id}).then(agent => {
+  let managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
+  managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.organizations.name:"${orgName}"` }).then(organizers => {
 
-    // No duplicate team names
-    if (agent.user_metadata) {
-      if (agent.user_metadata.organizations) {
-        let organizations = agent.user_metadata.organizations.map(org => org.name);
-        if (organizations.includes(orgName)) {
-          return res.status(400).json({ errors: [{ message: 'That organization is already registered' }] });
+    if (organizers.length) {
+      return res.status(400).json({ errors: [{ message: 'That organization is already registered' }] });
+    }
+
+
+    //let managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
+    managementClient.getUser({id: req.user.user_id}).then(agent => {
+
+      // No duplicate team names
+      if (agent.user_metadata) {
+        if (agent.user_metadata.organizations) {
+          let organizations = agent.user_metadata.organizations.map(org => org.name);
+          if (organizations.includes(orgName)) {
+            return res.status(400).json({ errors: [{ message: 'That organization is already registered' }] });
+          }
+        }
+        else {
+          agent.user_metadata.organizations = [];
         }
       }
       else {
-        agent.user_metadata.organizations = [];
+        agent.user_metadata = { organizations: [] };
       }
-    }
-    else {
-      agent.user_metadata = { organizations: [] };
-    }
 
-    agent.user_metadata.organizations.push({
-      id: uuid.v4(),
-      name: orgName,
-      organizer: req.user.email,
-    });
+      agent.user_metadata.organizations.push({
+        id: uuid.v4(),
+        name: orgName,
+        organizer: req.user.email,
+      });
 
-    managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
-    managementClient.updateUser({id: req.user.user_id}, { user_metadata: agent.user_metadata }).then(result => {
-      // Auth0 does not return agent scope
-      result.scope = req.user.scope;
-      // 2020-4-30 https://stackoverflow.com/a/24498660/1356582
-      // This updates the agent's session data
-      req.login(result, err => {
-        if (err) return next(err);
+      managementClient.updateUser({id: req.user.user_id}, { user_metadata: agent.user_metadata }).then(result => {
+        // Auth0 does not return agent scope
+        result.scope = req.user.scope;
+        // 2020-4-30 https://stackoverflow.com/a/24498660/1356582
+        // This updates the agent's session data
+        req.login(result, err => {
+          if (err) return next(err);
 
-        res.status(201).json(result);
+          res.status(201).json(result);
+        });
+      }).catch(err => {
+        res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
       });
     }).catch(err => {
       res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
@@ -159,32 +184,99 @@ router.post('/', checkPermissions([scope.create.organizations]), function(req, r
   });
 });
 
-router.put('/', checkPermissions([scope.update.organizations]), function(req, res, next) {
-  models.Organization.findOne({ where: { id: req.body.id } }).then(organization => {
-    if (!organization) {
-      return res.json( { message: 'No such organization' });
+router.put('/:id', checkPermissions([scope.update.organizations]), function(req, res, next) {
+  // Make sure incoming data is legit
+  let orgName = req.body.name;
+  if (orgName) {
+    orgName = orgName.trim();
+  }
+
+  if (!orgName) {
+    return res.status(400).json({ errors: [{ message: 'Organization requires a name' }] });
+  }
+  else if (orgName.length > 128) {
+    return res.status(400).json({ errors: [{ message: 'Organization name is too long' }] });
+  }
+
+  let managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
+  managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.organizations.name:"${orgName}"` }).then(organizers => {
+
+    if (organizers.length) {
+      return res.status(400).json({ errors: [{ message: 'That organization is already registered' }] });
     }
 
-    organization.getCreator().then(creator => {
-      if (!req.agent.isSuper && req.agent.email !== creator.email) {
-        return res.status(403).json( { message: 'Unauthorized' });
-      }
+    managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.organizations.id:"${req.params.id}"` }).then(organizers => {
 
-      for (let key in req.body) {
-        if (organization[key]) {
-          organization[key] = req.body[key];
+      if (organizers.length) {
+
+        // Anticipating multiple organizers... right now, there should only be one per organization
+        const organizerIndex = organizers.findIndex(o => o.email === req.user.email);
+        if (organizerIndex < 0) {
+          return res.status(403).json({ message: 'You are not an organizer' });
         }
+
+        // Find the organization to be updated
+        const orgIndex = organizers[organizerIndex].user_metadata.organizations.findIndex(org => org.id === req.params.id);
+
+        // Update organization
+        organizers[organizerIndex].user_metadata.organizations[orgIndex].name = orgName;
+
+        // Update pending invitations
+
+        if (!organizers[organizerIndex].user_metadata.pendingInvitations) {
+          organizers[organizerIndex].user_metadata.pendingInvitations = [];
+        }
+        const pending = organizers[organizerIndex].user_metadata.pendingInvitations.filter(invite => invite.uuid === req.params.id);
+        for (let p of pending) {
+          p.name = orgName;
+        }
+
+        // Update the organizer's metadata
+        managementClient.updateUser({id: req.user.user_id}, { user_metadata: organizers[organizerIndex].user_metadata }).then(result => {
+
+          // Update waiting invites
+          models.Invitation.update({ name: orgName }, { where: {uuid: req.params.id} }).then(results => {
+
+            // Retrieve and consolidate organization info
+            managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.organizationId:"${req.params.id}"` }).then(agents => {
+              let organization = consolidateTeams(agents, organizers[organizerIndex].user_metadata.organizations[orgIndex], req.params.id)
+
+              // Retrieve outstanding RSVPs
+              managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.rsvps.uuid:"${req.params.id}"` }).then(results => {
+                const invitations = [];
+                results.forEach(a => {
+                  // Get agent's team ID
+                  let i = a.user_metadata.rsvps.find(r => r.uuid === req.params.id);
+                  invitations.push({ uuid: req.params.id, type: 'organization', name: orgName, recipient: a.email, teamId: i.teamId });
+                });
+
+                upsertInvites(invitations, err => {
+                  if (err) {
+                    return res.status(500).json(err);
+                  }
+                  res.status(201).json(organization);
+                });
+              }).catch(err => {
+                res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+              });
+            }).catch(err => {
+              res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+            });
+          }).catch(err => {
+            res.status(500).json(err);
+          });
+        }).catch(err => {
+          res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+        });
       }
-      organization.save().then(result => {
-        res.status(201).json(result);
-      }).catch(err => {
-        res.status(500).json(err);
-      });
+      else {
+        res.status(404).json({ message: 'No such organization' });
+      }
     }).catch(err => {
-      res.status(500).json(err);
+      res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
     });
   }).catch(err => {
-    res.status(500).json(err);
+    res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
   });
 });
 
