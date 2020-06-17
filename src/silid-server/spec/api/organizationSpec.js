@@ -103,7 +103,7 @@ describe('organizationSpec', () => {
                     if (err) return done.fail();
                     ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
 
-                    // This stubs user reads subsequent to the original login
+                    // Retrieve agent profile
                     stubUserAppMetadataRead((err, apiScopes) => {
                       if (err) return done.fail();
                       ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
