@@ -17,6 +17,7 @@ describe('Invitation', () => {
       _valid.type = 'team';
       _valid.uuid = uuid.v4();
       _valid.recipient = 'someguy@example.com';
+      _valid.teamId = null;
 
       invitation = new Invitation(_valid);
 
@@ -200,6 +201,86 @@ describe('Invitation', () => {
       });
     });
 
+    describe('teamId', () => {
+      beforeEach(() => {
+        _valid.type = 'organization';
+        _valid.teamId = uuid.v4();
+      });
+
+      it('does not allow blanks', done => {
+        _valid.teamId = '   ';
+        invitation = new Invitation(_valid);
+        invitation.save().then(obj => {
+          done.fail('This shouldn\'t save');
+        }).catch(err => {
+          expect(err.errors.length).toEqual(1);
+          expect(err.errors[0].message).toEqual('Organization invitation requires a valid version 4 team uuid');
+          done();
+        });
+      });
+
+      it('does not allow empty', done => {
+        _valid.teamId = '';
+        invitation = new Invitation(_valid);
+        invitation.save().then(obj => {
+          done.fail('This shouldn\'t save');
+        }).catch(err => {
+          expect(err.errors.length).toEqual(2);
+          expect(err.errors[0].message).toEqual('Organization invitation requires a team uuid');
+          expect(err.errors[1].message).toEqual('Organization invitation requires a valid version 4 team uuid');
+          done();
+        });
+      });
+
+      it('does not allow invalid team uuids', done => {
+        _valid.teamId = 'This is obviously not a uuid';
+        invitation = new Invitation(_valid);
+        invitation.save().then(obj => {
+          done.fail('This shouldn\'t save');
+        }).catch(err => {
+          expect(err.errors.length).toEqual(1);
+          expect(err.errors[0].message).toEqual('Organization invitation requires a valid version 4 team uuid');
+          done();
+        });
+      });
+
+      it('only allows uuidv4', done => {
+        _valid.teamId = uuid.v1();
+        invitation = new Invitation(_valid);
+        invitation.save().then(obj => {
+          done.fail('This shouldn\'t save');
+        }).catch(err => {
+          expect(err.errors.length).toEqual(1);
+          expect(err.errors[0].message).toEqual('Organization invitation requires a valid version 4 team uuid');
+          done();
+        });
+      });
+
+      it('cannot be set on a \'team\' invitation', done => {
+        _valid.type = 'team';
+        invitation = new Invitation(_valid);
+        invitation.save().then(obj => {
+          done.fail('This shouldn\'t save');
+        }).catch(err => {
+          expect(err.errors.length).toEqual(1);
+          expect(err.errors[0].message).toEqual('Team uuid only applies to organization invitations');
+          done();
+        });
+      });
+
+      it('must be set on an \'organization\' inivitation', done => {
+        delete _valid.teamId;
+        invitation = new Invitation(_valid);
+        invitation.save().then(obj => {
+          done.fail('This shouldn\'t save');
+        }).catch(err => {
+          expect(err.errors.length).toEqual(1);
+          expect(err.errors[0].message).toEqual('Organization invitation requires a team uuid');
+          done();
+        });
+      });
+    });
+
     describe('type', () => {
       it('requires a type', done => {
         delete _valid.type;
@@ -251,6 +332,8 @@ describe('Invitation', () => {
 
         it('allows the \'organization\' type', done => {
           _valid.type = 'organization';
+          // Required for organization invites
+          _valid.teamId = uuid.v4();
           invitation = new Invitation(_valid);
           invitation.save().then(obj => {
             expect(obj.id).toBeDefined();
