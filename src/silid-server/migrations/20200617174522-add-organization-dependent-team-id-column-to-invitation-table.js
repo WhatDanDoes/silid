@@ -5,7 +5,7 @@ module.exports = {
     return queryInterface.addColumn('Invitations', 'teamId', {
       type: Sequelize.UUID,
       defaultValue: Sequelize.UUIDV4, 
-      allowNull: false,
+      allowNull: true,
     })
   },
   down: (queryInterface, Sequelize) => {
