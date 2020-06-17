@@ -49,11 +49,11 @@
       ],
       "secrets": [
         { "name": "AUTH0_CLIENT_SECRET",
-        "valueFrom": "arn:aws:ssm:us-east-1:117995318043:parameter/AUTH0_CLIENT_SECRET" },
+        "valueFrom": "arn:aws:ssm:us-east-1:117995318043:parameter//ecs/prod/silid/AUTH0_CLIENT_SECRET" },
         { "name": "NOREPLY_PASSWORD",
-        "valueFrom": "arn:aws:ssm:us-east-1:117995318043:parameter/NOREPLY_PASSWORD" },
+        "valueFrom": "arn:aws:ssm:us-east-1:117995318043:parameter//ecs/prod/silid/NOREPLY_PASSWORD" },
         { "name": "POSTGRES_PASSWORD",
-        "valueFrom": "arn:aws:ssm:us-east-1:117995318043:parameter/POSTGRES_PASSWORD" }
+        "valueFrom": "arn:aws:ssm:us-east-1:117995318043:parameter//ecs/prod/silid/POSTGRES_PASSWORD" }
       ],
       "mountPoints": [],
       "workingDirectory": "/app",
