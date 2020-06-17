@@ -55,7 +55,15 @@ module.exports = function(profiles, done, options) {
           for (let profile of profiles) {
             if (/organizations/.test(qs.q)) {
               for (let organization of profile.user_metadata.organizations) {
-                let regex = new RegExp(organization.id);
+
+                let regex;
+                if (/id/.test(qs.q)) {
+                  regex = new RegExp(organization.id);
+                }
+                else if (/name/.test(qs.q)) {
+                  regex = new RegExp(organization.name);
+                }
+
                 if (regex.test(qs.q)) {
                   results.push(profile);
                 }
