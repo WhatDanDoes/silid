@@ -404,27 +404,50 @@ router.patch('/', checkPermissions([scope.update.organizations]), function(req, 
   }
 });
 
-router.delete('/', checkPermissions([scope.delete.organizations]), function(req, res, next) {
-  models.Organization.findOne({ where: { id: req.body.id } }).then(organization => {
-    if (!organization) {
-      return res.json( { message: 'No such organization' });
+router.delete('/:id', checkPermissions([scope.delete.organizations]), function(req, res, next) {
+  let managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
+
+  // Check for member teams
+  managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.organizationId:"${req.params.id}"` }).then(teams => {
+    if (teams.length){
+      return res.status(400).json({ message: 'Organization has member teams. Cannot delete' });
     }
 
-    organization.getCreator().then(creator => {
-      if (!req.agent.isSuper && req.agent.email !== creator.email) {
-        return res.status(401).json( { message: 'Unauthorized' });
-      }
+    // Get organizer
+    managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.organizations.id:"${req.params.id}"` }).then(organizers => {
 
-      organization.destroy().then(results => {
-        res.json( { message: 'Organization deleted' });
-      }).catch(err => {
-        res.status(500).json(err);
-      });
+      // For the moment, there is only one organizer
+      if (organizers.length) {
+        if (organizers[0].email !== req.user.email) {
+          return res.status(403).json({ message: 'You are not the organizer' });
+        }
+
+        if (organizers[0].user_metadata && organizers[0].user_metadata.pendingInvitations) {
+          const invite = organizers[0].user_metadata.pendingInvitations.find(i => i.uuid === req.params.id);
+          if (invite) {
+            return res.status(400).json({ message: 'Organization has invitations pending. Cannot delete' });
+          }
+        }
+
+        // Find the organization
+        const orgIndex = organizers[0].user_metadata.organizations.findIndex(o => o.id === req.params.id);
+        organizers[0].user_metadata.organizations.splice(orgIndex, 1);
+
+        // Update the organizer's metadata
+        managementClient.updateUser({id: organizers[0].user_id}, { user_metadata: organizers[0].user_metadata }).then(result => {
+          res.status(201).json({ message: 'Organization deleted' });
+        }).catch(err => {
+          res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+        });
+      }
+      else {
+        res.status(404).json({ message: 'No such organization' });
+      }
     }).catch(err => {
-      res.status(500).json(err);
+      res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
     });
   }).catch(err => {
-    res.status(500).json(err);
+    res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
   });
 });
 

@@ -554,9 +554,6 @@ describe('root/organizationSpec', () => {
       });
     });
 
-
-
-
     describe('update', () => {
 
       let teamId, team1Id, team2Id, organizationId,
@@ -911,46 +908,254 @@ describe('root/organizationSpec', () => {
     });
 
     describe('delete', () => {
+      let organizationId;
+      beforeEach(() => {
+        organizationId = uuid.v4();
+      });
 
-      beforeEach(done => {
-        // Cached profile doesn't match "live" data, so agent needs to be updated
-        // with a call to Auth0
-        stubUserRead((err, apiScopes) => {
-          if (err) return done.fail();
-          done();
+      describe('as organizer', () => {
+        describe('successfully', () => {
+          beforeEach(done => {
+
+            _profile.user_metadata = {
+              organizations: [{ name: 'One Book Canada', organizer: _profile.email, id: organizationId }],
+            };
+
+            // Cached profile doesn't match "live" data, so agent needs to be updated
+            // with a call to Auth0
+            stubUserRead((err, apiScopes) => {
+              if (err) return done.fail();
+
+              // Make sure there are no member teams
+              stubTeamRead([], (err, apiScopes) => {
+                if (err) return done.fail();
+                ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
+
+                // Get organizer profile
+                stubOrganizationRead((err, apiScopes) => {
+                  if (err) return done.fail();
+                  ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
+
+                  // Update former organizer's record
+                  stubUserAppMetadataUpdate((err, apiScopes) => {
+                    if (err) return done.fail();
+                    ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                    done();
+                  });
+                });
+              });
+            });
+          });
+
+          it('removes organization from Auth0', done => {
+            expect(_profile.user_metadata.organizations.length).toEqual(1);
+            rootSession
+              .delete(`/organization/${organizationId}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.message).toEqual('Organization deleted');
+                expect(_profile.user_metadata.organizations.length).toEqual(0);
+                done();
+              });
+          });
+
+          describe('Auth0', () => {
+            it('is called to retrieve any existing member teams', done => {
+              rootSession
+                .delete(`/organization/${organizationId}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(teamReadOauthTokenScope.isDone()).toBe(true);
+                  expect(teamReadScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+
+            it('is called to retrieve the organizer\'s profile', done => {
+              rootSession
+                .delete(`/organization/${organizationId}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  // 2020-6-18 Reuse token from above? This needs to be confirmed in production
+                  expect(organizationReadOauthTokenScope.isDone()).toBe(false);
+                  expect(organizationReadScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+
+            it('is called to update the former organizer agent', done => {
+              rootSession
+                .delete(`/organization/${organizationId}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  // 2020-6-18 Reuse token from above? This needs to be confirmed in production
+                  expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                  expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+          });
         });
-      });
 
-      it('removes an existing record from the database', done => {
-        rootSession
-          .delete('/organization')
-          .send({
-            id: organization.id,
-          })
-          .set('Accept', 'application/json')
-          .expect('Content-Type', /json/)
-          .expect(200)
-          .end(function(err, res) {
-            if (err) return done.fail(err);
-            expect(res.body.message).toEqual('Organization deleted');
-            done();
-          });
-      });
+        describe('unsuccessfully', () => {
+          const memberTeams = [];
 
-      it('doesn\'t barf if organization doesn\'t exist', done => {
-        rootSession
-          .delete('/organization')
-          .send({
-            id: 111,
-          })
-          .set('Accept', 'application/json')
-          .expect('Content-Type', /json/)
-          .expect(200)
-          .end(function(err, res) {
-            if (err) return done.fail(err);
-            expect(res.body.message).toEqual('No such organization');
-            done();
+          beforeEach(done => {
+            _profile.user_metadata = {
+              organizations: [{ name: 'One Book Canada', organizer: _profile.email, id: organizationId }],
+              pendingInvitations: [
+                { name: 'One Book Canada', recipient: 'someotherguy@example.com', uuid: organizationId, type: 'organization', teamId: uuid.v4() },
+                { name: 'One Book Canada', recipient: 'yetanotherguy@example.com', uuid: organizationId, type: 'organization', teamId: uuid.v4() }
+              ],
+            };
+
+            // Cached profile doesn't match "live" data, so agent needs to be updated
+            // with a call to Auth0
+            stubUserRead((err, apiScopes) => {
+              if (err) return done.fail();
+
+              // Check for member teams
+              memberTeams.push({
+                ..._profile,
+                name: 'A Aaronson',
+                email: 'aaaronson@example.com',
+                user_id: _profile.user_id + 1,
+                user_metadata: {
+                  teams: [
+                    { name: 'Asia Sensitive', leader: 'teamleader@example.com', id: uuid.v4(), organizationId: organizationId },
+                  ]
+                }
+              });
+              stubTeamRead(memberTeams, (err, apiScopes) => {
+
+                if (err) return done.fail();
+                ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
+
+                // Get organizer profile
+                stubOrganizationRead((err, apiScopes) => {
+                  if (err) return done.fail();
+                  ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
+
+                  // Update former organizer's record
+                  stubUserAppMetadataUpdate((err, apiScopes) => {
+                    if (err) return done.fail();
+                    ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                    done();
+                  });
+                });
+              });
+            });
           });
+
+          afterEach(() => {
+            memberTeams.length = 0;
+          });
+
+          it('doesn\'t barf if organization doesn\'t exist', done => {
+            rootSession
+              .delete('/organization/333')
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(404)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.message).toEqual('No such organization');
+                done();
+              });
+          });
+
+          it('doesn\'t delete if there are pending invitations', done => {
+            memberTeams.length = 0;
+            expect(_profile.user_metadata.pendingInvitations.length).toEqual(2);
+            rootSession
+              .delete(`/organization/${organizationId}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(400)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(res.body.message).toEqual('Organization has invitations pending. Cannot delete');
+                done();
+              });
+          });
+
+          it('doesn\'t delete if there are member teams', done => {
+            rootSession
+              .delete(`/organization/${organizationId}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(400)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(res.body.message).toEqual('Organization has member teams. Cannot delete');
+                done();
+              });
+          });
+
+          describe('Auth0', () => {
+            it('is called to retrieve any existing member teams', done => {
+              rootSession
+                .delete(`/organization/${organizationId}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(400)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(teamReadOauthTokenScope.isDone()).toBe(true);
+                  expect(teamReadScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+
+            it('is not called to retrieve the organizer\'s profile', done => {
+              rootSession
+                .delete(`/organization/${organizationId}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(400)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(organizationReadOauthTokenScope.isDone()).toBe(false);
+                  expect(organizationReadScope.isDone()).toBe(false);
+                  done();
+                });
+            });
+
+            it('is not called to update the former organizer agent', done => {
+              rootSession
+                .delete(`/organization/${organizationId}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(400)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                  expect(userAppMetadataUpdateScope.isDone()).toBe(false);
+                  done();
+                });
+            });
+          });
+        });
       });
     });
   });
