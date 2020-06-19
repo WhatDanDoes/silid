@@ -1,8 +1,6 @@
 const PORT = process.env.NODE_ENV === 'production' ? 3000 : 3001;
 const app = require('../../../app');
-const fixtures = require('sequelize-fixtures');
 const models = require('../../../models');
-const request = require('supertest');
 const uuid = require('uuid');
 const stubAuth0Sessions = require('../../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../../support/stubAuth0ManagementApi');

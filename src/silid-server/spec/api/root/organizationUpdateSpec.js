@@ -1,8 +1,6 @@
 const PORT = process.env.NODE_ENV === 'production' ? 3000 : 3001;
 const app = require('../../../app');
-const fixtures = require('sequelize-fixtures');
 const models = require('../../../models');
-const request = require('supertest');
 const uuid = require('uuid');
 const stubAuth0Sessions = require('../../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../../support/stubAuth0ManagementApi');
@@ -11,7 +9,6 @@ const stubUserAppMetadataRead = require('../../support/auth0Endpoints/stubUserAp
 const stubUserAppMetadataUpdate = require('../../support/auth0Endpoints/stubUserAppMetadataUpdate');
 const stubOrganizationRead = require('../../support/auth0Endpoints/stubOrganizationRead');
 const stubTeamRead = require('../../support/auth0Endpoints/stubTeamRead');
-const mailer = require('../../../mailer');
 const scope = require('../../../config/permissions');
 
 /**
@@ -42,34 +39,16 @@ describe('root/organizationUpdateSpec', () => {
     delete _profile.user_metadata;
   });
 
-  let root, organization, agent;
+  let root;
   beforeEach(done => {
     originalProfile = {..._profile};
     _profile.email = process.env.ROOT_AGENT;
 
     models.sequelize.sync({force: true}).then(() => {
-      fixtures.loadFile(`${__dirname}/../../fixtures/agents.json`, models).then(() => {
-        models.Agent.findAll().then(results => {
-          agent = results[0];
-          expect(agent.isSuper).toBe(false);
-          fixtures.loadFile(`${__dirname}/../../fixtures/organizations.json`, models).then(() => {
-            models.Organization.findAll().then(results => {
-              organization = results[0];
-
-              models.Agent.create({ email: process.env.ROOT_AGENT }).then(results => {
-                root = results;
-                expect(root.isSuper).toBe(true);
-                done();
-              }).catch(err => {
-                done.fail(err);
-              });
-            });
-          }).catch(err => {
-            done.fail(err);
-          });
-        }).catch(err => {
-          done.fail(err);
-        });
+      models.Agent.create({ email: process.env.ROOT_AGENT }).then(results => {
+        root = results;
+        expect(root.isSuper).toBe(true);
+        done();
       }).catch(err => {
         done.fail(err);
       });

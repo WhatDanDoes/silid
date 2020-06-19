@@ -1,6 +1,5 @@
 const PORT = process.env.NODE_ENV === 'production' ? 3000 : 3001;
 const app = require('../../app');
-const fixtures = require('sequelize-fixtures');
 const models = require('../../models');
 const request = require('supertest');
 const uuid = require('uuid');
@@ -13,7 +12,6 @@ const stubOrganizationRead = require('../support/auth0Endpoints/stubOrganization
 const stubTeamRead = require('../support/auth0Endpoints/stubTeamRead');
 const mailer = require('../../mailer');
 const scope = require('../../config/permissions');
-const nock = require('nock');
 
 /**
  * 2019-11-13
@@ -41,23 +39,7 @@ describe('organizationSpec', () => {
     originalProfile = {..._profile};
 
     models.sequelize.sync({force: true}).then(() => {
-      fixtures.loadFile(`${__dirname}/../fixtures/agents.json`, models).then(() => {
-        models.Agent.findAll().then(results => {
-          agent = results[0];
-          fixtures.loadFile(`${__dirname}/../fixtures/organizations.json`, models).then(() => {
-            models.Organization.findAll().then(results => {
-              organization = results[0];
-              done();
-            });
-          }).catch(err => {
-            done.fail(err);
-          });
-        }).catch(err => {
-          done.fail(err);
-        });
-      }).catch(err => {
-        done.fail(err);
-      });
+      done();
     }).catch(err => {
       done.fail(err);
     });
