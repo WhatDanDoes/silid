@@ -92,25 +92,25 @@ describe('organizationSpec', () => {
               organizationId = uuid.v4();
               team1Id = uuid.v4();
               team2Id = uuid.v4();
-  
+
               _profile.user_metadata = { organizations: [{ name: 'One Book Canada', organizer: _profile.email, id: organizationId }] };
               stubAuth0ManagementApi((err, apiScopes) => {
                 if (err) return done.fail();
-  
+
                 login(_identity, [scope.read.organizations], (err, session) => {
-  
+
                   if (err) return done.fail(err);
                   authenticatedSession = session;
-  
+
                   // Cached profile doesn't match "live" data, so agent needs to be updated
                   // with a call to Auth0
                   stubUserRead((err, apiScopes) => {
                     if (err) return done.fail();
-  
+
                     stubOrganizationRead((err, apiScopes) => {
                       if (err) return done.fail();
                       ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
-  
+
                       stubTeamRead([{..._profile,
                                       user_metadata: {
                                         ..._profile.user_metadata,
@@ -132,7 +132,7 @@ describe('organizationSpec', () => {
                                       }
                                     }], (err, apiScopes) => {
                         ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-  
+
                         stubUserAppMetadataUpdate((err, apiScopes) => {
                           if (err) return done.fail();
                           ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
@@ -144,7 +144,7 @@ describe('organizationSpec', () => {
                 });
               });
             });
-  
+
             it('collates agent data into organization data', done => {
               authenticatedSession
                 .get(`/organization/${organizationId}`)
@@ -160,11 +160,11 @@ describe('organizationSpec', () => {
                   expect(res.body.teams.length).toEqual(2);
                   expect(res.body.teams[0]).toEqual({ name: 'Asia Sensitive', leader: 'teamleader@example.com', id: team1Id, organizationId: organizationId });
                   expect(res.body.teams[1]).toEqual({ name: 'Guinea-Bissau', leader: 'squadleader@example.com', id: team2Id, organizationId: organizationId });
-  
+
                   done();
                 });
             });
-  
+
             it('doesn\'t barf if record doesn\'t exist', done => {
               authenticatedSession
                 .get('/organization/333')
@@ -177,7 +177,7 @@ describe('organizationSpec', () => {
                   done();
                 });
             });
-  
+
             describe('Auth0', () => {
               it('is called to retrieve organization data', done => {
                 authenticatedSession
@@ -192,7 +192,7 @@ describe('organizationSpec', () => {
                     done();
                   });
               });
-  
+
               it('is called to retrieve team data', done => {
                 authenticatedSession
                   .get(`/organization/${organizationId}`)
@@ -216,21 +216,21 @@ describe('organizationSpec', () => {
               organizationId = uuid.v4();
               team1Id = uuid.v4();
               team2Id = uuid.v4();
-  
+
               _profile.user_metadata = {  };
               stubAuth0ManagementApi((err, apiScopes) => {
                 if (err) return done.fail();
-  
+
                 login(_identity, [scope.read.organizations], (err, session) => {
-  
+
                   if (err) return done.fail(err);
                   authenticatedSession = session;
-  
+
                   // Cached profile doesn't match "live" data, so agent needs to be updated
                   // with a call to Auth0
                   stubUserRead((err, apiScopes) => {
                     if (err) return done.fail();
-  
+
                     stubOrganizationRead([{
                       ..._profile,
                       name: 'A Aaronson',
@@ -246,7 +246,7 @@ describe('organizationSpec', () => {
                     }], (err, apiScopes) => {
                       if (err) return done.fail();
                       ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
-  
+
                       stubTeamRead([
                         {
                           ..._profile,
@@ -272,7 +272,7 @@ describe('organizationSpec', () => {
                         }
                       ], (err, apiScopes) => {
                         ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-  
+
                         stubUserAppMetadataUpdate((err, apiScopes) => {
                           if (err) return done.fail();
                           ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
@@ -284,7 +284,7 @@ describe('organizationSpec', () => {
                 });
               });
             });
-  
+
             it('collates agent data into organization data', done => {
               authenticatedSession
                 .get(`/organization/${organizationId}`)
@@ -300,11 +300,11 @@ describe('organizationSpec', () => {
                   expect(res.body.teams.length).toEqual(2);
                   expect(res.body.teams[0]).toEqual({ name: 'Asia Sensitive', leader: 'teamleader@example.com', id: team1Id, organizationId: organizationId });
                   expect(res.body.teams[1]).toEqual({ name: 'Guinea-Bissau', leader: 'squadleader@example.com', id: team2Id, organizationId: organizationId });
-  
+
                   done();
                 });
             });
-  
+
             it('doesn\'t barf if record doesn\'t exist', done => {
               authenticatedSession
                 .get('/organization/333')
@@ -317,7 +317,7 @@ describe('organizationSpec', () => {
                   done();
                 });
             });
-  
+
             describe('Auth0', () => {
               it('is called to retrieve organization data', done => {
                 authenticatedSession
@@ -332,7 +332,7 @@ describe('organizationSpec', () => {
                     done();
                   });
               });
-  
+
               it('is called to retrieve team data', done => {
                 authenticatedSession
                   .get(`/organization/${organizationId}`)
@@ -492,9 +492,9 @@ describe('organizationSpec', () => {
               organizationId = uuid.v4();
               team1Id = uuid.v4();
               team2Id = uuid.v4();
-  
+
               _profile.user_metadata = {};
-  
+
               stubOrganizationRead([{
                 ..._profile,
                 name: 'BA Baracus',
@@ -506,7 +506,7 @@ describe('organizationSpec', () => {
               }], (err, apiScopes) => {
                 if (err) return done.fail();
                 ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
-  
+
                 stubTeamRead([
                   {..._profile,
                     name: 'Zelda Zerk',
@@ -533,7 +533,7 @@ describe('organizationSpec', () => {
                 ], (err, apiScopes) => {
                   if (err) return done.fail(err);
                   ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-  
+
                   stubUserAppMetadataUpdate((err, apiScopes) => {
                     if (err) return done.fail(err);
                     ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
@@ -542,7 +542,7 @@ describe('organizationSpec', () => {
                 });
               });
             });
-  
+
             it('returns 403', done => {
               unauthorizedSession
                 .get(`/organization/${organizationId}`)
@@ -552,11 +552,11 @@ describe('organizationSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
                   expect(res.body.message).toEqual('You are not a member of that organization');
-  
+
                   done();
                 });
             });
-  
+
             it('doesn\'t barf if record doesn\'t exist', done => {
               unauthorizedSession
                 .get('/organization/333')
@@ -569,7 +569,7 @@ describe('organizationSpec', () => {
                   done();
                 });
             });
-  
+
             describe('Auth0', () => {
               it('is called to retrieve organization data', done => {
                 unauthorizedSession
@@ -584,7 +584,7 @@ describe('organizationSpec', () => {
                     done();
                   });
               });
-  
+
               it('is called to retrieve team data', done => {
                 unauthorizedSession
                   .get(`/organization/${organizationId}`)
