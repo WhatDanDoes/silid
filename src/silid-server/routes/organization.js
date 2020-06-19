@@ -90,7 +90,7 @@ function consolidateTeams(agents, org, id) {
   return org;
 }
 
-router.get('/:id/:admin?', checkPermissions([scope.read.organizations]), function(req, res, next) {
+router.get('/:id', checkPermissions([scope.read.organizations]), function(req, res, next) {
   const managementClient = getManagementClient(apiScope.read.usersAppMetadata);
   managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.organizations.id:"${req.params.id}"` }).then(organizers => {
     if (organizers.length) {
@@ -100,10 +100,21 @@ router.get('/:id/:admin?', checkPermissions([scope.read.organizations]), functio
 
       managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.organizationId:"${req.params.id}"` }).then(agents => {
 
-        // Get all the teams belonging to this organization
-        consolidateTeams(agents, organization, req.params.id)
+        // Is this agent allowed to view this organization?
+        let isAffiliate = true;
+        if (organization.organizer !== req.user.email) {
+          isAffiliate = agents.some(a => a.email === req.user.email);
+        }
 
-        return res.status(200).json(organization);
+        if (isAffiliate || req.user.user_metadata.isSuper) {
+          // Get all the teams belonging to this organization
+          consolidateTeams(agents, organization, req.params.id)
+
+          return res.status(200).json(organization);
+        }
+        else {
+          return res.status(403).json({ message: 'You are not a member of that organization' });
+        }
       }).catch(err => {
         res.status(err.statusCode).json(err.message.error_description);
       });
