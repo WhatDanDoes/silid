@@ -23,7 +23,7 @@ const scope = require('../../../config/permissions');
 const _identity = require('../../fixtures/sample-auth0-identity-token');
 const _profile = require('../../fixtures/sample-auth0-profile-response');
 
-describe('root/organizationSpec', () => {
+describe('root/organizationUpdateSpec', () => {
 
   let login, pub, prv, keystore;
   beforeEach(done => {
