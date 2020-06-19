@@ -431,7 +431,7 @@ router.delete('/:id', checkPermissions([scope.delete.organizations]), function(r
 
       // For the moment, there is only one organizer
       if (organizers.length) {
-        if (organizers[0].email !== req.user.email) {
+        if (organizers[0].email !== req.user.email && !req.user.user_metadata.isSuper) {
           return res.status(403).json({ message: 'You are not the organizer' });
         }
 
