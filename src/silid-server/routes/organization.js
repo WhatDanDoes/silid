@@ -221,9 +221,12 @@ router.put('/:id', checkPermissions([scope.update.organizations]), function(req,
       if (organizers.length) {
 
         // Anticipating multiple organizers... right now, there should only be one per organization
-        const organizerIndex = organizers.findIndex(o => o.email === req.user.email);
-        if (organizerIndex < 0) {
+        let organizerIndex = organizers.findIndex(o => o.email === req.user.email);
+        if (organizerIndex < 0 && !req.user.user_metadata.isSuper) {
           return res.status(403).json({ message: 'You are not an organizer' });
+        }
+        else {
+          organizerIndex = 0;
         }
 
         // Find the organization to be updated
@@ -233,7 +236,6 @@ router.put('/:id', checkPermissions([scope.update.organizations]), function(req,
         organizers[organizerIndex].user_metadata.organizations[orgIndex].name = orgName;
 
         // Update pending invitations
-
         if (!organizers[organizerIndex].user_metadata.pendingInvitations) {
           organizers[organizerIndex].user_metadata.pendingInvitations = [];
         }
@@ -243,7 +245,7 @@ router.put('/:id', checkPermissions([scope.update.organizations]), function(req,
         }
 
         // Update the organizer's metadata
-        managementClient.updateUser({id: req.user.user_id}, { user_metadata: organizers[organizerIndex].user_metadata }).then(result => {
+        managementClient.updateUser({id: organizers[organizerIndex].user_id}, { user_metadata: organizers[organizerIndex].user_metadata }).then(result => {
 
           // Update waiting invites
           models.Invitation.update({ name: orgName }, { where: {uuid: req.params.id} }).then(results => {
