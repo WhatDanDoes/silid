@@ -570,6 +570,18 @@ require('../support/setupKeystore').then(keyStuff => {
         }
       });
 
+      /**
+       * GET `/users/:id/roles`
+       */
+      server.route({
+        method: 'GET',
+        path: '/api/v2/users/{id}/roles',
+        handler: (request, h) => {
+          console.log('/api/v2/users/{id}/roles');
+          return h.response({});
+        }
+      });
+
 
       /**
        * GET `/roles`
