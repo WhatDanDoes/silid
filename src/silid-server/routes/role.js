@@ -28,13 +28,24 @@ router.get('/', checkPermissions(roles.sudo), (req, res, next) => {
 router.put('/:id/agent/:agentId', checkPermissions(roles.sudo), (req, res, next) => {
   let managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
   managementClient.getUser({id: req.params.agentId}).then(agent => {
+    if (!agent) {
+      return res.status(404).json({ message: 'No such agent' });
+    }
 
     // Get the roles assigned to the retrieved agent
     managementClient.getUserRoles({id: req.params.agentId}).then(assignedRoles => {
+      for (let role of assignedRoles) {
+        if (role.id === req.params.id) {
+          return res.status(200).json({ message: 'Role already assigned' });
+        }
+      }
 
       // Get all assignable roles
       managementClient.getRoles().then(auth0Roles => {
         const newRole = auth0Roles.find(r => r.id === req.params.id);
+        if (!newRole) {
+          return res.status(404).json({ message: 'No such role' });
+        }
         assignedRoles.push(newRole);
         assignedRoles.sort((a, b) => a.name < b.name ? -1 : 1);
 
@@ -51,6 +62,9 @@ router.put('/:id/agent/:agentId', checkPermissions(roles.sudo), (req, res, next)
       res.status(err.statusCode).json(err.message.error_description);
     });
   }).catch(err => {
+    if (err.statusCode === 404) {
+      return res.status(404).json({ message: 'No such agent' });
+    }
     res.status(err.statusCode).json(err.message.error_description);
   });
 });

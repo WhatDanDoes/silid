@@ -164,7 +164,7 @@ describe('root/roleSpec', () => {
               if (err) return done.fail(err);
               ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
 
-              // Retrieve the roles to which this agent is assigned
+              // Retrieve all the assignable roles
               stubRolesRead(_roles, (err, apiScopes) => {
                 if (err) return done.fail(err);
                 ({rolesReadScope, rolesReadOauthTokenScope} = apiScopes);
@@ -264,16 +264,111 @@ describe('root/roleSpec', () => {
 
       describe('unsuccessfully', () =>{
 
-        it('doesn\'t barf if the role doesn\'t exist', done => {
-          done.fail();
+        const assignedRoles = [];
+        beforeEach(() => {
+          assignedRoles.push(_roles[2]);
         });
 
-        it('doesn\'t barf if the agent doesn\'t exist', done => {
-          done.fail();
+        afterEach(() => {
+          assignedRoles.length = 0;
         });
 
-        it('doesn\'t barf if the agent is already assigned to the role', done => {
-          done.fail();
+        describe('role doesn\'t exist', () => {
+
+          beforeEach(done => {
+            // Get agent to be assigned role
+            stubUserAppMetadataRead(organizerProfile, (err, apiScopes) => {
+              if (err) return done.fail();
+              ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
+
+              // Retrieve the roles to which this agent is assigned
+              stubUserRolesRead(assignedRoles, (err, apiScopes) => {
+                if (err) return done.fail(err);
+                ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+                // Retrieve all the assignable roles
+                stubRolesRead(_roles, (err, apiScopes) => {
+                  if (err) return done.fail(err);
+                  ({rolesReadScope, rolesReadOauthTokenScope} = apiScopes);
+
+                  done();
+                });
+              });
+            });
+          });
+
+          it('doesn\'t barf if the role doesn\'t exist', done => {
+            rootSession
+              .put(`/role/333/agent/${organizerProfile.user_id}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(404)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.message).toEqual('No such role');
+                done();
+              });
+          });
+        });
+
+        describe('role doesn\'t exist', () => {
+          beforeEach(done => {
+            // Get agent to be assigned role
+            stubUserAppMetadataRead(null, (err, apiScopes) => {
+              if (err) return done.fail();
+              ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
+
+              done();
+            }, { status: 404 });
+          });
+
+          it('doesn\'t barf if the agent doesn\'t exist', done => {
+            rootSession
+              .put(`/role/${_roles[0].id}/agent/333`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(404)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.message).toEqual('No such agent');
+                done();
+              });
+          });
+        });
+
+        describe('role already assigned', () => {
+          beforeEach(done => {
+            assignedRoles.push(_roles[0]);
+
+            // Get agent to be assigned role
+            stubUserAppMetadataRead(organizerProfile, (err, apiScopes) => {
+              if (err) return done.fail();
+              ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
+
+              // Retrieve the roles to which this agent is assigned
+              stubUserRolesRead(assignedRoles, (err, apiScopes) => {
+                if (err) return done.fail(err);
+                ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+                done();
+              });
+            });
+          });
+
+
+          it('doesn\'t barf if the agent is already assigned to the role', done => {
+            assignedRoles.push(_roles[0]);
+            rootSession
+              .put(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.message).toEqual('Role already assigned');
+                done();
+              });
+          });
         });
       });
     });

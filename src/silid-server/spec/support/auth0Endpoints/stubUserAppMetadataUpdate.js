@@ -58,7 +58,7 @@ module.exports = function(profile, done, options) {
           return profile || _profile;
         });
 
-        done(null, {userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope});
+      done(null, {userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope});
 
     });
   });
