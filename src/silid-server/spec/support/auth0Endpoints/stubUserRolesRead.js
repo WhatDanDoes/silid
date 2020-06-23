@@ -12,7 +12,13 @@ const _profile = require('../../fixtures/sample-auth0-profile-response');
  * @param array
  * @param function
  */
-module.exports = function(done) {
+module.exports = function(roles, done) {
+
+  if (typeof roles === 'function') {
+    done = roles;
+    roles = null;
+  }
+
 
   require('../setupKeystore').then(singleton => {
     let { pub, prv, keystore } = singleton.keyStuff;
@@ -30,11 +36,11 @@ module.exports = function(done) {
         const userRolesReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
           .log(console.log)
           .get(/api\/v2\/users\/.+\/roles/)
-          .reply(200, [
+          .reply(200, roles || [
             {
-              "id": "123",
+              "id": "345",
               "name": "viewer",
-              "description": "View all roles"
+              "description": "Basic agent, organization, and team viewing permissions"
             }
           ]);
 
