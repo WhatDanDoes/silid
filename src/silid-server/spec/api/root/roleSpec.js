@@ -311,7 +311,7 @@ describe('root/roleSpec', () => {
           });
         });
 
-        describe('role doesn\'t exist', () => {
+        describe('agent doesn\'t exist', () => {
           beforeEach(done => {
             // Get agent to be assigned role
             stubUserAppMetadataRead(null, (err, apiScopes) => {
@@ -355,7 +355,6 @@ describe('root/roleSpec', () => {
             });
           });
 
-
           it('doesn\'t barf if the agent is already assigned to the role', done => {
             assignedRoles.push(_roles[0]);
             rootSession
@@ -373,8 +372,196 @@ describe('root/roleSpec', () => {
       });
     });
 
-
     describe('divest', () => {
+
+      const organizerProfile = { ..._profile, name: 'Ollie Organizer', email: 'organizer@example.com', user_id: _profile.user_id + 1 };
+
+      describe('successfully', () => {
+
+        beforeEach(done => {
+          // Retrieve the roles to which this agent is assigned
+          stubUserRolesRead([_roles[2], _roles[0]], (err, apiScopes) => {
+            if (err) return done.fail(err);
+            ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+            // Remove the role from the user
+            stubUserAssignRoles([_roles[2].id], (err, apiScopes) => {
+              if (err) return done.fail();
+              ({userAssignRolesScope, userAssignRolesOauthTokenScope} = apiScopes);
+
+              // Get the agent formerly assigned to the role
+              stubUserAppMetadataRead(organizerProfile, (err, apiScopes) => {
+                if (err) return done.fail();
+                ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
+
+                done();
+              });
+            });
+          });
+        });
+
+        it('returns the agent profile', done => {
+          rootSession
+            .delete(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(201)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+              expect(res.body.email).toEqual(organizerProfile.email);
+              expect(res.body.roles.length).toEqual(1);
+              expect(res.body.roles[0]).toEqual(_roles[2]);
+              done();
+            });
+        });
+
+        describe('Auth0', () => {
+          it('is called to retrieve the agent\'s assigned roles', done => {
+            rootSession
+              .delete(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(userRolesReadOauthTokenScope.isDone()).toBe(true);
+                expect(userRolesReadScope.isDone()).toBe(true);
+                done();
+              });
+          });
+
+          it('is called to remove the role from the agent', done => {
+            rootSession
+              .delete(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                // 2020-6-23 Reuse token from above? This needs to be confirmed in production
+                expect(userAssignRolesOauthTokenScope.isDone()).toBe(false);
+                expect(userAssignRolesScope.isDone()).toBe(true);
+                done();
+              });
+          });
+
+          it('is called to retrieve the agent user_metadata', done => {
+            rootSession
+              .delete(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                // 2020-6-23 Reuse token from above? This needs to be confirmed in production
+                expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(false);
+                expect(userAppMetadataReadScope.isDone()).toBe(true);
+                done();
+              });
+          });
+        });
+      });
+
+      describe('unsuccessfully', () => {
+
+        describe('role doesn\'t exist', () => {
+
+          beforeEach(done => {
+            // Get the agent formerly assigned to the role
+            stubUserAppMetadataRead(organizerProfile, (err, apiScopes) => {
+              if (err) return done.fail();
+              ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
+
+              // Retrieve the roles to which this agent is assigned
+              stubUserRolesRead([_roles[2], _roles[0]], (err, apiScopes) => {
+                if (err) return done.fail(err);
+                ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+                // Remove the role from the user
+                stubUserAssignRoles([_roles[2].id], (err, apiScopes) => {
+                  if (err) return done.fail();
+                  ({userAssignRolesScope, userAssignRolesOauthTokenScope} = apiScopes);
+
+                  done();
+                });
+              });
+            });
+          });
+
+          it('doesn\'t barf if the role doesn\'t exist', done => {
+            rootSession
+              .delete(`/role/333/agent/${organizerProfile.user_id}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(404)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.message).toEqual('Role not assigned');
+                done();
+              });
+          });
+        });
+
+        describe('agent doesn\'t exist', () => {
+          beforeEach(done => {
+            // Get the agent formerly assigned to the role
+            stubUserAppMetadataRead(null, (err, apiScopes) => {
+              if (err) return done.fail();
+              ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
+
+              done();
+            }, { status: 404 });
+          });
+
+          it('doesn\'t barf if the agent doesn\'t exist', done => {
+            rootSession
+              .delete(`/role/${_roles[0].id}/agent/333`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(404)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.message).toEqual('No such agent');
+                done();
+              });
+          });
+        });
+
+        describe('agent is not assigned role', () => {
+          beforeEach(done => {
+            // Get the agent formerly assigned to the role
+            stubUserAppMetadataRead(organizerProfile, (err, apiScopes) => {
+              if (err) return done.fail();
+              ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
+
+              // Retrieve the roles to which this agent is assigned
+              stubUserRolesRead([_roles[2], _roles[0]], (err, apiScopes) => {
+                if (err) return done.fail(err);
+                ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+                done();
+              });
+            });
+          });
+
+          it('doesn\'t barf if the agent is not assigned to the role', done => {
+            expect(_roles[1].name).toEqual('sudo');
+            rootSession
+              .delete(`/role/${_roles[1].id}/agent/${organizerProfile.user_id}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.message).toEqual('Role not assigned');
+                done();
+              });
+          });
+        });
+      });
     });
   });
 });
