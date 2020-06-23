@@ -573,6 +573,10 @@ require('../support/setupKeystore').then(keyStuff => {
 
       /**
        * GET `/roles`
+       *
+       * 2020-6-23
+       *
+       * The default roles defined below match those defined at Auth0 (actual `id`s will vary)
        */
       server.route({
         method: 'GET',
@@ -582,8 +586,18 @@ require('../support/setupKeystore').then(keyStuff => {
           return h.response([
             {
               "id": "123",
+              "name": "organizer",
+              "description": "Manage organizations and team memberships therein"
+            },
+            {
+              "id": "234",
+              "name": "sudo",
+              "description": "All-access pass to Identity resources"
+            },
+            {
+              "id": "345",
               "name": "viewer",
-              "description": "View all roles"
+              "description": "Basic agent, organization, and team viewing permissions"
             }
           ]);
         }

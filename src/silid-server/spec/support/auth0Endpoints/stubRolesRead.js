@@ -26,6 +26,10 @@ module.exports = function(done) {
 
         /**
          * GET `/roles`
+         *
+         * 2020-6-23
+         *
+         * The default roles defined below match those defined at Auth0 (actual `id`s will vary)
          */
         const rolesReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
           .log(console.log)
@@ -33,8 +37,18 @@ module.exports = function(done) {
           .reply(200, [
             {
               "id": "123",
+              "name": "organizer",
+              "description": "Manage organizations and team memberships therein"
+            },
+            {
+              "id": "234",
+              "name": "sudo",
+              "description": "All-access pass to Identity resources"
+            },
+            {
+              "id": "345",
               "name": "viewer",
-              "description": "View all roles"
+              "description": "Basic agent, organization, and team viewing permissions"
             }
           ]);
 
