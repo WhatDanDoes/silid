@@ -67,7 +67,7 @@ context('root/Agent show', function() {
             cy.url().should('contain', `/#/agent/${memberAgent.socialProfile.user_id}`);
           });
 
-          it('displays agent\'s info', function() {
+          it('displays agent\'s info', () => {
             cy.get('h3').contains('Profile');
             cy.get('table tbody tr th').contains('Name:');
             cy.get('table tbody tr td').contains(memberAgent.socialProfile.name);
@@ -75,6 +75,9 @@ context('root/Agent show', function() {
             cy.get('table tbody tr td').contains(memberAgent.socialProfile.email);
             cy.get('table tbody tr th').contains('Locale:');
             cy.get('table tbody tr td').contains(memberAgent.socialProfile.locale);
+            cy.get('table tbody tr th').contains('Roles:');
+            cy.get('table tbody tr ul li').its('length').should('eq', 1);
+            cy.get('table tbody tr ul li').contains('viewer');
           });
 
           describe('teams', () => {
@@ -176,6 +179,9 @@ context('root/Agent show', function() {
             cy.get('table tbody tr td').contains(root.socialProfile.email);
             cy.get('table tbody tr th').contains('Locale:');
             cy.get('table tbody tr td').contains(root.socialProfile.locale);
+            cy.get('table tbody tr th').contains('Roles:');
+            cy.get('table tbody tr ul li').its('length').should('eq', 1);
+            cy.get('table tbody tr ul li').contains('viewer');
           });
 
           describe('teams', () => {
@@ -274,6 +280,9 @@ context('root/Agent show', function() {
           cy.get('table tbody tr td').contains(memberAgent.socialProfile.email);
           cy.get('table tbody tr th').contains('Locale:');
           cy.get('table tbody tr td').contains(memberAgent.socialProfile.locale);
+          cy.get('table tbody tr th').contains('Roles:');
+          cy.get('table tbody tr ul li').its('length').should('eq', 1);
+          cy.get('table tbody tr ul li').contains('viewer');
         });
 
         describe('teams', () => {
@@ -373,6 +382,9 @@ context('root/Agent show', function() {
           cy.get('table tbody tr td').contains(root.socialProfile.email);
           cy.get('table tbody tr th').contains('Locale:');
           cy.get('table tbody tr td').contains(root.socialProfile.locale);
+          cy.get('table tbody tr th').contains('Roles:');
+          cy.get('table tbody tr ul li').its('length').should('eq', 1);
+          cy.get('table tbody tr ul li').contains('viewer');
         });
 
         describe('teams', () => {

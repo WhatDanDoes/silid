@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createStyles, makeStyles } from '@material-ui/core/styles';
+import Chip from '@material-ui/core/Chip';
 import Typography from '@material-ui/core/Typography';
 import Link from '@material-ui/core/Link';
 import { useAdminState } from '../auth/Admin';
@@ -47,6 +48,16 @@ const useStyles = makeStyles(theme =>
     json: {
       wordWrap: 'break-word',
       wordBreak: 'break-all',
+    },
+    chipList: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      listStyle: 'none',
+      padding: theme.spacing(0.5),
+      margin: 0,
+    },
+    chip: {
+      margin: theme.spacing(0.5),
     },
     [theme.breakpoints.down('sm')]: {
       json: {
@@ -147,6 +158,23 @@ const Agent = (props) => {
                       <TableCell align="right" component="th" scope="row">Locale:</TableCell>
                       <TableCell align="left">{profileData.locale}</TableCell>
                     </TableRow>
+                    {profileData.roles ?
+                      <TableRow>
+                        <TableCell align="right" component="th" scope="row">Roles:</TableCell>
+                        <TableCell align="left" component="ul" className={classes.chipList}>
+                          {profileData.roles.map(data => {
+                            return (
+                              <li key={data.id}>
+                                <Chip
+                                  label={data.name}
+                                  className={classes.chip}
+                                />
+                              </li>
+                            );
+                          })}
+                        </TableCell>
+                      </TableRow>
+                    : ''}
                   </TableBody>
                 </Table>
               </TableContainer>

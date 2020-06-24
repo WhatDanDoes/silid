@@ -67,6 +67,9 @@ context('viewer/Agent show', function() {
         cy.get('#profile-table table tbody tr td').contains(memberAgent.socialProfile.email);
         cy.get('#profile-table table tbody tr th').contains('Locale:');
         cy.get('#profile-table table tbody tr td').contains(memberAgent.socialProfile.locale);
+        cy.get('#profile-table table tbody tr th').contains('Roles:');
+        cy.get('#profile-table table tbody tr ul li').its('length').should('eq', 1);
+        cy.get('#profile-table table tbody tr ul li').contains('viewer');
       });
 
       describe('teams', () => {
@@ -167,6 +170,9 @@ context('viewer/Agent show', function() {
         cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.email);
         cy.get('#profile-table table tbody tr th').contains('Locale:');
         cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.locale);
+        cy.get('#profile-table table tbody tr th').contains('Roles:');
+        cy.get('#profile-table table tbody tr ul li').its('length').should('eq', 1);
+        cy.get('#profile-table table tbody tr ul li').contains('viewer');
       });
 
       describe('teams', () => {
