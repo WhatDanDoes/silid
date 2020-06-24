@@ -45,7 +45,6 @@ describe('root/roleSpec', () => {
   let root;
   beforeEach(done => {
     originalProfile = {..._profile};
-    _profile.email = process.env.ROOT_AGENT;
 
     models.sequelize.sync({force: true}).then(() => {
       models.Agent.create({ email: process.env.ROOT_AGENT }).then(results => {
@@ -87,6 +86,8 @@ describe('root/roleSpec', () => {
         userRolesReadScope, userRolesReadOauthTokenScope;
 
     beforeEach(done => {
+      _profile.email = process.env.ROOT_AGENT;
+
       stubAuth0ManagementApi((err, apiScopes) => {
         if (err) return done.fail();
 
@@ -121,7 +122,7 @@ describe('root/roleSpec', () => {
           .get('/role')
           .set('Accept', 'application/json')
           .expect('Content-Type', /json/)
-          .expect(201)
+          .expect(200)
           .end(function(err, res) {
             if (err) return done.fail(err);
 
@@ -136,7 +137,7 @@ describe('root/roleSpec', () => {
             .get('/role')
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
-            .expect(201)
+            .expect(200)
             .end(function(err, res) {
               if (err) return done.fail(err);
 
@@ -416,6 +417,21 @@ describe('root/roleSpec', () => {
         });
 
         describe('Auth0', () => {
+          it('is called to retrieve the agent user_metadata', done => {
+            rootSession
+              .delete(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(true);
+                expect(userAppMetadataReadScope.isDone()).toBe(true);
+                done();
+              });
+          });
+
           it('is called to retrieve the agent\'s assigned roles', done => {
             rootSession
               .delete(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
@@ -425,7 +441,8 @@ describe('root/roleSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(userRolesReadOauthTokenScope.isDone()).toBe(true);
+                // 2020-6-23 Reuse token from above? This needs to be confirmed in production
+                expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
                 expect(userRolesReadScope.isDone()).toBe(true);
                 done();
               });
@@ -443,22 +460,6 @@ describe('root/roleSpec', () => {
                 // 2020-6-23 Reuse token from above? This needs to be confirmed in production
                 expect(userAssignRolesOauthTokenScope.isDone()).toBe(false);
                 expect(userAssignRolesScope.isDone()).toBe(true);
-                done();
-              });
-          });
-
-          it('is called to retrieve the agent user_metadata', done => {
-            rootSession
-              .delete(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(201)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-
-                // 2020-6-23 Reuse token from above? This needs to be confirmed in production
-                expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(false);
-                expect(userAppMetadataReadScope.isDone()).toBe(true);
                 done();
               });
           });
@@ -553,7 +554,7 @@ describe('root/roleSpec', () => {
               .delete(`/role/${_roles[1].id}/agent/${organizerProfile.user_id}`)
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
-              .expect(200)
+              .expect(404)
               .end(function(err, res) {
                 if (err) return done.fail(err);
                 expect(res.body.message).toEqual('Role not assigned');
@@ -561,6 +562,76 @@ describe('root/roleSpec', () => {
               });
           });
         });
+      });
+    });
+  });
+
+  describe('unauthorized', () => {
+    const unauthorizedProfile = { ..._profile, name: 'Regular Guy', email: 'someregularguy@example.com', user_id: _profile.user_id + 1 };
+    beforeEach(done => {
+      stubAuth0ManagementApi((err, apiScopes) => {
+        if (err) return done.fail();
+
+        login({..._identity, email: unauthorizedProfile.email, name: unauthorizedProfile.name}, (err, session) => {
+          if (err) return done.fail(err);
+          unauthorizedSession = session;
+
+          // Cached profile doesn't match "live" data, so agent needs to be updated
+          // with a call to Auth0
+          stubUserRead(unauthorizedProfile, (err, apiScopes) => {
+            if (err) return done.fail();
+
+            done();
+          });
+        });
+      });
+    });
+
+    describe('read', () => {
+      it('returns 403', done => {
+        unauthorizedSession
+          .get('/role')
+          .set('Accept', 'application/json')
+          .expect('Content-Type', /json/)
+          .expect(403)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+
+            expect(res.body.message).toEqual('Insufficient scope');
+            done();
+          });
+      });
+    });
+
+    describe('assign', () => {
+      it('returns 403', done => {
+        unauthorizedSession
+          .put(`/role/${_roles[0].id}/agent/${unauthorizedProfile.user_id}`)
+          .set('Accept', 'application/json')
+          .expect('Content-Type', /json/)
+          .expect(403)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+
+            expect(res.body.message).toEqual('Insufficient scope');
+            done();
+          });
+      });
+    });
+
+    describe('divest', () => {
+      it('returns 403', done => {
+        unauthorizedSession
+          .delete(`/role/${_roles[0].id}/agent/${unauthorizedProfile.user_id}`)
+          .set('Accept', 'application/json')
+          .expect('Content-Type', /json/)
+          .expect(403)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+
+            expect(res.body.message).toEqual('Insufficient scope');
+            done();
+          });
       });
     });
   });
