@@ -72,6 +72,10 @@ context('viewer/Agent show', function() {
         cy.get('#profile-table table tbody tr ul li').contains('viewer');
       });
 
+      it('does not display the assign-role chip', () => {
+        cy.get('#profile-table table tbody tr ul li:last-of-type #assign-role').should('not.exist');
+      });
+
       describe('teams', () => {
         it('does not display add-team button', function() {
           cy.get('#teams-table button').should('not.exist');

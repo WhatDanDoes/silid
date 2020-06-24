@@ -3,6 +3,9 @@ import { createStyles, makeStyles } from '@material-ui/core/styles';
 import Chip from '@material-ui/core/Chip';
 import Typography from '@material-ui/core/Typography';
 import Link from '@material-ui/core/Link';
+import { green, red } from '@material-ui/core/colors';
+import Icon from '@material-ui/core/Icon';
+
 import { useAdminState } from '../auth/Admin';
 import { useAuthState } from '../auth/Auth';
 import ReactJson from 'react-json-view';
@@ -80,6 +83,7 @@ const Agent = (props) => {
   const [profileData, setProfileData] = useState({});
   const [flashProps, setFlashProps] = useState({});
   const [isWaiting, setIsWaiting] = useState(false);
+  const [unassignedRoles, setUnassignedRoles] = useState([]);
 
   const admin = useAdminState();
   const {agent} = useAuthState();
@@ -161,17 +165,136 @@ const Agent = (props) => {
                     {profileData.roles ?
                       <TableRow>
                         <TableCell align="right" component="th" scope="row">Roles:</TableCell>
-                        <TableCell align="left" component="ul" className={classes.chipList}>
+                        <TableCell id="assigned-roles" align="left" component="ul" className={classes.chipList}>
                           {profileData.roles.map(data => {
                             return (
                               <li key={data.id}>
                                 <Chip
                                   label={data.name}
                                   className={classes.chip}
+                                  onDelete={() => {
+                                    const headers = new Headers();
+                                    headers.append('Content-Type', 'application/json; charset=utf-8');
+                                    fetch(`/role/${data.id}/agent/${profileData.user_id}`,
+                                      {
+                                        method: 'DELETE',
+                                        headers,
+                                      }
+                                    )
+                                    .then(response => response.json())
+                                    .then(response => {
+                                      if (response.message) {
+                                        setFlashProps({ message: response.message, variant: 'warning' });
+                                      }
+                                      else {
+                                        setProfileData(response);
+                                        setUnassignedRoles([]);
+                                      }
+                                    })
+                                    .catch(error => {
+                                      setFlashProps({ message: error.message, variant: 'error' });
+                                    });
+                                  }}
                                 />
                               </li>
                             );
                           })}
+                          {admin.isEnabled && !unassignedRoles.length ?
+                            <>
+                              <li key="assign-role">
+                                <Chip
+                                  id="assign-role"
+                                  style={{ backgroundColor: '#ffffff' }}
+                                  className={classes.chip}
+                                  label={<Icon style={{ color: green[500] }}>add_circle</Icon>}
+                                  onClick={() => {
+                                    const headers = new Headers();
+                                    headers.append('Content-Type', 'application/json; charset=utf-8');
+                                    fetch('/role',
+                                      {
+                                        method: 'GET',
+                                        headers,
+                                      }
+                                    )
+                                    .then(response => response.json())
+                                    .then(response => {
+                                      if (response.message) {
+                                        setFlashProps({ message: response.message, variant: 'warning' });
+                                      }
+                                      else {
+                                        const roles = response.filter(role => {
+                                          for (let r of profileData.roles) {
+                                            if (r.id === role.id) {
+                                              return false;
+                                            }
+                                          }
+                                          return true;
+                                        });
+                                        setUnassignedRoles(roles);
+                                      }
+                                    })
+                                    .catch(error => {
+                                      setFlashProps({ message: error.message, variant: 'error' });
+                                    });
+                                  }}
+                                />
+                              </li>
+                            </>
+                          : ''}
+                        </TableCell>
+                      </TableRow>
+                    : ''}
+                    {unassignedRoles.length ?
+                      <TableRow>
+                        <TableCell align="right" component="th" scope="row">Available roles:</TableCell>
+                        <TableCell id="unassigned-roles" align="left" component="ul" className={classes.chipList}>
+                          {unassignedRoles.map(data => {
+                            return (
+                              <li key={data.id}>
+                                <Chip
+                                  label={data.name}
+                                  className={classes.chip}
+                                  onClick={() => {
+                                    const headers = new Headers();
+                                    headers.append('Content-Type', 'application/json; charset=utf-8');
+                                    fetch(`/role/${data.id}/agent/${profileData.user_id}`,
+                                      {
+                                        method: 'PUT',
+                                        headers,
+                                      }
+                                    )
+                                    .then(response => response.json())
+                                    .then(response => {
+                                      if (response.message) {
+                                        setFlashProps({ message: response.message, variant: 'warning' });
+                                      }
+                                      else {
+                                        setProfileData(response);
+                                        const roleIndex = unassignedRoles.findIndex(role => role.id === data.id);
+                                        const remainingRoles = [...unassignedRoles];
+                                        remainingRoles.splice(roleIndex, 1);
+                                        setUnassignedRoles(remainingRoles);
+                                      }
+                                    })
+                                    .catch(error => {
+                                      setFlashProps({ message: error.message, variant: 'error' });
+                                    });
+                                  }}
+                                />
+                              </li>
+                            );
+                          })}
+                          <li key="close-unassigned-roles">
+                            <Chip
+                              id="close-unassigned-roles"
+                              style={{ backgroundColor: '#ffffff' }}
+                              className={classes.chip}
+                              label={<Icon style={{ color: red[500] }}>close</Icon>}
+                              onClick={() => {
+                                setUnassignedRoles([]);
+                              }}
+                            />
+                          </li>
                         </TableCell>
                       </TableRow>
                     : ''}
