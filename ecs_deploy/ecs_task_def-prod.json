@@ -47,14 +47,6 @@
          { "name":  "SERVER_DOMAIN",
            "value": "https://silid.languagetechnology.org" }
       ],
-      "secrets": [
-        { "name": "AUTH0_CLIENT_SECRET",
-        "valueFrom": "arn:aws:ssm:us-east-1:117995318043:parameter/AUTH0_CLIENT_SECRET" },
-        { "name": "NOREPLY_PASSWORD",
-        "valueFrom": "arn:aws:ssm:us-east-1:117995318043:parameter/NOREPLY_PASSWORD" },
-        { "name": "POSTGRES_PASSWORD",
-        "valueFrom": "arn:aws:ssm:us-east-1:117995318043:parameter/POSTGRES_PASSWORD" }
-      ],
       "mountPoints": [],
       "workingDirectory": "/app",
       "memoryReservation": 128,
