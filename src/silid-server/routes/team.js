@@ -4,6 +4,8 @@ const models = require('../models');
 const mailer = require('../mailer');
 const uuid = require('uuid');
 
+const upsertInvites = require('../lib/upsertInvites');
+
 /**
  * Configs must match those defined for RBAC at Auth0
  */
@@ -160,38 +162,6 @@ router.post('/', checkPermissions([scope.create.teams]), function(req, res, next
     res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
   });
 });
-
-/**
- * 2020-5-20 https://github.com/sequelize/sequelize/pull/11984#issuecomment-625193209
- *
- * To be used until Sequelize's `bulkCreate` method can handle composite indexes
- *
- * Used in conjunction with PUT /team/:id defined below
- *
- * @params array
- * @params function
- */
-function upsertInvites(invites, done) {
-  if (!invites.length) {
-    return done();
-  }
-
-  const invite = invites.shift();
-  models.Invitation.create(invite).then(result => {
-    upsertInvites(invites, done);
-  }).catch(err => {
-    if (err.name === 'SequelizeUniqueConstraintError') {
-      models.Invitation.upsert(invite, { fields: ['name', 'updatedAt'] }).then(result => {
-        upsertInvites(invites, done);
-      }).catch(err => {
-        done(err);
-      });
-    }
-    else {
-      done(err);
-    }
-  });
-};
 
 /**
  * PUT /team/:id

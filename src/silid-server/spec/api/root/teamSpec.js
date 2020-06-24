@@ -722,7 +722,6 @@ describe('root/teamSpec', () => {
               });
           });
 
-
           it('is called to update the agent user_metadata', done => {
             rootSession
               .put(`/team/${teamId}`)
@@ -834,7 +833,8 @@ describe('root/teamSpec', () => {
               });
           });
 
-
+          // 2020-6-24 One of these is creating a sporadic 404 error. It has not been
+          // reproduced and disappears on subsequent executions. Keep an eye out
           it('overwrites existing invitation records to update team info on next login', done => {
             models.Invitation.findAll().then(invites => {
               // One invite because of the RSVP in the ancestor beforeEach
@@ -1256,6 +1256,8 @@ describe('root/teamSpec', () => {
               });
           });
 
+          // 2020-6-24 One of these is creating a sporadic 404 error. It has not been
+          // reproduced and disappears on subsequent executions. Keep an eye out
           it('overwrites existing invitation records to update team info on next login', done => {
             models.Invitation.findAll().then(invites => {
               // One, because team leader got updated when mock was cleared
@@ -1741,7 +1743,6 @@ describe('root/teamSpec', () => {
             if (err) return done.fail();
 
             login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, [scope.delete.teams], (err, session) => {
-
               if (err) return done.fail(err);
               rootSession = session;
 

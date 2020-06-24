@@ -558,6 +558,32 @@ require('../support/setupKeystore').then(keyStuff => {
         }
       });
 
+      /**************************/
+      /**        ROLES         **/
+      /**************************/
+      // These default roles match those defined at Auth0 (actual `id`s will vary)
+      const _roles = [
+        {
+          "id": "123",
+          "name": "organizer",
+          "description": "Manage organizations and team memberships therein"
+        },
+        {
+          "id": "234",
+          "name": "sudo",
+          "description": "All-access pass to Identity resources"
+        },
+        {
+          "id": "345",
+          "name": "viewer",
+          "description": "Basic agent, organization, and team viewing permissions"
+        }
+      ];
+
+      // RBAC is managed at Auth0. None of this gets saved to app database.
+      // As such, this object serves as Auth0's roles "database"
+      const _rolesDb = {};
+
       /**
        * POST `/users/:id/roles`
        */
@@ -566,26 +592,39 @@ require('../support/setupKeystore').then(keyStuff => {
         path: '/api/v2/users/{id}/roles',
         handler: (request, h) => {
           console.log('/api/v2/users/{id}/roles');
+          const roles = request.payload.roles.map(roleId => _roles.find(role => role.id === roleId));
+          _rolesDb[request.params.id] = roles;
           return h.response({});
         }
       });
 
+      /**
+       * GET `/users/:id/roles`
+       */
+      server.route({
+        method: 'GET',
+        path: '/api/v2/users/{id}/roles',
+        handler: (request, h) => {
+          console.log('/api/v2/users/{id}/roles');
+
+          if (!_rolesDb[request.params.id]) {
+            _rolesDb[request.params.id] = [_roles.find(r => r.name === 'viewer')];
+          }
+
+          return h.response(_rolesDb[request.params.id]);
+        }
+      });
 
       /**
        * GET `/roles`
+       *
        */
       server.route({
         method: 'GET',
         path: '/api/v2/roles',
         handler: (request, h) => {
           console.log('/api/v2/roles');
-          return h.response([
-            {
-              "id": "123",
-              "name": "viewer",
-              "description": "View all roles"
-            }
-          ]);
+          return h.response(_roles);
         }
       });
 

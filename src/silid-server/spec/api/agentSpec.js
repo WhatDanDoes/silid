@@ -8,6 +8,7 @@ const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
 const stubAuth0ManagementEndpoint = require('../support/stubAuth0ManagementEndpoint');
 const stubUserAppMetadataUpdate = require('../support/auth0Endpoints/stubUserAppMetadataUpdate');
 const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
+const stubUserRolesRead = require('../support/auth0Endpoints/stubUserRolesRead');
 const scope = require('../../config/permissions');
 const apiScope = require('../../config/apiPermissions');
 const jwt = require('jsonwebtoken');
@@ -128,11 +129,14 @@ describe('agentSpec', () => {
 
       describe('read', () => {
 
+        let userReadScope, oauthTokenScope,
+            userRolesReadScope, userRolesReadOauthTokenScope,
+            userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope;
+
         describe('/agent', () => {
 
           describe('well-formed user_metadata', () => {
-            let userReadScope;
-            beforeEach(done => {
+           beforeEach(done => {
               stubAuth0ManagementApi((err, apiScopes) => {
                 if (err) return done.fail(err);
                 ({userReadScope, oauthTokenScope} = apiScopes);
@@ -150,11 +154,17 @@ describe('agentSpec', () => {
                       if (err) return done.fail(err);
                       ({userReadScope, oauthTokenScope} = apiScopes);
 
-                      // Update agent if null values are found
-                      stubUserAppMetadataUpdate((err, apiScopes) => {
-                        if (err) return done.fail();
-                        ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                        done();
+                      // Retrieve the roles to which this agent is assigned
+                      stubUserRolesRead((err, apiScopes) => {
+                        if (err) return done.fail(err);
+                        ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+                        // Update agent if null values are found
+                        stubUserAppMetadataUpdate((err, apiScopes) => {
+                          if (err) return done.fail();
+                          ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                          done();
+                        });
                       });
                     });
                   });
@@ -174,6 +184,7 @@ describe('agentSpec', () => {
                   expect(res.body.email).toEqual(_identity.email);
                   expect(res.body.name).toEqual(_identity.name);
                   expect(res.body.user_id).toEqual(_identity.sub);
+                  expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
                   done();
                 });
             });
@@ -206,7 +217,7 @@ describe('agentSpec', () => {
             });
 
             describe('Auth0', () => {
-              it('is called to retrieve a the agent\'s user_metadata', done => {
+              it('is called to retrieve the agent\'s user_metadata', done => {
                 authenticatedSession
                   .get('/agent')
                   .set('Accept', 'application/json')
@@ -217,6 +228,22 @@ describe('agentSpec', () => {
 
                     expect(oauthTokenScope.isDone()).toBe(true);
                     expect(userReadScope.isDone()).toBe(true);
+
+                    done();
+                  });
+              });
+
+              it('is called to retrieve the roles to which the agent is assigned', done => {
+                authenticatedSession
+                  .get('/agent')
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(200)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    expect(userRolesReadOauthTokenScope.isDone()).toBe(true);
+                    expect(userRolesReadScope.isDone()).toBe(true);
 
                     done();
                   });
@@ -266,11 +293,17 @@ describe('agentSpec', () => {
                       if (err) return done.fail(err);
                       ({userReadScope, oauthTokenScope} = apiScopes);
 
-                      // Update agent if null values are found
-                      stubUserAppMetadataUpdate(mangledProfile, (err, apiScopes) => {
-                        if (err) return done.fail();
-                        ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                        done();
+                      // Retrieve the roles to which this agent is assigned
+                      stubUserRolesRead((err, apiScopes) => {
+                        if (err) return done.fail(err);
+                        ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+                        // Update agent if null values are found
+                        stubUserAppMetadataUpdate(mangledProfile, (err, apiScopes) => {
+                          if (err) return done.fail();
+                          ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                          done();
+                        });
                       });
                     });
                   });
@@ -290,6 +323,7 @@ describe('agentSpec', () => {
                   expect(res.body.email).toEqual(_identity.email);
                   expect(res.body.name).toEqual(_identity.name);
                   expect(res.body.user_id).toEqual(_identity.sub);
+                  expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
                   done();
                 });
             });
@@ -341,6 +375,22 @@ describe('agentSpec', () => {
                   });
               });
 
+              it('is called to retrieve the roles to which the agent is assigned', done => {
+                authenticatedSession
+                  .get('/agent')
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    expect(userRolesReadOauthTokenScope.isDone()).toBe(true);
+                    expect(userRolesReadScope.isDone()).toBe(true);
+
+                    done();
+                  });
+              });
+
               it('is called to update the agent profile', done => {
                 authenticatedSession
                   .get('/agent')
@@ -380,16 +430,39 @@ describe('agentSpec', () => {
                       if (err) return done.fail(err);
                       ({userReadScope, oauthTokenScope} = apiScopes);
 
-                      // Update agent if null values are found
-                      stubUserAppMetadataUpdate((err, apiScopes) => {
-                        if (err) return done.fail();
-                        ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                        done();
+                      // Retrieve the roles to which this agent is assigned
+                      stubUserRolesRead((err, apiScopes) => {
+                        if (err) return done.fail(err);
+                        ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+                        // Update agent if null values are found
+                        stubUserAppMetadataUpdate((err, apiScopes) => {
+                          if (err) return done.fail();
+                          ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                          done();
+                        });
                       });
                     });
                   });
                 });
               });
+            });
+
+            it('returns the info attached to the req.user object', done => {
+              authenticatedSession
+                .get(`/agent/${_identity.sub}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(res.body.email).toEqual(_identity.email);
+                  expect(res.body.name).toEqual(_identity.name);
+                  expect(res.body.user_id).toEqual(_identity.sub);
+                  expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
+                  done();
+                });
             });
 
             describe('Auth0', () => {
@@ -416,6 +489,22 @@ describe('agentSpec', () => {
                     if (err) return done.fail(err);
 
                     expect(userReadScope.isDone()).toBe(true);
+                    done();
+                  });
+              });
+
+              it('is called to retrieve the roles to which the agent is assigned', done => {
+                authenticatedSession
+                  .get(`/agent/${_identity.sub}`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(200)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    expect(userRolesReadOauthTokenScope.isDone()).toBe(true);
+                    expect(userRolesReadScope.isDone()).toBe(true);
+
                     done();
                   });
               });
@@ -478,16 +567,39 @@ describe('agentSpec', () => {
                       if (err) return done.fail(err);
                       ({userReadScope, oauthTokenScope} = apiScopes);
 
-                      // Update agent if null values are found
-                      stubUserAppMetadataUpdate(mangledProfile, (err, apiScopes) => {
-                        if (err) return done.fail();
-                        ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                        done();
+                      // Retrieve the roles to which this agent is assigned
+                      stubUserRolesRead((err, apiScopes) => {
+                        if (err) return done.fail(err);
+                        ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+                        // Update agent if null values are found
+                        stubUserAppMetadataUpdate(mangledProfile, (err, apiScopes) => {
+                          if (err) return done.fail();
+                          ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                          done();
+                        });
                       });
                     });
                   });
                 });
               });
+            });
+
+            it('returns the info attached to the req.user object', done => {
+              authenticatedSession
+                .get(`/agent/${_identity.sub}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(res.body.email).toEqual(_identity.email);
+                  expect(res.body.name).toEqual(_identity.name);
+                  expect(res.body.user_id).toEqual(_identity.sub);
+                  expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
+                  done();
+                });
             });
 
             it('removes all null values from teams/rsvps/pendingInvitations lists', done => {
@@ -517,6 +629,22 @@ describe('agentSpec', () => {
                     if (err) return done.fail(err);
                     expect(oauthTokenScope.isDone()).toBe(true);
                     expect(userReadScope.isDone()).toBe(true);
+                    done();
+                  });
+              });
+
+              it('is called to retrieve the roles to which the agent is assigned', done => {
+                authenticatedSession
+                  .get(`/agent/${_identity.sub}`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    expect(userRolesReadOauthTokenScope.isDone()).toBe(true);
+                    expect(userRolesReadScope.isDone()).toBe(true);
+
                     done();
                   });
               });

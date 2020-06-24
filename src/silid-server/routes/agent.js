@@ -101,20 +101,27 @@ router.get('/', checkPermissions([scope.read.agents]), function(req, res, next) 
   let managementClient = getManagementClient(apiScope.read.users);
   managementClient.getUser({id: req.user.user_id}).then(agent => {
 
-    const nullsFound = checkForNulls(agent);
-    if (nullsFound) {
-      managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
-      managementClient.updateUser({id: agent.user_id}, { user_metadata: agent.user_metadata }).then(agent => {
-        const refreshedAgent = {...req.user, ...{...agent, user_metadata: {...req.user.user_metadata, ...agent.user_metadata} } };
-        res.status(201).json(refreshedAgent);
-      }).catch(err => {
-        res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
-      });
-    }
-    else {
-      const refreshedAgent = {...req.user, ...{...agent, user_metadata: {...req.user.user_metadata, ...agent.user_metadata} } };
-      res.status(200).json(refreshedAgent);
-    }
+    // Read agent's assigned roles
+    managementClient = getManagementClient([apiScope.read.users, apiScope.read.roles].join(' '));
+    managementClient.getUserRoles({id: agent.user_id}).then(roles => {
+
+      const nullsFound = checkForNulls(agent);
+      if (nullsFound) {
+        managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+        managementClient.updateUser({id: agent.user_id}, { user_metadata: agent.user_metadata }).then(agent => {
+          const refreshedAgent = {...req.user, roles: roles, ...{...agent, user_metadata: {...req.user.user_metadata, ...agent.user_metadata} } };
+          res.status(201).json(refreshedAgent);
+        }).catch(err => {
+          res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+        });
+      }
+      else {
+        const refreshedAgent = {...req.user, roles: roles, ...{...agent, user_metadata: {...req.user.user_metadata, ...agent.user_metadata} } };
+        res.status(200).json(refreshedAgent);
+      }
+    }).catch(err => {
+      res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+    });
   }).catch(err => {
     res.status(err.statusCode).json(err.message.error_description);
   });
@@ -124,18 +131,25 @@ router.get('/:id', checkPermissions([scope.read.agents]), function(req, res, nex
   let managementClient = getManagementClient(apiScope.read.users);
   managementClient.getUser({id: req.params.id}).then(agent => {
 
-    const nullsFound = checkForNulls(agent);
-    if (nullsFound) {
-      managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
-      managementClient.updateUser({id: req.params.id}, { user_metadata: agent.user_metadata }).then(result => {
-        res.status(201).json(result);
-      }).catch(err => {
-        res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
-      });
-    }
-    else {
-      res.status(200).json(agent);
-    }
+    // Read agent's assigned roles
+    managementClient = getManagementClient([apiScope.read.users, apiScope.read.roles].join(' '));
+    managementClient.getUserRoles({id: agent.user_id}).then(roles => {
+
+      const nullsFound = checkForNulls(agent);
+      if (nullsFound) {
+        managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
+        managementClient.updateUser({id: req.params.id}, { user_metadata: agent.user_metadata }).then(result => {
+          res.status(201).json({ ...result, roles: roles });
+        }).catch(err => {
+          res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+        });
+      }
+      else {
+        res.status(200).json({ ...agent, roles: roles });
+      }
+    }).catch(err => {
+      res.status(err.statusCode).json(err.message.error_description);
+    });
   }).catch(err => {
     res.status(err.statusCode).json(err.message.error_description);
   });

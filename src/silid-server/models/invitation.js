@@ -39,6 +39,24 @@ module.exports = (sequelize, DataTypes) => {
         }
       },
     },
+    teamId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      validate: {
+        isUUID: {
+          args: 4,
+          msg: 'Organization invitation requires a valid version 4 team uuid'
+        },
+        isOrganization(value) {
+          if (value && this.type !== 'organization') {
+            throw new Error('Team uuid only applies to organization invitations');
+          }
+          else if (this.type === 'organization' && !value) {
+            throw new Error('Organization invitation requires a team uuid');
+          }
+        }
+      },
+    },
     recipient: {
       type: DataTypes.STRING,
       allowNull: false,

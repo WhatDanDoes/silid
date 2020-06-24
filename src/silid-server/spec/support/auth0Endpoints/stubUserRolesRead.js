@@ -19,37 +19,24 @@ module.exports = function(roles, done) {
     roles = null;
   }
 
+
   require('../setupKeystore').then(singleton => {
     let { pub, prv, keystore } = singleton.keyStuff;
 
-    stubOauthToken([apiScope.read.roles], (err, oauthScopes) => {
+    stubOauthToken([apiScope.read.users, apiScope.read.roles], (err, oauthScopes) => {
       if (err) return done(err);
 
       ({accessToken, oauthTokenScope} = oauthScopes);
 
-        const rolesReadOauthTokenScope = oauthTokenScope;
+        const userRolesReadOauthTokenScope = oauthTokenScope;
 
         /**
          * GET `/roles`
-         *
-         * 2020-6-23
-         *
-         * The default roles defined below match those defined at Auth0 (actual `id`s will vary)
          */
-        const rolesReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+        const userRolesReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
           .log(console.log)
-          .get('/api/v2/roles')
+          .get(/api\/v2\/users\/.+\/roles/)
           .reply(200, roles || [
-            {
-              "id": "123",
-              "name": "organizer",
-              "description": "Manage organizations and team memberships therein"
-            },
-            {
-              "id": "234",
-              "name": "sudo",
-              "description": "All-access pass to Identity resources"
-            },
             {
               "id": "345",
               "name": "viewer",
@@ -57,7 +44,7 @@ module.exports = function(roles, done) {
             }
           ]);
 
-        done(null, {rolesReadScope, rolesReadOauthTokenScope});
+        done(null, {userRolesReadScope, userRolesReadOauthTokenScope});
     });
   });
 };

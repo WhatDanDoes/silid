@@ -9,6 +9,7 @@ const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
 const stubUserReadQuery = require('../support/auth0Endpoints/stubUserReadQuery');
 const stubUserAppMetadataUpdate = require('../support/auth0Endpoints/stubUserAppMetadataUpdate');
 const stubUserAppMetadataRead = require('../support/auth0Endpoints/stubUserAppMetadataRead');
+const stubUserRolesRead = require('../support/auth0Endpoints/stubUserRolesRead');
 const mailer = require('../../mailer');
 const uuid = require('uuid');
 const scope = require('../../config/permissions');
@@ -403,25 +404,30 @@ describe('teamMembershipSpec', () => {
                           stubUserRead((err, apiScopes) => {
                             if (err) return done.fail(err);
 
-                            stubUserAppMetadataUpdate((err, apiScopes) => {
-                              if (err) return done.fail();
-                              newAgentSession
-                                .get('/agent')
-                                .set('Accept', 'application/json')
-                                .expect('Content-Type', /json/)
-                                .expect(200)
-                                .end(function(err, res) {
-                                  if (err) return done.fail(err);
+                            // Retrieve the roles to which this agent is assigned
+                            stubUserRolesRead((err, apiScopes) => {
+                              if (err) return done.fail(err);
 
-                                  expect(_profile.user_metadata).toBeDefined();
-                                  expect(_profile.user_metadata.rsvps.length).toEqual(1);
-                                  expect(_profile.user_metadata.rsvps[0].name).toEqual('The Calgary Roughnecks');
-                                  expect(_profile.user_metadata.rsvps[0].uuid).toEqual(teamId);
-                                  expect(_profile.user_metadata.rsvps[0].type).toEqual('team');
-                                  expect(_profile.user_metadata.rsvps[0].recipient).toEqual(_profile.email);
+                              stubUserAppMetadataUpdate((err, apiScopes) => {
+                                if (err) return done.fail();
+                                newAgentSession
+                                  .get('/agent')
+                                  .set('Accept', 'application/json')
+                                  .expect('Content-Type', /json/)
+                                  .expect(200)
+                                  .end(function(err, res) {
+                                    if (err) return done.fail(err);
 
-                                  done();
-                                });
+                                    expect(_profile.user_metadata).toBeDefined();
+                                    expect(_profile.user_metadata.rsvps.length).toEqual(1);
+                                    expect(_profile.user_metadata.rsvps[0].name).toEqual('The Calgary Roughnecks');
+                                    expect(_profile.user_metadata.rsvps[0].uuid).toEqual(teamId);
+                                    expect(_profile.user_metadata.rsvps[0].type).toEqual('team');
+                                    expect(_profile.user_metadata.rsvps[0].recipient).toEqual(_profile.email);
+
+                                    done();
+                                  });
+                              });
                             });
                           });
                         });
@@ -448,25 +454,29 @@ describe('teamMembershipSpec', () => {
                             stubUserRead((err, apiScopes) => {
                               if (err) return done.fail(err);
 
+                              // Retrieve the roles to which this agent is assigned
+                              stubUserRolesRead((err, apiScopes) => {
+                                if (err) return done.fail(err);
 
-                              stubUserAppMetadataUpdate((err, apiScopes) => {
-                                if (err) return done.fail();
-                                newAgentSession
-                                  .get('/agent')
-                                  .set('Accept', 'application/json')
-                                  .expect('Content-Type', /json/)
-                                  .expect(200)
-                                  .end(function(err, res) {
-                                    if (err) return done.fail(err);
+                                stubUserAppMetadataUpdate((err, apiScopes) => {
+                                  if (err) return done.fail();
+                                  newAgentSession
+                                    .get('/agent')
+                                    .set('Accept', 'application/json')
+                                    .expect('Content-Type', /json/)
+                                    .expect(200)
+                                    .end(function(err, res) {
+                                      if (err) return done.fail(err);
 
-                                    models.Invitation.findAll().then(invites => {
-                                      expect(invites.length).toEqual(0);
+                                      models.Invitation.findAll().then(invites => {
+                                        expect(invites.length).toEqual(0);
 
-                                      done();
-                                    }).catch(err => {
-                                      done.fail(err);
+                                        done();
+                                      }).catch(err => {
+                                        done.fail(err);
+                                      });
                                     });
-                                  });
+                                });
                               });
                             });
                           });
@@ -498,22 +508,27 @@ describe('teamMembershipSpec', () => {
                           stubUserRead((err, apiScopes) => {
                             if (err) return done.fail(err);
 
-                            stubUserAppMetadataUpdate((err, apiScopes) => {
-                              if (err) return done.fail();
+                            // Retrieve the roles to which this agent is assigned
+                            stubUserRolesRead((err, apiScopes) => {
+                              if (err) return done.fail(err);
 
-                              // Simulates first login action. Invite is written to metadata and removed from DB
-                              invitedAgentSession
-                                .get('/agent')
-                                .set('Accept', 'application/json')
-                                .expect('Content-Type', /json/)
-                                .expect(200)
-                                .end(function(err, res) {
-                                  if (err) return done.fail(err);
+                              stubUserAppMetadataUpdate((err, apiScopes) => {
+                                if (err) return done.fail();
 
-                                  expect(_profile.user_metadata.rsvps.length).toEqual(1);
+                                // Simulates first login action. Invite is written to metadata and removed from DB
+                                invitedAgentSession
+                                  .get('/agent')
+                                  .set('Accept', 'application/json')
+                                  .expect('Content-Type', /json/)
+                                  .expect(200)
+                                  .end(function(err, res) {
+                                    if (err) return done.fail(err);
 
-                                  done();
-                                });
+                                    expect(_profile.user_metadata.rsvps.length).toEqual(1);
+
+                                    done();
+                                  });
+                              });
                             });
                           });
                         });

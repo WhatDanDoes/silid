@@ -8,7 +8,7 @@ const _profile = require('../../fixtures/sample-auth0-profile-response');
 
 /**
  * This stubs the Auth0 endpoint that returns agent profile info
- * for the purpose of searching for a team
+ * for the purpose of searching for an organization
  *
  * @param object
  * @param function
@@ -36,14 +36,14 @@ module.exports = function(profiles, done, options) {
 
       ({accessToken, oauthTokenScope} = oauthScopes);
 
-      const teamReadOauthTokenScope = oauthTokenScope;
+      const organizationReadOauthTokenScope = oauthTokenScope;
 
       /**
-       * Search for a team by ID
+       * Search for an organization by ID
        *
        * GET `/users`
        */
-      const teamReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+      const organizationReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
         .log(console.log)
         .get(/api\/v2\/users/)
         .query({ search_engine: 'v3', q: /.+/ })
@@ -53,15 +53,17 @@ module.exports = function(profiles, done, options) {
           let results = [];
 
           for (let profile of profiles) {
-            if (/teams/.test(qs.q)) {
-              for (let team of profile.user_metadata.teams) {
+            if (/organizations/.test(qs.q)) {
+              for (let organization of profile.user_metadata.organizations) {
+
                 let regex;
-                if(/organizationId/.test(qs.q)) {
-                  regex = new RegExp(team.organizationId);
+                if (/id/.test(qs.q)) {
+                  regex = new RegExp(organization.id);
                 }
-                else {
-                  regex = new RegExp(team.id);
+                else if (/name/.test(qs.q)) {
+                  regex = new RegExp(organization.name);
                 }
+
                 if (regex.test(qs.q)) {
                   results.push(profile);
                 }
@@ -80,7 +82,7 @@ module.exports = function(profiles, done, options) {
           return results;
         });
 
-      done(null, {teamReadScope, teamReadOauthTokenScope});
+      done(null, {organizationReadScope, organizationReadOauthTokenScope});
 
     });
   });
