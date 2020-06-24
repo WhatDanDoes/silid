@@ -578,7 +578,13 @@ require('../support/setupKeystore').then(keyStuff => {
         path: '/api/v2/users/{id}/roles',
         handler: (request, h) => {
           console.log('/api/v2/users/{id}/roles');
-          return h.response({});
+          return h.response([
+            {
+              "id": "345",
+              "name": "viewer",
+              "description": "Basic agent, organization, and team viewing permissions"
+            }
+          ]);
         }
       });
 
