@@ -104,6 +104,7 @@ router.get('/', checkPermissions([scope.read.agents]), function(req, res, next) 
     // Read agent's assigned roles
     managementClient = getManagementClient([apiScope.read.users, apiScope.read.roles].join(' '));
     managementClient.getUserRoles({id: agent.user_id}).then(roles => {
+      roles.sort((a, b) => a.name < b.name ? -1 : 1);
 
       const nullsFound = checkForNulls(agent);
       if (nullsFound) {
