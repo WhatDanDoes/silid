@@ -640,9 +640,6 @@ require('../support/setupKeystore').then(keyStuff => {
         handler: (request, h) => {
           console.log('GET /api/v2/users/{id}/roles');
 
-          console.log(_rolesDb);
-          console.log(_rolesDb[request.params.id]);
-
           if (!_rolesDb[request.params.id]) {
             _rolesDb[request.params.id] = [_roles.find(r => r.name === 'viewer')];
           }
