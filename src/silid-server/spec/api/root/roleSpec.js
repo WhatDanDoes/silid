@@ -12,6 +12,7 @@ const stubTeamRead = require('../../support/auth0Endpoints/stubTeamRead');
 const stubUserRolesRead = require('../../support/auth0Endpoints/stubUserRolesRead');
 const stubRolesRead = require('../../support/auth0Endpoints/stubRolesRead');
 const stubUserAssignRoles = require('../../support/auth0Endpoints/stubUserAssignRoles');
+const stubUserDeleteRoles = require('../../support/auth0Endpoints/stubUserDeleteRoles');
 const scope = require('../../../config/permissions');
 
 /**
@@ -386,9 +387,9 @@ describe('root/roleSpec', () => {
             ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
 
             // Remove the role from the user
-            stubUserAssignRoles([_roles[2].id], (err, apiScopes) => {
+            stubUserDeleteRoles([_roles[0].id], (err, apiScopes) => {
               if (err) return done.fail();
-              ({userAssignRolesScope, userAssignRolesOauthTokenScope} = apiScopes);
+              ({userDeleteRolesScope, userDeleteRolesOauthTokenScope} = apiScopes);
 
               // Get the agent formerly assigned to the role
               stubUserAppMetadataRead(organizerProfile, (err, apiScopes) => {
@@ -458,8 +459,8 @@ describe('root/roleSpec', () => {
                 if (err) return done.fail(err);
 
                 // 2020-6-23 Reuse token from above? This needs to be confirmed in production
-                expect(userAssignRolesOauthTokenScope.isDone()).toBe(false);
-                expect(userAssignRolesScope.isDone()).toBe(true);
+                expect(userDeleteRolesOauthTokenScope.isDone()).toBe(false);
+                expect(userDeleteRolesScope.isDone()).toBe(true);
                 done();
               });
           });
