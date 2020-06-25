@@ -7,7 +7,7 @@ const stubOauthToken =  require('./stubOauthToken');
 const _profile = require('../../fixtures/sample-auth0-profile-response');
 
 /**
- * This stubs the Auth0 endpoint that updates an agent's roles
+ * This stubs the Auth0 endpoint that deletes an agent's roles
  *
  * @param array - expected role IDs
  * @param function
@@ -27,14 +27,14 @@ module.exports = function(expected, done) {
 
       ({accessToken, oauthTokenScope} = oauthScopes);
 
-        const userAssignRolesOauthTokenScope = oauthTokenScope;
+        const userDeleteRolesOauthTokenScope = oauthTokenScope;
 
         /**
          * POST `/api/v2/users/:id/roles/`
          */
-        const userAssignRolesScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+        const userDeleteRolesScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
           .log(console.log)
-          .post(/api\/v2\/users\/.+\/roles/, {
+          .delete(/api\/v2\/users\/.+\/roles/, {
                                   'roles': /.+/i,
           })
           .reply((uri, requestBody) => {
@@ -53,7 +53,7 @@ module.exports = function(expected, done) {
             return [200, { message: 'I think this is supposed to return the agent profile data, but Auth0 doesn\'t return anything' }];
           });
 
-        done(null, {userAssignRolesScope, userAssignRolesOauthTokenScope});
+        done(null, {userDeleteRolesScope, userDeleteRolesOauthTokenScope});
     });
   });
 };

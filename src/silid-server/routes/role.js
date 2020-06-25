@@ -86,7 +86,7 @@ router.delete('/:id/agent/:agentId', checkPermissions(roles.sudo), (req, res, ne
       assignedRoles.sort((a, b) => a.name < b.name ? -1 : 1);
 
       // Update agent roles
-      managementClient.users.assignRoles({ id: req.params.agentId }, { roles: assignedRoles.map(r => r.id) }).then(results => {
+      managementClient.removeRolesFromUser({ id: req.params.agentId }, { roles: [req.params.id] }).then(results => {
         res.status(201).json({ ...agent, roles: assignedRoles });
       }).catch(err => {
         res.status(err.statusCode).json(err.message.error_description);

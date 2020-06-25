@@ -591,9 +591,42 @@ require('../support/setupKeystore').then(keyStuff => {
         method: 'POST',
         path: '/api/v2/users/{id}/roles',
         handler: (request, h) => {
-          console.log('/api/v2/users/{id}/roles');
+          console.log('POST /api/v2/users/{id}/roles');
           const roles = request.payload.roles.map(roleId => _roles.find(role => role.id === roleId));
-          _rolesDb[request.params.id] = roles;
+
+          if (!_rolesDb[request.params.id]) {
+            _rolesDb[request.params.id] = [];
+          }
+
+          for (let roleId of request.payload.roles) {
+            const roleIndex = _rolesDb[request.params.id].findIndex(role => role.id === roleId);
+            if (roleIndex < 0) {
+              _rolesDb[request.params.id].push(_roles.find(r => r.id === roleId));
+            }
+          }
+
+          return h.response({});
+        }
+      });
+
+      /**
+       * DELETE `/users/:id/roles`
+       */
+      server.route({
+        method: 'DELETE',
+        path: '/api/v2/users/{id}/roles',
+        handler: (request, h) => {
+          console.log('DELETE /api/v2/users/{id}/roles');
+
+          if (_rolesDb[request.params.id]) {
+            for (let roleId of request.payload.roles) {
+              const roleIndex = _rolesDb[request.params.id].findIndex(role => role.id === roleId);
+              if (roleIndex > -1) {
+                _rolesDb[request.params.id].splice(roleIndex, 1);
+              }
+            }
+          }
+
           return h.response({});
         }
       });
@@ -605,7 +638,10 @@ require('../support/setupKeystore').then(keyStuff => {
         method: 'GET',
         path: '/api/v2/users/{id}/roles',
         handler: (request, h) => {
-          console.log('/api/v2/users/{id}/roles');
+          console.log('GET /api/v2/users/{id}/roles');
+
+          console.log(_rolesDb);
+          console.log(_rolesDb[request.params.id]);
 
           if (!_rolesDb[request.params.id]) {
             _rolesDb[request.params.id] = [_roles.find(r => r.name === 'viewer')];
@@ -623,7 +659,7 @@ require('../support/setupKeystore').then(keyStuff => {
         method: 'GET',
         path: '/api/v2/roles',
         handler: (request, h) => {
-          console.log('/api/v2/roles');
+          console.log('GET /api/v2/roles');
           return h.response(_roles);
         }
       });
