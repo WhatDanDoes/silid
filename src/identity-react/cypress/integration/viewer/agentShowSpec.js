@@ -207,7 +207,7 @@ context('viewer/Agent show', function() {
             cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
               agent = results[0];
               cy.reload(true);
-              cy.wait(300);
+              cy.wait(400);
             });
           });
 
