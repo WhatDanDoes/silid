@@ -92,7 +92,11 @@ describe('teamMembershipSpec', () => {
               stubUserRead((err, apiScopes) => {
                 if (err) return done.fail();
 
-                done();
+                stubUserRolesRead((err, apiScopes) => {
+                  if (err) return done(err);
+
+                  done();
+                });
               });
             });
           });
@@ -654,27 +658,32 @@ describe('teamMembershipSpec', () => {
                             stubUserRead((err, apiScopes) => {
                               if (err) return done.fail();
 
-                              // This stubs the call for info on the agent who is already a team member
-                              stubUserAppMetadataRead({..._profile,
-                                                       user_metadata: { teams: [
-                                                         {name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId }
-                                                       ] } }, (err, apiScopes) => {
-                                if (err) return done.fail();
+                              stubUserRolesRead((err, apiScopes) => {
+                                if (err) return done(err);
 
-                                authenticatedSession
-                                  .put(`/team/${teamId}/agent`)
-                                  .send({
-                                    email: 'somebrandnewguy@example.com'
-                                  })
-                                  .set('Accept', 'application/json')
-                                  .expect('Content-Type', /json/)
-                                  .expect(200)
-                                  .end(function(err, res) {
-                                    if (err) return done.fail(err);
 
-                                    expect(res.body.message).toEqual('somebrandnewguy@example.com is already a member of this team');
-                                    done();
-                                  });
+                                // This stubs the call for info on the agent who is already a team member
+                                stubUserAppMetadataRead({..._profile,
+                                                         user_metadata: { teams: [
+                                                           {name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId }
+                                                         ] } }, (err, apiScopes) => {
+                                  if (err) return done.fail();
+
+                                  authenticatedSession
+                                    .put(`/team/${teamId}/agent`)
+                                    .send({
+                                      email: 'somebrandnewguy@example.com'
+                                    })
+                                    .set('Accept', 'application/json')
+                                    .expect('Content-Type', /json/)
+                                    .expect(200)
+                                    .end(function(err, res) {
+                                      if (err) return done.fail(err);
+
+                                      expect(res.body.message).toEqual('somebrandnewguy@example.com is already a member of this team');
+                                      done();
+                                    });
+                                });
                               });
                             });
                           });
@@ -962,21 +971,25 @@ describe('teamMembershipSpec', () => {
                   stubUserRead((err, apiScopes) => {
                     if (err) return done.fail(err);
 
-                    authenticatedSession
-                      .delete(verificationUrl)
-                      .send({
-                        email: 'somebrandnewguy@example.com'
-                      })
-                      .set('Accept', 'application/json')
-                      .expect('Content-Type', /json/)
-                      .expect(404)
-                      .end(function(err, res) {
-                        if (err) return done.fail(err);
+                    stubUserRolesRead((err, apiScopes) => {
+                      if (err) return done(err);
 
-                        expect(res.body.message).toEqual('No such invitation');
+                      authenticatedSession
+                        .delete(verificationUrl)
+                        .send({
+                          email: 'somebrandnewguy@example.com'
+                        })
+                        .set('Accept', 'application/json')
+                        .expect('Content-Type', /json/)
+                        .expect(404)
+                        .end(function(err, res) {
+                          if (err) return done.fail(err);
 
-                        done();
-                      });
+                          expect(res.body.message).toEqual('No such invitation');
+
+                          done();
+                        });
+                    });
                   });
                 });
             });
@@ -1090,35 +1103,39 @@ describe('teamMembershipSpec', () => {
                     stubUserRead((err, apiScopes) => {
                       if (err) return done.fail();
 
-                      // Read the invited agent
-                      stubUserAppMetadataRead(_registeredProfile, (err, apiScopes) => {
-                        if (err) return done.fail();
+                      stubUserRolesRead((err, apiScopes) => {
+                        if (err) return done(err);
 
-                        // Update the invited agent
-                        stubUserAppMetadataUpdate(_registeredProfile, (err, apiScopes) => {
+                        // Read the invited agent
+                        stubUserAppMetadataRead(_registeredProfile, (err, apiScopes) => {
                           if (err) return done.fail();
 
-                          // Read the team leader
-                          stubUserAppMetadataUpdate((err, apiScopes) => {
+                          // Update the invited agent
+                          stubUserAppMetadataUpdate(_registeredProfile, (err, apiScopes) => {
                             if (err) return done.fail();
 
-                            // Invitation sent twice to ensure they don't start stacking up
-                            authenticatedSession
-                              .put(`/team/${teamId}/agent`)
-                              .send({
-                                email: registeredAgent.email.toUpperCase()
-                              })
-                              .set('Accept', 'application/json')
-                              .expect('Content-Type', /json/)
-                              .expect(201)
-                              .end(function(err, res) {
-                                if (err) return done.fail(err);
+                            // Read the team leader
+                            stubUserAppMetadataUpdate((err, apiScopes) => {
+                              if (err) return done.fail();
 
-                                expect(_registeredProfile.user_metadata.rsvps.length).toEqual(1);
-                                expect(_registeredProfile.user_metadata.rsvps[0].recipient).toEqual(registeredAgent.email.toLowerCase());
+                              // Invitation sent twice to ensure they don't start stacking up
+                              authenticatedSession
+                                .put(`/team/${teamId}/agent`)
+                                .send({
+                                  email: registeredAgent.email.toUpperCase()
+                                })
+                                .set('Accept', 'application/json')
+                                .expect('Content-Type', /json/)
+                                .expect(201)
+                                .end(function(err, res) {
+                                  if (err) return done.fail(err);
 
-                                done();
-                              });
+                                  expect(_registeredProfile.user_metadata.rsvps.length).toEqual(1);
+                                  expect(_registeredProfile.user_metadata.rsvps[0].recipient).toEqual(registeredAgent.email.toLowerCase());
+
+                                  done();
+                                });
+                            });
                           });
                         });
                       });
@@ -1296,23 +1313,28 @@ describe('teamMembershipSpec', () => {
                         // with a call to Auth0
                         stubUserRead((err, apiScopes) => {
                           if (err) return done.fail();
-                          stubUserReadQuery([{..._profile,
-                                             email: 'someguy@example.com',
-                                             name: 'Some Guy',
-                                             user_metadata: {
-                                               pendingInvitations: [{name: 'The Calgary Roughnecks', uuid: teamId, recipient: registeredAgent.email, type: 'team'}],
-                                               teams: [{name: 'The Calgary Roughnecks', id: teamId, leader: 'someguy@example.com'}]
-                                             }}], (err, apiScopes) => {
-                            if (err) return done.fail(err);
-                            // Update the invited agent
-                            stubUserAppMetadataUpdate((err, apiScopes) => {
-                              if (err) return done.fail(err);
 
-                              // Update the team leader
+                          stubUserRolesRead((err, apiScopes) => {
+                            if (err) return done(err);
+
+                            stubUserReadQuery([{..._profile,
+                                               email: 'someguy@example.com',
+                                               name: 'Some Guy',
+                                               user_metadata: {
+                                                 pendingInvitations: [{name: 'The Calgary Roughnecks', uuid: teamId, recipient: registeredAgent.email, type: 'team'}],
+                                                 teams: [{name: 'The Calgary Roughnecks', id: teamId, leader: 'someguy@example.com'}]
+                                               }}], (err, apiScopes) => {
+                              if (err) return done.fail(err);
+                              // Update the invited agent
                               stubUserAppMetadataUpdate((err, apiScopes) => {
                                 if (err) return done.fail(err);
 
-                                done();
+                                // Update the team leader
+                                stubUserAppMetadataUpdate((err, apiScopes) => {
+                                  if (err) return done.fail(err);
+
+                                  done();
+                                });
                               });
                             });
                           });
@@ -1414,14 +1436,18 @@ describe('teamMembershipSpec', () => {
                                 stubUserRead((err, apiScopes) => {
                                   if (err) return done.fail();
 
-                                  // This stubs the call for info on the agent who is already a team member
-                                  stubUserAppMetadataRead({..._profile,
-                                                           user_metadata: { teams: [
-                                                             {name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId }
-                                                           ] } }, (err, apiScopes) => {
-                                    if (err) return done.fail();
-                                    done();
-                                   });
+                                  stubUserRolesRead((err, apiScopes) => {
+                                    if (err) return done(err);
+
+                                    // This stubs the call for info on the agent who is already a team member
+                                    stubUserAppMetadataRead({..._profile,
+                                                             user_metadata: { teams: [
+                                                               {name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId }
+                                                             ] } }, (err, apiScopes) => {
+                                      if (err) return done.fail();
+                                      done();
+                                     });
+                                  });
                                 });
                               });
                           });
@@ -1594,7 +1620,11 @@ describe('teamMembershipSpec', () => {
                     stubUserRead((err, apiScopes) => {
                       if (err) return done.fail();
 
-                      done();
+                      stubUserRolesRead((err, apiScopes) => {
+                         if (err) return done(err);
+
+                        done();
+                      });
                     });
                   });
               });
@@ -1648,30 +1678,34 @@ describe('teamMembershipSpec', () => {
                     stubUserRead((err, apiScopes) => {
                       if (err) return done.fail();
 
-                      // Update the team leader
-                      stubUserAppMetadataUpdate((err, apiScopes) => {
-                        if (err) return done.fail();
-                        let {userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes;
-                        teamLeaderAppMetadataUpdateScope = userAppMetadataUpdateScope;
-                        teamLeaderAppMetadataUpdateOauthTokenScope = userAppMetadataUpdateOauthTokenScope;
+                      stubUserRolesRead((err, apiScopes) => {
+                         if (err) return done(err);
 
-                        // Retrieve the invited agent
-                        stubUserAppMetadataRead({ ...registeredAgent.socialProfile,
-                                                  user_metadata: {...registeredAgent.socialProfile.user_metadata, rsvps: [{uuid: teamId}]}
-                                                }, (err, apiScopes) => {
+                        // Update the team leader
+                        stubUserAppMetadataUpdate((err, apiScopes) => {
                           if (err) return done.fail();
-                          ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
-                          invitedUserAppMetadataReadScope = userAppMetadataReadScope;
-                          invitedUserAppMetadataReadOauthTokenScope = userAppMetadataReadOauthTokenScope;
+                          let {userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes;
+                          teamLeaderAppMetadataUpdateScope = userAppMetadataUpdateScope;
+                          teamLeaderAppMetadataUpdateOauthTokenScope = userAppMetadataUpdateOauthTokenScope;
 
-                          // Update the previously invited agent
-                          stubUserAppMetadataUpdate((err, apiScopes) => {
+                          // Retrieve the invited agent
+                          stubUserAppMetadataRead({ ...registeredAgent.socialProfile,
+                                                    user_metadata: {...registeredAgent.socialProfile.user_metadata, rsvps: [{uuid: teamId}]}
+                                                  }, (err, apiScopes) => {
                             if (err) return done.fail();
-                            let {userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes;
-                            invitedUserAppMetadataUpdateScope = userAppMetadataUpdateScope;
-                            invitedUserAppMetadataUpdateOauthTokenScope = userAppMetadataUpdateOauthTokenScope;
+                            ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
+                            invitedUserAppMetadataReadScope = userAppMetadataReadScope;
+                            invitedUserAppMetadataReadOauthTokenScope = userAppMetadataReadOauthTokenScope;
 
-                            done();
+                            // Update the previously invited agent
+                            stubUserAppMetadataUpdate((err, apiScopes) => {
+                              if (err) return done.fail();
+                              let {userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes;
+                              invitedUserAppMetadataUpdateScope = userAppMetadataUpdateScope;
+                              invitedUserAppMetadataUpdateOauthTokenScope = userAppMetadataUpdateOauthTokenScope;
+
+                              done();
+                            });
                           });
                         });
                       });
@@ -1968,21 +2002,25 @@ describe('teamMembershipSpec', () => {
               stubUserRead((err, apiScopes) => {
                 if (err) return done.fail();
 
-                // Reset mock. No agent found...
-                stubUserAppMetadataRead((err, apiScopes) => {
-                  if (err) return done.fail();
+                stubUserRolesRead((err, apiScopes) => {
+                  if (err) return done(err);
 
-                  authenticatedSession
-                    .delete(`/team/${teamId}/agent/333`)
-                    .set('Accept', 'application/json')
-                    .expect('Content-Type', /json/)
-                    .expect(404)
-                    .end(function(err, res) {
-                      if (err) return done.fail(err);
-                      expect(res.body.message).toEqual('That agent is not a member');
-                      done();
-                    });
-                }, {status: 404});
+                  // Reset mock. No agent found...
+                  stubUserAppMetadataRead((err, apiScopes) => {
+                    if (err) return done.fail();
+
+                    authenticatedSession
+                      .delete(`/team/${teamId}/agent/333`)
+                      .set('Accept', 'application/json')
+                      .expect('Content-Type', /json/)
+                      .expect(404)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+                        expect(res.body.message).toEqual('That agent is not a member');
+                        done();
+                      });
+                  }, {status: 404});
+                });
               });
             });
         });

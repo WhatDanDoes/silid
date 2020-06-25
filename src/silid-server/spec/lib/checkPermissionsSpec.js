@@ -11,6 +11,7 @@ const Profile = require('passport-auth0/lib/Profile');
 const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
 const stubUserAppMetadataUpdate = require('../support/auth0Endpoints/stubUserAppMetadataUpdate');
 const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
+const stubUserRolesRead = require('../support/auth0Endpoints/stubUserRolesRead');
 
 const checkPermissions = require('../../lib/checkPermissions');
 
@@ -29,7 +30,7 @@ const roles = require('../../config/roles');
 
 describe('checkPermissions', function() {
 
-  let agent, request, response, rolesReadScope, userAssignRolesScope, userReadScope;
+  let agent, request, response, rolesReadScope, userAssignRolesScope, userReadScope, userRolesReadScope;
 
   beforeEach(done => {
     nock.cleanAll();
@@ -41,7 +42,8 @@ describe('checkPermissions', function() {
      */
     stubAuth0ManagementApi((err, apiScopes) => {
       if (err) return done.fail(err);
-      ({rolesReadScope, userAssignRolesScope, userReadScope} = apiScopes);
+      ({rolesReadScope, userAssignRolesScope, userReadScope, userRolesReadScope} = apiScopes);
+
       done();
     });
   });
@@ -205,13 +207,18 @@ describe('checkPermissions', function() {
             stubUserRead((err, apiScopes) => {
               if (err) return done.fail(err);
               ({userReadScope: newReadScope} = apiScopes);
-              done();
+
+              stubUserRolesRead((err, apiScopes) => {
+                if (err) return done(err);
+                ({userRolesReadScope} = apiScopes);
+
+                done();
+              });
             });
           }).catch(err => {
             done.fail(err);
           });
         });
-
       });
 
       it('does not call the management API if Auth0 and the local cache data are consistent', done => {
@@ -259,7 +266,6 @@ describe('checkPermissions', function() {
         });
       });
     });
-
   });
 
   describe('first visit', () => {

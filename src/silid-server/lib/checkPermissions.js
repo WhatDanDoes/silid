@@ -15,61 +15,48 @@ const assert = require('assert');
 function updateDbAndVerify(permissions, req, res, next) {
   const socialProfile = req.user;
 
-  models.Agent.findOne({ where: { email: socialProfile.email } }).then(agent => {
-    req.agent = agent;
+  // Read agent's assigned roles
+  let managementClient = getManagementClient([apiScope.read.users, apiScope.read.roles].join(' '));
+  managementClient.getUserRoles({id: req.user.user_id}).then(roles => {
 
-    // Fill in any blank agent columns with social profile data
-    const updates = {};
-    if (req.agent) {
-      for (let key in socialProfile) {
-        if (agent[key] === null) {
-          updates[key] = socialProfile[key];
+    models.Agent.findOne({ where: { email: socialProfile.email } }).then(agent => {
+      req.agent = agent;
+
+      // Fill in any blank agent columns with social profile data
+      const updates = {};
+      if (req.agent) {
+        for (let key in socialProfile) {
+          if (agent[key] === null) {
+            updates[key] = socialProfile[key];
+          }
+        }
+        if (req.agent.isSuper) {
+          socialProfile.user_metadata.isSuper = true;
         }
       }
-      if (req.agent.isSuper) {
-        socialProfile.user_metadata.isSuper = true;
+
+      let profileChanged = true;
+      if (req.agent && req.agent.socialProfile) {
+        try {
+          assert.deepEqual(req.agent.socialProfile, socialProfile);
+          profileChanged = false;
+
+        } catch (error) {
+          console.log('these aren\'t equal');
+        }
       }
-    }
+      if (!req.agent || profileChanged) {
 
-    let profileChanged = true;
-    if (req.agent && req.agent.socialProfile) {
-      try {
-        assert.deepEqual(req.agent.socialProfile, socialProfile);
-        profileChanged = false;
+        managementClient = getManagementClient(apiScope.read.users);
+        managementClient.getUser({id: socialProfile.user_id}).then(results => {
 
-      } catch (error) {
-        console.log('these aren\'t equal');
-      }
-    }
-    if (!req.agent || profileChanged) {
+          models.Agent.update(
+            { socialProfile: results, ...updates },
+            { returning: true, where: { email: socialProfile.email } }).then(function([rowsUpdate, [updatedAgent]]) {
 
-      let managementClient = getManagementClient(apiScope.read.users);
-      managementClient.getUser({id: socialProfile.user_id}).then(results => {
+            if (updatedAgent) {
+              req.agent = updatedAgent;
 
-        models.Agent.update(
-          { socialProfile: results, ...updates },
-          { returning: true, where: { email: socialProfile.email } }).then(function([rowsUpdate, [updatedAgent]]) {
-
-          if (updatedAgent) {
-            req.agent = updatedAgent;
-
-            if (req.agent.isSuper) {
-              return next();
-            }
-
-            jwtAuthz(permissions, { failWithError: true, checkAllScopes: true })(req, res, err => {
-              if (err) {
-                return res.status(err.statusCode).json(err);
-              }
-
-              next();
-            });
-          }
-          else {
-            models.Agent.create({ name: socialProfile.name, email: socialProfile.email, socialProfile: socialProfile }).then(agent => {
-              req.agent = agent;
-
-              // This almost certainly superfluous. Revisit
               if (req.agent.isSuper) {
                 return next();
               }
@@ -81,27 +68,59 @@ function updateDbAndVerify(permissions, req, res, next) {
 
                 next();
               });
-            }).catch(err => {
-              res.status(500).json(err);
-            });
-          }
+            }
+            else {
+              models.Agent.create({ name: socialProfile.name, email: socialProfile.email, socialProfile: socialProfile }).then(agent => {
+                req.agent = agent;
+
+                // This almost certainly superfluous. Revisit
+                if (req.agent.isSuper) {
+                  return next();
+                }
+
+                jwtAuthz(permissions, { failWithError: true, checkAllScopes: true })(req, res, err => {
+                  if (err) {
+                    return res.status(err.statusCode).json(err);
+                  }
+
+                  next();
+                });
+              }).catch(err => {
+                res.status(500).json(err);
+              });
+            }
+          }).catch(err => {
+            res.status(500).json(err);
+          });
         }).catch(err => {
           res.status(500).json(err);
         });
-      }).catch(err => {
-        res.status(500).json(err);
-      });
-    }
-    else {
-      if (Object.keys(updates).length) {
-        models.Agent.update(
-          updates,
-          { returning: true, where: { email: socialProfile.email } }).then(function([rowsUpdate, [updatedAgent]]) {
+      }
+      else {
+        if (Object.keys(updates).length) {
+          models.Agent.update(
+            updates,
+            { returning: true, where: { email: socialProfile.email } }).then(function([rowsUpdate, [updatedAgent]]) {
 
-          if (updatedAgent) {
-            req.agent = updatedAgent;
-          }
+            if (updatedAgent) {
+              req.agent = updatedAgent;
+            }
 
+            if (req.agent.isSuper) {
+              return next();
+            }
+
+            jwtAuthz(permissions, { failWithError: true, checkAllScopes: true })(req, res, err => {
+              if (err) {
+                return res.status(err.statusCode).json(err);
+              }
+              next();
+            });
+          }).catch(err => {
+            res.status(500).json(err);
+          });
+        }
+        else {
           if (req.agent.isSuper) {
             return next();
           }
@@ -110,28 +129,16 @@ function updateDbAndVerify(permissions, req, res, next) {
             if (err) {
               return res.status(err.statusCode).json(err);
             }
+
             next();
           });
-        }).catch(err => {
-          res.status(500).json(err);
-        });
-      }
-      else {
-        if (req.agent.isSuper) {
-          return next();
         }
-
-        jwtAuthz(permissions, { failWithError: true, checkAllScopes: true })(req, res, err => {
-          if (err) {
-            return res.status(err.statusCode).json(err);
-          }
-
-          next();
-        });
       }
-    }
+    }).catch(err => {
+      res.status(500).json(err);
+    });
   }).catch(err => {
-    res.status(500).json(err);
+    res.status(err.statusCode).json(err.message.error_description);
   });
 };
 
