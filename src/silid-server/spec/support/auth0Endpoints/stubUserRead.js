@@ -40,7 +40,7 @@ module.exports = function(profile, done, options) {
        */
       const userReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
         .log(console.log)
-        .get(/api\/v2\/users\/.+/)
+        .get(/api\/v2\/users\/[\w-%]+$/)
         .query({})
         .reply(options.status, profile || _profile);
 
