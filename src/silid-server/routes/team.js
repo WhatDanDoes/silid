@@ -65,8 +65,8 @@ function collateTeams(agents, teamId, agentId, isSuper=false) {
 
 /* GET team listing. */
 router.get('/admin', checkPermissions(roles.sudo), function(req, res, next) {
-  if (!req.agent.isSuper) {
-    return res.status(403).json( { message: 'Forbidden' });
+  if (!req.user.isSuper) {
+    return res.status(403).json({ message: 'Forbidden' });
   }
 
   // Super agent gets entire listing
@@ -91,7 +91,7 @@ router.get('/:id/:admin?', checkPermissions([scope.read.teams]), function(req, r
   managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.id}"` }).then(agents => {
     if (agents.length) {
 
-      const teams = collateTeams(agents, req.params.id, req.user.user_id, req.user.user_metadata.isSuper && req.params.admin);
+      const teams = collateTeams(agents, req.params.id, req.user.user_id, req.user.isSuper && !!req.params.admin);
 
       if (!teams) {
         return res.status(403).json({ message: 'You are not a member of that team' });
@@ -181,12 +181,12 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
 
   // Find the team
   let teamIndex = req.user.user_metadata.teams.findIndex(t => t.id === req.params.id);
-  if (teamIndex < 0 && !req.agent.isSuper) {
+  if (teamIndex < 0 && !req.user.isSuper) {
     return res.status(404).json({ message: 'No such team' });
   }
 
   // Decide permission
-  if (teamIndex >= 0 && req.user.email !== req.user.user_metadata.teams[teamIndex].leader && !req.agent.isSuper) {
+  if (teamIndex >= 0 && req.user.email !== req.user.user_metadata.teams[teamIndex].leader && !req.user.isSuper) {
     return res.status(403).json({ message: 'Unauthorized' });
   }
 
@@ -271,7 +271,7 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
             if (err) {
               return res.status(500).json(err);
             }
-            const teams = collateTeams(agents, req.params.id, teamLeader.user_id, req.user.user_metadata.isSuper);
+            const teams = collateTeams(agents, req.params.id, teamLeader.user_id, req.user.isSuper);
             res.status(201).json(teams);
           });
         }).catch(err => {
@@ -313,7 +313,7 @@ router.delete('/:id', checkPermissions([scope.delete.teams]), function(req, res,
         return res.status(404).json({ message: 'No such team' });
       }
 
-      if (!req.agent.isSuper && req.user.email !== agent.user_metadata.teams[teamIndex].leader) {
+      if (!req.user.isSuper && req.user.email !== agent.user_metadata.teams[teamIndex].leader) {
         return res.status(403).json({ message: 'Unauthorized' });
       }
       agent.user_metadata.teams.splice(teamIndex, 1);
@@ -341,7 +341,7 @@ const patchTeam = function(req, res, next) {
     }
 
     let members = team.members.map(member => member.id);
-    if (!req.agent.isSuper && !members.includes(req.agent.id)) {
+    if (!req.user.isSuper && !members.includes(req.agent.id)) {
       return res.status(403).json( { message: 'You are not a member of this team' });
     }
 
@@ -731,7 +731,7 @@ router.delete('/:id/invite', checkPermissions([scope.delete.teamMembers]), funct
 router.delete('/:id/agent/:agentId', checkPermissions([scope.delete.teamMembers]), function(req, res, next) {
 
   let team;
-  if (!req.agent.isSuper) {
+  if (!req.user.isSuper) {
     if (!req.user.user_metadata || !req.user.user_metadata.teams) {
       return res.status(404).json({ message: 'No such team' });
     }
@@ -753,6 +753,7 @@ router.delete('/:id/agent/:agentId', checkPermissions([scope.delete.teamMembers]
 
   let managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
   managementClient.getUser({id: req.params.agentId}).then(invitedAgent => {
+
     if (!invitedAgent) {
       return res.status(404).json( { message: 'That agent is not a member' });
     }

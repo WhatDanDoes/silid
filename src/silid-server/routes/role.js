@@ -13,7 +13,7 @@ const getManagementClient = require('../lib/getManagementClient');
 
 /* GET list of assignable roles */
 router.get('/', checkPermissions(roles.sudo), (req, res, next) => {
-  if (!req.agent.isSuper) {
+  if (!req.user.isSuper) {
     return res.status(403).json({ message: 'Forbidden' });
   }
 
