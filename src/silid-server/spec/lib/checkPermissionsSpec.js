@@ -11,7 +11,9 @@ const Profile = require('passport-auth0/lib/Profile');
 const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
 const stubUserAppMetadataUpdate = require('../support/auth0Endpoints/stubUserAppMetadataUpdate');
 const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
+const stubRolesRead = require('../support/auth0Endpoints/stubRolesRead');
 const stubUserRolesRead = require('../support/auth0Endpoints/stubUserRolesRead');
+const stubUserAssignRoles = require('../support/auth0Endpoints/stubUserAssignRoles');
 
 const checkPermissions = require('../../lib/checkPermissions');
 
@@ -54,6 +56,7 @@ describe('checkPermissions', function() {
     delete _profile.scope;
     delete _profile.user_metadata;
     delete _profile.roles;
+    delete _profile.isSuper;
   });
 
   describe('returning visitor', () => {
@@ -215,6 +218,76 @@ describe('checkPermissions', function() {
           expect(request.user.scope).toEqual([...new Set(_profile.scope.concat(roles.viewer))]);
 
           done();
+        });
+      });
+
+      describe('req.user.isSuper', () => {
+        it('is set to false if not a super agent', done => {
+          request = httpMocks.createRequest({
+            method: 'POST',
+            url: '/agent',
+            user: {..._profile},
+          });
+
+          expect(request.user.isSuper).toBeUndefined();
+
+          checkPermissions([])(request, response, err => {
+            if (err) return done.fail(err);
+
+            expect(request.user.isSuper).toBe(false);
+
+            done();
+          });
+        });
+
+        it('is set to true if a super agent', done => {
+          request = httpMocks.createRequest({
+            method: 'POST',
+            url: '/agent',
+            user: {..._profile},
+          });
+
+          expect(request.user.isSuper).toBeUndefined();
+
+          // Clear the mocks and set them up again
+          checkPermissions([])(request, response, err => {
+            if (err) return done.fail(err);
+
+            stubUserRead((err, apiScopes) => {
+              if (err) return done(err);
+
+              stubRolesRead((err, apiScopes) => {
+                if (err) return done(err);
+
+                stubUserAssignRoles((err, apiScopes) => {
+                  if (err) return done(err);
+
+                  stubUserRolesRead([{
+                    "id": "234",
+                    "name": "sudo",
+                    "description": "All-access pass to Identity resources"
+                  },
+                  {
+                    "id": "345",
+                    "name": "viewer",
+                    "description": "Basic agent, organization, and team viewing permissions"
+                  }], (err, apiScopes) => {
+                    if (err) return done(err);
+
+                    expect(request.user.isSuper).toBe(false);
+
+                    // Try again with mocks reset
+                    checkPermissions([])(request, response, err => {
+                      if (err) return done.fail(err);
+
+                      expect(request.user.isSuper).toBe(true);
+                      done();
+                    });
+                  });
+                });
+              });
+            });
+          });
         });
       });
     });

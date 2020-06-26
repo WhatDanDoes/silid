@@ -23,6 +23,9 @@ function updateDbAndVerify(permissions, req, res, next) {
     models.Agent.findOne({ where: { email: socialProfile.email } }).then(agent => {
       req.agent = agent;
 
+      // Is this a super agent?
+      req.user.isSuper = !!req.user.roles.find(r => r.name === 'sudo');
+
       // Fill in any blank agent columns with social profile data
       const updates = {};
       if (req.agent) {
@@ -32,7 +35,7 @@ function updateDbAndVerify(permissions, req, res, next) {
           }
         }
         if (req.agent.isSuper) {
-          socialProfile.user_metadata.isSuper = true;
+          req.user.isSuper = true;
         }
       }
 
@@ -59,6 +62,10 @@ function updateDbAndVerify(permissions, req, res, next) {
               req.agent = updatedAgent;
 
               if (req.agent.isSuper) {
+                req.user.isSuper = true;
+              }
+
+              if (req.user.isSuper) {
                 return next();
               }
 
@@ -74,8 +81,12 @@ function updateDbAndVerify(permissions, req, res, next) {
               models.Agent.create({ name: socialProfile.name, email: socialProfile.email, socialProfile: socialProfile }).then(agent => {
                 req.agent = agent;
 
-                // This almost certainly superfluous. Revisit
                 if (req.agent.isSuper) {
+                  req.user.isSuper = true;
+                }
+
+                // This almost certainly superfluous. Revisit
+                if (req.user.isSuper) {
                   return next();
                 }
 
@@ -108,6 +119,10 @@ function updateDbAndVerify(permissions, req, res, next) {
             }
 
             if (req.agent.isSuper) {
+              req.user.isSuper = true;
+            }
+
+            if (req.user.isSuper) {
               return next();
             }
 
@@ -122,7 +137,7 @@ function updateDbAndVerify(permissions, req, res, next) {
           });
         }
         else {
-          if (req.agent.isSuper) {
+          if (req.user.isSuper) {
             return next();
           }
 
