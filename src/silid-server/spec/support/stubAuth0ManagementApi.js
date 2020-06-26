@@ -42,7 +42,7 @@ module.exports = function(done) {
           if (err) return done(err);
           ({userRolesReadScope} = apiScopes);
 
-          done(null, {userReadScope, rolesReadScope, userAssignRolesScope});
+          done(null, {userReadScope, rolesReadScope, userAssignRolesScope, userRolesReadScope});
         });
       });
     });
