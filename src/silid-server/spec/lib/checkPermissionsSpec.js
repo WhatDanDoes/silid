@@ -53,6 +53,7 @@ describe('checkPermissions', function() {
     // This resets the default values
     delete _profile.scope;
     delete _profile.user_metadata;
+    delete _profile.roles;
   });
 
   describe('returning visitor', () => {
@@ -82,7 +83,7 @@ describe('checkPermissions', function() {
       request = httpMocks.createRequest({
         method: 'POST',
         url: '/agent',
-        user: _profile
+        user: {..._profile},
       });
 
       checkPermissions([scope.read.agents])(request, response, err => {
@@ -92,11 +93,31 @@ describe('checkPermissions', function() {
       });
     });
 
+    it('attaches roles to req.user', done => {
+      request = httpMocks.createRequest({
+        method: 'POST',
+        url: '/agent',
+        user: {..._profile},
+      });
+
+      expect(request.user.roles).toBeUndefined();
+
+      checkPermissions([])(request, response, err => {
+        if (err) return done.fail(err);
+
+        expect(request.user.roles).toBeDefined();
+        expect(request.user.roles.length).toEqual(1);
+        expect(request.user.roles[0].name).toEqual('viewer');
+
+        done();
+      });
+    });
+
     it('saves the Auth0-provided profile the agent\'s socialProfile', done => {
       request = httpMocks.createRequest({
         method: 'POST',
         url: '/agent',
-        user: _profile
+        user: {..._profile}
       });
 
       expect(agent.socialProfile).toBeNull();
@@ -130,6 +151,22 @@ describe('checkPermissions', function() {
         });
       });
 
+      it('is called to retrieve the roles assigned to the agent', done => {
+        request = httpMocks.createRequest({
+          method: 'POST',
+          url: '/agent',
+          user: {..._profile, scope: null}
+        });
+
+        checkPermissions([])(request, response, err => {
+          if (err) return done.fail(err);
+
+          expect(userRolesReadScope.isDone()).toBe(true);
+
+          done();
+        });
+      });
+
       it('calls the management API to assign viewer role if agent not already a viewer', done => {
         request = httpMocks.createRequest({
           method: 'POST',
@@ -145,7 +182,6 @@ describe('checkPermissions', function() {
           done();
         });
       });
-
 
       it('does not call the management API if agent is already a viewer', done => {
         request = httpMocks.createRequest({
@@ -304,6 +340,26 @@ describe('checkPermissions', function() {
       });
     });
 
+    it('attaches roles to req.user', done => {
+      request = httpMocks.createRequest({
+        method: 'POST',
+        url: '/agent',
+        user: {..._profile, scope: undefined}
+      });
+
+      expect(request.user.roles).toBeUndefined();
+
+      checkPermissions([])(request, response, err => {
+        if (err) return done.fail(err);
+
+        expect(request.user.roles).toBeDefined();
+        expect(request.user.roles.length).toEqual(1);
+        expect(request.user.roles[0].name).toEqual('viewer');
+
+        done();
+      });
+    });
+
     it('adds agent to the database', done => {
       request = httpMocks.createRequest({
         method: 'POST',
@@ -383,6 +439,22 @@ describe('checkPermissions', function() {
           done();
         });
       });
+
+      it('is called to retrieve the roles assigned to the agent', done => {
+        request = httpMocks.createRequest({
+          method: 'POST',
+          url: '/agent',
+          user: {..._profile, scope: undefined}
+        });
+
+        checkPermissions([])(request, response, err => {
+          if (err) return done.fail(err);
+
+          expect(userRolesReadScope.isDone()).toBe(true);
+
+          done();
+        });
+      });
     });
 
     describe('with pending team invitations', () => {
@@ -407,7 +479,6 @@ describe('checkPermissions', function() {
             done.fail(err);
           });
         });
-
 
         it('removes the invitation from the database', done => {
           models.Invitation.findAll().then(invites => {
@@ -556,7 +627,7 @@ describe('checkPermissions', function() {
       request = httpMocks.createRequest({
         method: 'GET',
         url: '/agent',
-        user: _profile
+        user: {..._profile}
       });
 
       expect(invitedAgent.socialProfile).toBeNull();
@@ -581,7 +652,7 @@ describe('checkPermissions', function() {
         request = httpMocks.createRequest({
           method: 'GET',
           url: '/agent',
-          user: _profile
+          user: {..._profile}
         });
 
         expect(savedAgent.socialProfile).toEqual(_identity);
@@ -615,6 +686,7 @@ describe('checkPermissions', function() {
 
           expect(rolesReadScope.isDone()).toBe(true);
           expect(userAssignRolesScope.isDone()).toBe(true);
+          expect(userRolesReadScope.isDone()).toBe(true);
 
           done();
         });
@@ -633,6 +705,26 @@ describe('checkPermissions', function() {
           if (err) return done.fail(err);
 
           expect(request.user.scope).toEqual(_profile.scope);
+
+          done();
+        });
+      });
+
+      it('attaches roles to req.user', done => {
+        request = httpMocks.createRequest({
+          method: 'POST',
+          url: '/agent',
+          user: {..._profile, scope: undefined}
+        });
+
+        expect(request.user.roles).toBeUndefined();
+
+        checkPermissions([])(request, response, err => {
+          if (err) return done.fail(err);
+
+          expect(request.user.roles).toBeDefined();
+          expect(request.user.roles.length).toEqual(1);
+          expect(request.user.roles[0].name).toEqual('viewer');
 
           done();
         });
