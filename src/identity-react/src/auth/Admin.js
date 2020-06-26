@@ -35,7 +35,7 @@ export function useAdminState() {
   const state = React.useContext(AdminContext)
   const {agent} = useAuthState();
 
-  const isEnabled = state.enabled && agent.user_metadata.isSuper;
+  const isEnabled = state.enabled && agent.isSuper;
   const viewingCached = state.viewCache && isEnabled;
 
   return {
