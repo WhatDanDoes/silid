@@ -601,15 +601,19 @@ describe('root/teamMembershipSpec', () => {
               stubUserRead((err, apiScopes) => {
                 if (err) return done.fail();
 
-                // Retrieve the member agent
-                stubUserAppMetadataRead((err, apiScopes) => {
-                  if (err) return done.fail();
+                stubUserRolesRead((err, apiScopes) => {
+                  if (err) return done(err);
 
-                  // Update the agent
-                  stubUserAppMetadataUpdate((err, apiScopes) => {
+                  // Retrieve the member agent
+                  stubUserAppMetadataRead((err, apiScopes) => {
                     if (err) return done.fail();
 
-                    done();
+                    // Update the agent
+                    stubUserAppMetadataUpdate((err, apiScopes) => {
+                      if (err) return done.fail();
+
+                      done();
+                    });
                   });
                 });
               });
@@ -681,8 +685,8 @@ describe('root/teamMembershipSpec', () => {
                           done();
                         });
                     });
-                  }, { status: 404 });
-                });
+                  });
+                }, { status: 404 });
               });
             });
         });
@@ -721,7 +725,7 @@ describe('root/teamMembershipSpec', () => {
                 if (err) return done.fail();
 
                 stubUserRolesRead((err, apiScopes) => {
-                   if (err) return done(err);
+                  if (err) return done(err);
 
                   // Retrieve the member agent
                   stubUserAppMetadataRead(agentProfile, (err, apiScopes) => {
@@ -772,15 +776,19 @@ describe('root/teamMembershipSpec', () => {
               stubUserRead((err, apiScopes) => {
                 if (err) return done.fail();
 
-                // Retrieve the member agent
-                stubUserAppMetadataRead(agentProfile, (err, apiScopes) => {
-                  if (err) return done.fail();
+                stubUserRolesRead((err, apiScopes) => {
+                  if (err) return done(err);
 
-                  // Update the agent
-                  stubUserAppMetadataUpdate(agentProfile, (err, apiScopes) => {
+                  // Retrieve the member agent
+                  stubUserAppMetadataRead(agentProfile, (err, apiScopes) => {
                     if (err) return done.fail();
 
-                    done();
+                    // Update the agent
+                    stubUserAppMetadataUpdate(agentProfile, (err, apiScopes) => {
+                      if (err) return done.fail();
+
+                      done();
+                    });
                   });
                 });
               });
@@ -852,8 +860,8 @@ describe('root/teamMembershipSpec', () => {
                           done();
                         });
                     });
-                  }, { status: 404 });
-                });
+                  });
+                }, { status: 404 });
               });
             });
         });
