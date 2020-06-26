@@ -172,29 +172,31 @@ const Agent = (props) => {
                                 <Chip
                                   label={data.name}
                                   className={classes.chip}
-                                  onDelete={() => {
-                                    const headers = new Headers();
-                                    headers.append('Content-Type', 'application/json; charset=utf-8');
-                                    fetch(`/role/${data.id}/agent/${profileData.user_id}`,
-                                      {
-                                        method: 'DELETE',
-                                        headers,
-                                      }
-                                    )
-                                    .then(response => response.json())
-                                    .then(response => {
-                                      if (response.message) {
-                                        setFlashProps({ message: response.message, variant: 'warning' });
-                                      }
-                                      else {
-                                        setProfileData(response);
-                                        setUnassignedRoles([]);
-                                      }
-                                    })
-                                    .catch(error => {
-                                      setFlashProps({ message: error.message, variant: 'error' });
-                                    });
-                                  }}
+                                  onDelete={admin.isEnabled && data.name !== 'viewer' ?
+                                    () => {
+                                      const headers = new Headers();
+                                      headers.append('Content-Type', 'application/json; charset=utf-8');
+                                      fetch(`/role/${data.id}/agent/${profileData.user_id}`,
+                                        {
+                                          method: 'DELETE',
+                                          headers,
+                                        }
+                                      )
+                                      .then(response => response.json())
+                                      .then(response => {
+                                        if (response.message) {
+                                          setFlashProps({ message: response.message, variant: 'warning' });
+                                        }
+                                        else {
+                                          setProfileData(response);
+                                          setUnassignedRoles([]);
+                                        }
+                                      })
+                                      .catch(error => {
+                                        setFlashProps({ message: error.message, variant: 'error' });
+                                      });
+                                    }
+                                  : undefined}
                                 />
                               </li>
                             );
