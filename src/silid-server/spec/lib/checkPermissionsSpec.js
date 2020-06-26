@@ -11,6 +11,9 @@ const Profile = require('passport-auth0/lib/Profile');
 const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
 const stubUserAppMetadataUpdate = require('../support/auth0Endpoints/stubUserAppMetadataUpdate');
 const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
+const stubRolesRead = require('../support/auth0Endpoints/stubRolesRead');
+const stubUserRolesRead = require('../support/auth0Endpoints/stubUserRolesRead');
+const stubUserAssignRoles = require('../support/auth0Endpoints/stubUserAssignRoles');
 
 const checkPermissions = require('../../lib/checkPermissions');
 
@@ -29,7 +32,7 @@ const roles = require('../../config/roles');
 
 describe('checkPermissions', function() {
 
-  let agent, request, response, rolesReadScope, userAssignRolesScope, userReadScope;
+  let agent, request, response, rolesReadScope, userAssignRolesScope, userReadScope, userRolesReadScope;
 
   beforeEach(done => {
     nock.cleanAll();
@@ -41,7 +44,8 @@ describe('checkPermissions', function() {
      */
     stubAuth0ManagementApi((err, apiScopes) => {
       if (err) return done.fail(err);
-      ({rolesReadScope, userAssignRolesScope, userReadScope} = apiScopes);
+      ({rolesReadScope, userAssignRolesScope, userReadScope, userRolesReadScope} = apiScopes);
+
       done();
     });
   });
@@ -51,6 +55,8 @@ describe('checkPermissions', function() {
     // This resets the default values
     delete _profile.scope;
     delete _profile.user_metadata;
+    delete _profile.roles;
+    delete _profile.isSuper;
   });
 
   describe('returning visitor', () => {
@@ -80,7 +86,7 @@ describe('checkPermissions', function() {
       request = httpMocks.createRequest({
         method: 'POST',
         url: '/agent',
-        user: _profile
+        user: {..._profile},
       });
 
       checkPermissions([scope.read.agents])(request, response, err => {
@@ -90,11 +96,31 @@ describe('checkPermissions', function() {
       });
     });
 
+    it('attaches roles to req.user', done => {
+      request = httpMocks.createRequest({
+        method: 'POST',
+        url: '/agent',
+        user: {..._profile},
+      });
+
+      expect(request.user.roles).toBeUndefined();
+
+      checkPermissions([])(request, response, err => {
+        if (err) return done.fail(err);
+
+        expect(request.user.roles).toBeDefined();
+        expect(request.user.roles.length).toEqual(1);
+        expect(request.user.roles[0].name).toEqual('viewer');
+
+        done();
+      });
+    });
+
     it('saves the Auth0-provided profile the agent\'s socialProfile', done => {
       request = httpMocks.createRequest({
         method: 'POST',
         url: '/agent',
-        user: _profile
+        user: {..._profile}
       });
 
       expect(agent.socialProfile).toBeNull();
@@ -128,6 +154,22 @@ describe('checkPermissions', function() {
         });
       });
 
+      it('is called to retrieve the roles assigned to the agent', done => {
+        request = httpMocks.createRequest({
+          method: 'POST',
+          url: '/agent',
+          user: {..._profile, scope: null}
+        });
+
+        checkPermissions([])(request, response, err => {
+          if (err) return done.fail(err);
+
+          expect(userRolesReadScope.isDone()).toBe(true);
+
+          done();
+        });
+      });
+
       it('calls the management API to assign viewer role if agent not already a viewer', done => {
         request = httpMocks.createRequest({
           method: 'POST',
@@ -143,7 +185,6 @@ describe('checkPermissions', function() {
           done();
         });
       });
-
 
       it('does not call the management API if agent is already a viewer', done => {
         request = httpMocks.createRequest({
@@ -179,6 +220,76 @@ describe('checkPermissions', function() {
           done();
         });
       });
+
+      describe('req.user.isSuper', () => {
+        it('is set to false if not a super agent', done => {
+          request = httpMocks.createRequest({
+            method: 'POST',
+            url: '/agent',
+            user: {..._profile},
+          });
+
+          expect(request.user.isSuper).toBeUndefined();
+
+          checkPermissions([])(request, response, err => {
+            if (err) return done.fail(err);
+
+            expect(request.user.isSuper).toBe(false);
+
+            done();
+          });
+        });
+
+        it('is set to true if a super agent', done => {
+          request = httpMocks.createRequest({
+            method: 'POST',
+            url: '/agent',
+            user: {..._profile},
+          });
+
+          expect(request.user.isSuper).toBeUndefined();
+
+          // Clear the mocks and set them up again
+          checkPermissions([])(request, response, err => {
+            if (err) return done.fail(err);
+
+            stubUserRead((err, apiScopes) => {
+              if (err) return done(err);
+
+              stubRolesRead((err, apiScopes) => {
+                if (err) return done(err);
+
+                stubUserAssignRoles((err, apiScopes) => {
+                  if (err) return done(err);
+
+                  stubUserRolesRead([{
+                    "id": "234",
+                    "name": "sudo",
+                    "description": "All-access pass to Identity resources"
+                  },
+                  {
+                    "id": "345",
+                    "name": "viewer",
+                    "description": "Basic agent, organization, and team viewing permissions"
+                  }], (err, apiScopes) => {
+                    if (err) return done(err);
+
+                    expect(request.user.isSuper).toBe(false);
+
+                    // Try again with mocks reset
+                    checkPermissions([])(request, response, err => {
+                      if (err) return done.fail(err);
+
+                      expect(request.user.isSuper).toBe(true);
+                      done();
+                    });
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
     });
 
     /**
@@ -205,13 +316,18 @@ describe('checkPermissions', function() {
             stubUserRead((err, apiScopes) => {
               if (err) return done.fail(err);
               ({userReadScope: newReadScope} = apiScopes);
-              done();
+
+              stubUserRolesRead((err, apiScopes) => {
+                if (err) return done(err);
+                ({userRolesReadScope} = apiScopes);
+
+                done();
+              });
             });
           }).catch(err => {
             done.fail(err);
           });
         });
-
       });
 
       it('does not call the management API if Auth0 and the local cache data are consistent', done => {
@@ -259,7 +375,6 @@ describe('checkPermissions', function() {
         });
       });
     });
-
   });
 
   describe('first visit', () => {
@@ -295,6 +410,26 @@ describe('checkPermissions', function() {
         }).catch(err => {
           done.fail(err);
         });
+      });
+    });
+
+    it('attaches roles to req.user', done => {
+      request = httpMocks.createRequest({
+        method: 'POST',
+        url: '/agent',
+        user: {..._profile, scope: undefined}
+      });
+
+      expect(request.user.roles).toBeUndefined();
+
+      checkPermissions([])(request, response, err => {
+        if (err) return done.fail(err);
+
+        expect(request.user.roles).toBeDefined();
+        expect(request.user.roles.length).toEqual(1);
+        expect(request.user.roles[0].name).toEqual('viewer');
+
+        done();
       });
     });
 
@@ -377,6 +512,22 @@ describe('checkPermissions', function() {
           done();
         });
       });
+
+      it('is called to retrieve the roles assigned to the agent', done => {
+        request = httpMocks.createRequest({
+          method: 'POST',
+          url: '/agent',
+          user: {..._profile, scope: undefined}
+        });
+
+        checkPermissions([])(request, response, err => {
+          if (err) return done.fail(err);
+
+          expect(userRolesReadScope.isDone()).toBe(true);
+
+          done();
+        });
+      });
     });
 
     describe('with pending team invitations', () => {
@@ -401,7 +552,6 @@ describe('checkPermissions', function() {
             done.fail(err);
           });
         });
-
 
         it('removes the invitation from the database', done => {
           models.Invitation.findAll().then(invites => {
@@ -550,7 +700,7 @@ describe('checkPermissions', function() {
       request = httpMocks.createRequest({
         method: 'GET',
         url: '/agent',
-        user: _profile
+        user: {..._profile}
       });
 
       expect(invitedAgent.socialProfile).toBeNull();
@@ -575,7 +725,7 @@ describe('checkPermissions', function() {
         request = httpMocks.createRequest({
           method: 'GET',
           url: '/agent',
-          user: _profile
+          user: {..._profile}
         });
 
         expect(savedAgent.socialProfile).toEqual(_identity);
@@ -609,6 +759,7 @@ describe('checkPermissions', function() {
 
           expect(rolesReadScope.isDone()).toBe(true);
           expect(userAssignRolesScope.isDone()).toBe(true);
+          expect(userRolesReadScope.isDone()).toBe(true);
 
           done();
         });
@@ -627,6 +778,26 @@ describe('checkPermissions', function() {
           if (err) return done.fail(err);
 
           expect(request.user.scope).toEqual(_profile.scope);
+
+          done();
+        });
+      });
+
+      it('attaches roles to req.user', done => {
+        request = httpMocks.createRequest({
+          method: 'POST',
+          url: '/agent',
+          user: {..._profile, scope: undefined}
+        });
+
+        expect(request.user.roles).toBeUndefined();
+
+        checkPermissions([])(request, response, err => {
+          if (err) return done.fail(err);
+
+          expect(request.user.roles).toBeDefined();
+          expect(request.user.roles.length).toEqual(1);
+          expect(request.user.roles[0].name).toEqual('viewer');
 
           done();
         });

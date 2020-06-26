@@ -131,7 +131,7 @@ const Home = (props: IProps) => {
             <ListItemText primary='Teams' />
           </ListItemLink>
         </ListItem>
-        {agent.user_metadata.isSuper && (
+        {agent.isSuper && (
           <ListItem button key='Admin'>
             <FormControlLabel
               control={
@@ -171,7 +171,7 @@ const Home = (props: IProps) => {
   return (
     <AppBar position="static">
       <Toolbar>
-        {agent.user_metadata.isSuper && (
+        {agent.isSuper && (
           <>
             <IconButton
               id="app-menu-button"

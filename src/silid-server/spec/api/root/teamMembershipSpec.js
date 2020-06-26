@@ -9,6 +9,7 @@ const stubUserRead = require('../../support/auth0Endpoints/stubUserRead');
 const stubUserReadQuery = require('../../support/auth0Endpoints/stubUserReadQuery');
 const stubUserAppMetadataUpdate = require('../../support/auth0Endpoints/stubUserAppMetadataUpdate');
 const stubUserAppMetadataRead = require('../../support/auth0Endpoints/stubUserAppMetadataRead');
+const stubUserRolesRead = require('../../support/auth0Endpoints/stubUserRolesRead');
 const mailer = require('../../../mailer');
 const uuid = require('uuid');
 
@@ -492,21 +493,25 @@ describe('root/teamMembershipSpec', () => {
               stubUserRead((err, apiScopes) => {
                 if (err) return done.fail();
 
-                // Retrieve the member agent
-                stubUserAppMetadataRead(agentProfile, (err, apiScopes) => {
-                  if (err) return done.fail();
+                stubUserRolesRead((err, apiScopes) => {
+                  if (err) return done(err);
 
-                  rootSession
-                    .delete(`/team/${teamId}/agent/333`)
-                    .set('Accept', 'application/json')
-                    .expect('Content-Type', /json/)
-                    .expect(404)
-                    .end(function(err, res) {
-                      if (err) return done.fail(err);
-                      expect(res.body.message).toEqual('That agent is not a member');
-                      done();
-                    });
-                }, { status: 404 });
+                  // Retrieve the member agent
+                  stubUserAppMetadataRead(agentProfile, (err, apiScopes) => {
+                    if (err) return done.fail();
+
+                    rootSession
+                      .delete(`/team/${teamId}/agent/333`)
+                      .set('Accept', 'application/json')
+                      .expect('Content-Type', /json/)
+                      .expect(404)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+                        expect(res.body.message).toEqual('That agent is not a member');
+                        done();
+                      });
+                  }, { status: 404 });
+                });
               });
             });
         });
@@ -544,20 +549,24 @@ describe('root/teamMembershipSpec', () => {
               stubUserRead((err, apiScopes) => {
                 if (err) return done.fail();
 
-                // Retrieve the member agent
-                stubUserAppMetadataRead((err, apiScopes) => {
-                  if (err) return done.fail();
+                stubUserRolesRead((err, apiScopes) => {
+                   if (err) return done(err);
 
-                  rootSession
-                    .delete(`/team/${teamId}/agent/${_profile.user_id}`)
-                    .set('Accept', 'application/json')
-                    .expect('Content-Type', /json/)
-                    .expect(403)
-                    .end(function(err, res) {
-                      if (err) return done.fail(err);
-                      expect(res.body.message).toEqual('Team leader cannot be removed from team');
-                      done();
-                    });
+                  // Retrieve the member agent
+                  stubUserAppMetadataRead((err, apiScopes) => {
+                    if (err) return done.fail();
+
+                    rootSession
+                      .delete(`/team/${teamId}/agent/${_profile.user_id}`)
+                      .set('Accept', 'application/json')
+                      .expect('Content-Type', /json/)
+                      .expect(403)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+                        expect(res.body.message).toEqual('Team leader cannot be removed from team');
+                        done();
+                      });
+                  });
                 });
               });
             });
@@ -592,15 +601,19 @@ describe('root/teamMembershipSpec', () => {
               stubUserRead((err, apiScopes) => {
                 if (err) return done.fail();
 
-                // Retrieve the member agent
-                stubUserAppMetadataRead((err, apiScopes) => {
-                  if (err) return done.fail();
+                stubUserRolesRead((err, apiScopes) => {
+                  if (err) return done(err);
 
-                  // Update the agent
-                  stubUserAppMetadataUpdate((err, apiScopes) => {
+                  // Retrieve the member agent
+                  stubUserAppMetadataRead((err, apiScopes) => {
                     if (err) return done.fail();
 
-                    done();
+                    // Update the agent
+                    stubUserAppMetadataUpdate((err, apiScopes) => {
+                      if (err) return done.fail();
+
+                      done();
+                    });
                   });
                 });
               });
@@ -654,20 +667,24 @@ describe('root/teamMembershipSpec', () => {
                 stubUserAppMetadataRead(agentProfile, (err, apiScopes) => {
                   if (err) return done.fail();
 
-                  // Update the agent
-                  stubUserAppMetadataUpdate(agentProfile, (err, apiScopes) => {
-                    if (err) return done.fail();
+                  stubUserRolesRead((err, apiScopes) => {
+                    if (err) return done(err);
 
-                    rootSession
-                      .delete(`/team/${teamId}/agent/333`)
-                      .set('Accept', 'application/json')
-                      .expect('Content-Type', /json/)
-                      .expect(404)
-                      .end(function(err, res) {
-                        if (err) return done.fail(err);
-                        expect(res.body.message).toEqual('That agent is not a member');
-                        done();
-                      });
+                    // Update the agent
+                    stubUserAppMetadataUpdate(agentProfile, (err, apiScopes) => {
+                      if (err) return done.fail();
+
+                      rootSession
+                        .delete(`/team/${teamId}/agent/333`)
+                        .set('Accept', 'application/json')
+                        .expect('Content-Type', /json/)
+                        .expect(404)
+                        .end(function(err, res) {
+                          if (err) return done.fail(err);
+                          expect(res.body.message).toEqual('That agent is not a member');
+                          done();
+                        });
+                    });
                   });
                 }, { status: 404 });
               });
@@ -707,20 +724,24 @@ describe('root/teamMembershipSpec', () => {
               stubUserRead((err, apiScopes) => {
                 if (err) return done.fail();
 
-                // Retrieve the member agent
-                stubUserAppMetadataRead(agentProfile, (err, apiScopes) => {
-                  if (err) return done.fail();
+                stubUserRolesRead((err, apiScopes) => {
+                  if (err) return done(err);
 
-                  rootSession
-                    .delete(`/team/${teamId}/agent/${agentProfile.user_id}`)
-                    .set('Accept', 'application/json')
-                    .expect('Content-Type', /json/)
-                    .expect(403)
-                    .end(function(err, res) {
-                      if (err) return done.fail(err);
-                      expect(res.body.message).toEqual('Team leader cannot be removed from team');
-                      done();
-                    });
+                  // Retrieve the member agent
+                  stubUserAppMetadataRead(agentProfile, (err, apiScopes) => {
+                    if (err) return done.fail();
+
+                    rootSession
+                      .delete(`/team/${teamId}/agent/${agentProfile.user_id}`)
+                      .set('Accept', 'application/json')
+                      .expect('Content-Type', /json/)
+                      .expect(403)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+                        expect(res.body.message).toEqual('Team leader cannot be removed from team');
+                        done();
+                      });
+                  });
                 });
               });
             });
@@ -755,15 +776,19 @@ describe('root/teamMembershipSpec', () => {
               stubUserRead((err, apiScopes) => {
                 if (err) return done.fail();
 
-                // Retrieve the member agent
-                stubUserAppMetadataRead(agentProfile, (err, apiScopes) => {
-                  if (err) return done.fail();
+                stubUserRolesRead((err, apiScopes) => {
+                  if (err) return done(err);
 
-                  // Update the agent
-                  stubUserAppMetadataUpdate(agentProfile, (err, apiScopes) => {
+                  // Retrieve the member agent
+                  stubUserAppMetadataRead(agentProfile, (err, apiScopes) => {
                     if (err) return done.fail();
 
-                    done();
+                    // Update the agent
+                    stubUserAppMetadataUpdate(agentProfile, (err, apiScopes) => {
+                      if (err) return done.fail();
+
+                      done();
+                    });
                   });
                 });
               });
@@ -817,20 +842,24 @@ describe('root/teamMembershipSpec', () => {
                 stubUserAppMetadataRead(agentProfile, (err, apiScopes) => {
                   if (err) return done.fail();
 
-                  // Update the agent
-                  stubUserAppMetadataUpdate(agentProfile, (err, apiScopes) => {
-                    if (err) return done.fail();
+                  stubUserRolesRead((err, apiScopes) => {
+                     if (err) return done(err);
 
-                    rootSession
-                      .delete(`/team/${teamId}/agent/333`)
-                      .set('Accept', 'application/json')
-                      .expect('Content-Type', /json/)
-                      .expect(404)
-                      .end(function(err, res) {
-                        if (err) return done.fail(err);
-                        expect(res.body.message).toEqual('That agent is not a member');
-                        done();
-                      });
+                    // Update the agent
+                    stubUserAppMetadataUpdate(agentProfile, (err, apiScopes) => {
+                      if (err) return done.fail();
+
+                      rootSession
+                        .delete(`/team/${teamId}/agent/333`)
+                        .set('Accept', 'application/json')
+                        .expect('Content-Type', /json/)
+                        .expect(404)
+                        .end(function(err, res) {
+                          if (err) return done.fail(err);
+                          expect(res.body.message).toEqual('That agent is not a member');
+                          done();
+                        });
+                    });
                   });
                 }, { status: 404 });
               });
@@ -870,20 +899,24 @@ describe('root/teamMembershipSpec', () => {
               stubUserRead((err, apiScopes) => {
                 if (err) return done.fail();
 
-                // Retrieve the member agent
-                stubUserAppMetadataRead({...agentProfile, name: 'Team Leader', email: 'leader@example.com', user_id: _profile.user_id + 2 }, (err, apiScopes) => {
-                  if (err) return done.fail();
+                stubUserRolesRead((err, apiScopes) => {
+                   if (err) return done(err);
 
-                  rootSession
-                    .delete(`/team/${teamId}/agent/${agentProfile.user_id}`)
-                    .set('Accept', 'application/json')
-                    .expect('Content-Type', /json/)
-                    .expect(403)
-                    .end(function(err, res) {
-                      if (err) return done.fail(err);
-                      expect(res.body.message).toEqual('Team leader cannot be removed from team');
-                      done();
-                    });
+                  // Retrieve the member agent
+                  stubUserAppMetadataRead({...agentProfile, name: 'Team Leader', email: 'leader@example.com', user_id: _profile.user_id + 2 }, (err, apiScopes) => {
+                    if (err) return done.fail();
+
+                    rootSession
+                      .delete(`/team/${teamId}/agent/${agentProfile.user_id}`)
+                      .set('Accept', 'application/json')
+                      .expect('Content-Type', /json/)
+                      .expect(403)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+                        expect(res.body.message).toEqual('Team leader cannot be removed from team');
+                        done();
+                      });
+                  });
                 });
               });
             });

@@ -6,6 +6,7 @@ const request = require('supertest');
 const stubAuth0Sessions = require('../../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../../support/stubAuth0ManagementApi');
 const stubUserRead = require('../../support/auth0Endpoints/stubUserRead');
+const stubUserRolesRead = require('../../support/auth0Endpoints/stubUserRolesRead');
 const mailer = require('../../../mailer');
 const { uuid } = require('uuidv4');
 
@@ -196,19 +197,23 @@ describe('root/organizationMembershipSpec', () => {
               stubUserRead((err, apiScopes) => {
                 if (err) return done.fail();
 
-                rootSession
-                  .put(`/organization/${organization.id}/agent`)
-                  .send({
-                    email: 'somebrandnewguy@example.com'
-                  })
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(200)
-                  .end(function(err, res) {
-                    if (err) done.fail(err);
-                    expect(res.body.message).toEqual('somebrandnewguy@example.com is already a member of this organization');
-                    done();
-                  });
+                stubUserRolesRead((err, apiScopes) => {
+                  if (err) return done(err);
+
+                  rootSession
+                    .put(`/organization/${organization.id}/agent`)
+                    .send({
+                      email: 'somebrandnewguy@example.com'
+                    })
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function(err, res) {
+                      if (err) done.fail(err);
+                      expect(res.body.message).toEqual('somebrandnewguy@example.com is already a member of this organization');
+                      done();
+                    });
+                });
               });
             });
         });
@@ -350,19 +355,23 @@ describe('root/organizationMembershipSpec', () => {
               stubUserRead((err, apiScopes) => {
                 if (err) return done.fail();
 
-                rootSession
-                  .put(`/organization/${organization.id}/agent`)
-                  .send({
-                    email: knownAgent.email
-                  })
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(200)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-                    expect(res.body.message).toEqual(`${knownAgent.email} is already a member of this organization`);
-                    done();
-                  });
+                stubUserRolesRead((err, apiScopes) => {
+                  if (err) return done(err);
+
+                  rootSession
+                    .put(`/organization/${organization.id}/agent`)
+                    .send({
+                      email: knownAgent.email
+                    })
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(res.body.message).toEqual(`${knownAgent.email} is already a member of this organization`);
+                      done();
+                    });
+                });
               });
             });
         });

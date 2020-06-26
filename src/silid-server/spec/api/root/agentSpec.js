@@ -119,7 +119,7 @@ describe('root/agentSpec', () => {
           });
         });
 
-        it('attaches isSuper flag to user_metadata for app-configured root agent', done => {
+        it('attaches isSuper flag for app-configured root agent', done => {
           rootSession
             .get('/agent')
             .set('Accept', 'application/json')
@@ -129,7 +129,7 @@ describe('root/agentSpec', () => {
               if (err) return done.fail(err);
 
               expect(res.body.email).toEqual(_profile.email);
-              expect(res.body.user_metadata.isSuper).toBe(true);
+              expect(res.body.isSuper).toBe(true);
               done();
             });
         });

@@ -18,7 +18,7 @@ const getManagementClient = require('../lib/getManagementClient');
 
 /* GET organization listing. */
 router.get('/admin', checkPermissions(roles.sudo), function(req, res, next) {
-  if (!req.agent.isSuper) {
+  if (!req.user.isSuper) {
     return res.status(403).json( { message: 'Forbidden' });
   }
 
@@ -106,7 +106,7 @@ router.get('/:id', checkPermissions([scope.read.organizations]), function(req, r
           isAffiliate = agents.some(a => a.email === req.user.email);
         }
 
-        if (isAffiliate || req.user.user_metadata.isSuper) {
+        if (isAffiliate || req.user.isSuper) {
           // Get all the teams belonging to this organization
           consolidateTeams(agents, organization, req.params.id)
 
@@ -222,7 +222,7 @@ router.put('/:id', checkPermissions([scope.update.organizations]), function(req,
 
         // Anticipating multiple organizers... right now, there should only be one per organization
         let organizerIndex = organizers.findIndex(o => o.email === req.user.email);
-        if (organizerIndex < 0 && !req.user.user_metadata.isSuper) {
+        if (organizerIndex < 0 && !req.user.isSuper) {
           return res.status(403).json({ message: 'You are not an organizer' });
         }
         else {
@@ -308,7 +308,7 @@ const patchOrg = function(req, res, next) {
     const memberIdIndex = members.indexOf(req.agent.id);
 
     // Super agent gets all-access pass
-    if (!req.agent.isSuper) {
+    if (!req.user.isSuper) {
       // Make sure agent is a member
       if (memberIdIndex < 0) {
         return res.status(403).json( { message: 'You are not a member of this organization' });
@@ -431,7 +431,7 @@ router.delete('/:id', checkPermissions([scope.delete.organizations]), function(r
 
       // For the moment, there is only one organizer
       if (organizers.length) {
-        if (organizers[0].email !== req.user.email && !req.user.user_metadata.isSuper) {
+        if (organizers[0].email !== req.user.email && !req.user.isSuper) {
           return res.status(403).json({ message: 'You are not the organizer' });
         }
 
@@ -474,7 +474,7 @@ router.put('/:id/agent', checkPermissions([scope.create.organizationMembers]), f
       return res.status(404).json( { message: 'No such organization' });
     }
 
-    if (!req.agent.isSuper && !organization.members.map(member => member.id).includes(req.agent.id)) {
+    if (!req.user.isSuper && !organization.members.map(member => member.id).includes(req.agent.id)) {
       return res.status(403).json({ message: 'You are not a member of this organization' });
     }
 
@@ -548,7 +548,7 @@ router.delete('/:id/agent/:agentId', checkPermissions([scope.delete.organization
       return res.status(404).json( { message: 'No such organization' });
     }
 
-    if (!req.agent.isSuper && req.agent.email !== organization.creator.email) {
+    if (!req.user.isSuper && req.user.email !== organization.creator.email) {
       return res.status(401).json( { message: 'Unauthorized' });
     }
 

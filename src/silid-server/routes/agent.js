@@ -15,8 +15,8 @@ const getManagementClient = require('../lib/getManagementClient');
 
 /* GET agent listing. */
 router.get('/admin/:page?/:cached?', checkPermissions(roles.sudo), function(req, res, next) {
-  if (!req.agent.isSuper) {
-    return res.status(403).json( { message: 'Forbidden' });
+  if (!req.user.isSuper) {
+    return res.status(403).json({ message: 'Forbidden' });
   }
 
   let viewCached = false;
@@ -104,6 +104,7 @@ router.get('/', checkPermissions([scope.read.agents]), function(req, res, next) 
     // Read agent's assigned roles
     managementClient = getManagementClient([apiScope.read.users, apiScope.read.roles].join(' '));
     managementClient.getUserRoles({id: agent.user_id}).then(roles => {
+      roles.sort((a, b) => a.name < b.name ? -1 : 1);
 
       const nullsFound = checkForNulls(agent);
       if (nullsFound) {
@@ -171,7 +172,7 @@ router.put('/', checkPermissions([scope.update.agents]), function(req, res, next
       return res.status(404).json({ message: 'No such agent' });
     }
 
-    if (!req.agent.isSuper && req.agent.email !== agent.email) {
+    if (!req.user.isSuper && req.user.email !== agent.email) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
@@ -197,7 +198,7 @@ router.delete('/', checkPermissions([scope.delete.agents]), function(req, res, n
       return res.status(404).json( { message: 'No such agent' });
     }
 
-    if (!req.agent.isSuper && req.agent.email !== agent.email) {
+    if (!req.user.isSuper && req.user.email !== agent.email) {
       return res.status(401).json( { message: 'Unauthorized' });
     }
 

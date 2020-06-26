@@ -4,8 +4,6 @@ const apiScope = require('../../../config/apiPermissions');
 const jwt = require('jsonwebtoken');
 const stubOauthToken =  require('./stubOauthToken');
 
-const _profile = require('../../fixtures/sample-auth0-profile-response');
-
 /**
  * This stubs the Auth0 endpoint that retrieves defined roles
  *
@@ -18,7 +16,6 @@ module.exports = function(roles, done) {
     done = roles;
     roles = null;
   }
-
 
   require('../setupKeystore').then(singleton => {
     let { pub, prv, keystore } = singleton.keyStuff;

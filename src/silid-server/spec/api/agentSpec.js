@@ -202,7 +202,7 @@ describe('agentSpec', () => {
                 });
             });
 
-            it('does not attach isSuper status to a regular agent', done => {
+            it('sets isSuper status to false for a regular agent', done => {
               authenticatedSession
                 .get('/agent')
                 .set('Accept', 'application/json')
@@ -211,7 +211,7 @@ describe('agentSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  expect(res.body.isSuper).toBeUndefined();
+                  expect(res.body.isSuper).toBe(false);
                   done();
                 });
             });
@@ -344,7 +344,7 @@ describe('agentSpec', () => {
                 });
             });
 
-            it('does not attach isSuper status to a regular agent', done => {
+            it('sets isSuper status to false for a regular agent', done => {
               authenticatedSession
                 .get('/agent')
                 .set('Accept', 'application/json')
@@ -353,7 +353,7 @@ describe('agentSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  expect(res.body.isSuper).toBeUndefined();
+                  expect(res.body.isSuper).toBe(false);
                   done();
                 });
             });
