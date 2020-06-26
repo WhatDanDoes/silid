@@ -13,11 +13,12 @@ const assert = require('assert');
  * DRYs out the code.
  */
 function updateDbAndVerify(permissions, req, res, next) {
-  const socialProfile = req.user;
+  const socialProfile = {...req.user};
 
   // Read agent's assigned roles
   let managementClient = getManagementClient([apiScope.read.users, apiScope.read.roles].join(' '));
   managementClient.getUserRoles({id: req.user.user_id}).then(roles => {
+    req.user.roles = roles;
 
     models.Agent.findOne({ where: { email: socialProfile.email } }).then(agent => {
       req.agent = agent;
