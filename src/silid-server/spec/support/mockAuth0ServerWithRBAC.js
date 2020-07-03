@@ -451,6 +451,27 @@ require('../support/setupKeystore').then(keyStuff => {
 
             return h.response(data);
           }
+
+          /**
+           * For retrieving organizations
+           */
+          if (request.query.q && /user_metadata\.organizations\.name/.test(request.query.q)) {
+            const results = await models.Agent.findAll(searchParams);
+
+            // Get organization name from search string
+            const orgName = request.query.q.match(/(?<=(["']\b))(?:(?=(\\?))\2.)*?(?=\1)/)[0];
+
+            let data = results.filter(agent => {
+              if (agent.socialProfile.user_metadata && agent.socialProfile.user_metadata.organizations) {
+                return agent.socialProfile.user_metadata.organizations.find(org => org.name === orgName);
+              }
+              return false;
+            });
+
+            data = data.map(d => ({...d.socialProfile, email: d.socialProfile.email, name: d.socialProfile.name }));
+
+            return h.response(data);
+          }
         }
       });
 
