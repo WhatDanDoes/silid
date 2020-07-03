@@ -394,7 +394,7 @@ const Agent = (props) => {
                 <br />
               </>
             : '' }
-            {agent.roles.find(r => r.name === 'organizer') ?
+            {profileData.roles && profileData.roles.find(r => r.name === 'organizer') ?
               <Grid id="organizations-table" item className={classes.grid}>
                 <MaterialTable
                   title='Organizations'
