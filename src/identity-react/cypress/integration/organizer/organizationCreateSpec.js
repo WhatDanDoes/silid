@@ -183,7 +183,7 @@ context('organizer/Organization creation', function() {
                 cy.get('#organizations-table table tbody:nth-child(2)').find('tr').its('length').should('eq', 2);
               });
 
-              it.only('allows adding multiple organizations whilst navigating', function() {
+              it('allows adding multiple organizations whilst navigating', function() {
                 // 2, because the `add_box` has been clicked and it is a table row.
                 // Also, the 'No records to display' message is in a table row
                 cy.get('#organizations-table table tbody:nth-child(2)').find('tr').its('length').should('eq', 2);
