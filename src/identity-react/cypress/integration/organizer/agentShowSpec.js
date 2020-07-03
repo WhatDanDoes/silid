@@ -19,22 +19,7 @@ context('organizer/Agent show', function() {
 
   let _profile;
   beforeEach(function() {
-    _profile = {
-      ...this.profile,
-      // 2020-7-3 This is a shortcut. Should I have root assign the organizer role?
-//      roles: [
-//        {
-//          "id": "123",
-//          "name": "organizer",
-//          "description": "Manage organizations and team memberships therein"
-//        },
-//        {
-//          "id": "345",
-//          "name": "viewer",
-//          "description": "Basic agent, organization, and team viewing permissions"
-//        }
-//      ]
-    };
+    _profile = { ...this.profile };
   });
 
   afterEach(() => {
