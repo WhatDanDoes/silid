@@ -131,6 +131,38 @@ const Agent = (props) => {
     })
   };
 
+  /**
+   * Create a new organization
+   */
+  const createOrganization = (newData) => {
+    return new Promise((resolve, reject) => {
+//      newData.name = newData.name.trim();
+//      if (!newData.name.length) {
+//        setFlashProps({ message: 'Organization name can\'t be blank', variant: 'error' });
+//        reject();
+//      }
+//      else {
+//        setIsWaiting(true);
+//        publishOrganization(newData).then(profile => {;
+//          if (profile.statusCode) {
+//            setFlashProps({ message: profile.message, variant: 'error' });
+//          }
+//          else if (profile.errors) {
+//            setFlashProps({ errors: profile.errors, variant: 'error' });
+//          }
+//          else {
+//            setProfileData(profile);
+//          }
+          resolve();
+//        }).catch(reject)
+//        .finally(() => {
+//          setIsWaiting(false);
+//        });
+//      }
+    });
+  };
+
+
   return (
     <div className={classes.root}>
       <Grid container direction="column" justify="center" alignItems="center">
@@ -361,6 +393,46 @@ const Agent = (props) => {
                 </Grid>
                 <br />
               </>
+            : '' }
+            {agent.roles.find(r => r.name === 'organizer') ?
+              <Grid id="organizations-table" item className={classes.grid}>
+                <MaterialTable
+                  title='Organizations'
+                  isLoading={isWaiting}
+                  columns={[
+                    {
+                      title: 'Name',
+                      field: 'name',
+                      render: rowData => <Link href={`#organization/${rowData.id}`}>{rowData.name}</Link>,
+                      editComponent: (props) => {
+                        return (
+                          <MTableEditField
+                            autoFocus={true}
+                            type="text"
+                            maxLength="128"
+                            placeholder="Name"
+                            columnDef={props.columnDef}
+                            value={props.value ? props.value : ''}
+                            onChange={value => props.onChange(value) }
+                            onKeyDown={evt => {
+                                if (evt.key === 'Enter') {
+                                  createTeam({ name: evt.target.value });
+                                  props.onChange('');
+                                  return;
+                                }
+                              }
+                            }
+                          />
+                        );
+                      }
+                    },
+                    { title: 'Organizer', field: 'organizer', editable: 'never' }
+                  ]}
+                  data={profileData.user_metadata ? profileData.user_metadata.organizations : []}
+                  options={{ search: false, paging: false }}
+                  editable={ profileData.email === agent.email ? { onRowAdd: createOrganization }: undefined}
+                />
+              </Grid>
             : '' }
             <Grid id="teams-table" item className={classes.grid}>
               <MaterialTable
