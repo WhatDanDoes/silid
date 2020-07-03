@@ -177,12 +177,13 @@ router.post('/', checkPermissions([scope.create.organizations]), function(req, r
       managementClient.updateUser({id: req.user.user_id}, { user_metadata: agent.user_metadata }).then(result => {
         // Auth0 does not return agent scope
         result.scope = req.user.scope;
+        result.roles = req.user.roles;
         // 2020-4-30 https://stackoverflow.com/a/24498660/1356582
         // This updates the agent's session data
         req.login(result, err => {
           if (err) return next(err);
 
-          res.status(201).json(result);
+          res.status(201).json({...result, roles: req.user.roles});
         });
       }).catch(err => {
         res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
