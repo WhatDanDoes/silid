@@ -183,71 +183,71 @@ context('organizer/Organization creation', function() {
                 cy.get('#organizations-table table tbody:nth-child(2)').find('tr').its('length').should('eq', 2);
               });
 
-//              it('allows adding multiple organizations whilst navigating', function() {
-//                // 2, because the `add_box` has been clicked and it is a table row.
-//                // Also, the 'No records to display' message is in a table row
-//                cy.get('#organizations-table table tbody:nth-child(2)').find('tr').its('length').should('eq', 2);
-//
-//                cy.get('#organizations-table table tbody tr td div div input[placeholder="Name"]').type('The Mike Tyson Mystery Team');
-//                cy.get('#organizations-table table tbody tr td div button[title="Save"]').click();
-//                cy.wait(300);
-//                cy.get('#organizations-table table tbody tr td').contains('The Mike Tyson Mystery Team');
-//                cy.get('#organizations-table table tbody tr td').contains(_profile.email);
-//
-//                // 1, because the message is replaced by a organization and the add-organization-form is hidden
-//                cy.get('#organizations-table table tbody:nth-child(2)').find('tr').its('length').should('eq', 1);
-//
-//                // Navigate to the newly created organization
-//                cy.contains('The Mike Tyson Mystery Team').click();
-//                cy.wait(300);
-//                cy.go('back');
-//                cy.wait(300);
-//
-//                cy.get('#organizations-table button span span').contains('add_box').click();
-//                cy.get('#organizations-table table tbody tr td div div input[placeholder="Name"]').type('Mystery Incorporated');
-//                cy.get('#organizations-table table tbody tr td div button[title="Save"]').click();
-//                cy.wait(300);
-//                cy.get('#organizations-table table tbody tr td').contains('Mystery Incorporated');
-//                cy.get('#organizations-table table tbody tr td').contains(_profile.email);
-//
-//                cy.get('#organizations-table table tbody:nth-child(2)').find('tr').its('length').should('eq', 2);
-//              });
-//
-//              it('displays progress spinner', () => {
-//                cy.on('window:confirm', (str) => {
-//                  return true;
-//                });
-//                cy.get('div[role="progressbar"] svg circle').should('not.exist');
-//
-//                cy.get('#organizations-table table tbody tr td div div input[placeholder="Name"]').type('The Mike Tyson Mystery Team');
-//                cy.get('#organizations-table table tbody tr td div button[title="Save"]').click();
-//
-//                // 2020-5-26
-//                // Cypress goes too fast for this. Cypress also cannot intercept
-//                // native `fetch` calls to allow stubbing and delaying the route.
-//                // Shamefully, this is currently manually tested, though I suspect
-//                // I will use this opportunity to learn Jest
-//                // Despite its name, this test really ensures the spinner disappears
-//                // after all is said and done
-//                //cy.get('div[role="progressbar"] svg circle').should('exist');
-//                cy.wait(100);
-//                cy.get('div[role="progressbar"] svg circle').should('not.exist');
-//              });
-//
-//              describe('executes organization creation with Enter key', () => {
-//                it('updates the record on the interface', function() {
-//                  cy.get('#organizations-table table tbody tr td div div input[placeholder="Name"]').type('The Mike Tyson Mystery Team{enter}');
-//                  cy.wait(300);
-//                  cy.get('#organizations-table table tbody tr td').contains('The Mike Tyson Mystery Team');
-//                  cy.get('#organizations-table table tbody tr td').contains(_profile.email);
-//                });
-//
-//                it('clears input field', () => {
-//                  cy.get('#organizations-table table tbody tr td div div input[placeholder="Name"]').type('Mystery Incorporated{enter}');
-//                  cy.wait(300);
-//                  cy.get('#organizations-table table tbody tr td div div input[placeholder="Name"]').should('have.value', '');
-//                });
-//              });
+              it('allows adding multiple organizations whilst navigating', function() {
+                // 2, because the `add_box` has been clicked and it is a table row.
+                // Also, the 'No records to display' message is in a table row
+                cy.get('#organizations-table table tbody:nth-child(2)').find('tr').its('length').should('eq', 2);
+
+                cy.get('#organizations-table table tbody tr td div div input[placeholder="Name"]').type('The Mike Tyson Mystery Team');
+                cy.get('#organizations-table table tbody tr td div button[title="Save"]').click();
+                cy.wait(300);
+                cy.get('#organizations-table table tbody tr td').contains('The Mike Tyson Mystery Team');
+                cy.get('#organizations-table table tbody tr td').contains(_profile.email);
+
+                // 1, because the message is replaced by a organization and the add-organization-form is hidden
+                cy.get('#organizations-table table tbody:nth-child(2)').find('tr').its('length').should('eq', 1);
+
+                // Navigate to the newly created organization
+                cy.contains('The Mike Tyson Mystery Team').click();
+                cy.wait(300);
+                cy.go('back');
+                cy.wait(300);
+
+                cy.get('#organizations-table button span span').contains('add_box').click();
+                cy.get('#organizations-table table tbody tr td div div input[placeholder="Name"]').type('Mystery Incorporated');
+                cy.get('#organizations-table table tbody tr td div button[title="Save"]').click();
+                cy.wait(300);
+                cy.get('#organizations-table table tbody tr td').contains('Mystery Incorporated');
+                cy.get('#organizations-table table tbody tr td').contains(_profile.email);
+
+                cy.get('#organizations-table table tbody:nth-child(2)').find('tr').its('length').should('eq', 2);
+              });
+
+              it('displays progress spinner', () => {
+                cy.on('window:confirm', (str) => {
+                  return true;
+                });
+                cy.get('div[role="progressbar"] svg circle').should('not.exist');
+
+                cy.get('#organizations-table table tbody tr td div div input[placeholder="Name"]').type('The Mike Tyson Mystery Team');
+                cy.get('#organizations-table table tbody tr td div button[title="Save"]').click();
+
+                // 2020-5-26
+                // Cypress goes too fast for this. Cypress also cannot intercept
+                // native `fetch` calls to allow stubbing and delaying the route.
+                // Shamefully, this is currently manually tested, though I suspect
+                // I will use this opportunity to learn Jest
+                // Despite its name, this test really ensures the spinner disappears
+                // after all is said and done
+                //cy.get('div[role="progressbar"] svg circle').should('exist');
+                cy.wait(100);
+                cy.get('div[role="progressbar"] svg circle').should('not.exist');
+              });
+
+              describe('executes organization creation with Enter key', () => {
+                it('updates the record on the interface', () => {
+                  cy.get('#organizations-table table tbody tr td div div input[placeholder="Name"]').type('The Mike Tyson Mystery Team{enter}');
+                  cy.wait(300);
+                  cy.get('#organizations-table table tbody tr td').contains('The Mike Tyson Mystery Team');
+                  cy.get('#organizations-table table tbody tr td').contains(_profile.email);
+                });
+
+                it('clears input field', () => {
+                  cy.get('#organizations-table table tbody tr td div div input[placeholder="Name"]').type('Mystery Incorporated{enter}');
+                  cy.wait(300);
+                  cy.get('#organizations-table table tbody tr td div div input[placeholder="Name"]').should('have.value', '');
+                });
+              });
             });
           });
         });
