@@ -416,7 +416,7 @@ const Agent = (props) => {
                             onChange={value => props.onChange(value) }
                             onKeyDown={evt => {
                                 if (evt.key === 'Enter') {
-                                  createTeam({ name: evt.target.value });
+                                  createOrganization({ name: evt.target.value });
                                   props.onChange('');
                                   return;
                                 }
