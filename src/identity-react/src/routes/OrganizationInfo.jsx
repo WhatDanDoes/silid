@@ -28,14 +28,14 @@ import Link from '@material-ui/core/Link';
 //import GroupIcon from '@material-ui/icons/Group';
 import Button from '@material-ui/core/Button';
 //import List from '@material-ui/core/List';
-import ListItem from '@material-ui/core/ListItem';
+//import ListItem from '@material-ui/core/ListItem';
 //import ListItemIcon from '@material-ui/core/ListItemIcon';
 //import ListItemText from '@material-ui/core/ListItemText';
 //import DeleteForeverOutlinedIcon from '@material-ui/icons/DeleteForeverOutlined';
 //import InboxIcon from '@material-ui/icons/MoveToInbox';
 //import { Organization } from '../types/Organization';
 import Flash from '../components/Flash';
-import TeamCreateForm from '../components/TeamCreateForm';
+//import TeamCreateForm from '../components/TeamCreateForm';
 import { useAuthState } from '../auth/Auth';
 import { useAdminState } from '../auth/Admin';
 
@@ -80,8 +80,8 @@ const OrganizationInfo = (props) => {
 
   const [prevInputState, setPrevInputState] = useState({});
 
-  const [teamFormVisible, setTeamFormVisible] = useState(false);
-  const [editFormVisible, setEditFormVisible] = useState(false);
+//  const [teamFormVisible, setTeamFormVisible] = useState(false);
+//  const [editFormVisible, setEditFormVisible] = useState(false);
   const [agentFormVisible, setAgentFormVisible] = useState(false);
   const [prevState, setPrevState] = useState({});
   const [toOrganization, setToOrganization] = useState(false);
@@ -230,24 +230,24 @@ const OrganizationInfo = (props) => {
   }
 
 
-  const customMessage = (evt) => {
-    evt.target.setCustomValidity(`${evt.target.name} required`);
-  }
+//  const customMessage = (evt) => {
+//    evt.target.setCustomValidity(`${evt.target.name} required`);
+//  }
 
-  const onChange = (evt) => {
-    if (!prevState[evt.target.name]) {
-      const s = { ...prevState};
-      s[evt.target.name] = orgInfo[evt.target.name];
-      setPrevState(s);
-    }
-    const f = { ...orgInfo };
-    f[evt.target.name] = evt.target.value.trimLeft();
-    setOrgInfo(f);
-  }
+//  const onChange = (evt) => {
+//    if (!prevState[evt.target.name]) {
+//      const s = { ...prevState};
+//      s[evt.target.name] = orgInfo[evt.target.name];
+//      setPrevState(s);
+//    }
+//    const f = { ...orgInfo };
+//    f[evt.target.name] = evt.target.value.trimLeft();
+//    setOrgInfo(f);
+//  }
 
-  function ListItemLink(props) {
-    return <ListItem className='list-item' button component="a" {...props} />;
-  }
+//  function ListItemLink(props) {
+//    return <ListItem className='list-item' button component="a" {...props} />;
+//  }
 
   /**
    * Redirect to `/organization` when this org is deleted
@@ -345,7 +345,7 @@ const OrganizationInfo = (props) => {
                         { Object.keys(prevInputState).length ?
                           <>
                             <TableCell align="right">
-                              <Button id="cancel-team-changes" variant="contained" color="secondary"
+                              <Button id="cancel-org-changes" variant="contained" color="secondary"
                                       onClick={e => {
                                         setOrgInfo({ ...orgInfo, ...prevInputState });
                                         setPrevInputState({});
@@ -355,14 +355,14 @@ const OrganizationInfo = (props) => {
                               </Button>
                             </TableCell>
                             <TableCell align="left">
-                              <Button id="save-team" variant="contained" color="primary" onClick={handleUpdate}>
+                              <Button id="save-org" variant="contained" color="primary" onClick={handleUpdate}>
                                 Save
                               </Button>
                             </TableCell>
                           </>
                         :
                           <TableCell align="left">
-                            <Button id="delete-team" variant="contained" color="secondary" onClick={handleDelete}>
+                            <Button id="delete-org" variant="contained" color="secondary" onClick={handleDelete}>
                               Delete
                             </Button>
                           </TableCell>
