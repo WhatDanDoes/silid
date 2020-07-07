@@ -213,7 +213,7 @@ const TeamInfo = (props) => {
                   <TableBody>
                     <TableRow>
                       <TableCell align="right" component="th" scope="row">Name:</TableCell>
-                      <TableCell  lign="left">
+                      <TableCell align="left">
                         <input id="team-name-field" value={teamInfo.name || ''} disabled={agent.email !== teamInfo.leader && !admin.isEnabled}
                           onChange={e => {
                               if (!prevInputState.name) {
@@ -228,6 +228,14 @@ const TeamInfo = (props) => {
                       <TableCell align="right" component="th" scope="row">Email:</TableCell>
                       <TableCell align="left">{teamInfo.leader}</TableCell>
                     </TableRow>
+                    { teamInfo.organization && (
+                      <TableRow>
+                        <TableCell align="right" component="th" scope="row">Organization:</TableCell>
+                        <TableCell align="left">
+                          <Link href={`#organization/${teamInfo.organization.id}`}>{teamInfo.organization.name}</Link>
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </TableContainer>
