@@ -9,17 +9,16 @@ const useDeleteOrganizationService = () => {
     status: 'init',
   });
 
-  const deleteOrganization = (organization: any) => {
+  const deleteOrganization = (id) => {
     setService({ status: 'loading' });
 
     const headers = new Headers();
     headers.append('Content-Type', 'application/json; charset=utf-8');
 
     return new Promise((resolve, reject) => {
-      fetch('/organization',
+      fetch(`/organization/${id}`,
         {
           method: 'DELETE',
-          body: JSON.stringify(organization),
           headers,
         }
       )

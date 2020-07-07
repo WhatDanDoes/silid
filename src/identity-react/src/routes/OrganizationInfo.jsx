@@ -84,7 +84,8 @@ const OrganizationInfo = (props) => {
 //  const [editFormVisible, setEditFormVisible] = useState(false);
   const [agentFormVisible, setAgentFormVisible] = useState(false);
   const [prevState, setPrevState] = useState({});
-  const [toOrganization, setToOrganization] = useState(false);
+  //const [toOrganization, setToOrganization] = useState(false);
+  const [toAgent, setToAgent] = useState(false);
   const [flashProps, setFlashProps] = useState({});
   const [isWaiting, setIsWaiting] = useState(false);
 
@@ -157,12 +158,13 @@ const OrganizationInfo = (props) => {
    * Remove this organization
    */
   const handleDelete = (evt) => {
-    if (orgInfo.members.length > 1 || orgInfo.teams.length) {
-      return window.alert('Remove all members and teams before deleting organization');
+    if (orgInfo.teams.length) {
+      return window.alert('Remove all member teams before deleting the organization');
     }
     if (window.confirm('Are you sure you want to delete this organization?')) {
-      deleteOrganization({id: orgInfo.id}).then(results => {
-        setToOrganization(true);
+      deleteOrganization(orgInfo.id).then(results => {
+        //setToOrganization(true);
+        setToAgent(true);
       });
     }
   }
@@ -252,9 +254,22 @@ const OrganizationInfo = (props) => {
   /**
    * Redirect to `/organization` when this org is deleted
    */
-  if (toOrganization) {
-    return <Redirect to={{ pathname: '/organization', state: 'Organization deleted' }} />
+//  if (toOrganization) {
+//    return <Redirect to={{ pathname: '/organization', state: 'Organization deleted' }} />
+//  }
+
+  /**
+   * Redirect to `/agent` when this team is deleted
+   */
+  if (toAgent) {
+//    if (orgInfo.organizer === agent.email) {
+      return <Redirect to={{ pathname: `/agent`, state: 'Organization deleted' }} />
+//    }
+//    const organizer = orgInfo.members.find(m => m.email === orgInfo.organizer);
+//    return <Redirect to={{ pathname: `/agent/${organizer.user_id}`, state: 'Organization deleted' }} />
   }
+
+
 
   /**
    * Invite team to join the organization
