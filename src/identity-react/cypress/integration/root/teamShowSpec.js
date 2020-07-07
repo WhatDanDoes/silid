@@ -90,6 +90,7 @@ context('root/Team show', function() {
           });
 
           it('displays common Team interface elements', () => {
+            cy.get('#team-profile-info tbody').find('tr').its('length').should('eq', 2);
             cy.get('#team-profile-info tbody tr td input#team-name-field').should('have.value', 'The Calgary Roughnecks');
             cy.get('#team-profile-info tbody tr td').contains(regularAgent.email);
             cy.get('button#delete-team').should('exist');
@@ -163,6 +164,7 @@ context('root/Team show', function() {
           });
 
           it('displays common Team interface elements', () => {
+            cy.get('#team-profile-info tbody').find('tr').its('length').should('eq', 2);
             cy.get('#team-profile-info tbody tr td input#team-name-field').should('have.value', 'The Calgary Roughnecks');
             cy.get('#team-profile-info tbody tr td').contains(regularAgent.email);
             cy.get('button#delete-team').should('exist');
@@ -203,6 +205,7 @@ context('root/Team show', function() {
           });
 
           it('displays common Team interface elements', () => {
+            cy.get('#team-profile-info tbody').find('tr').its('length').should('eq', 2);
             cy.get('#team-profile-info tbody tr td input#team-name-field').should('have.value', 'The Calgary Roughnecks');
             cy.get('#team-profile-info tbody tr td').contains(regularAgent.email);
             cy.get('button#delete-team').should('not.exist');

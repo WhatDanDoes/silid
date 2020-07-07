@@ -39,7 +39,7 @@ context('viewer/Team show', function() {
   describe('authenticated', () => {
 
     let agent, anotherAgent, teamId;
-    beforeEach(function() {
+    beforeEach(() => {
       teamId = 'some-uuid-v4';
 
       // Create another team member
@@ -85,7 +85,7 @@ context('viewer/Team show', function() {
 
     context('visit by team creator', () => {
       let team;
-      beforeEach(function() {
+      beforeEach(() => {
         cy.visit('/#/agent');
         cy.wait(300);
         cy.contains('The Calgary Roughnecks').click();
@@ -96,15 +96,16 @@ context('viewer/Team show', function() {
         cy.url().should('contain', `/#/team/${teamId}`);
       });
 
-      it('displays appropriate Team interface elements', function() {
-        cy.get('table tbody tr td input#team-name-field').should('have.value', agent.socialProfile.user_metadata.teams[0].name);
-        cy.get('table tbody tr td').contains(_profile.email);
+      it('displays appropriate Team interface elements', () => {
+        cy.get('#team-profile-info tbody').find('tr').its('length').should('eq', 2);
+        cy.get('#team-profile-info tbody tr td input#team-name-field').should('have.value', agent.socialProfile.user_metadata.teams[0].name);
+        cy.get('#team-profile-info tbody tr td').contains(_profile.email);
         cy.get('button#delete-team').should('exist');
         cy.get('button#save-team').should('not.exist');
         cy.get('button#cancel-team-changes').should('not.exist');
       });
 
-      it('displays team members in a table', function() {
+      it('displays team members in a table', () => {
         cy.get('h6').contains('Members');
         cy.get('table tbody tr td').contains('No records to display').should('not.exist');
         cy.get('button span span').contains('add_box').should('exist');
@@ -124,7 +125,7 @@ context('viewer/Team show', function() {
 
     context('verified team member agent visit', () => {
 
-      beforeEach(function() {
+      beforeEach(() => {
         // Membership established in first `beforeEach`
         cy.login('someotherguy@example.com', {..._profile, name: 'Some Other Guy'});
         cy.contains('The Calgary Roughnecks').click();
@@ -135,32 +136,34 @@ context('viewer/Team show', function() {
         cy.url().should('contain', `/#/team/${teamId}`);
       });
 
-      it('displays appropriate Team interface elements', function() {
-        cy.get('table tbody tr td input#team-name-field').should('have.value', 'The Calgary Roughnecks');
-        cy.get('table tbody tr td input#team-name-field').should('be.disabled');
-        cy.get('table tbody tr td').contains(_profile.email);
+      it('displays appropriate Team interface elements', () => {
+        cy.get('#team-profile-info tbody').find('tr').its('length').should('eq', 2);
+        cy.get('#team-profile-info tbody tr td input#team-name-field').should('have.value', 'The Calgary Roughnecks');
+        cy.get('#team-profile-info tbody tr td input#team-name-field').should('be.disabled');
+        cy.get('#team-profile-info tbody tr td').contains(_profile.email);
         cy.get('button#delete-team').should('not.exist');
         cy.get('button#save-team').should('not.exist');
         cy.get('button#cancel-team-changes').should('not.exist');
       });
 
-      it('displays team members in a table', function() {
+      it('displays team members in a table', () => {
         cy.get('h6').contains('Members');
-        cy.get('table tbody tr td').contains('No records to display').should('not.exist');
-        cy.get('table tbody tr td input#team-name-field').should('have.value', agent.socialProfile.user_metadata.teams[0].name);
+        cy.get('#team-profile-info tbody').find('tr').its('length').should('eq', 2);
+        cy.get('#team-profile-info tbody tr td').contains('No records to display').should('not.exist');
+        cy.get('#team-profile-info tbody tr td input#team-name-field').should('have.value', agent.socialProfile.user_metadata.teams[0].name);
 
         // 2020-5-5 Why doesn't this work?
         // cy.get('button span span').contains('add_box').should('not.exist');
-        cy.get('button span span').should('not.exist');
+        cy.get('#members-table button span span').should('not.exist');
 
-        cy.get('table thead tr th').contains('Name');
-        cy.get('table thead tr th').contains('Email');
-        cy.get('table tbody tr:nth-of-type(1) button[title=Delete]').should('not.exist');
-        cy.get('table tbody tr:nth-of-type(1) td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
-        cy.get('table tbody tr:nth-of-type(1) td').contains(agent.socialProfile.user_metadata.teams[0].leader);
-        cy.get('table tbody tr:nth-of-type(2) button[title=Delete]').should('not.exist');
-        cy.get('table tbody tr:nth-of-type(2) td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${anotherAgent.socialProfile.user_id}`);
-        cy.get('table tbody tr:nth-of-type(2) td').contains(anotherAgent.socialProfile.email);
+        cy.get('#members-table table thead tr th').contains('Name');
+        cy.get('#members-table table thead tr th').contains('Email');
+        cy.get('#members-table table tbody tr:nth-of-type(1) button[title=Delete]').should('not.exist');
+        cy.get('#members-table table tbody tr:nth-of-type(1) td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
+        cy.get('#members-table table tbody tr:nth-of-type(1) td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+        cy.get('#members-table table tbody tr:nth-of-type(2) button[title=Delete]').should('not.exist');
+        cy.get('#members-table table tbody tr:nth-of-type(2) td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${anotherAgent.socialProfile.user_id}`);
+        cy.get('#members-table table tbody tr:nth-of-type(2) td').contains(anotherAgent.socialProfile.email);
       });
     });
 
