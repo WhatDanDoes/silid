@@ -109,9 +109,9 @@ context('organizer/Organization show', function() {
         cy.get('h3').contains('Organization');
         cy.get('#org-profile-info tbody tr td input#org-name-field').should('have.value', agent.socialProfile.user_metadata.organizations[0].name);
         cy.get('#org-profile-info tbody tr td').contains(_profile.email);
-        cy.get('button#delete-team').should('exist');
-        cy.get('button#save-team').should('not.exist');
-        cy.get('button#cancel-team-changes').should('not.exist');
+        cy.get('button#delete-org').should('exist');
+        cy.get('button#save-org').should('not.exist');
+        cy.get('button#cancel-org-changes').should('not.exist');
       });
 
       it('displays member teams in a table', () => {
