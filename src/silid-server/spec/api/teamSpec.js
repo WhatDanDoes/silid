@@ -11,6 +11,7 @@ const stubUserRolesRead = require('../support/auth0Endpoints/stubUserRolesRead')
 const stubUserAppMetadataRead = require('../support/auth0Endpoints/stubUserAppMetadataRead');
 const stubUserAppMetadataUpdate = require('../support/auth0Endpoints/stubUserAppMetadataUpdate');
 const stubTeamRead = require('../support/auth0Endpoints/stubTeamRead');
+const stubOrganizationRead = require('../support/auth0Endpoints/stubOrganizationRead');
 const mailer = require('../../mailer');
 const scope = require('../../config/permissions');
 const apiScope = require('../../config/apiPermissions');
@@ -307,82 +308,53 @@ describe('teamSpec', () => {
       describe('read', () => {
 
         describe('GET /team/:id', () => {
-          let teamId;
-          beforeEach(done => {
-            teamId = uuid.v4();
 
-            _profile.user_metadata = { teams: [{ name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId }] };
-            stubAuth0ManagementApi((err, apiScopes) => {
-              if (err) return done.fail();
+          let teamId, userReadScope, organizationReadScope, organizationReadOauthTokenScope, teamReadScope, teamReadOauthTokenScope;
 
-              login(_identity, [scope.create.teams], (err, session) => {
+          describe('with no organizational affiliation', () => {
+            let teamId;
+            beforeEach(done => {
+              teamId = uuid.v4();
 
-                if (err) return done.fail(err);
-                authenticatedSession = session;
+              _profile.user_metadata = { teams: [{ name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId }] };
+              stubAuth0ManagementApi((err, apiScopes) => {
+                if (err) return done.fail();
 
-                // Cached profile doesn't match "live" data, so agent needs to be updated
-                // with a call to Auth0
-                stubUserRead((err, apiScopes) => {
-                  if (err) return done.fail();
+                login(_identity, [scope.create.teams], (err, session) => {
 
-                  stubTeamRead([_profile,
-                                {..._profile,
-                                  name: 'A Aaronson',
-                                  email: 'aaaronson@example.com',
-                                  user_id: _profile.user_id + 1,
-                                  user_metadata: {
-                                    teams: [{ name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId }]
-                                  }
-                                }], (err, apiScopes) => {
+                  if (err) return done.fail(err);
+                  authenticatedSession = session;
+
+                  // Cached profile doesn't match "live" data, so agent needs to be updated
+                  // with a call to Auth0
+                  stubUserRead((err, apiScopes) => {
                     if (err) return done.fail();
-                    ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
 
-                    stubUserAppMetadataUpdate((err, apiScopes) => {
+                    stubTeamRead([_profile,
+                                  {..._profile,
+                                    name: 'A Aaronson',
+                                    email: 'aaaronson@example.com',
+                                    user_id: _profile.user_id + 1,
+                                    user_metadata: {
+                                      teams: [{ name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId }]
+                                    }
+                                  }], (err, apiScopes) => {
                       if (err) return done.fail();
-                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                      done();
+                      ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
+
+                      stubOrganizationRead((err, apiScopes) => {
+                        if (err) return done.fail();
+                        ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
+
+                        done();
+                      });
                     });
                   });
                 });
               });
             });
-          });
 
-          it('collates agent data into team data', done => {
-            authenticatedSession
-              .get(`/team/${teamId}`)
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(200)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-                expect(res.body.name).toEqual('The Calgary Roughnecks');
-                expect(res.body.leader).toEqual(_profile.email);
-                expect(res.body.id).toEqual(teamId);
-                // Alphabetical according to name
-                expect(res.body.members.length).toEqual(2);
-                expect(res.body.members[0]).toEqual({ name: 'A Aaronson', email: 'aaaronson@example.com', user_id: _profile.user_id + 1 });
-                expect(res.body.members[1]).toEqual({ name: _profile.name, email: _profile.email, user_id: _profile.user_id });
-
-                done();
-              });
-          });
-
-          it('doesn\'t barf if record doesn\'t exist', done => {
-            authenticatedSession
-              .get('/team/33')
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(404)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-                expect(res.body.message).toEqual('No such team');
-                done();
-              });
-          });
-
-          describe('Auth0', () => {
-            it('calls /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
+            it('collates agent data into team data', done => {
               authenticatedSession
                 .get(`/team/${teamId}`)
                 .set('Accept', 'application/json')
@@ -390,12 +362,119 @@ describe('teamSpec', () => {
                 .expect(200)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
-                  expect(teamReadOauthTokenScope.isDone()).toBe(true);
+                  expect(res.body.name).toEqual('The Calgary Roughnecks');
+                  expect(res.body.leader).toEqual(_profile.email);
+                  expect(res.body.id).toEqual(teamId);
+                  // Alphabetical according to name
+                  expect(res.body.members.length).toEqual(2);
+                  expect(res.body.members[0]).toEqual({ name: 'A Aaronson', email: 'aaaronson@example.com', user_id: _profile.user_id + 1 });
+                  expect(res.body.members[1]).toEqual({ name: _profile.name, email: _profile.email, user_id: _profile.user_id });
+
                   done();
                 });
             });
 
-            it('calls Auth0 to retrieve the team data', done => {
+            it('doesn\'t barf if record doesn\'t exist', done => {
+              authenticatedSession
+                .get('/team/33')
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(404)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+                  expect(res.body.message).toEqual('No such team');
+                  done();
+                });
+            });
+
+            describe('Auth0', () => {
+              it('is called to retrieve the team data', done => {
+                authenticatedSession
+                  .get(`/team/${teamId}`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(200)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+                    expect(teamReadOauthTokenScope.isDone()).toBe(true);
+                    expect(teamReadScope.isDone()).toBe(true);
+                    done();
+                  });
+              });
+
+              it('is not called to retrieve parent organization data (because it doesn\'t exist)', done => {
+                authenticatedSession
+                  .get(`/team/${teamId}`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(200)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    expect(organizationReadOauthTokenScope.isDone()).toBe(false);
+                    expect(organizationReadScope.isDone()).toBe(false);
+                    done();
+                  });
+              });
+            });
+          });
+
+          describe('with parent organization', () => {
+            let organizationId;
+            beforeEach(done => {
+              teamId = uuid.v4();
+              organizationId = uuid.v4();
+
+              _profile.user_metadata = {
+                teams: [{ name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId, organizationId: organizationId }]
+              };
+
+              stubAuth0ManagementApi((err, apiScopes) => {
+                if (err) return done.fail();
+
+                login(_identity, [scope.create.teams], (err, session) => {
+
+                  if (err) return done.fail(err);
+                  authenticatedSession = session;
+
+                  // Cached profile doesn't match "live" data, so agent needs to be updated
+                  // with a call to Auth0
+                  stubUserRead((err, apiScopes) => {
+                    if (err) return done.fail();
+
+                    stubTeamRead([_profile,
+                                  {..._profile,
+                                    name: 'A Aaronson',
+                                    email: 'aaaronson@example.com',
+                                    user_id: _profile.user_id + 1,
+                                    user_metadata: {
+                                      teams: [{ name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId, organizationId: organizationId }]
+                                    }
+                                  }], (err, apiScopes) => {
+                      if (err) return done.fail();
+                      ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
+
+                      stubOrganizationRead([
+                                            {..._profile,
+                                              name: 'Zelda Zerk',
+                                              email: 'zzerk@example.com',
+                                              user_id: _profile.user_id + 2,
+                                              user_metadata: {
+                                                organizations: [{ name: 'The National Lacrosse League', organizer: 'zzerk@example.com', id: organizationId }],
+                                              }
+                                            }], (err, apiScopes) => {
+                        if (err) return done.fail();
+                        ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
+
+                        done();
+                      });
+                    });
+                  });
+                });
+              });
+            });
+
+            it('attaches organization to collated team data', done => {
               authenticatedSession
                 .get(`/team/${teamId}`)
                 .set('Accept', 'application/json')
@@ -403,10 +482,48 @@ describe('teamSpec', () => {
                 .expect(200)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
+                  expect(res.body.name).toEqual('The Calgary Roughnecks');
+                  expect(res.body.leader).toEqual(_profile.email);
+                  expect(res.body.id).toEqual(teamId);
+                  expect(res.body.organization).toBeDefined();
+                  expect(res.body.organization.name).toEqual('The National Lacrosse League');
+                  expect(res.body.organization.organizer).toEqual('zzerk@example.com');
+                  expect(res.body.organization.id).toEqual(organizationId);
 
-                  expect(teamReadScope.isDone()).toBe(true);
                   done();
                 });
+            });
+
+            describe('Auth0', () => {
+              it('is called to retrieve the team data', done => {
+                authenticatedSession
+                  .get(`/team/${teamId}`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(200)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    expect(teamReadOauthTokenScope.isDone()).toBe(true);
+                    expect(teamReadScope.isDone()).toBe(true);
+                    done();
+                  });
+              });
+
+              it('is called to retrieve parent organization data', done => {
+                authenticatedSession
+                  .get(`/team/${teamId}`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(200)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    expect(organizationReadOauthTokenScope.isDone()).toBe(false);
+                    expect(organizationReadScope.isDone()).toBe(true);
+                    done();
+                  });
+              });
             });
           });
         });
@@ -903,7 +1020,6 @@ describe('teamSpec', () => {
                 done.fail(err);
               });
           });
-
         });
 
 //        describe('PUT', () => {
