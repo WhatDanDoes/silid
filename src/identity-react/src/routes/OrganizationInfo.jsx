@@ -85,7 +85,7 @@ const OrganizationInfo = (props) => {
   const [agentFormVisible, setAgentFormVisible] = useState(false);
   const [prevState, setPrevState] = useState({});
   //const [toOrganization, setToOrganization] = useState(false);
-  const [toAgent, setToAgent] = useState(false);
+  const [toAgent, setToAgent] = useState(null);
   const [flashProps, setFlashProps] = useState({});
   const [isWaiting, setIsWaiting] = useState(false);
 
@@ -163,8 +163,7 @@ const OrganizationInfo = (props) => {
     }
     if (window.confirm('Are you sure you want to delete this organization?')) {
       deleteOrganization(orgInfo.id).then(results => {
-        //setToOrganization(true);
-        setToAgent(true);
+        setToAgent(results.organizerId);
       });
     }
   }
@@ -262,14 +261,11 @@ const OrganizationInfo = (props) => {
    * Redirect to `/agent` when this team is deleted
    */
   if (toAgent) {
-//    if (orgInfo.organizer === agent.email) {
+    if (orgInfo.organizer === agent.email) {
       return <Redirect to={{ pathname: `/agent`, state: 'Organization deleted' }} />
-//    }
-//    const organizer = orgInfo.members.find(m => m.email === orgInfo.organizer);
-//    return <Redirect to={{ pathname: `/agent/${organizer.user_id}`, state: 'Organization deleted' }} />
+    }
+    return <Redirect to={{ pathname: `/agent/${toAgent}`, state: 'Organization deleted' }} />
   }
-
-
 
   /**
    * Invite team to join the organization
