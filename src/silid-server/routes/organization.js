@@ -449,7 +449,7 @@ router.delete('/:id', checkPermissions([scope.delete.organizations]), function(r
 
         // Update the organizer's metadata
         managementClient.updateUser({id: organizers[0].user_id}, { user_metadata: organizers[0].user_metadata }).then(result => {
-          res.status(201).json({ message: 'Organization deleted' });
+          res.status(201).json({ message: 'Organization deleted', organizerId: organizers[0].user_id });
         }).catch(err => {
           res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
         });
