@@ -411,6 +411,27 @@ require('../support/setupKeystore').then(keyStuff => {
           }
 
           /**
+           * For retrieving member teams in an organization
+           */
+          if (request.query.q && /user_metadata\.teams\.organizationId/.test(request.query.q)) {
+            const results = await models.Agent.findAll(searchParams);
+
+            // Get organization ID from search string
+            const orgId = request.query.q.match(/(?<=(["']\b))(?:(?=(\\?))\2.)*?(?=\1)/)[0];
+
+            let data = results.filter(agent => {
+              if (agent.socialProfile.user_metadata && agent.socialProfile.user_metadata.teams) {
+                return agent.socialProfile.user_metadata.teams.find(team => team.organizationId === orgId);
+              }
+              return false;
+            });
+
+            data = data.map(d => ({...d.socialProfile, email: d.socialProfile.email, name: d.socialProfile.name }));
+
+            return h.response(data);
+          }
+
+          /**
            * For retrieving a team leader's pendingInvitations
            */
           if (request.query.q && /user_metadata\.pendingInvitations\.uuid/.test(request.query.q)) {
@@ -443,6 +464,48 @@ require('../support/setupKeystore').then(keyStuff => {
             let data = results.filter(agent => {
               if (agent.socialProfile.user_metadata && agent.socialProfile.user_metadata.rsvps) {
                 return agent.socialProfile.user_metadata.rsvps.find(rsvp => rsvp.uuid === teamId);
+              }
+              return false;
+            });
+
+            data = data.map(d => ({...d.socialProfile, email: d.socialProfile.email, name: d.socialProfile.name }));
+
+            return h.response(data);
+          }
+
+          /**
+           * For retrieving organizations
+           */
+          if (request.query.q && /user_metadata\.organizations\.name/.test(request.query.q)) {
+            const results = await models.Agent.findAll(searchParams);
+
+            // Get organization name from search string
+            const orgName = request.query.q.match(/(?<=(["']\b))(?:(?=(\\?))\2.)*?(?=\1)/)[0];
+
+            let data = results.filter(agent => {
+              if (agent.socialProfile.user_metadata && agent.socialProfile.user_metadata.organizations) {
+                return agent.socialProfile.user_metadata.organizations.find(org => org.name === orgName);
+              }
+              return false;
+            });
+
+            data = data.map(d => ({...d.socialProfile, email: d.socialProfile.email, name: d.socialProfile.name }));
+
+            return h.response(data);
+          }
+
+          /**
+           * For retrieving organizers (i.e., those who organize organizations)
+           */
+          if (request.query.q && /user_metadata\.organizations\.id/.test(request.query.q)) {
+            const results = await models.Agent.findAll(searchParams);
+
+            // Get organization ID from search string
+            const orgId = request.query.q.match(/(?<=(["']\b))(?:(?=(\\?))\2.)*?(?=\1)/)[0];
+
+            let data = results.filter(agent => {
+              if (agent.socialProfile.user_metadata && agent.socialProfile.user_metadata.organizations) {
+                return agent.socialProfile.user_metadata.organizations.find(org => org.id === orgId);
               }
               return false;
             });

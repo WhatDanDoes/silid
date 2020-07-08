@@ -1,4 +1,4 @@
-context('viewer/Agent Index', function() {
+context('organizer/Agent Index', function() {
 
   before(function() {
     cy.fixture('google-profile-response.json').as('profile');
@@ -7,7 +7,22 @@ context('viewer/Agent Index', function() {
 
   let _profile;
   beforeEach(function() {
-    _profile = {...this.profile};
+    _profile = {
+      ...this.profile,
+      // 2020-7-3 This is a shortcut. Should I have root assign the organizer role?
+      roles: [
+        {
+          "id": "123",
+          "name": "organizer",
+          "description": "Manage organizations and team memberships therein"
+        },
+        {
+          "id": "345",
+          "name": "viewer",
+          "description": "Basic agent, organization, and team viewing permissions"
+        }
+      ]
+    };
   });
 
   afterEach(() => {
@@ -39,7 +54,7 @@ context('viewer/Agent Index', function() {
   describe('authenticated', () => {
 
     context('first visit', () => {
-      beforeEach(function() {
+      beforeEach(() => {
         cy.login(_profile.email, _profile);
       });
 
@@ -56,12 +71,53 @@ context('viewer/Agent Index', function() {
           cy.get('#profile-table table tbody tr td').contains(this.profile.email);
           cy.get('#profile-table table tbody tr th').contains('Locale:');
           cy.get('#profile-table table tbody tr td').contains(this.profile.locale);
+          cy.get('#profile-table table tbody tr th').contains('Roles:');
+          cy.get('#profile-table table tbody tr ul li').its('length').should('eq', 2);
+          cy.get('#profile-table table tbody tr ul li:first-of-type').contains('organizer');
+          cy.get('#profile-table table tbody tr ul li:last-of-type').contains('viewer');
+          cy.get('#profile-table table tbody tr ul li #assign-role').should('not.exist');
         });
       });
 
       describe('organizations', () => {
-        it('does not display the organizations table', () => {
-          cy.get('#organizations-table').should('not.exist');
+        describe('none created', () => {
+          it('displays organizations table', () => {
+            cy.get('#organizations-table h6').contains('Organizations');
+            cy.get('#organizations-table table tbody tr td').contains('No records to display');
+          });
+        });
+
+        describe('some created', () => {
+          let agent;
+          beforeEach(() => {
+            cy.login(_profile.email, {..._profile, user_metadata: {
+                                                     organizations: [
+                                                       {
+                                                         id: 'some-uuid-v4',
+                                                         name: 'The National Lacrosse League',
+                                                         organizer: 'someguy@example.com',
+                                                       }
+                                                     ]
+                                                   } });
+
+            cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
+              agent = results[0];
+              cy.reload(true);
+              cy.wait(300);
+            });
+          });
+
+          it('displays organizations in a table', () => {
+            cy.get('#organizations-table h6').contains('Organizations');
+            cy.get('#organizations-table table tbody tr td').contains('No records to display').should('not.exist');
+            cy.get('#organizations-table button span span').contains('add_box');
+            cy.get('#organizations-table table thead tr th').contains('Name');
+            cy.get('#organizations-table table tbody tr td').contains(agent.socialProfile.user_metadata.organizations[0].name);
+            cy.get('#organizations-table table tbody tr td a').should('contain', agent.socialProfile.user_metadata.organizations[0].name).
+              and('have.attr', 'href').and('equal', `#organization/${agent.socialProfile.user_metadata.organizations[0].id}`);
+            cy.get('#organizations-table table thead tr th').contains('Organizer');
+            cy.get('#organizations-table table tbody tr td').contains(agent.socialProfile.user_metadata.organizations[0].organizer);
+          });
         });
       });
 
@@ -82,7 +138,6 @@ context('viewer/Agent Index', function() {
                                                          id: 'some-uuid-v4',
                                                          name: 'The Calgary Roughnecks',
                                                          leader: 'someguy@example.com',
-                                                         members: ['someguy@example.com']
                                                        }
                                                      ]
                                                    } });

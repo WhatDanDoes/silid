@@ -27,6 +27,7 @@ import MaterialTable, { MTableEditField } from 'material-table';
 import useGetAgentService from '../services/useGetAgentService';
 import usePostTeamService from '../services/usePostTeamService';
 import useGetTeamInviteActionService from '../services/useGetTeamInviteActionService';
+import usePostOrganizationService from '../services/usePostOrganizationService';
 
 const useStyles = makeStyles(theme =>
   createStyles({
@@ -91,6 +92,7 @@ const Agent = (props) => {
   const classes = useStyles();
   const service = useGetAgentService(props.match.params.id, admin.viewingCached);
   const { publishTeam } = usePostTeamService();
+  const { publishOrganization } = usePostOrganizationService();
   const { respondToTeamInvitation } = useGetTeamInviteActionService();
 
   useEffect(() => {
@@ -98,7 +100,6 @@ const Agent = (props) => {
       setProfileData(service.payload);
     }
   }, [service]);
-
 
   /**
    * Create a new team
@@ -129,6 +130,37 @@ const Agent = (props) => {
         });
       }
     })
+  };
+
+  /**
+   * Create a new organization
+   */
+  const createOrganization = (newData) => {
+    return new Promise((resolve, reject) => {
+      newData.name = newData.name.trim();
+      if (!newData.name.length) {
+        setFlashProps({ message: 'Organization name can\'t be blank', variant: 'error' });
+        reject();
+      }
+      else {
+        setIsWaiting(true);
+        publishOrganization(newData).then(profile => {;
+          if (profile.statusCode) {
+            setFlashProps({ message: profile.message, variant: 'error' });
+          }
+          else if (profile.errors) {
+            setFlashProps({ errors: profile.errors, variant: 'error' });
+          }
+          else {
+            setProfileData(profile);
+          }
+          resolve();
+        }).catch(reject)
+        .finally(() => {
+          setIsWaiting(false);
+        });
+      }
+    });
   };
 
   return (
@@ -361,6 +393,46 @@ const Agent = (props) => {
                 </Grid>
                 <br />
               </>
+            : '' }
+            {profileData.roles && profileData.roles.find(r => r.name === 'organizer') ?
+              <Grid id="organizations-table" item className={classes.grid}>
+                <MaterialTable
+                  title='Organizations'
+                  isLoading={isWaiting}
+                  columns={[
+                    {
+                      title: 'Name',
+                      field: 'name',
+                      render: rowData => <Link href={`#organization/${rowData.id}`}>{rowData.name}</Link>,
+                      editComponent: (props) => {
+                        return (
+                          <MTableEditField
+                            autoFocus={true}
+                            type="text"
+                            maxLength="128"
+                            placeholder="Name"
+                            columnDef={props.columnDef}
+                            value={props.value ? props.value : ''}
+                            onChange={value => props.onChange(value) }
+                            onKeyDown={evt => {
+                                if (evt.key === 'Enter') {
+                                  createOrganization({ name: evt.target.value });
+                                  props.onChange('');
+                                  return;
+                                }
+                              }
+                            }
+                          />
+                        );
+                      }
+                    },
+                    { title: 'Organizer', field: 'organizer', editable: 'never' }
+                  ]}
+                  data={profileData.user_metadata ? profileData.user_metadata.organizations : []}
+                  options={{ search: false, paging: false }}
+                  editable={ profileData.email === agent.email ? { onRowAdd: createOrganization }: undefined}
+                />
+              </Grid>
             : '' }
             <Grid id="teams-table" item className={classes.grid}>
               <MaterialTable

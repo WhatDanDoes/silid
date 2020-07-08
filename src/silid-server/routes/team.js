@@ -91,15 +91,58 @@ router.get('/:id/:admin?', checkPermissions([scope.read.teams]), function(req, r
   managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.id}"` }).then(agents => {
     if (agents.length) {
 
-      const teams = collateTeams(agents, req.params.id, req.user.user_id, req.user.isSuper && !!req.params.admin);
+      const requestedTeam = agents[0].user_metadata.teams.find(t => t.id === req.params.id);
 
-      if (!teams) {
-        return res.status(403).json({ message: 'You are not a member of that team' });
+      if (requestedTeam.organizationId) {
+        // Is the requesting agent an organizer?
+        let organization;
+        if (req.user.user_metadata && req.user.user_metadata.organizations) {
+          organization = req.user.user_metadata.organizations.find(o => o.id === requestedTeam.organizationId);
+        }
+
+        if (organization) {
+          const team = collateTeams(agents, req.params.id, req.user.user_id, true);
+
+          if (!team) {
+            return res.status(403).json({ message: 'You are not a member of that team' });
+          }
+
+          return res.status(200).json({ ...team, organization });
+        }
+        else {
+          managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.organizations.id:"${requestedTeam.organizationId}"` }).then(organizers => {
+            // For now, there can only be one
+            if (organizers.length) {
+
+              let organization = organizers[0].user_metadata.organizations.find(o => o.id === requestedTeam.organizationId);
+
+              const team = collateTeams(agents, req.params.id, req.user.user_id, (req.user.isSuper && !!req.params.admin));
+
+              if (!team) {
+                return res.status(403).json({ message: 'You are not a member of that team' });
+              }
+
+              return res.status(200).json({ ...team, organization });
+            }
+            res.status(200).json(team);
+          }).catch(err => {
+            res.status(err.statusCode).json(err.message.error_description);
+          });
+        }
       }
+      else {
+        const team = collateTeams(agents, req.params.id, req.user.user_id, req.user.isSuper && !!req.params.admin);
 
-      return res.status(200).json(teams);
+        if (!team) {
+          return res.status(403).json({ message: 'You are not a member of that team' });
+        }
+
+        return res.status(200).json(team);
+      }
     }
-    res.status(404).json({ message: 'No such team' });
+    else {
+      res.status(404).json({ message: 'No such team' });
+    }
   }).catch(err => {
     res.status(err.statusCode).json(err.message.error_description);
   });
