@@ -467,8 +467,7 @@ context('organizer/Organization edit', function() {
         });
       });
 
-
-      context.only('root is unaffiliated', () => {
+      context('root is unaffiliated', () => {
 
         let organizer;
         beforeEach(function() {
