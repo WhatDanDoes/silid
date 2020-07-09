@@ -76,9 +76,9 @@ context('root/Agent show', function() {
             cy.get('#profile-table table tbody tr th').contains('Locale:');
             cy.get('#profile-table table tbody tr td').contains(memberAgent.socialProfile.locale);
             cy.get('#profile-table table tbody tr th').contains('Roles:');
-            cy.get('#profile-table table tbody tr ul li').its('length').should('eq', 2);
-            cy.get('#profile-table table tbody tr ul li').contains('viewer');
-            cy.get('#profile-table table tbody tr ul li:last-of-type #assign-role').should('exist');
+            cy.get('#profile-table table tbody tr div').its('length').should('eq', 2);
+            cy.get('#profile-table table tbody tr div').contains('viewer');
+            cy.get('#profile-table table tbody tr div:last-of-type#assign-role').should('exist');
           });
 
           describe('teams', () => {
@@ -181,10 +181,10 @@ context('root/Agent show', function() {
             cy.get('#profile-table table tbody tr th').contains('Locale:');
             cy.get('#profile-table table tbody tr td').contains(root.socialProfile.locale);
             cy.get('#profile-table table tbody tr th').contains('Roles:');
-            cy.get('#profile-table table tbody tr ul li').its('length').should('eq', 2);
+            cy.get('#profile-table table tbody tr div').its('length').should('eq', 2);
             // 2020-6-24 This should be `sudo`, but will remain like this for now
-            cy.get('#profile-table table tbody tr ul li').contains('viewer');
-            cy.get('#profile-table table tbody tr ul li:last-of-type #assign-role').should('exist');
+            cy.get('#profile-table table tbody tr div').contains('viewer');
+            cy.get('#profile-table table tbody tr div:last-of-type#assign-role').should('exist');
           });
 
           describe('teams', () => {
@@ -284,8 +284,8 @@ context('root/Agent show', function() {
           cy.get('table tbody tr th').contains('Locale:');
           cy.get('table tbody tr td').contains(memberAgent.socialProfile.locale);
           cy.get('table tbody tr th').contains('Roles:');
-          cy.get('table tbody tr ul li').its('length').should('eq', 1);
-          cy.get('table tbody tr ul li').contains('viewer');
+          cy.get('table tbody tr div').its('length').should('eq', 1);
+          cy.get('table tbody tr div').contains('viewer');
         });
 
         describe('teams', () => {
@@ -387,8 +387,8 @@ context('root/Agent show', function() {
           cy.get('table tbody tr th').contains('Locale:');
           cy.get('table tbody tr td').contains(root.socialProfile.locale);
           cy.get('table tbody tr th').contains('Roles:');
-          cy.get('table tbody tr ul li').its('length').should('eq', 1);
-          cy.get('table tbody tr ul li').contains('viewer');
+          cy.get('table tbody tr div').its('length').should('eq', 1);
+          cy.get('table tbody tr div').contains('viewer');
         });
 
         describe('teams', () => {
@@ -421,7 +421,7 @@ context('root/Agent show', function() {
             });
 
             it('displays teams in a table', function() {
-              cy.get('h6').contains('Teams');
+              cy.get('h6', {timeout: 6000}).contains('Teams');
               cy.get('#teams-table table tbody tr td').contains('No records to display').should('not.exist');
               cy.get('#teams-table button span span').contains('add_box');
               cy.get('#teams-table table thead tr th').contains('Name');

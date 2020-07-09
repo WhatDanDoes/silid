@@ -214,27 +214,27 @@ context('viewer/Team add agent', function() {
                 cy.get('#pending-invitations-table').should('not.exist');
 
                 cy.get('input[placeholder="Email"]').type('somenewguy@example.com');
-                cy.get('button[title="Save"]').click();
-                cy.wait(300);
+                cy.get('button[title="Save"]').click().then(() => {
 
-                cy.get('#pending-invitations-table').should('exist');
-                cy.get('#pending-invitations-table table thead tr th').contains('Actions');
-                cy.get('#pending-invitations-table table tbody tr td button span').contains('delete_outline');
-                cy.get('#pending-invitations-table table tbody tr td button span').contains('refresh');
-                cy.get('#pending-invitations-table table thead tr th').contains('Email');
-                cy.get('#pending-invitations-table table tbody tr td').contains('somenewguy@example.com');
+                  cy.get('#pending-invitations-table').should('exist');
+                  cy.get('#pending-invitations-table table thead tr th').contains('Actions');
+                  cy.get('#pending-invitations-table table tbody tr td button span').contains('delete_outline');
+                  cy.get('#pending-invitations-table table tbody tr td button span').contains('refresh');
+                  cy.get('#pending-invitations-table table thead tr th').contains('Email');
+                  cy.get('#pending-invitations-table table tbody tr td').contains('somenewguy@example.com');
 
-                cy.reload();
-                cy.wait(300);
-                cy.contains('The A-Team').click();
-                cy.wait(300);
+                  cy.reload();
+                  cy.wait(300);
+                  cy.contains('The A-Team').click();
+                  cy.wait(300);
 
-                cy.get('#pending-invitations-table').should('exist');
-                cy.get('#pending-invitations-table table thead tr th').contains('Actions');
-                cy.get('#pending-invitations-table table tbody tr td button span').contains('delete_outline');
-                cy.get('#pending-invitations-table table tbody tr td button span').contains('refresh');
-                cy.get('#pending-invitations-table table thead tr th').contains('Email');
-                cy.get('#pending-invitations-table table tbody tr td').contains('somenewguy@example.com');
+                  cy.get('#pending-invitations-table').should('exist');
+                  cy.get('#pending-invitations-table table thead tr th').contains('Actions');
+                  cy.get('#pending-invitations-table table tbody tr td button span').contains('delete_outline');
+                  cy.get('#pending-invitations-table table tbody tr td button span').contains('refresh');
+                  cy.get('#pending-invitations-table table thead tr th').contains('Email');
+                  cy.get('#pending-invitations-table table tbody tr td').contains('somenewguy@example.com');
+                });
               });
 
               it('allows inviting multiple agents', function() {
@@ -775,34 +775,33 @@ context('viewer/Team add agent', function() {
                   // And another...
                   cy.get('button span span').contains('add_box').click();
                   cy.get('input[placeholder="Email"]').type('yetanothernewguy@example.com');
-                  cy.get('button[title="Save"]').click();
-                  cy.wait(300);
+                  cy.get('button[title="Save"]').click().then(() => {
+                    cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 3);
 
-                  cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 3);
+                    // Remove second invitation
+                    cy.get('#pending-invitations-table tr:nth-of-type(2) button[title="Delete"]').click();
+                    cy.get('#pending-invitations-table button[title="Save"]').contains('check').click();
+                    cy.wait(300);
 
-                  // Remove second invitation
-                  cy.get('#pending-invitations-table tr:nth-of-type(2) button[title="Delete"]').click();
-                  cy.get('#pending-invitations-table button[title="Save"]').contains('check').click();
-                  cy.wait(300);
+                    cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 2);
+                    cy.get('#pending-invitations-table table tbody tr:nth-of-type(1) td').contains(anotherAgent.email);
+                    cy.get('#pending-invitations-table table tbody tr:nth-of-type(2) td').contains('yetanothernewguy@example.com');
 
-                  cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 2);
-                  cy.get('#pending-invitations-table table tbody tr:nth-of-type(1) td').contains(anotherAgent.email);
-                  cy.get('#pending-invitations-table table tbody tr:nth-of-type(2) td').contains('yetanothernewguy@example.com');
+                    // Remove first invitation
+                    cy.get('#pending-invitations-table tr:nth-of-type(1) button[title="Delete"]').click();
+                    cy.get('#pending-invitations-table button[title="Save"]').contains('check').click();
+                    cy.wait(300);
 
-                  // Remove first invitation
-                  cy.get('#pending-invitations-table tr:nth-of-type(1) button[title="Delete"]').click();
-                  cy.get('#pending-invitations-table button[title="Save"]').contains('check').click();
-                  cy.wait(300);
+                    cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 1);
+                    cy.get('#pending-invitations-table table tbody tr td').contains('yetanothernewguy@example.com');
 
-                  cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 1);
-                  cy.get('#pending-invitations-table table tbody tr td').contains('yetanothernewguy@example.com');
+                    // Remove last invitation
+                    cy.get('#pending-invitations-table button[title="Delete"]').click();
+                    cy.get('#pending-invitations-table button[title="Save"]').contains('check').click();
+                    cy.wait(300);
 
-                  // Remove last invitation
-                  cy.get('#pending-invitations-table button[title="Delete"]').click();
-                  cy.get('#pending-invitations-table button[title="Save"]').contains('check').click();
-                  cy.wait(300);
-
-                  cy.get('#pending-invitations-table').should('not.exist');
+                    cy.get('#pending-invitations-table').should('not.exist');
+                  });
                 });
 
                 // This can happen if an agent is deleted manually at Auth0

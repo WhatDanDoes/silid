@@ -68,8 +68,9 @@ context('viewer/Agent show', function() {
         cy.get('#profile-table table tbody tr th').contains('Locale:');
         cy.get('#profile-table table tbody tr td').contains(memberAgent.socialProfile.locale);
         cy.get('#profile-table table tbody tr th').contains('Roles:');
-        cy.get('#profile-table table tbody tr ul li').its('length').should('eq', 1);
-        cy.get('#profile-table table tbody tr ul li').contains('viewer');
+        cy.get('#profile-table table tbody tr div').its('length').should('eq', 1);
+        cy.get('#profile-table table tbody tr div').contains('viewer');
+        cy.get('#profile-table table tbody tr div#assign-role').should('not.exist');
       });
 
       it('does not display the assign-role chip', () => {
@@ -175,8 +176,9 @@ context('viewer/Agent show', function() {
         cy.get('#profile-table table tbody tr th').contains('Locale:');
         cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.locale);
         cy.get('#profile-table table tbody tr th').contains('Roles:');
-        cy.get('#profile-table table tbody tr ul li').its('length').should('eq', 1);
-        cy.get('#profile-table table tbody tr ul li').contains('viewer');
+        cy.get('#profile-table table tbody tr div').its('length').should('eq', 1);
+        cy.get('#profile-table table tbody tr div').contains('viewer');
+        cy.get('#profile-table table tbody tr div#assign-role').should('not.exist');
       });
 
       describe('teams', () => {
