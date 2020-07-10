@@ -1098,80 +1098,6 @@ describe('organizationSpec', () => {
               });
           });
         });
-
-        describe('PATCH', () => {
-
-          let unverifiedSession, anotherAgent;
-          beforeEach(done => {
-            _profile.email = invitedAgent.email;
-            _profile.name = invitedAgent.name;
-
-            models.Agent.create({ email: 'buddy@example.com' }).then(a => {
-              anotherAgent = a;
-              stubAuth0ManagementApi((err, apiScopes) => {
-                if (err) return done.fail();
-
-                login({ ..._identity, email: invitedAgent.email }, [scope.update.organizations], (err, session) => {
-                  unverifiedSession = session;
-
-                  // Cached profile doesn't match "live" data, so agent needs to be updated
-                  // with a call to Auth0
-                  stubUserRead((err, apiScopes) => {
-                    if (err) return done.fail();
-
-                    done();
-                  });
-                });
-              });
-            }).catch(err => {
-              done.fail(err);
-            });
-          });
-
-          it('returns 403', done => {
-            unverifiedSession
-              .patch('/organization')
-              .send({
-                id: organization.id,
-                memberId: anotherAgent.id
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(403)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-                expect(res.body.message).toEqual('You have not verified your invitation to this organization. Check your email.');
-                done();
-              });
-          });
-
-          it('does not change the record in the database', done => {
-            models.Organization.findOne({ where: { id: organization.id }, include: ['members'] }).then(results => {
-              expect(results.members.length).toEqual(2);
-
-              unverifiedSession
-                .patch('/organization')
-                .send({
-                  id: organization.id,
-                  memberId: anotherAgent.id
-                })
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(403)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-                  models.Organization.findOne({ where: { id: organization.id }, include: ['members'] }).then(results => {
-                    expect(results.members.length).toEqual(2);
-                    done();
-                  }).catch(err => {
-                    done.fail(err);
-                  });
-                });
-            }).catch(err => {
-              done.fail(err);
-            });
-          });
-        });
       });
     });
 
@@ -1263,46 +1189,6 @@ describe('organizationSpec', () => {
                 if (err) return done.fail(err);
                 models.Organization.findOne({ where: { id: organization.id }}).then(results => {
                   expect(results.name).toEqual(organization.name);
-                  done();
-                }).catch(err => {
-                  done.fail(err);
-                });
-              });
-          });
-        });
-
-        describe('PATCH', () => {
-          it('returns 403', done => {
-            unauthorizedSession
-              .patch('/organization')
-              .send({
-                id: organization.id,
-                memberId: 333
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(403)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-                expect(res.body.message).toEqual('You are not a member of this organization');
-                done();
-              });
-          });
-
-          it('does not change the record in the database', done => {
-            unauthorizedSession
-              .patch('/organization')
-              .send({
-                id: organization.id,
-                memberId: 333
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(403)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-                models.Organization.findOne({ where: { id: organization.id }, include: ['members'] }).then(results => {
-                  expect(results.members.length).toEqual(1);
                   done();
                 }).catch(err => {
                   done.fail(err);
