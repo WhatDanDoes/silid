@@ -6,6 +6,7 @@ const stubAuth0Sessions = require('../../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../../support/stubAuth0ManagementApi');
 const stubUserAppMetadataUpdate = require('../../support/auth0Endpoints/stubUserAppMetadataUpdate');
 const stubUserRead = require('../../support/auth0Endpoints/stubUserRead');
+const stubOrganizationRead = require('../../support/auth0Endpoints/stubOrganizationRead');
 const stubUserRolesRead = require('../../support/auth0Endpoints/stubUserRolesRead');
 const stubTeamRead = require('../../support/auth0Endpoints/stubTeamRead');
 const uuid = require('uuid');
@@ -111,22 +112,17 @@ describe('root/organizationMembershipSpec', () => {
         });
 
         describe('successfully', () => {
-          it('returns the organization with the new member team', done => {
+          it('redirects to /organization/:id', done => {
             rootSession
               .put(`/organization/${organizationId}/team`)
               .send({
                 teamId: teamId
               })
               .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(201)
+              .expect('Location', `/organization/${organizationId}`)
+              .expect(302)
               .end(function(err, res) {
                 if (err) return done.fail(err);
-                expect(res.body.name).toEqual('The National Lacrosse League');
-                expect(res.body.organizer).toEqual(_profile.email);
-                expect(res.body.id).toEqual(organizationId);
-                expect(res.body.teams.length).toEqual(1);
-                expect(res.body.teams[0]).toEqual({ name: 'The Calgary Roughnecks', leader: 'coach@example.com', id: teamId, organizationId: organizationId });
 
                 done();
               });
@@ -141,8 +137,8 @@ describe('root/organizationMembershipSpec', () => {
                 teamId: teamId
               })
               .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(201)
+              .expect('Location', `/organization/${organizationId}`)
+              .expect(302)
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
@@ -163,8 +159,8 @@ describe('root/organizationMembershipSpec', () => {
                   teamId: teamId
                 })
                 .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(201)
+                .expect('Location', `/organization/${organizationId}`)
+                .expect(302)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
@@ -193,8 +189,8 @@ describe('root/organizationMembershipSpec', () => {
                   teamId: teamId
                 })
                 .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(201)
+                .expect('Location', `/organization/${organizationId}`)
+                .expect(302)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
                   expect(teamReadOauthTokenScope.isDone()).toBe(true);
@@ -211,8 +207,8 @@ describe('root/organizationMembershipSpec', () => {
                   teamId: teamId
                 })
                 .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(201)
+                .expect('Location', `/organization/${organizationId}`)
+                .expect(302)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
                   expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
@@ -283,8 +279,8 @@ describe('root/organizationMembershipSpec', () => {
                   teamId: teamId
                 })
                 .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(201)
+                .expect('Location', `/organization/${organizationId}`)
+                .expect(302)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
@@ -393,8 +389,8 @@ describe('root/organizationMembershipSpec', () => {
                   teamId: teamId
                 })
                 .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(201)
+                .expect('Location', `/organization/${organizationId}`)
+                .expect(302)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
@@ -483,81 +479,459 @@ describe('root/organizationMembershipSpec', () => {
       });
     });
 
-//    describe('delete', () => {
-//      let knownAgent;
-//      beforeEach(done => {
-//        models.Agent.create({ email: 'weknowthisguy@example.com', name: 'Well-known Guy' }).then(result => {
-//          knownAgent = result;
-//          organization.addMember(knownAgent).then(result => {
-//            done();
-//          }).catch(err => {
-//            done.fail(err);
-//          });
-//        }).catch(err => {
-//          done.fail(err);
-//        });
-//      });
-//
-//      it('removes an existing member record from the organization', done => {
-//        rootSession
-//          .delete(`/organization/${organization.id}/agent/${knownAgent.id}`)
-//          .set('Accept', 'application/json')
-//          .expect('Content-Type', /json/)
-//          .expect(201)
-//          .end(function(err, res) {
-//            if (err) return done.fail(err);
-//            expect(res.body.message).toEqual(`Member removed`);
-//            done();
-//          });
-//      });
-//
-//      it('doesn\'t barf if organization doesn\'t exist', done => {
-//        rootSession
-//          .delete(`/organization/333/agent/${knownAgent.id}`)
-//          .set('Accept', 'application/json')
-//          .expect('Content-Type', /json/)
-//          .expect(404)
-//          .end(function(err, res) {
-//            if (err) return done.fail(err);
-//            expect(res.body.message).toEqual('No such organization');
-//            done();
-//          });
-//      });
-//
-//      it('doesn\'t barf if the agent doesn\'t exist', done => {
-//        rootSession
-//          .delete(`/organization/${organization.id}/agent/333`)
-//          .set('Accept', 'application/json')
-//          .expect('Content-Type', /json/)
-//          .expect(404)
-//          .end(function(err, res) {
-//            if (err) return done.fail(err);
-//            expect(res.body.message).toEqual('That agent is not a member');
-//            done();
-//          });
-//      });
-//
-//      it('sends an email to notify agent of membership revocation', function(done) {
-//        expect(mailer.transport.sentMail.length).toEqual(0);
-//        organization.addMember(knownAgent).then(result => {
-//          rootSession
-//            .delete(`/organization/${organization.id}/agent/${knownAgent.id}`)
-//            .set('Accept', 'application/json')
-//            .expect('Content-Type', /json/)
-//            .expect(201)
-//            .end(function(err, res) {
-//              if (err) return done.fail(err);
-//              expect(mailer.transport.sentMail.length).toEqual(1);
-//              expect(mailer.transport.sentMail[0].data.to).toEqual(knownAgent.email);
-//              expect(mailer.transport.sentMail[0].data.from).toEqual(process.env.NOREPLY_EMAIL);
-//              expect(mailer.transport.sentMail[0].data.subject).toEqual('Identity membership update');
-//              expect(mailer.transport.sentMail[0].data.text).toContain(`You are no longer a member of ${organization.name}`);
-//              done();
-//            });
-//        }).catch(err => {
-//          done.fail(err);
-//        });
-//      });
-//    });
+    describe('delete', () => {
+      describe('from root\'s own organization', () => {
+        let rootSession, organizationId, teamId, noOrgTeamId, anotherOrgId,
+            teamReadScope, teamReadOauthTokenScope,
+            userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope;
+        const coach = { ..._profile, name: 'Curt Malawsky', email: 'coach@example.com'};
+
+        beforeEach(done => {
+          organizationId = uuid.v4();
+          anotherOrgId = uuid.v4();
+          teamId = uuid.v4();
+          noOrgTeamId = uuid.v4();
+
+          _profile.user_metadata = { organizations: [
+            {name: 'The National Lacrosse League', organizer: _profile.email, id: organizationId },
+            {name: 'The Canadian Lacrosse Association', organizer: _profile.email, id: anotherOrgId },
+          ] };
+
+          coach.user_metadata = { teams: [ {name: 'The Calgary Roughnecks', leader: 'coach@example.com', id: teamId, organizationId: organizationId } ] };
+
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail(err);
+
+            login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, (err, session) => {
+              if (err) return done.fail(err);
+              rootSession = session;
+
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubUserRead((err, apiScopes) => {
+                if (err) return done.fail(err);
+
+                // Get all team members in order to identify leader
+                stubTeamRead([coach,
+                  {
+                    ..._profile,
+                    name: 'Tracey Kelusky',
+                    email: 'player@example.com',
+                    user_metadata: { teams: [ {name: 'The Calgary Roughnecks', leader: 'coach@example.com', id: teamId, organizationId: organizationId } ] }
+                  },
+                  {
+                    ..._profile,
+                    name: 'Derek Keenan',
+                    email: 'coachkeenan@example.com',
+                    user_metadata: { teams: [ {name: 'The Saskatchewan Rush', leader: 'coachkeenan@example.com', id: noOrgTeamId} ] }
+                  }
+                ], (err, apiScopes) => {
+                  if (err) return done.fail(err);
+                  ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
+
+                  // Update team leader record
+                  stubUserAppMetadataUpdate(coach, (err, apiScopes) => {
+                    if (err) return done.fail(err);
+                    ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                    done();
+                  });
+                });
+              });
+            });
+          });
+        });
+
+        describe('successfully', () => {
+          it('redirects to /organization/:id', done => {
+            rootSession
+              .delete(`/organization/${organizationId}/team/${teamId}`)
+              .set('Accept', 'application/json')
+              .expect(302)
+              .expect('Location', `/organization/${organizationId}`)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                done();
+              });
+          });
+
+          it('removes organizationId from the team leader\'s team record', done => {
+            expect(coach.user_metadata.teams.length).toEqual(1);
+            expect(coach.user_metadata.teams[0].organizationId).toEqual(organizationId);
+            rootSession
+              .delete(`/organization/${organizationId}/team/${teamId}`)
+              .set('Accept', 'application/json')
+              .expect(302)
+              .expect('Location', `/organization/${organizationId}`)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(coach.user_metadata.teams.length).toEqual(1);
+                expect(coach.user_metadata.teams[0].organizationId).toBeUndefined();
+
+                done();
+              });
+          });
+
+          it('creates invitation records for all team members with organizationId undefined (excluding the leader)', done => {
+            models.Invitation.findAll().then(results => {
+              expect(results.length).toEqual(0);
+
+              rootSession
+                .delete(`/organization/${organizationId}/team/${teamId}`)
+                .set('Accept', 'application/json')
+                .expect('Location', `/organization/${organizationId}`)
+                .expect(302)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  models.Invitation.findAll().then(results => {
+                    expect(results.length).toEqual(1);
+                    expect(results[0].recipient).toEqual('player@example.com');
+                    expect(results[0].name).toEqual('The Calgary Roughnecks');
+                    expect(results[0].uuid).toEqual(teamId);
+                    expect(results[0].type).toEqual('team');
+                    expect(results[0].organizationId).toBeUndefined();
+
+                    done();
+                  }).catch(err => {
+                    done.fail(err);
+                  });
+                });
+            }).catch(err => {
+              done.fail(err);
+            });
+          });
+
+          describe('Auth0', () => {
+            it('is called to retrieve team', done => {
+              rootSession
+                .delete(`/organization/${organizationId}/team/${teamId}`)
+                .set('Accept', 'application/json')
+                .expect('Location', `/organization/${organizationId}`)
+                .expect(302)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+                  expect(teamReadOauthTokenScope.isDone()).toBe(true);
+                  expect(teamReadScope.isDone()).toBe(true);
+
+                  done();
+                });
+            });
+
+            it('is called to update team leader', done => {
+              rootSession
+                .delete(`/organization/${organizationId}/team/${teamId}`)
+                .set('Accept', 'application/json')
+                .expect('Location', `/organization/${organizationId}`)
+                .expect(302)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+                  expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                  expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+
+                  done();
+                });
+            });
+          });
+        });
+
+        describe('unsuccessfully', () => {
+          it('doesn\'t barf if organization doesn\'t exist', done => {
+            rootSession
+              .delete(`/organization/no-such-organization-uuid-v4/team/${teamId}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(404)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.message).toEqual('No such organization');
+
+                done();
+              });
+          });
+
+          it('doesn\'t barf if team doesn\'t exist', done => {
+            rootSession
+              .delete(`/organization/${organizationId}/team/no-such-team-uuid-v4`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(404)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.message).toEqual('No such team');
+
+                done();
+              });
+          });
+
+          it('returns a friendly message if team is not a member of any organization', done => {
+            rootSession
+              .delete(`/organization/${organizationId}/team/${noOrgTeamId}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(400)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.message).toEqual('That team is not a member of any organization');
+
+                done();
+              });
+          });
+
+          it('returns a friendly message if team is not a member of the organization provided', done => {
+            rootSession
+              .delete(`/organization/${anotherOrgId}/team/${teamId}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(400)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.message).toEqual('That team is not a member of that organization');
+
+                done();
+              });
+          });
+        });
+      });
+
+      describe('from organization with no root affiliation', () => {
+        let rootSession, organizationId, teamId, noOrgTeamId, anotherOrgId,
+            teamReadScope, teamReadOauthTokenScope,
+            userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope,
+            organizationReadScope, organizationReadOauthTokenScope;
+
+        const coach = { ..._profile, name: 'Curt Malawsky', email: 'coach@example.com'};
+        const commissioner = { ..._profile, name: 'Nick Sakiewicz', email: 'commissioner@example.com'};
+
+        beforeEach(done => {
+          organizationId = uuid.v4();
+          anotherOrgId = uuid.v4();
+          teamId = uuid.v4();
+          noOrgTeamId = uuid.v4();
+
+          commissioner.user_metadata = { organizations: [
+            {name: 'The National Lacrosse League', organizer: commissioner.email, id: organizationId },
+            {name: 'The Canadian Lacrosse Association', organizer: commissioner.email, id: anotherOrgId },
+          ] };
+
+          coach.user_metadata = { teams: [ {name: 'The Calgary Roughnecks', leader: 'coach@example.com', id: teamId, organizationId: organizationId } ] };
+
+          stubAuth0ManagementApi((err, apiScopes) => {
+            if (err) return done.fail(err);
+
+            login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, (err, session) => {
+              if (err) return done.fail(err);
+              rootSession = session;
+
+              // Cached profile doesn't match "live" data, so agent needs to be updated
+              // with a call to Auth0
+              stubUserRead((err, apiScopes) => {
+                if (err) return done.fail(err);
+
+                stubOrganizationRead([commissioner], (err, apiScopes) => {
+                  if (err) return done.fail(err);
+                  ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
+
+                  // Get all team members in order to identify leader
+                  stubTeamRead([coach,
+                    {
+                      ..._profile,
+                      name: 'Tracey Kelusky',
+                      email: 'player@example.com',
+                      user_metadata: { teams: [ {name: 'The Calgary Roughnecks', leader: 'coach@example.com', id: teamId, organizationId: organizationId } ] }
+                    },
+                    {
+                      ..._profile,
+                      name: 'Derek Keenan',
+                      email: 'coachkeenan@example.com',
+                      user_metadata: { teams: [ {name: 'The Saskatchewan Rush', leader: 'coachkeenan@example.com', id: noOrgTeamId} ] }
+                    }
+                  ], (err, apiScopes) => {
+                    if (err) return done.fail(err);
+                    ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
+
+                    // Update team leader record
+                    stubUserAppMetadataUpdate(coach, (err, apiScopes) => {
+                      if (err) return done.fail(err);
+                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                      done();
+                    });
+                  });
+                });
+              });
+            });
+          });
+        });
+
+        describe('successfully', () => {
+          it('redirects to /organization/:id', done => {
+            rootSession
+              .delete(`/organization/${organizationId}/team/${teamId}`)
+              .set('Accept', 'application/json')
+              .expect(302)
+              .expect('Location', `/organization/${organizationId}`)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                done();
+              });
+          });
+
+          it('removes organizationId from the team leader\'s team record', done => {
+            expect(coach.user_metadata.teams.length).toEqual(1);
+            expect(coach.user_metadata.teams[0].organizationId).toEqual(organizationId);
+            rootSession
+              .delete(`/organization/${organizationId}/team/${teamId}`)
+              .set('Accept', 'application/json')
+              .expect(302)
+              .expect('Location', `/organization/${organizationId}`)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(coach.user_metadata.teams.length).toEqual(1);
+                expect(coach.user_metadata.teams[0].organizationId).toBeUndefined();
+
+                done();
+              });
+          });
+
+          it('creates invitation records for all team members with organizationId undefined (excluding the leader)', done => {
+            models.Invitation.findAll().then(results => {
+              expect(results.length).toEqual(0);
+
+              rootSession
+                .delete(`/organization/${organizationId}/team/${teamId}`)
+                .set('Accept', 'application/json')
+                .expect('Location', `/organization/${organizationId}`)
+                .expect(302)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  models.Invitation.findAll().then(results => {
+                    expect(results.length).toEqual(1);
+                    expect(results[0].recipient).toEqual('player@example.com');
+                    expect(results[0].name).toEqual('The Calgary Roughnecks');
+                    expect(results[0].uuid).toEqual(teamId);
+                    expect(results[0].type).toEqual('team');
+                    expect(results[0].organizationId).toBeUndefined();
+
+                    done();
+                  }).catch(err => {
+                    done.fail(err);
+                  });
+                });
+            }).catch(err => {
+              done.fail(err);
+            });
+          });
+
+          describe('Auth0', () => {
+            it('is called to retrieve team', done => {
+              rootSession
+                .delete(`/organization/${organizationId}/team/${teamId}`)
+                .set('Accept', 'application/json')
+                .expect('Location', `/organization/${organizationId}`)
+                .expect(302)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+                  expect(teamReadOauthTokenScope.isDone()).toBe(true);
+                  expect(teamReadScope.isDone()).toBe(true);
+
+                  done();
+                });
+            });
+
+            it('is called to update team leader', done => {
+              rootSession
+                .delete(`/organization/${organizationId}/team/${teamId}`)
+                .set('Accept', 'application/json')
+                .expect('Location', `/organization/${organizationId}`)
+                .expect(302)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+                  expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                  expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+
+                  done();
+                });
+            });
+
+            it('is called to retrieve organization agent', done => {
+              rootSession
+                .delete(`/organization/${organizationId}/team/${teamId}`)
+                .set('Accept', 'application/json')
+                .expect('Location', `/organization/${organizationId}`)
+                .expect(302)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+                  expect(organizationReadOauthTokenScope.isDone()).toBe(true);
+                  expect(organizationReadScope.isDone()).toBe(true);
+
+                  done();
+                });
+            });
+          });
+        });
+
+        describe('unsuccessfully', () => {
+          it('doesn\'t barf if organization doesn\'t exist', done => {
+            rootSession
+              .delete(`/organization/no-such-organization-uuid-v4/team/${teamId}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(404)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.message).toEqual('No such organization');
+
+                done();
+              });
+          });
+
+          it('doesn\'t barf if team doesn\'t exist', done => {
+            rootSession
+              .delete(`/organization/${organizationId}/team/no-such-team-uuid-v4`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(404)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.message).toEqual('No such team');
+
+                done();
+              });
+          });
+
+          it('returns a friendly message if team is not a member of any organization', done => {
+            rootSession
+              .delete(`/organization/${organizationId}/team/${noOrgTeamId}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(400)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.message).toEqual('That team is not a member of any organization');
+
+                done();
+              });
+          });
+
+          it('returns a friendly message if team is not a member of the organization provided', done => {
+            rootSession
+              .delete(`/organization/${anotherOrgId}/team/${teamId}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(400)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+                expect(res.body.message).toEqual('That team is not a member of that organization');
+
+                done();
+              });
+          });
+        });
+      });
+    });
   });
 });

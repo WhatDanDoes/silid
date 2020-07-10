@@ -394,10 +394,7 @@ router.put('/:id/team', checkPermissions([scope.create.organizationMembers]), fu
         if (err) {
           return res.status(500).json(err);
         }
-
-        organization = consolidateTeams(agents, organization, req.params.id)
-
-        res.status(201).json(organization);
+        res.redirect(`/organization/${req.params.id}`);
       });
     }).catch(err => {
       res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
@@ -407,48 +404,91 @@ router.put('/:id/team', checkPermissions([scope.create.organizationMembers]), fu
   });
 });
 
+/**
+ * Update team leader's team record to remove organization ID
+ *
+ * For use with DELETE /organization/:id/team/:teamId route
+ *
+ * @params obj
+ * @params obj
+ * @returns undefined
+ */
+function deleteTeamMembership(req, res) {
+  let managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
+  managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.teamId}"` }).then(agents => {
 
-router.delete('/:id/agent/:agentId', checkPermissions([scope.delete.organizationMembers]), function(req, res, next) {
-  models.Organization.findOne({ where: { id: req.params.id },
-                                include: [ 'creator',
-                                           { model: models.Agent, as: 'members' },
-                                           'teams'] }).then(organization => {
-    if (!organization) {
-      return res.status(404).json( { message: 'No such organization' });
+    if (!agents.length) {
+      return res.status(404).json({ message: 'No such team' });
     }
 
-    if (!req.user.isSuper && req.user.email !== organization.creator.email) {
-      return res.status(401).json( { message: 'Unauthorized' });
-    }
-
-    models.Agent.findOne({ where: { id: req.params.agentId } }).then(agent => {
-      if (!agent || !organization.members.map(member => member.id).includes(agent.id)) {
-        return res.status(404).json({ message: 'That agent is not a member' });
+    // Find the team leader
+    let leader, teamIndex;
+    for (agent of agents) {
+      teamIndex = agent.user_metadata.teams.findIndex(team => team.leader === agent.email && team.id === req.params.teamId);
+      if (teamIndex > -1) {
+        leader = agent;
+        break;
       }
+    }
 
-      organization.removeMember(req.params.agentId).then(results => {
-        let mailOptions = {
-          to: agent.email,
-          from: process.env.NOREPLY_EMAIL,
-          subject: 'Identity membership update',
-          text: `You are no longer a member of ${organization.name}`
-        };
-        mailer.transporter.sendMail(mailOptions, (error, info) => {
-          if (error) {
-            console.error('Mailer Error', error);
-            return res.status(501).json(error);
-          }
-          res.status(201).json({ message: 'Member removed' });
-        });
-      }).catch(err => {
-        res.status(500).json(err);
+    if (!leader.user_metadata.teams[teamIndex].organizationId) {
+      return res.status(400).json({ message: 'That team is not a member of any organization' });
+    }
+    else if (leader.user_metadata.teams[teamIndex].organizationId !== req.params.id) {
+      return res.status(400).json({ message: 'That team is not a member of that organization' });
+    }
+
+    // Remove organizationId from the team record
+    delete leader.user_metadata.teams[teamIndex].organizationId;
+
+    // Prepare invitations to update team members
+    let invitations = [];
+    agents.forEach(agent => {
+      if (agent.email !== leader.email) {
+        invitations.push({ uuid: req.params.teamId, type: 'team', name: leader.user_metadata.teams[teamIndex].name, recipient: agent.email });
+      }
+    });
+
+    managementClient.updateUser({id: leader.user_id}, { user_metadata: leader.user_metadata }).then(result => {
+
+      upsertInvites(invitations, err => {
+        if (err) {
+          return res.status(500).json(err);
+        }
+
+        res.redirect(`/organization/${req.params.id}`);
       });
     }).catch(err => {
-      res.status(500).json(err);
+      res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
     });
   }).catch(err => {
-    res.status(500).json(err);
+    res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
   });
+};
+
+router.delete('/:id/team/:teamId', checkPermissions([scope.delete.organizationMembers]), function(req, res, next) {
+  let organization;
+  if (req.user.user_metadata.organizations) {
+    organization = req.user.user_metadata.organizations.find(o => o.id === req.params.id);
+  }
+
+  if (organization) {
+    deleteTeamMembership(req, res);
+  }
+  else if (req.user.isSuper) {
+    let managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
+    managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.organizations.id:"${req.params.id}"` }).then(agents => {
+      if (!agents.length) {
+        return res.status(404).json({ message: 'No such organization' });
+      }
+      deleteTeamMembership(req, res);
+    }).catch(err => {
+      res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+    });
+  }
+  else {
+    return res.status(404).json({ message: 'No such organization' });
+  }
 });
 
 
