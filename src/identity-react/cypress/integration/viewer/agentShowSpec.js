@@ -84,7 +84,7 @@ context('viewer/Agent show', function() {
 
         describe('none created', () => {
           it('displays teams table', function() {
-            cy.get('h6').contains('Teams');
+            cy.get('#teams-table h6').contains('Teams');
             cy.get('#teams-table table tbody tr td').contains('No records to display');
           });
         });
@@ -111,7 +111,7 @@ context('viewer/Agent show', function() {
           });
 
           it('displays teams in a table', function() {
-            cy.get('h6').contains('Teams');
+            cy.get('#teams-table h6').contains('Teams');
             cy.get('#teams-table table tbody tr td').contains('No records to display').should('not.exist');
             cy.get('#teams-table button span span').should('not.exist');
             cy.get('#teams-table table thead tr th').contains('Name');
@@ -188,7 +188,7 @@ context('viewer/Agent show', function() {
 
         describe('none created', () => {
           it('displays teams table', function() {
-            cy.get('h6').contains('Teams');
+            cy.get('#teams-table h6').contains('Teams');
             cy.get('#teams-table table tbody tr td').contains('No records to display');
           });
         });
@@ -214,7 +214,7 @@ context('viewer/Agent show', function() {
           });
 
           it('displays teams in a table', function() {
-            cy.get('h6').contains('Teams');
+            cy.get('#teams-table h6').contains('Teams');
             cy.get('#teams-table table tbody tr td').contains('No records to display').should('not.exist');
             cy.get('#teams-table button span span').contains('add_box');
             cy.get('#teams-table table thead tr th').contains('Name');
