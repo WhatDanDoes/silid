@@ -340,7 +340,7 @@ const Agent = (props) => {
                     title='RSVPs'
                     isLoading={isWaiting}
                     columns={[
-                      { title: 'Name', field: 'name', editable: 'never' },
+                      { title: 'Name', field: 'data.name', editable: 'never' },
                       { title: 'Type', field: 'type', editable: 'never' },
                     ]}
                     data={profileData.user_metadata ? profileData.user_metadata.rsvps : []}
