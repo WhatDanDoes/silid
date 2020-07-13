@@ -167,9 +167,14 @@ describe('root/organizationMembershipSpec', () => {
                   models.Update.findAll().then(results => {
                     expect(results.length).toEqual(1);
                     expect(results[0].recipient).toEqual('player@example.com');
-                    expect(results[0].name).toEqual('The National Lacrosse League');
-                    expect(results[0].uuid).toEqual(organizationId);
-                    expect(results[0].type).toEqual('organization');
+                    expect(results[0].type).toEqual('team');
+                    expect(results[0].uuid).toEqual(teamId);
+                    
+                    expect(results[0].data).toBeDefined();
+                    expect(results[0].data.name).toEqual('The Calgary Roughnecks');
+                    expect(results[0].data.leader).toEqual('coach@example.com');
+                    expect(results[0].data.id).toEqual(teamId);
+                    expect(results[0].data.organizationId).toEqual(organizationId);
 
                     done();
                   }).catch(err => {
@@ -588,10 +593,14 @@ describe('root/organizationMembershipSpec', () => {
                   models.Update.findAll().then(results => {
                     expect(results.length).toEqual(1);
                     expect(results[0].recipient).toEqual('player@example.com');
-                    expect(results[0].name).toEqual('The Calgary Roughnecks');
                     expect(results[0].uuid).toEqual(teamId);
                     expect(results[0].type).toEqual('team');
-                    expect(results[0].organizationId).toBeUndefined();
+
+                    expect(results[0].data).toBeDefined();
+                    expect(results[0].data.name).toEqual('The Calgary Roughnecks');
+                    expect(results[0].data.leader).toEqual('coach@example.com');
+                    expect(results[0].data.id).toEqual(teamId);
+                    expect(results[0].data.organizationId).toBeUndefined();
 
                     done();
                   }).catch(err => {
@@ -811,10 +820,14 @@ describe('root/organizationMembershipSpec', () => {
                   models.Update.findAll().then(results => {
                     expect(results.length).toEqual(1);
                     expect(results[0].recipient).toEqual('player@example.com');
-                    expect(results[0].name).toEqual('The Calgary Roughnecks');
                     expect(results[0].uuid).toEqual(teamId);
                     expect(results[0].type).toEqual('team');
-                    expect(results[0].organizationId).toBeUndefined();
+
+                    expect(results[0].data).toBeDefined();
+                    expect(results[0].data.name).toEqual('The Calgary Roughnecks');
+                    expect(results[0].data.leader).toEqual('coach@example.com');
+                    expect(results[0].data.id).toEqual(teamId);
+                    expect(results[0].data.organizationId).toBeUndefined();
 
                     done();
                   }).catch(err => {

@@ -43,18 +43,18 @@ function checkForUpdates(req, done) {
           let rsvpIndex = req.user.user_metadata.rsvps.findIndex(rsvp => rsvp.uuid === update.uuid);
 
           if (teamIndex > -1) {
-            req.user.user_metadata.teams[teamIndex].name = update.name;
-            req.user.user_metadata.teams[teamIndex].organizationId = update.organizationId;
+            req.user.user_metadata.teams[teamIndex].name = update.data.name;
+            req.user.user_metadata.teams[teamIndex].organizationId = update.data.organizationId;
           }
           else if (rsvpIndex > -1) {
-            req.user.user_metadata.rsvps[rsvpIndex].name = update.name;
+            req.user.user_metadata.rsvps[rsvpIndex].name = update.data.name;
           }
           else {
-            req.user.user_metadata.rsvps.push({ uuid: update.uuid, type: update.type, name: update.name, recipient: update.recipient });
+            req.user.user_metadata.rsvps.push({ uuid: update.uuid, type: update.type, name: update.data.name, recipient: update.recipient });
           }
         }
         else if (update.type === 'organization') {
-          let teamIndex = req.user.user_metadata.teams.findIndex(team => team.id === update.teamId);
+          let teamIndex = req.user.user_metadata.teams.findIndex(team => team.id === update.data.teamId);
 
           if (teamIndex > -1) {
             req.user.user_metadata.teams[teamIndex].organizationId = update.uuid;

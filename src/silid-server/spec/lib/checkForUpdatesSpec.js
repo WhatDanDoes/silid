@@ -67,7 +67,9 @@ describe('checkForUpdates', function() {
       beforeEach(done => {
         player.user_metadata = { teams: [ {name: 'The Calgary Roughnecks', leader: 'coach@example.com', id: teamId } ] };
 
-        models.Update.create({ name: 'The National Lacrosse League', type: 'organization', uuid: organizationId, teamId: teamId, recipient: player.email }).then(results => {
+        models.Update.create({ recipient: player.email, uuid: organizationId, type: 'organization',
+                               data: {name: 'The National Lacrosse League', leader: _profile.email, id: organizationId, teamId: teamId} }).then(results => {
+ 
           done();
         }).catch(err => {
           done.fail(err);

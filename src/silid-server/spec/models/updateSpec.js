@@ -13,11 +13,10 @@ describe('Update', () => {
   const _valid = {};
   beforeEach(done => {
     db.sequelize.sync({force: true}).then(() => {
-      _valid.name = 'The Calgary Roughnecks';
       _valid.type = 'team';
       _valid.uuid = uuid.v4();
       _valid.recipient = 'someguy@example.com';
-      _valid.teamId = null;
+      _valid.data = { name: 'The Calgary Roughnecks', leader: 'coach@example.com', id: _valid.uuid }
 
       update = new Update(_valid);
 
@@ -101,43 +100,43 @@ describe('Update', () => {
       });
     });
 
-    describe('name', () => {
-      it('requires a name', done => {
-        delete _valid.name;
-        update = new Update(_valid);
-        update.save().then(obj => {
-          done.fail('This shouldn\'t save');
-        }).catch(err => {
-          expect(err.errors.length).toEqual(1);
-          expect(err.errors[0].message).toEqual('Update requires a name');
-          done();
-        });
-      });
-
-      it('does not allow blanks', done => {
-        _valid.name = '   ';
-        update = new Update(_valid);
-        update.save().then(obj => {
-          done.fail('This shouldn\'t save');
-        }).catch(err => {
-          expect(err.errors.length).toEqual(1);
-          expect(err.errors[0].message).toEqual('Update requires a name');
-          done();
-        });
-      });
-
-      it('does not allow empty', done => {
-        _valid.name = '';
-        update = new Update(_valid);
-        update.save().then(obj => {
-          done.fail('This shouldn\'t save');
-        }).catch(err => {
-          expect(err.errors.length).toEqual(1);
-          expect(err.errors[0].message).toEqual('Update requires a name');
-          done();
-        });
-      });
-    });
+//    describe('name', () => {
+//      it('requires a name', done => {
+//        delete _valid.name;
+//        update = new Update(_valid);
+//        update.save().then(obj => {
+//          done.fail('This shouldn\'t save');
+//        }).catch(err => {
+//          expect(err.errors.length).toEqual(1);
+//          expect(err.errors[0].message).toEqual('Update requires a name');
+//          done();
+//        });
+//      });
+//
+//      it('does not allow blanks', done => {
+//        _valid.name = '   ';
+//        update = new Update(_valid);
+//        update.save().then(obj => {
+//          done.fail('This shouldn\'t save');
+//        }).catch(err => {
+//          expect(err.errors.length).toEqual(1);
+//          expect(err.errors[0].message).toEqual('Update requires a name');
+//          done();
+//        });
+//      });
+//
+//      it('does not allow empty', done => {
+//        _valid.name = '';
+//        update = new Update(_valid);
+//        update.save().then(obj => {
+//          done.fail('This shouldn\'t save');
+//        }).catch(err => {
+//          expect(err.errors.length).toEqual(1);
+//          expect(err.errors[0].message).toEqual('Update requires a name');
+//          done();
+//        });
+//      });
+//    });
 
     describe('uuid', () => {
       it('requires a uuid', done => {
@@ -201,85 +200,85 @@ describe('Update', () => {
       });
     });
 
-    describe('teamId', () => {
-      beforeEach(() => {
-        _valid.type = 'organization';
-        _valid.teamId = uuid.v4();
-      });
-
-      it('does not allow blanks', done => {
-        _valid.teamId = '   ';
-        update = new Update(_valid);
-        update.save().then(obj => {
-          done.fail('This shouldn\'t save');
-        }).catch(err => {
-          expect(err.errors.length).toEqual(1);
-          expect(err.errors[0].message).toEqual('Organization update requires a valid version 4 team uuid');
-          done();
-        });
-      });
-
-      it('does not allow empty', done => {
-        _valid.teamId = '';
-        update = new Update(_valid);
-        update.save().then(obj => {
-          done.fail('This shouldn\'t save');
-        }).catch(err => {
-          expect(err.errors.length).toEqual(2);
-          expect(err.errors[0].message).toEqual('Organization update requires a team uuid');
-          expect(err.errors[1].message).toEqual('Organization update requires a valid version 4 team uuid');
-          done();
-        });
-      });
-
-      it('does not allow invalid team uuids', done => {
-        _valid.teamId = 'This is obviously not a uuid';
-        update = new Update(_valid);
-        update.save().then(obj => {
-          done.fail('This shouldn\'t save');
-        }).catch(err => {
-          expect(err.errors.length).toEqual(1);
-          expect(err.errors[0].message).toEqual('Organization update requires a valid version 4 team uuid');
-          done();
-        });
-      });
-
-      it('only allows uuidv4', done => {
-        _valid.teamId = uuid.v1();
-        update = new Update(_valid);
-        update.save().then(obj => {
-          done.fail('This shouldn\'t save');
-        }).catch(err => {
-          expect(err.errors.length).toEqual(1);
-          expect(err.errors[0].message).toEqual('Organization update requires a valid version 4 team uuid');
-          done();
-        });
-      });
-
-      it('cannot be set on a \'team\' update', done => {
-        _valid.type = 'team';
-        update = new Update(_valid);
-        update.save().then(obj => {
-          done.fail('This shouldn\'t save');
-        }).catch(err => {
-          expect(err.errors.length).toEqual(1);
-          expect(err.errors[0].message).toEqual('Team uuid only applies to organization updates');
-          done();
-        });
-      });
-
-      it('must be set on an \'organization\' inivitation', done => {
-        delete _valid.teamId;
-        update = new Update(_valid);
-        update.save().then(obj => {
-          done.fail('This shouldn\'t save');
-        }).catch(err => {
-          expect(err.errors.length).toEqual(1);
-          expect(err.errors[0].message).toEqual('Organization update requires a team uuid');
-          done();
-        });
-      });
-    });
+//    describe('teamId', () => {
+//      beforeEach(() => {
+//        _valid.type = 'organization';
+//        _valid.teamId = uuid.v4();
+//      });
+//
+//      it('does not allow blanks', done => {
+//        _valid.teamId = '   ';
+//        update = new Update(_valid);
+//        update.save().then(obj => {
+//          done.fail('This shouldn\'t save');
+//        }).catch(err => {
+//          expect(err.errors.length).toEqual(1);
+//          expect(err.errors[0].message).toEqual('Organization update requires a valid version 4 team uuid');
+//          done();
+//        });
+//      });
+//
+//      it('does not allow empty', done => {
+//        _valid.teamId = '';
+//        update = new Update(_valid);
+//        update.save().then(obj => {
+//          done.fail('This shouldn\'t save');
+//        }).catch(err => {
+//          expect(err.errors.length).toEqual(2);
+//          expect(err.errors[0].message).toEqual('Organization update requires a team uuid');
+//          expect(err.errors[1].message).toEqual('Organization update requires a valid version 4 team uuid');
+//          done();
+//        });
+//      });
+//
+//      it('does not allow invalid team uuids', done => {
+//        _valid.teamId = 'This is obviously not a uuid';
+//        update = new Update(_valid);
+//        update.save().then(obj => {
+//          done.fail('This shouldn\'t save');
+//        }).catch(err => {
+//          expect(err.errors.length).toEqual(1);
+//          expect(err.errors[0].message).toEqual('Organization update requires a valid version 4 team uuid');
+//          done();
+//        });
+//      });
+//
+//      it('only allows uuidv4', done => {
+//        _valid.teamId = uuid.v1();
+//        update = new Update(_valid);
+//        update.save().then(obj => {
+//          done.fail('This shouldn\'t save');
+//        }).catch(err => {
+//          expect(err.errors.length).toEqual(1);
+//          expect(err.errors[0].message).toEqual('Organization update requires a valid version 4 team uuid');
+//          done();
+//        });
+//      });
+//
+//      it('cannot be set on a \'team\' update', done => {
+//        _valid.type = 'team';
+//        update = new Update(_valid);
+//        update.save().then(obj => {
+//          done.fail('This shouldn\'t save');
+//        }).catch(err => {
+//          expect(err.errors.length).toEqual(1);
+//          expect(err.errors[0].message).toEqual('Team uuid only applies to organization updates');
+//          done();
+//        });
+//      });
+//
+//      it('must be set on an \'organization\' inivitation', done => {
+//        delete _valid.teamId;
+//        update = new Update(_valid);
+//        update.save().then(obj => {
+//          done.fail('This shouldn\'t save');
+//        }).catch(err => {
+//          expect(err.errors.length).toEqual(1);
+//          expect(err.errors[0].message).toEqual('Organization update requires a team uuid');
+//          done();
+//        });
+//      });
+//    });
 
     describe('type', () => {
       it('requires a type', done => {
@@ -409,6 +408,54 @@ describe('Update', () => {
            }).catch(err => {
             done.fail(err);
           });
+        }).catch(err => {
+          done.fail(err);
+        });
+      });
+    });
+
+    describe('data', () => {
+      it('requires data', done => {
+        delete _valid.data;
+        update = new Update(_valid);
+        update.save().then(obj => {
+          done.fail('This shouldn\'t save');
+        }).catch(err => {
+          expect(err.errors.length).toEqual(1);
+          expect(err.errors[0].message).toEqual('Update requires data');
+          done();
+        });
+      });
+
+      it('does not allow non-JSON data', done => {
+        _valid.data = 'this is not json';
+        update = new Update(_valid);
+        update.save().then(obj => {
+          done.fail('This shouldn\'t save');
+        }).catch(err => {
+          expect(err.errors.length).toEqual(1);
+          expect(err.errors[0].message).toEqual('Update data supplied is not valid JSON');
+          done();
+        });
+      });
+
+      it('does not allow empty', done => {
+        _valid.data = {};
+        update = new Update(_valid);
+        update.save().then(obj => {
+          done.fail('This shouldn\'t save');
+        }).catch(err => {
+          expect(err.errors.length).toEqual(1);
+          expect(err.errors[0].message).toEqual('Update contains no data');
+          done();
+        });
+      });
+
+      it('returns pre-parsed JSON', done => {
+        update = new Update(_valid);
+        update.save().then(obj => {
+          expect(obj.data).toEqual({ name: 'The Calgary Roughnecks', leader: 'coach@example.com', id: _valid.uuid });
+          done();
         }).catch(err => {
           done.fail(err);
         });

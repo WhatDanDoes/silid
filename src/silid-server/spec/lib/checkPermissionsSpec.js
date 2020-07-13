@@ -546,7 +546,8 @@ describe('checkPermissions', function() {
         beforeEach(done => {
           teamId = uuid.v4();
 
-          models.Update.create({name: 'The Calgary Roughnecks', uuid: teamId, type: 'team', recipient: 'somebrandnewguy@example.com'}).then(result => {
+          models.Update.create({ recipient: 'somebrandnewguy@example.com', uuid: teamId, type: 'team',
+                                 data: {name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId} }).then(results => {
             done();
           }).catch(err => {
             done.fail(err);
@@ -607,7 +608,8 @@ describe('checkPermissions', function() {
           beforeEach(done => {
             anotherTeamId = uuid.v4();
 
-            models.Update.create({name: 'The Buffalo Bandits', uuid: anotherTeamId, type: 'team', recipient: 'somebrandnewguy@example.com'}).then(result => {
+            models.Update.create({ recipient: 'somebrandnewguy@example.com', uuid: anotherTeamId, type: 'team',
+                                   data: {name: 'The Buffalo Bandits', leader: _profile.email, id: anotherTeamId} }).then(results => {
               done();
             }).catch(err => {
               done.fail(err);
@@ -820,7 +822,8 @@ describe('checkPermissions', function() {
         beforeEach(done => {
           teamId = uuid.v4();
 
-          models.Update.create({name: 'The Calgary Roughnecks', uuid: teamId, type: 'team', recipient: _profile.email}).then(result => {
+          models.Update.create({ recipient: _profile.email, uuid: teamId, type: 'team',
+                                 data: {name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId} }).then(results => {
             done();
           }).catch(err => {
             done.fail(err);
@@ -894,7 +897,8 @@ describe('checkPermissions', function() {
 
             anotherTeamId = uuid.v4();
 
-            models.Update.create({name: 'The Buffalo Bandits', uuid: anotherTeamId, type: 'team', recipient: _profile.email}).then(result => {
+            models.Update.create({ recipient: _profile.email, uuid: anotherTeamId, type: 'team',
+                                   data: {name: 'The Buffalo Bandits', leader: _profile.email, id: anotherTeamId} }).then(results => {
               done();
             }).catch(err => {
               done.fail(err);
@@ -982,10 +986,8 @@ describe('checkPermissions', function() {
                  user_metadata: { teams: [{name: 'The Buffalo Bandits', id: anotherTeamId, leader: _profile.email}] } }
         });
 
-        models.Update.create(
-            {name: 'The Beefalo Bandits', uuid: anotherTeamId, type: 'team', recipient: 'someotherguy@example.com'}
-          ).then(result => {
-
+        models.Update.create({ recipient: 'someotherguy@example.com', uuid: anotherTeamId, type: 'team',
+                               data: {name: 'The Beefalo Bandits', leader: _profile.email, id: anotherTeamId} }).then(results => {
           stubUserAppMetadataUpdate((err, apiScopes) => {
             if (err) return done.fail();
             ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
@@ -1059,10 +1061,8 @@ describe('checkPermissions', function() {
                  user_metadata: { rsvps: [{ name: 'The Buffalo Bandits', uuid: anotherTeamId, type: 'team', recipient: 'someotherguy@example.com' }] } }
         });
 
-        models.Update.create(
-            {name: 'The Beefalo Bandits', uuid: anotherTeamId, type: 'team', recipient: 'someotherguy@example.com'}
-          ).then(result => {
-
+        models.Update.create({ recipient: 'someotherguy@example.com', uuid: anotherTeamId, type: 'team',
+                               data: {name: 'The Beefalo Bandits', leader: _profile.email, id: anotherTeamId} }).then(results => {
           stubUserAppMetadataUpdate((err, apiScopes) => {
             if (err) return done.fail();
             ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);

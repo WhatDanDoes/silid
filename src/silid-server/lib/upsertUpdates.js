@@ -20,7 +20,7 @@ function upsertUpdates(updates, done) {
     upsertUpdates(updates, done);
   }).catch(err => {
     if (err.name === 'SequelizeUniqueConstraintError') {
-      models.Update.upsert(update, { fields: ['name', 'updatedAt'] }).then(result => {
+      models.Update.upsert(update, { fields: ['data', 'updatedAt'] }).then(result => {
         upsertUpdates(updates, done);
       }).catch(err => {
         done(err);

@@ -245,6 +245,7 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
     // Find the team leader
     const leaderEmail = results[0].user_metadata.teams.find(team => team.id === req.params.id).leader;
     const teamLeader = results.find(agent => agent.email === leaderEmail);
+    teamIndex = teamLeader.user_metadata.teams.findIndex(t => t.id === req.params.id);
 
     // Make sure edited name isn't a duplicate
     const nameCount = teamLeader.user_metadata.teams.reduce((n, team) => n + (team.name === teamName), 0);
@@ -256,7 +257,16 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
     const updates = [];
     agents.forEach(a => {
       if (a.email !== leaderEmail) {
-        updates.push({ uuid: req.params.id, type: 'team', name: teamName, recipient: a.email });
+        //updates.push({ uuid: req.params.id, type: 'team', name: teamName, recipient: a.email });
+        updates.push({
+          uuid: req.params.id,
+          type: 'team',
+          recipient: a.email,
+          data: {
+            ...teamLeader.user_metadata.teams[teamIndex],
+            name: teamName,
+          }
+        });
       }
     });
 
@@ -265,7 +275,16 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
       agents.concat(results);
       results.forEach(a => {
         if (a.email !== leaderEmail) {
-          updates.push({ uuid: req.params.id, type: 'team', name: teamName, recipient: a.email });
+          //updates.push({ uuid: req.params.id, type: 'team', name: teamName, recipient: a.email });
+          updates.push({
+            uuid: req.params.id,
+            type: 'team',
+            recipient: a.email,
+            data: {
+              ...teamLeader.user_metadata.teams[teamIndex],
+              name: teamName,
+            }
+          });
         }
       });
 
@@ -279,7 +298,6 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
       }
 
       // Update team
-      teamIndex = teamLeader.user_metadata.teams.findIndex(t => t.id === req.params.id);
       if (teamIndex >= 0) {
         teamLeader.user_metadata.teams[teamIndex].name = teamName;
       }
@@ -308,8 +326,9 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
         //    res.status(500).json(err);
         //  });
 
-        models.Update.update({ name: teamName }, { where: {uuid: req.params.id} }).then(results => {
+        models.Update.update({ data: {...teamLeader.user_metadata.teams[teamIndex], name: teamName} }, { where: {uuid: req.params.id} }).then(results => {
 
+console.log(updates);
           upsertUpdates(updates, err => {
             if (err) {
               return res.status(500).json(err);
@@ -472,7 +491,7 @@ function inviteAgent(invite, req, res) {
     text: `
       You have been invited to join a team:
 
-      ${invite.name}
+      ${invite.data.name}
 
       Login at the link below to view the invitation:
 
@@ -575,7 +594,7 @@ router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(
 
     // Make sure agent isn't already a member of the team
     models.Agent.findOne({ where: { email: recipientEmail } }).then(agent => {
-      const invite = { uuid: req.params.id, recipient: recipientEmail, type: 'team', name: team.name };
+      const invite = { uuid: req.params.id, recipient: recipientEmail, type: 'team', data: {name: team.name, id: req.params.id, leader: team.leader, organizationId: team.organizationId, } };
 
       if (agent) {
         managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));

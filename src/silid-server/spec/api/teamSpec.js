@@ -695,7 +695,9 @@ describe('teamSpec', () => {
         });
 
         it('updates any database updates', done => {
-          models.Update.create({ name: 'Vancouver Warriors', recipient: 'onecooldude@example.com', uuid: teamId, type: 'team' }).then(results => {
+          models.Update.create({ recipient: 'onecooldude@example.com', uuid: teamId, type: 'team',
+                                 data: {name: 'Vancouver Warriors', leader: 'someguy@example.com', id: teamId} }).then(results => {
+
             authenticatedSession
               .put(`/team/${teamId}`)
               .send({
@@ -709,8 +711,16 @@ describe('teamSpec', () => {
 
                 models.Update.findAll().then(updates => {
                   expect(updates.length).toEqual(1);
-                  expect(updates[0].name).toEqual('Vancouver Riot');
+                  expect(updates[0].recipient).toEqual('onecooldude@example.com');
                   expect(updates[0].uuid).toEqual(teamId);
+                  expect(updates[0].type).toEqual('team');
+
+                  expect(updates[0].data).toBeDefined();
+                  expect(updates[0].data.name).toEqual('Vancouver Riot');
+                  expect(updates[0].data.leader).toEqual('someguy@example.com');
+                  expect(updates[0].data.id).toEqual(teamId);
+                  expect(updates[0].data.organizationId).toBeUndefined();
+ 
                   done();
                 }).catch(err => {
                   done.fail(err);
@@ -897,16 +907,24 @@ describe('teamSpec', () => {
 
                     expect(updates.length).toEqual(2);
 
-                    expect(updates[0].name).toEqual('Vancouver Warriors');
                     expect(updates[0].type).toEqual('team');
                     expect(updates[0].uuid).toEqual(teamId);
                     expect(updates[0].recipient).toEqual('someotherguy@example.com');
-
-                    expect(updates[1].name).toEqual('Vancouver Warriors');
+                    expect(updates[0].data).toBeDefined();
+                    expect(updates[0].data.name).toEqual('Vancouver Warriors');
+                    expect(updates[0].data.leader).toEqual('someguy@example.com');
+                    expect(updates[0].data.id).toEqual(teamId);
+                    expect(updates[0].data.organizationId).toBeUndefined();
+ 
                     expect(updates[1].type).toEqual('team');
                     expect(updates[1].uuid).toEqual(teamId);
                     expect(updates[1].recipient).toEqual('yetanotherteamplayer@example.com');
-
+                    expect(updates[1].data).toBeDefined();
+                    expect(updates[1].data.name).toEqual('Vancouver Warriors');
+                    expect(updates[1].data.leader).toEqual('someguy@example.com');
+                    expect(updates[1].data.id).toEqual(teamId);
+                    expect(updates[1].data.organizationId).toBeUndefined();
+ 
                     done();
                   }).catch(err => {
                     done.fail(err);
@@ -937,16 +955,24 @@ describe('teamSpec', () => {
 
                     expect(updates.length).toEqual(2);
 
-                    expect(updates[0].name).toEqual('Vancouver Warriors');
                     expect(updates[0].type).toEqual('team');
                     expect(updates[0].uuid).toEqual(teamId);
                     expect(updates[0].recipient).toEqual('someotherguy@example.com');
-
-                    expect(updates[1].name).toEqual('Vancouver Warriors');
+                    expect(updates[0].data).toBeDefined();
+                    expect(updates[0].data.name).toEqual('Vancouver Warriors');
+                    expect(updates[0].data.leader).toEqual('someguy@example.com');
+                    expect(updates[0].data.id).toEqual(teamId);
+                    expect(updates[0].data.organizationId).toBeUndefined();
+ 
                     expect(updates[1].type).toEqual('team');
                     expect(updates[1].uuid).toEqual(teamId);
                     expect(updates[1].recipient).toEqual('yetanotherteamplayer@example.com');
-
+                    expect(updates[1].data).toBeDefined();
+                    expect(updates[1].data.name).toEqual('Vancouver Warriors');
+                    expect(updates[1].data.leader).toEqual('someguy@example.com');
+                    expect(updates[1].data.id).toEqual(teamId);
+                    expect(updates[1].data.organizationId).toBeUndefined();
+ 
                     // Reset mocks
 
                     // Cached profile doesn't match "live" data, so agent needs to be updated
@@ -991,16 +1017,24 @@ describe('teamSpec', () => {
 
                                       expect(updates.length).toEqual(2);
 
-                                      expect(updates[0].name).toEqual('Vancouver Riot');
                                       expect(updates[0].type).toEqual('team');
                                       expect(updates[0].uuid).toEqual(teamId);
                                       expect(updates[0].recipient).toEqual('someotherguy@example.com');
-
-                                      expect(updates[1].name).toEqual('Vancouver Riot');
+                                      expect(updates[0].data).toBeDefined();
+                                      expect(updates[0].data.name).toEqual('Vancouver Riot');
+                                      expect(updates[0].data.leader).toEqual('someguy@example.com');
+                                      expect(updates[0].data.id).toEqual(teamId);
+                                      expect(updates[0].data.organizationId).toBeUndefined();
+ 
                                       expect(updates[1].type).toEqual('team');
                                       expect(updates[1].uuid).toEqual(teamId);
                                       expect(updates[1].recipient).toEqual('yetanotherteamplayer@example.com');
-
+                                      expect(updates[1].data).toBeDefined();
+                                      expect(updates[1].data.name).toEqual('Vancouver Riot');
+                                      expect(updates[1].data.leader).toEqual('someguy@example.com');
+                                      expect(updates[1].data.id).toEqual(teamId);
+                                      expect(updates[1].data.organizationId).toBeUndefined();
+ 
                                       done();
                                     }).catch(err => {
                                       done.fail(err);

@@ -234,47 +234,61 @@ router.put('/:id', checkPermissions([scope.update.organizations]), function(req,
         // Update organization
         organizers[organizerIndex].user_metadata.organizations[orgIndex].name = orgName;
 
-        // Update pending updates
-        if (!organizers[organizerIndex].user_metadata.pendingInvitations) {
-          organizers[organizerIndex].user_metadata.pendingInvitations = [];
-        }
-        const pending = organizers[organizerIndex].user_metadata.pendingInvitations.filter(update => update.uuid === req.params.id);
-        for (let p of pending) {
-          p.name = orgName;
-        }
+//        // Update pending updates
+//        if (!organizers[organizerIndex].user_metadata.pendingInvitations) {
+//          organizers[organizerIndex].user_metadata.pendingInvitations = [];
+//        }
+//        const pending = organizers[organizerIndex].user_metadata.pendingInvitations.filter(update => update.uuid === req.params.id);
+//        for (let p of pending) {
+//          p.name = orgName;
+//        }
 
         // Update the organizer's metadata
         managementClient.updateUser({id: organizers[organizerIndex].user_id}, { user_metadata: organizers[organizerIndex].user_metadata }).then(result => {
 
-          // Update waiting updates
-          models.Update.update({ name: orgName }, { where: {uuid: req.params.id} }).then(results => {
+//          // Update waiting updates
+//          models.Update.update({ name: orgName }, { where: {uuid: req.params.id} }).then(results => {
 
             // Retrieve and consolidate organization info
             managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.organizationId:"${req.params.id}"` }).then(agents => {
               let organization = consolidateTeams(agents, organizers[organizerIndex].user_metadata.organizations[orgIndex], req.params.id)
 
               // Retrieve outstanding RSVPs
-              managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.rsvps.uuid:"${req.params.id}"` }).then(results => {
-                const updates = [];
-                results.forEach(a => {
-                  // Get agent's team ID
-                  let i = a.user_metadata.rsvps.find(r => r.uuid === req.params.id);
-                  updates.push({ uuid: req.params.id, type: 'organization', name: orgName, recipient: a.email, teamId: i.teamId });
-                });
-
-                upsertUpdates(updates, err => {
-                  if (err) {
-                    return res.status(500).json(err);
-                  }
+//              managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.rsvps.uuid:"${req.params.id}"` }).then(results => {
+//                const updates = [];
+//                results.forEach(a => {
+//                  // Get agent's team ID
+//                  let i = a.user_metadata.rsvps.find(r => r.uuid === req.params.id);
+////                  updates.push({ uuid: req.params.id, type: 'organization', name: orgName, recipient: a.email, teamId: i.teamId });
+//
+//                  updates.push({
+//                    uuid: i.teamId,
+//                    type: 'team',
+//                    recipient: a.email,
+//                    data: {
+//                      id: i.teamId,
+//                      name: i.name,
+//                      leader: i.email,
+//                      organizationId: req.params.id,
+//                    },
+//                  });
+//                });
+//
+//                upsertUpdates(updates, err => {
+//                  if (err) {
+//                    return res.status(500).json(err);
+//                  }
+console.log(organization);
                   res.status(201).json(organization);
-                });
-              }).catch(err => {
-                res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
-              });
-            }).catch(err => {
-              res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
-            });
+//                });
+//              }).catch(err => {
+//                res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+//              });
+//            }).catch(err => {
+//              res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+//            });
           }).catch(err => {
+console.log(err);
             res.status(500).json(err);
           });
         }).catch(err => {
@@ -384,7 +398,17 @@ router.put('/:id/team', checkPermissions([scope.create.organizationMembers]), fu
     let updates = [];
     agents.forEach(agent => {
       if (agent.email !== leader.email) {
-        updates.push({ uuid: req.params.id, type: 'organization', name: organization.name, recipient: agent.email, teamId: req.body.teamId });
+        updates.push({
+          uuid: req.body.teamId,
+          type: 'team',
+          recipient: agent.email,
+          data: {
+            id: req.body.teamId,
+            name: leader.user_metadata.teams[teamIndex].name,
+            leader: leader.email,
+            organizationId: req.params.id,
+          }
+        });
       }
     });
 
@@ -445,7 +469,16 @@ function deleteTeamMembership(req, res) {
     let updates = [];
     agents.forEach(agent => {
       if (agent.email !== leader.email) {
-        updates.push({ uuid: req.params.teamId, type: 'team', name: leader.user_metadata.teams[teamIndex].name, recipient: agent.email });
+        updates.push({
+          uuid: req.params.teamId,
+          type: 'team',
+          recipient: agent.email,
+          data: {
+            id: req.params.teamId,
+            name: leader.user_metadata.teams[teamIndex].name,
+            leader: leader.email,
+          },
+        });
       }
     });
 
