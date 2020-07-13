@@ -520,8 +520,8 @@ describe('organizationSpec', () => {
             });
         });
 
-        it('updates any database invitations', done => {
-          models.Invitation.create({ name: 'One Book Canada', recipient: 'onecooldude@example.com', uuid: organizationId, type: 'organization', teamId: teamId }).then(results => {
+        it('updates any database updates', done => {
+          models.Update.create({ name: 'One Book Canada', recipient: 'onecooldude@example.com', uuid: organizationId, type: 'organization', teamId: teamId }).then(results => {
             authenticatedSession
               .put(`/organization/${organizationId}`)
               .send({
@@ -533,11 +533,11 @@ describe('organizationSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                models.Invitation.findByPk(results.id).then(invites => {
-                  expect(invites.name).toEqual('Two Testaments Bolivia');
-                  expect(invites.recipient).toEqual('onecooldude@example.com');
-                  expect(invites.uuid).toEqual(organizationId);
-                  expect(invites.teamId).toEqual(teamId);
+                models.Update.findByPk(results.id).then(updates => {
+                  expect(updates.name).toEqual('Two Testaments Bolivia');
+                  expect(updates.recipient).toEqual('onecooldude@example.com');
+                  expect(updates.uuid).toEqual(organizationId);
+                  expect(updates.teamId).toEqual(teamId);
                   done();
                 }).catch(err => {
                   done.fail(err);
@@ -548,9 +548,9 @@ describe('organizationSpec', () => {
           });
         });
 
-        it('create invitation in DB to updates any RSVPs on next login', done => {
-          models.Invitation.findAll().then(invites => {
-            expect(invites.length).toEqual(0);
+        it('create update in DB to updates any RSVPs on next login', done => {
+          models.Update.findAll().then(updates => {
+            expect(updates.length).toEqual(0);
 
             authenticatedSession
               .put(`/organization/${organizationId}`)
@@ -563,10 +563,10 @@ describe('organizationSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                models.Invitation.findAll().then(invites => {
-                  expect(invites.length).toEqual(2);
-                  expect(invites[0].name).toEqual('Two Testaments Bolivia');
-                  expect(invites[1].name).toEqual('Two Testaments Bolivia');
+                models.Update.findAll().then(updates => {
+                  expect(updates.length).toEqual(2);
+                  expect(updates[0].name).toEqual('Two Testaments Bolivia');
+                  expect(updates[1].name).toEqual('Two Testaments Bolivia');
                   done();
                 }).catch(err => {
                   done.fail(err);

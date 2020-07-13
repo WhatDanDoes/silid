@@ -142,12 +142,12 @@ describe('teamMembershipSpec', () => {
           });
 
           describe('is sent a new invite', () => {
-            it('adds an invitation to the database', done => {
+            it('adds an update to the database', done => {
               models.Agent.findAll().then(results => {
                 expect(results.length).toEqual(1);
                 expect(results[0].id).toEqual(agent.id);
 
-                models.Invitation.findAll().then(results => {
+                models.Update.findAll().then(results => {
                   expect(results.length).toEqual(0);
 
                   authenticatedSession
@@ -161,7 +161,7 @@ describe('teamMembershipSpec', () => {
                     .end(function(err, res) {
                       if (err) return done.fail(err);
 
-                      models.Invitation.findAll().then(results => {
+                      models.Update.findAll().then(results => {
                         expect(results.length).toEqual(1);
                         expect(results[0].recipient).toEqual('somebrandnewguy@example.com');
                         expect(results[0].name).toEqual('The Calgary Roughnecks');
@@ -193,14 +193,14 @@ describe('teamMembershipSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  models.Invitation.findAll().then(invites => {
-                    expect(invites.length).toEqual(1);
+                  models.Update.findAll().then(updates => {
+                    expect(updates.length).toEqual(1);
 
                     expect(res.body.user_metadata.pendingInvitations.length).toEqual(1);
-                    expect(res.body.user_metadata.pendingInvitations[0].name).toEqual(invites[0].name);
-                    expect(res.body.user_metadata.pendingInvitations[0].type).toEqual(invites[0].type);
-                    expect(res.body.user_metadata.pendingInvitations[0].uuid).toEqual(invites[0].uuid);
-                    expect(res.body.user_metadata.pendingInvitations[0].recipient).toEqual(invites[0].recipient);
+                    expect(res.body.user_metadata.pendingInvitations[0].name).toEqual(updates[0].name);
+                    expect(res.body.user_metadata.pendingInvitations[0].type).toEqual(updates[0].type);
+                    expect(res.body.user_metadata.pendingInvitations[0].uuid).toEqual(updates[0].uuid);
+                    expect(res.body.user_metadata.pendingInvitations[0].recipient).toEqual(updates[0].recipient);
 
                     done();
                   }).catch(err => {
@@ -221,10 +221,10 @@ describe('teamMembershipSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  models.Invitation.findAll().then(invites => {
+                  models.Update.findAll().then(updates => {
 
-                    expect(invites.length).toEqual(1);
-                    expect(invites[0].recipient).toEqual('SomeBrandNewGuy@Example.Com'.toLowerCase());
+                    expect(updates.length).toEqual(1);
+                    expect(updates[0].recipient).toEqual('SomeBrandNewGuy@Example.Com'.toLowerCase());
 
                     expect(res.body.user_metadata.pendingInvitations.length).toEqual(1);
                     expect(res.body.user_metadata.pendingInvitations[0].recipient).toEqual('SomeBrandNewGuy@Example.Com'.toLowerCase());
@@ -249,10 +249,10 @@ describe('teamMembershipSpec', () => {
                           .end(function(err, res) {
                             if (err) return done.fail(err);
 
-                            models.Invitation.findAll().then(invites => {
+                            models.Update.findAll().then(updates => {
 
-                              expect(invites.length).toEqual(1);
-                              expect(invites[0].recipient).toEqual('SOMEBRANDNEWGUY@EXAMPLE.COM'.toLowerCase());
+                              expect(updates.length).toEqual(1);
+                              expect(updates[0].recipient).toEqual('SOMEBRANDNEWGUY@EXAMPLE.COM'.toLowerCase());
 
                               expect(res.body.user_metadata.pendingInvitations.length).toEqual(1);
                               expect(res.body.user_metadata.pendingInvitations[0].recipient).toEqual('SOMEBRANDNEWGUY@EXAMPLE.COM'.toLowerCase());
@@ -316,14 +316,14 @@ describe('teamMembershipSpec', () => {
                   .end(function(err, res) {
                     if (err) return done.fail(err);
 
-                    models.Invitation.findAll().then(invites => {
-                      expect(invites.length).toEqual(1);
+                    models.Update.findAll().then(updates => {
+                      expect(updates.length).toEqual(1);
 
                       expect(_profile.user_metadata.pendingInvitations.length).toEqual(1);
-                      expect(_profile.user_metadata.pendingInvitations[0].name).toEqual(invites[0].name);
-                      expect(_profile.user_metadata.pendingInvitations[0].type).toEqual(invites[0].type);
-                      expect(_profile.user_metadata.pendingInvitations[0].uuid).toEqual(invites[0].uuid);
-                      expect(_profile.user_metadata.pendingInvitations[0].recipient).toEqual(invites[0].recipient);
+                      expect(_profile.user_metadata.pendingInvitations[0].name).toEqual(updates[0].name);
+                      expect(_profile.user_metadata.pendingInvitations[0].type).toEqual(updates[0].type);
+                      expect(_profile.user_metadata.pendingInvitations[0].uuid).toEqual(updates[0].uuid);
+                      expect(_profile.user_metadata.pendingInvitations[0].recipient).toEqual(updates[0].recipient);
 
                       done();
                     }).catch(err => {
@@ -440,8 +440,8 @@ describe('teamMembershipSpec', () => {
                   });
 
                   it('removes the invitation from the database', done => {
-                    models.Invitation.findAll().then(invites => {
-                      expect(invites.length).toEqual(1);
+                    models.Update.findAll().then(updates => {
+                      expect(updates.length).toEqual(1);
 
                       stubAuth0ManagementApi((err, apiScopes) => {
                         if (err) return done.fail();
@@ -472,8 +472,8 @@ describe('teamMembershipSpec', () => {
                                     .end(function(err, res) {
                                       if (err) return done.fail(err);
 
-                                      models.Invitation.findAll().then(invites => {
-                                        expect(invites.length).toEqual(0);
+                                      models.Update.findAll().then(updates => {
+                                        expect(updates.length).toEqual(0);
 
                                         done();
                                       }).catch(err => {
@@ -800,7 +800,7 @@ describe('teamMembershipSpec', () => {
             });
 
             it('updates the timestamp if invitation already exists', done => {
-              models.Invitation.findAll().then(results => {
+              models.Update.findAll().then(results => {
                 expect(results.length).toEqual(1);
                 const updatedAt = results[0].updatedAt;
 
@@ -815,7 +815,7 @@ describe('teamMembershipSpec', () => {
                   .end(function(err, res) {
                     if (err) return done.fail(err);
 
-                    models.Invitation.findAll().then(results => {
+                    models.Update.findAll().then(results => {
                       expect(results.length).toEqual(1);
                       expect(results[0].updatedAt).toBeGreaterThan(updatedAt);
 
@@ -891,7 +891,7 @@ describe('teamMembershipSpec', () => {
                 expect(results.length).toEqual(1);
                 expect(results[0].id).toEqual(agent.id);
 
-                models.Invitation.findAll().then(results => {
+                models.Update.findAll().then(results => {
                   expect(results.length).toEqual(1);
 
                   authenticatedSession
@@ -904,7 +904,7 @@ describe('teamMembershipSpec', () => {
                     .expect(201)
                     .end(function(err, res) {
                       if (err) return done.fail(err);
-                      models.Invitation.findAll().then(results => {
+                      models.Update.findAll().then(results => {
                         expect(results.length).toEqual(0);
                         done();
                       }).catch(err => {
@@ -1052,7 +1052,7 @@ describe('teamMembershipSpec', () => {
                   expect(results[0].id).toEqual(agent.id);
                   expect(results[1].id).toEqual(registeredAgent.id);
 
-                  models.Invitation.findAll().then(results => {
+                  models.Update.findAll().then(results => {
                     expect(results.length).toEqual(0);
 
                     authenticatedSession
@@ -1066,7 +1066,7 @@ describe('teamMembershipSpec', () => {
                       .end(function(err, res) {
                         if (err) return done.fail(err);
 
-                        models.Invitation.findAll().then(results => {
+                        models.Update.findAll().then(results => {
                           expect(results.length).toEqual(0);
 
                           done();
@@ -1118,7 +1118,7 @@ describe('teamMembershipSpec', () => {
                             stubUserAppMetadataUpdate((err, apiScopes) => {
                               if (err) return done.fail();
 
-                              // Invitation sent twice to ensure they don't start stacking up
+                              // Update sent twice to ensure they don't start stacking up
                               authenticatedSession
                                 .put(`/team/${teamId}/agent`)
                                 .send({
@@ -1848,11 +1848,11 @@ describe('teamMembershipSpec', () => {
               });
             });
 
-            it('adds an invitation to the database', done => {
+            it('adds an update to the database', done => {
               models.Agent.findAll().then(results => {
                 expect(results.length).toEqual(2);
 
-                models.Invitation.findAll().then(results => {
+                models.Update.findAll().then(results => {
                   expect(results.length).toEqual(0);
 
                   authenticatedSession
@@ -1866,7 +1866,7 @@ describe('teamMembershipSpec', () => {
                     .end(function(err, res) {
                       if (err) return done.fail(err);
 
-                      models.Invitation.findAll().then(results => {
+                      models.Update.findAll().then(results => {
                         expect(results.length).toEqual(1);
                         expect(results[0].recipient).toEqual(registeredAgent.email);
                         expect(results[0].name).toEqual('The Calgary Roughnecks');
@@ -2199,7 +2199,7 @@ describe('teamMembershipSpec', () => {
           });
         });
 
-        describe('orphaned pending invitation', () => {
+        describe('orphaned pending update', () => {
           let authenticatedSession, teamId;
           beforeEach(done => {
             teamId = uuid.v4();

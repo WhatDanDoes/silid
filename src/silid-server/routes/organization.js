@@ -4,7 +4,7 @@ const models = require('../models');
 const mailer = require('../mailer');
 const uuid = require('uuid');
 
-const upsertInvites = require('../lib/upsertInvites');
+const upsertUpdates = require('../lib/upsertUpdates');
 
 /**
  * Configs must match those defined for RBAC at Auth0
@@ -234,11 +234,11 @@ router.put('/:id', checkPermissions([scope.update.organizations]), function(req,
         // Update organization
         organizers[organizerIndex].user_metadata.organizations[orgIndex].name = orgName;
 
-        // Update pending invitations
+        // Update pending updates
         if (!organizers[organizerIndex].user_metadata.pendingInvitations) {
           organizers[organizerIndex].user_metadata.pendingInvitations = [];
         }
-        const pending = organizers[organizerIndex].user_metadata.pendingInvitations.filter(invite => invite.uuid === req.params.id);
+        const pending = organizers[organizerIndex].user_metadata.pendingInvitations.filter(update => update.uuid === req.params.id);
         for (let p of pending) {
           p.name = orgName;
         }
@@ -246,8 +246,8 @@ router.put('/:id', checkPermissions([scope.update.organizations]), function(req,
         // Update the organizer's metadata
         managementClient.updateUser({id: organizers[organizerIndex].user_id}, { user_metadata: organizers[organizerIndex].user_metadata }).then(result => {
 
-          // Update waiting invites
-          models.Invitation.update({ name: orgName }, { where: {uuid: req.params.id} }).then(results => {
+          // Update waiting updates
+          models.Update.update({ name: orgName }, { where: {uuid: req.params.id} }).then(results => {
 
             // Retrieve and consolidate organization info
             managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.organizationId:"${req.params.id}"` }).then(agents => {
@@ -255,14 +255,14 @@ router.put('/:id', checkPermissions([scope.update.organizations]), function(req,
 
               // Retrieve outstanding RSVPs
               managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.rsvps.uuid:"${req.params.id}"` }).then(results => {
-                const invitations = [];
+                const updates = [];
                 results.forEach(a => {
                   // Get agent's team ID
                   let i = a.user_metadata.rsvps.find(r => r.uuid === req.params.id);
-                  invitations.push({ uuid: req.params.id, type: 'organization', name: orgName, recipient: a.email, teamId: i.teamId });
+                  updates.push({ uuid: req.params.id, type: 'organization', name: orgName, recipient: a.email, teamId: i.teamId });
                 });
 
-                upsertInvites(invitations, err => {
+                upsertUpdates(updates, err => {
                   if (err) {
                     return res.status(500).json(err);
                   }
@@ -311,8 +311,8 @@ router.delete('/:id', checkPermissions([scope.delete.organizations]), function(r
         }
 
         if (organizers[0].user_metadata && organizers[0].user_metadata.pendingInvitations) {
-          const invite = organizers[0].user_metadata.pendingInvitations.find(i => i.uuid === req.params.id);
-          if (invite) {
+          const update = organizers[0].user_metadata.pendingInvitations.find(i => i.uuid === req.params.id);
+          if (update) {
             return res.status(400).json({ message: 'Organization has invitations pending. Cannot delete' });
           }
         }
@@ -380,17 +380,17 @@ router.put('/:id/team', checkPermissions([scope.create.organizationMembers]), fu
     // Add organizationId to team record
     leader.user_metadata.teams[teamIndex].organizationId = req.params.id;
 
-    // Prepare invitations to update team members
-    let invitations = [];
+    // Prepare updates to update team members
+    let updates = [];
     agents.forEach(agent => {
       if (agent.email !== leader.email) {
-        invitations.push({ uuid: req.params.id, type: 'organization', name: organization.name, recipient: agent.email, teamId: req.body.teamId });
+        updates.push({ uuid: req.params.id, type: 'organization', name: organization.name, recipient: agent.email, teamId: req.body.teamId });
       }
     });
 
     managementClient.updateUser({id: leader.user_id}, { user_metadata: leader.user_metadata }).then(result => {
 
-      upsertInvites(invitations, err => {
+      upsertUpdates(updates, err => {
         if (err) {
           return res.status(500).json(err);
         }
@@ -441,17 +441,17 @@ function deleteTeamMembership(req, res) {
     // Remove organizationId from the team record
     delete leader.user_metadata.teams[teamIndex].organizationId;
 
-    // Prepare invitations to update team members
-    let invitations = [];
+    // Prepare updates to update team members
+    let updates = [];
     agents.forEach(agent => {
       if (agent.email !== leader.email) {
-        invitations.push({ uuid: req.params.teamId, type: 'team', name: leader.user_metadata.teams[teamIndex].name, recipient: agent.email });
+        updates.push({ uuid: req.params.teamId, type: 'team', name: leader.user_metadata.teams[teamIndex].name, recipient: agent.email });
       }
     });
 
     managementClient.updateUser({id: leader.user_id}, { user_metadata: leader.user_metadata }).then(result => {
 
-      upsertInvites(invitations, err => {
+      upsertUpdates(updates, err => {
         if (err) {
           return res.status(500).json(err);
         }

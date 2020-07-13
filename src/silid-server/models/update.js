@@ -1,15 +1,15 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const Invitation = sequelize.define('Invitation', {
+  const Update = sequelize.define('Update', {
     name: {
       type: DataTypes.STRING,
       allowNull: false,
       validate: {
         notNull: {
-          msg: 'Invitation requires a name'
+          msg: 'Update requires a name'
         },
         notEmpty: {
-          msg: 'Invitation requires a name'
+          msg: 'Update requires a name'
         },
       }
     },
@@ -18,11 +18,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       validate: {
         notNull: {
-          msg: 'Invitation requires a type'
+          msg: 'Update requires a type'
         },
         isIn: {
           args: [['team', 'organization']],
-          msg: 'Invitation type can be one of either \'team\' or \'organization\''
+          msg: 'Update type can be one of either \'team\' or \'organization\''
         }
       },
     },
@@ -31,11 +31,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       validate: {
         notNull: {
-          msg: 'Invitation requires a uuid'
+          msg: 'Update requires a uuid'
         },
         isUUID: {
           args: 4,
-          msg: 'Invitation requires a valid version 4 uuid'
+          msg: 'Update requires a valid version 4 uuid'
         }
       },
     },
@@ -45,14 +45,14 @@ module.exports = (sequelize, DataTypes) => {
       validate: {
         isUUID: {
           args: 4,
-          msg: 'Organization invitation requires a valid version 4 team uuid'
+          msg: 'Organization update requires a valid version 4 team uuid'
         },
         isOrganization(value) {
           if (value && this.type !== 'organization') {
-            throw new Error('Team uuid only applies to organization invitations');
+            throw new Error('Team uuid only applies to organization updates');
           }
           else if (this.type === 'organization' && !value) {
-            throw new Error('Organization invitation requires a team uuid');
+            throw new Error('Organization update requires a team uuid');
           }
         }
       },
@@ -62,10 +62,10 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       validate: {
         notNull: {
-          msg: 'Invitation requires a recipient'
+          msg: 'Update requires a recipient'
         },
         isEmail: {
-          msg: 'Invitation requires a valid email for the recipient'
+          msg: 'Update requires a valid email for the recipient'
         }
       },
     }
@@ -79,11 +79,11 @@ module.exports = (sequelize, DataTypes) => {
     ]
   });
 
-  Invitation.addHook('beforeValidate', (invite, options) => {
-    if (invite.recipient) {
-      invite.recipient = invite.recipient.toLowerCase();
+  Update.addHook('beforeValidate', (update, options) => {
+    if (update.recipient) {
+      update.recipient = update.recipient.toLowerCase();
     }
   });
 
-  return Invitation;
+  return Update;
 };

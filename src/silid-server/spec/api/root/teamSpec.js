@@ -681,7 +681,7 @@ describe('root/teamSpec', () => {
         });
 
         it('creates a database invitation/update for any RSVPs', done => {
-          models.Invitation.findAll().then(results => {
+          models.Update.findAll().then(results => {
             expect(results.length).toEqual(0);
             rootSession
               .put(`/team/${teamId}`)
@@ -694,10 +694,10 @@ describe('root/teamSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                models.Invitation.findAll().then(invites => {
-                  expect(invites.length).toEqual(1);
-                  expect(invites[0].name).toEqual('Vancouver Riot');
-                  expect(invites[0].uuid).toEqual(teamId);
+                models.Update.findAll().then(updates => {
+                  expect(updates.length).toEqual(1);
+                  expect(updates[0].name).toEqual('Vancouver Riot');
+                  expect(updates[0].uuid).toEqual(teamId);
                   done();
                 }).catch(err => {
                   done.fail(err);
@@ -709,8 +709,8 @@ describe('root/teamSpec', () => {
           });
         });
 
-        it('updates any database invitations', done => {
-          models.Invitation.create({ name: 'Vancouver Warriors', recipient: 'onecooldude@example.com', uuid: teamId, type: 'team' }).then(results => {
+        it('updates any database updates', done => {
+          models.Update.create({ name: 'Vancouver Warriors', recipient: 'onecooldude@example.com', uuid: teamId, type: 'team' }).then(results => {
             rootSession
               .put(`/team/${teamId}`)
               .send({
@@ -722,10 +722,10 @@ describe('root/teamSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                models.Invitation.findAll({ where: {recipient: 'onecooldude@example.com'} }).then(invites => {
-                  expect(invites.length).toEqual(1);
-                  expect(invites[0].name).toEqual('Vancouver Riot');
-                  expect(invites[0].uuid).toEqual(teamId);
+                models.Update.findAll({ where: {recipient: 'onecooldude@example.com'} }).then(updates => {
+                  expect(updates.length).toEqual(1);
+                  expect(updates[0].name).toEqual('Vancouver Riot');
+                  expect(updates[0].uuid).toEqual(teamId);
                   done();
                 }).catch(err => {
                   done.fail(err);
@@ -895,10 +895,10 @@ describe('root/teamSpec', () => {
 
           // 2020-6-8 One of these is creating a sporadic 404 error. It has not been
           // reproduced and disappears on subsequent executions. Keep an eye out
-          it('creates an invitation record to update team info on next login', done => {
-            models.Invitation.findAll().then(invites => {
-              // One invite because of the RSVP in the ancestor beforeEach
-              expect(invites.length).toEqual(1);
+          it('creates an update record to update team info on next login', done => {
+            models.Update.findAll().then(updates => {
+              // One update because of the RSVP in the ancestor beforeEach
+              expect(updates.length).toEqual(1);
 
               rootSession
                 .put(`/team/${teamId}`)
@@ -910,24 +910,24 @@ describe('root/teamSpec', () => {
                 .expect(201)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
-                  models.Invitation.findAll({ order: [['recipient', 'ASC']] }).then(invites => {
+                  models.Update.findAll({ order: [['recipient', 'ASC']] }).then(updates => {
 
-                    expect(invites.length).toEqual(3);
+                    expect(updates.length).toEqual(3);
 
-                    expect(invites[0].name).toEqual('Vancouver Warriors');
-                    expect(invites[0].type).toEqual('team');
-                    expect(invites[0].uuid).toEqual(teamId);
-                    expect(invites[0].recipient).toEqual('someotherguy@example.com');
+                    expect(updates[0].name).toEqual('Vancouver Warriors');
+                    expect(updates[0].type).toEqual('team');
+                    expect(updates[0].uuid).toEqual(teamId);
+                    expect(updates[0].recipient).toEqual('someotherguy@example.com');
 
-                    expect(invites[1].name).toEqual('Vancouver Warriors');
-                    expect(invites[1].type).toEqual('team');
-                    expect(invites[1].uuid).toEqual(teamId);
-                    expect(invites[1].recipient).toEqual('someprospectiveteammember@example.com');
+                    expect(updates[1].name).toEqual('Vancouver Warriors');
+                    expect(updates[1].type).toEqual('team');
+                    expect(updates[1].uuid).toEqual(teamId);
+                    expect(updates[1].recipient).toEqual('someprospectiveteammember@example.com');
 
-                    expect(invites[2].name).toEqual('Vancouver Warriors');
-                    expect(invites[2].type).toEqual('team');
-                    expect(invites[2].uuid).toEqual(teamId);
-                    expect(invites[2].recipient).toEqual('yetanotherteamplayer@example.com');
+                    expect(updates[2].name).toEqual('Vancouver Warriors');
+                    expect(updates[2].type).toEqual('team');
+                    expect(updates[2].uuid).toEqual(teamId);
+                    expect(updates[2].recipient).toEqual('yetanotherteamplayer@example.com');
 
                     done();
                   }).catch(err => {
@@ -941,10 +941,10 @@ describe('root/teamSpec', () => {
 
           // 2020-6-24 One of these is creating a sporadic 404 error. It has not been
           // reproduced and disappears on subsequent executions. Keep an eye out
-          it('overwrites existing invitation records to update team info on next login', done => {
-            models.Invitation.findAll().then(invites => {
-              // One invite because of the RSVP in the ancestor beforeEach
-              expect(invites.length).toEqual(1);
+          it('overwrites existing update records to update team info on next login', done => {
+            models.Update.findAll().then(updates => {
+              // One update because of the RSVP in the ancestor beforeEach
+              expect(updates.length).toEqual(1);
 
               // First update
               rootSession
@@ -957,24 +957,24 @@ describe('root/teamSpec', () => {
                 .expect(201)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
-                  models.Invitation.findAll({ order: [['recipient', 'ASC']] }).then(invites => {
+                  models.Update.findAll({ order: [['recipient', 'ASC']] }).then(updates => {
 
-                    expect(invites.length).toEqual(3);
+                    expect(updates.length).toEqual(3);
 
-                    expect(invites[0].name).toEqual('Vancouver Warriors');
-                    expect(invites[0].type).toEqual('team');
-                    expect(invites[0].uuid).toEqual(teamId);
-                    expect(invites[0].recipient).toEqual('someotherguy@example.com');
+                    expect(updates[0].name).toEqual('Vancouver Warriors');
+                    expect(updates[0].type).toEqual('team');
+                    expect(updates[0].uuid).toEqual(teamId);
+                    expect(updates[0].recipient).toEqual('someotherguy@example.com');
 
-                    expect(invites[1].name).toEqual('Vancouver Warriors');
-                    expect(invites[1].type).toEqual('team');
-                    expect(invites[1].uuid).toEqual(teamId);
-                    expect(invites[1].recipient).toEqual('someprospectiveteammember@example.com');
+                    expect(updates[1].name).toEqual('Vancouver Warriors');
+                    expect(updates[1].type).toEqual('team');
+                    expect(updates[1].uuid).toEqual(teamId);
+                    expect(updates[1].recipient).toEqual('someprospectiveteammember@example.com');
 
-                    expect(invites[2].name).toEqual('Vancouver Warriors');
-                    expect(invites[2].type).toEqual('team');
-                    expect(invites[2].uuid).toEqual(teamId);
-                    expect(invites[2].recipient).toEqual('yetanotherteamplayer@example.com');
+                    expect(updates[2].name).toEqual('Vancouver Warriors');
+                    expect(updates[2].type).toEqual('team');
+                    expect(updates[2].uuid).toEqual(teamId);
+                    expect(updates[2].recipient).toEqual('yetanotherteamplayer@example.com');
 
                     // Reset mocks
 
@@ -1013,22 +1013,22 @@ describe('root/teamSpec', () => {
                                 .expect(201)
                                 .end(function(err, res) {
                                   if (err) return done.fail(err);
-                                  models.Invitation.findAll({ order: [['recipient', 'ASC']] }).then(invites => {
+                                  models.Update.findAll({ order: [['recipient', 'ASC']] }).then(updates => {
 
-                                    expect(invites[0].name).toEqual('Vancouver Riot');
-                                    expect(invites[0].type).toEqual('team');
-                                    expect(invites[0].uuid).toEqual(teamId);
-                                    expect(invites[0].recipient).toEqual('someotherguy@example.com');
+                                    expect(updates[0].name).toEqual('Vancouver Riot');
+                                    expect(updates[0].type).toEqual('team');
+                                    expect(updates[0].uuid).toEqual(teamId);
+                                    expect(updates[0].recipient).toEqual('someotherguy@example.com');
 
-                                    expect(invites[1].name).toEqual('Vancouver Riot');
-                                    expect(invites[1].type).toEqual('team');
-                                    expect(invites[1].uuid).toEqual(teamId);
-                                    expect(invites[1].recipient).toEqual('someprospectiveteammember@example.com');
+                                    expect(updates[1].name).toEqual('Vancouver Riot');
+                                    expect(updates[1].type).toEqual('team');
+                                    expect(updates[1].uuid).toEqual(teamId);
+                                    expect(updates[1].recipient).toEqual('someprospectiveteammember@example.com');
 
-                                    expect(invites[2].name).toEqual('Vancouver Riot');
-                                    expect(invites[2].type).toEqual('team');
-                                    expect(invites[2].uuid).toEqual(teamId);
-                                    expect(invites[2].recipient).toEqual('yetanotherteamplayer@example.com');
+                                    expect(updates[2].name).toEqual('Vancouver Riot');
+                                    expect(updates[2].type).toEqual('team');
+                                    expect(updates[2].uuid).toEqual(teamId);
+                                    expect(updates[2].recipient).toEqual('yetanotherteamplayer@example.com');
 
                                     done();
                                   }).catch(err => {
@@ -1126,9 +1126,9 @@ describe('root/teamSpec', () => {
             });
         });
 
-        it('creates a database invitation to update the root agent', done => {
-          models.Invitation.findAll().then(invites => {
-            expect(invites.length).toEqual(0);
+        it('creates a database update to update the root agent', done => {
+          models.Update.findAll().then(updates => {
+            expect(updates.length).toEqual(0);
             rootSession
               .put(`/team/${teamId}`)
               .send({
@@ -1140,12 +1140,12 @@ describe('root/teamSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                models.Invitation.findAll().then(invites => {
-                  expect(invites.length).toEqual(1);
-                  expect(invites[0].name).toEqual('Vancouver Riot');
-                  expect(invites[0].uuid).toEqual(teamId);
-                  expect(invites[0].recipient).toEqual('root@example.com');
-                  expect(invites[0].type).toEqual('team');
+                models.Update.findAll().then(updates => {
+                  expect(updates.length).toEqual(1);
+                  expect(updates[0].name).toEqual('Vancouver Riot');
+                  expect(updates[0].uuid).toEqual(teamId);
+                  expect(updates[0].recipient).toEqual('root@example.com');
+                  expect(updates[0].type).toEqual('team');
                   done();
                 }).catch(err => {
                   done.fail(err);
@@ -1156,8 +1156,8 @@ describe('root/teamSpec', () => {
           });
         });
 
-        it('updates any database invitations', done => {
-          models.Invitation.create({ name: 'Vancouver Warriors', recipient: 'onecooldude@example.com', uuid: teamId, type: 'team' }).then(results => {
+        it('updates any database updates', done => {
+          models.Update.create({ name: 'Vancouver Warriors', recipient: 'onecooldude@example.com', uuid: teamId, type: 'team' }).then(results => {
             rootSession
               .put(`/team/${teamId}`)
               .send({
@@ -1169,13 +1169,13 @@ describe('root/teamSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                models.Invitation.findAll({ order: [['recipient', 'ASC']] }).then(invites => {
-                  // Two, because the team leader got an invite to update
-                  expect(invites.length).toEqual(2);
-                  expect(invites[0].name).toEqual('Vancouver Riot');
-                  expect(invites[0].uuid).toEqual(teamId);
-                  expect(invites[0].recipient).toEqual('onecooldude@example.com');
-                  expect(invites[0].type).toEqual('team');
+                models.Update.findAll({ order: [['recipient', 'ASC']] }).then(updates => {
+                  // Two, because the team leader got an update to update
+                  expect(updates.length).toEqual(2);
+                  expect(updates[0].name).toEqual('Vancouver Riot');
+                  expect(updates[0].uuid).toEqual(teamId);
+                  expect(updates[0].recipient).toEqual('onecooldude@example.com');
+                  expect(updates[0].type).toEqual('team');
                   done();
                 }).catch(err => {
                   done.fail(err);
@@ -1315,7 +1315,7 @@ describe('root/teamSpec', () => {
                         if (err) return done.fail();
                         ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
 
-                        // Root is going to get an invitation, which requires an Auth0 update call
+                        // Root is going to get an update, which requires an Auth0 update call
                         stubUserAppMetadataUpdate((err, apiScopes) => {
                           if (err) return done.fail();
 
@@ -1335,10 +1335,10 @@ describe('root/teamSpec', () => {
 
           // 2020-6-8 One of these is creating a sporadic 404 error. It has not been
           // reproduced and disappears on subsequent executions. Keep an eye out
-          it('creates an invitation record to update team info on next login', done => {
-            models.Invitation.findAll().then(invites => {
+          it('creates an update record to update team info on next login', done => {
+            models.Update.findAll().then(updates => {
               // One, because root got updated when mock was cleared
-              expect(invites.length).toEqual(1);
+              expect(updates.length).toEqual(1);
 
               rootSession
                 .put(`/team/${teamId}`)
@@ -1350,19 +1350,19 @@ describe('root/teamSpec', () => {
                 .expect(201)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
-                  models.Invitation.findAll({ order: [['recipient', 'ASC']] }).then(invites => {
+                  models.Update.findAll({ order: [['recipient', 'ASC']] }).then(updates => {
 
-                    expect(invites.length).toEqual(2);
+                    expect(updates.length).toEqual(2);
 
-                    expect(invites[0].name).toEqual('Vancouver Warriors');
-                    expect(invites[0].type).toEqual('team');
-                    expect(invites[0].uuid).toEqual(teamId);
-                    expect(invites[0].recipient).toEqual('root@example.com');
+                    expect(updates[0].name).toEqual('Vancouver Warriors');
+                    expect(updates[0].type).toEqual('team');
+                    expect(updates[0].uuid).toEqual(teamId);
+                    expect(updates[0].recipient).toEqual('root@example.com');
 
-                    expect(invites[1].name).toEqual('Vancouver Warriors');
-                    expect(invites[1].type).toEqual('team');
-                    expect(invites[1].uuid).toEqual(teamId);
-                    expect(invites[1].recipient).toEqual('yetanotherteamplayer@example.com');
+                    expect(updates[1].name).toEqual('Vancouver Warriors');
+                    expect(updates[1].type).toEqual('team');
+                    expect(updates[1].uuid).toEqual(teamId);
+                    expect(updates[1].recipient).toEqual('yetanotherteamplayer@example.com');
 
                     done();
                   }).catch(err => {
@@ -1376,10 +1376,10 @@ describe('root/teamSpec', () => {
 
           // 2020-6-24 One of these is creating a sporadic 404 error. It has not been
           // reproduced and disappears on subsequent executions. Keep an eye out
-          it('overwrites existing invitation records to update team info on next login', done => {
-            models.Invitation.findAll().then(invites => {
+          it('overwrites existing update records to update team info on next login', done => {
+            models.Update.findAll().then(updates => {
               // One, because team leader got updated when mock was cleared
-              expect(invites.length).toEqual(1);
+              expect(updates.length).toEqual(1);
 
               // First update
               rootSession
@@ -1392,19 +1392,19 @@ describe('root/teamSpec', () => {
                 .expect(201)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
-                  models.Invitation.findAll({ order: [['recipient', 'ASC']] }).then(invites => {
+                  models.Update.findAll({ order: [['recipient', 'ASC']] }).then(updates => {
 
-                    expect(invites.length).toEqual(2);
+                    expect(updates.length).toEqual(2);
 
-                    expect(invites[0].name).toEqual('Vancouver Warriors');
-                    expect(invites[0].type).toEqual('team');
-                    expect(invites[0].uuid).toEqual(teamId);
-                    expect(invites[0].recipient).toEqual('root@example.com');
+                    expect(updates[0].name).toEqual('Vancouver Warriors');
+                    expect(updates[0].type).toEqual('team');
+                    expect(updates[0].uuid).toEqual(teamId);
+                    expect(updates[0].recipient).toEqual('root@example.com');
 
-                    expect(invites[1].name).toEqual('Vancouver Warriors');
-                    expect(invites[1].type).toEqual('team');
-                    expect(invites[1].uuid).toEqual(teamId);
-                    expect(invites[1].recipient).toEqual('yetanotherteamplayer@example.com');
+                    expect(updates[1].name).toEqual('Vancouver Warriors');
+                    expect(updates[1].type).toEqual('team');
+                    expect(updates[1].uuid).toEqual(teamId);
+                    expect(updates[1].recipient).toEqual('yetanotherteamplayer@example.com');
 
                     // Reset mocks
 
@@ -1433,7 +1433,7 @@ describe('root/teamSpec', () => {
                             stubUserRolesRead((err, apiScopes) => {
                               if (err) return done(err);
 
-                              // Root is going to get an invitation, which requires an Auth0 update call
+                              // Root is going to get an update, which requires an Auth0 update call
                               stubUserAppMetadataUpdate((err, apiScopes) => {
                                 if (err) return done.fail();
 
@@ -1451,19 +1451,19 @@ describe('root/teamSpec', () => {
                                     .expect(201)
                                     .end(function(err, res) {
                                       if (err) return done.fail(err);
-                                      models.Invitation.findAll().then(invites => {
+                                      models.Update.findAll().then(updates => {
 
-                                        expect(invites.length).toEqual(2);
+                                        expect(updates.length).toEqual(2);
 
-                                        expect(invites[0].name).toEqual('Vancouver Riot');
-                                        expect(invites[0].type).toEqual('team');
-                                        expect(invites[0].uuid).toEqual(teamId);
-                                        expect(invites[0].recipient).toEqual('root@example.com');
+                                        expect(updates[0].name).toEqual('Vancouver Riot');
+                                        expect(updates[0].type).toEqual('team');
+                                        expect(updates[0].uuid).toEqual(teamId);
+                                        expect(updates[0].recipient).toEqual('root@example.com');
 
-                                        expect(invites[1].name).toEqual('Vancouver Riot');
-                                        expect(invites[1].type).toEqual('team');
-                                        expect(invites[1].uuid).toEqual(teamId);
-                                        expect(invites[1].recipient).toEqual('yetanotherteamplayer@example.com');
+                                        expect(updates[1].name).toEqual('Vancouver Riot');
+                                        expect(updates[1].type).toEqual('team');
+                                        expect(updates[1].uuid).toEqual(teamId);
+                                        expect(updates[1].recipient).toEqual('yetanotherteamplayer@example.com');
 
                                         done();
                                       }).catch(err => {
@@ -1571,7 +1571,7 @@ describe('root/teamSpec', () => {
             });
         });
 
-        it('updates the team leader\'s profile and any pending invitations', done => {
+        it('updates the team leader\'s profile and any pending updates', done => {
           rootSession
             .put(`/team/${teamId}`)
             .send({
@@ -1592,7 +1592,7 @@ describe('root/teamSpec', () => {
         });
 
         it('creates a database invitation/update for RSVPs and team members', done => {
-          models.Invitation.findAll().then(results => {
+          models.Update.findAll().then(results => {
             expect(results.length).toEqual(0);
             rootSession
               .put(`/team/${teamId}`)
@@ -1605,20 +1605,20 @@ describe('root/teamSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                models.Invitation.findAll({ order: [['recipient', 'ASC']] }).then(invites => {
-                  expect(invites.length).toEqual(2);
+                models.Update.findAll({ order: [['recipient', 'ASC']] }).then(updates => {
+                  expect(updates.length).toEqual(2);
 
                   // RSVP
-                  expect(invites[0].name).toEqual('Vancouver Riot');
-                  expect(invites[0].uuid).toEqual(teamId);
-                  expect(invites[0].recipient).toEqual('someprospectiveteammember@example.com');
-                  expect(invites[0].type).toEqual('team');
+                  expect(updates[0].name).toEqual('Vancouver Riot');
+                  expect(updates[0].uuid).toEqual(teamId);
+                  expect(updates[0].recipient).toEqual('someprospectiveteammember@example.com');
+                  expect(updates[0].type).toEqual('team');
 
                   // Team member
-                  expect(invites[1].name).toEqual('Vancouver Riot');
-                  expect(invites[1].uuid).toEqual(teamId);
-                  expect(invites[1].recipient).toEqual('teamplayer@example.com');
-                  expect(invites[1].type).toEqual('team');
+                  expect(updates[1].name).toEqual('Vancouver Riot');
+                  expect(updates[1].uuid).toEqual(teamId);
+                  expect(updates[1].recipient).toEqual('teamplayer@example.com');
+                  expect(updates[1].type).toEqual('team');
 
                   done();
                 }).catch(err => {
@@ -1630,8 +1630,8 @@ describe('root/teamSpec', () => {
           });
         });
 
-        it('updates any existing database invitations', done => {
-          models.Invitation.create({ name: 'Vancouver Warriors', recipient: 'onecooldude@example.com', uuid: teamId, type: 'team' }).then(results => {
+        it('updates any existing database updates', done => {
+          models.Update.create({ name: 'Vancouver Warriors', recipient: 'onecooldude@example.com', uuid: teamId, type: 'team' }).then(results => {
             rootSession
               .put(`/team/${teamId}`)
               .send({
@@ -1643,10 +1643,10 @@ describe('root/teamSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                models.Invitation.findAll({ where: {recipient: 'onecooldude@example.com'} }).then(invites => {
-                  expect(invites.length).toEqual(1);
-                  expect(invites[0].name).toEqual('Vancouver Riot');
-                  expect(invites[0].uuid).toEqual(teamId);
+                models.Update.findAll({ where: {recipient: 'onecooldude@example.com'} }).then(updates => {
+                  expect(updates.length).toEqual(1);
+                  expect(updates[0].name).toEqual('Vancouver Riot');
+                  expect(updates[0].uuid).toEqual(teamId);
                   done();
                 }).catch(err => {
                   done.fail(err);

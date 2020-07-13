@@ -149,8 +149,8 @@ describe('root/organizationMembershipSpec', () => {
               });
           });
 
-          it('creates invitation database records for all team members (excluding the leader)', done => {
-            models.Invitation.findAll().then(results => {
+          it('creates update database records for all team members (excluding the leader)', done => {
+            models.Update.findAll().then(results => {
               expect(results.length).toEqual(0);
 
               rootSession
@@ -164,7 +164,7 @@ describe('root/organizationMembershipSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  models.Invitation.findAll().then(results => {
+                  models.Update.findAll().then(results => {
                     expect(results.length).toEqual(1);
                     expect(results[0].recipient).toEqual('player@example.com');
                     expect(results[0].name).toEqual('The National Lacrosse League');
@@ -573,8 +573,8 @@ describe('root/organizationMembershipSpec', () => {
               });
           });
 
-          it('creates invitation records for all team members with organizationId undefined (excluding the leader)', done => {
-            models.Invitation.findAll().then(results => {
+          it('creates update records for all team members with organizationId undefined (excluding the leader)', done => {
+            models.Update.findAll().then(results => {
               expect(results.length).toEqual(0);
 
               rootSession
@@ -585,7 +585,7 @@ describe('root/organizationMembershipSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  models.Invitation.findAll().then(results => {
+                  models.Update.findAll().then(results => {
                     expect(results.length).toEqual(1);
                     expect(results[0].recipient).toEqual('player@example.com');
                     expect(results[0].name).toEqual('The Calgary Roughnecks');
@@ -796,8 +796,8 @@ describe('root/organizationMembershipSpec', () => {
               });
           });
 
-          it('creates invitation records for all team members with organizationId undefined (excluding the leader)', done => {
-            models.Invitation.findAll().then(results => {
+          it('creates update records for all team members with organizationId undefined (excluding the leader)', done => {
+            models.Update.findAll().then(results => {
               expect(results.length).toEqual(0);
 
               rootSession
@@ -808,7 +808,7 @@ describe('root/organizationMembershipSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  models.Invitation.findAll().then(results => {
+                  models.Update.findAll().then(results => {
                     expect(results.length).toEqual(1);
                     expect(results[0].recipient).toEqual('player@example.com');
                     expect(results[0].name).toEqual('The Calgary Roughnecks');

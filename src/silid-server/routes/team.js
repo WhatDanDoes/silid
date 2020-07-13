@@ -4,7 +4,7 @@ const models = require('../models');
 const mailer = require('../mailer');
 const uuid = require('uuid');
 
-const upsertInvites = require('../lib/upsertInvites');
+const upsertUpdates = require('../lib/upsertUpdates');
 
 /**
  * Configs must match those defined for RBAC at Auth0
@@ -253,10 +253,10 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
     }
 
     agents = agents.concat(results);
-    const invitations = [];
+    const updates = [];
     agents.forEach(a => {
       if (a.email !== leaderEmail) {
-        invitations.push({ uuid: req.params.id, type: 'team', name: teamName, recipient: a.email });
+        updates.push({ uuid: req.params.id, type: 'team', name: teamName, recipient: a.email });
       }
     });
 
@@ -265,7 +265,7 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
       agents.concat(results);
       results.forEach(a => {
         if (a.email !== leaderEmail) {
-          invitations.push({ uuid: req.params.id, type: 'team', name: teamName, recipient: a.email });
+          updates.push({ uuid: req.params.id, type: 'team', name: teamName, recipient: a.email });
         }
       });
 
@@ -301,16 +301,16 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
          * Upserting on composite keys has yet to be released. When it is, this
          * step can be simplified as follows (or similar)...
          */
-        //  models.Invitation.bulkCreate(invitations, { updateOnDuplicate: ['name', 'updatedAt'], upsertKeys: { fields: ['uuid', 'recipient'] } }).then(result => {
+        //  models.Update.bulkCreate(updates, { updateOnDuplicate: ['name', 'updatedAt'], upsertKeys: { fields: ['uuid', 'recipient'] } }).then(result => {
         //    const teams = collateTeams(agents, req.params.id, req.user.user_id);
         //    res.status(201).json(teams);
         //  }).catch(err => {
         //    res.status(500).json(err);
         //  });
 
-        models.Invitation.update({ name: teamName }, { where: {uuid: req.params.id} }).then(results => {
+        models.Update.update({ name: teamName }, { where: {uuid: req.params.id} }).then(results => {
 
-          upsertInvites(invitations, err => {
+          upsertUpdates(updates, err => {
             if (err) {
               return res.status(500).json(err);
             }
@@ -491,11 +491,11 @@ function inviteAgent(invite, req, res) {
 }
 
 /**
- * Manage Invitations for agents unknown to Auth0
+ * Manage Updates for agents unknown to Auth0
  */
-function createInvitation(req, res, recipientEmail, invite) {
-  models.Invitation.findOne({ where: { uuid: req.params.id, recipient: recipientEmail } }).then(invitation => {
-    if (!invitation) {
+function createUpdate(req, res, recipientEmail, update) {
+  models.Update.findOne({ where: { uuid: req.params.id, recipient: recipientEmail } }).then(result => {
+    if (!result) {
 
       /**
        * NOTE TO SELF:
@@ -509,16 +509,16 @@ function createInvitation(req, res, recipientEmail, invite) {
       // This updates the agent's session data
       // req.login(result, err => {
       //   if (err) return next(err);
-      models.Invitation.upsert(invite).then(results => {
+      models.Update.upsert(update).then(results => {
 
         if (!req.user.user_metadata.pendingInvitations) {
           req.user.user_metadata.pendingInvitations = [];
         }
-        req.user.user_metadata.pendingInvitations.push(invite);
+        req.user.user_metadata.pendingInvitations.push(update);
 
         const managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
         managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
-          inviteAgent(invite, req, res);
+          inviteAgent(update, req, res);
         }).catch(err => {
           res.status(500).json(err);
         });
@@ -529,9 +529,9 @@ function createInvitation(req, res, recipientEmail, invite) {
     }
     else {
       // 2020-5-7 Force updating the timestamp - https://github.com/sequelize/sequelize/issues/3759
-      invitation.changed('updatedAt', true);
-      invitation.save().then(result => {
-        inviteAgent(invite, req, res);
+      result.changed('updatedAt', true);
+      result.save().then(result => {
+        inviteAgent(result, req, res);
       }).catch(err => {
         res.status(500).json(err);
       });
@@ -561,8 +561,8 @@ router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(
       return res.status(404).json({ message: 'No such team' });
     }
     req.user.user_metadata.pendingInvitations.splice(inviteIndex, 1);
-    managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
 
+    managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
     managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
       req.user = {...req.user, ...result};
       res.status(404).json(req.user);
@@ -631,13 +631,13 @@ router.put('/:id/agent', checkPermissions([scope.create.teamMembers]), function(
         }).catch(err => {
           // This comes into play if agent is manually deleted at Auth0
           if (err.statusCode === 404) {
-            return createInvitation(req, res, recipientEmail, invite);
+            return createUpdate(req, res, recipientEmail, invite);
           }
           res.status(500).json(err);
         });
       }
       else {
-        createInvitation(req, res, recipientEmail, invite);
+        createUpdate(req, res, recipientEmail, invite);
       }
     }).catch(err => {
       res.status(500).json(err);
@@ -724,7 +724,7 @@ router.delete('/:id/invite', checkPermissions([scope.delete.teamMembers]), funct
   }
 
   // Returns `0` if nothing was removed
-  models.Invitation.destroy({ where: { uuid: req.params.id, recipient: req.body.email } }).then(deleted => {
+  models.Update.destroy({ where: { uuid: req.params.id, recipient: req.body.email } }).then(deleted => {
 
     req.user.user_metadata.pendingInvitations.splice(inviteIndex, 1);
 

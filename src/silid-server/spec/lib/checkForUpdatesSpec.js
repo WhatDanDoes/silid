@@ -67,7 +67,7 @@ describe('checkForUpdates', function() {
       beforeEach(done => {
         player.user_metadata = { teams: [ {name: 'The Calgary Roughnecks', leader: 'coach@example.com', id: teamId } ] };
 
-        models.Invitation.create({ name: 'The National Lacrosse League', type: 'organization', uuid: organizationId, teamId: teamId, recipient: player.email }).then(results => {
+        models.Update.create({ name: 'The National Lacrosse League', type: 'organization', uuid: organizationId, teamId: teamId, recipient: player.email }).then(results => {
           done();
         }).catch(err => {
           done.fail(err);
@@ -91,21 +91,21 @@ describe('checkForUpdates', function() {
         });
       });
 
-      it('deletes the invitation from the database', done => {
+      it('deletes the update from the database', done => {
         request = httpMocks.createRequest({
           method: 'GET',
           url: '/agent',
           user: player,
         });
 
-        models.Invitation.findAll().then(invites => {
-          expect(invites.length).toEqual(1);
+        models.Update.findAll().then(updates => {
+          expect(updates.length).toEqual(1);
 
           checkForUpdates(request, err => {
             if (err) return done.fail(err);
 
-            models.Invitation.findAll().then(invites => {
-              expect(invites.length).toEqual(0);
+            models.Update.findAll().then(updates => {
+              expect(updates.length).toEqual(0);
 
               done();
             }).catch(err => {
@@ -141,7 +141,7 @@ describe('checkForUpdates', function() {
       beforeEach(done => {
         player.user_metadata = { teams: [ {name: 'The Calgary Roughnecks', leader: 'coach@example.com', id: teamId, organizationId: organizationId} ] };
 
-//        models.Invitation.create({ name: 'The National Lacrosse League', type: 'organization', uuid: organizationId, teamId: teamId, recipient: player.email }).then(results => {
+//        models.Update.create({ name: 'The National Lacrosse League', type: 'organization', uuid: organizationId, teamId: teamId, recipient: player.email }).then(results => {
           done();
 //        }).catch(err => {
 //          done.fail(err);

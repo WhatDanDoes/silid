@@ -23,8 +23,8 @@ const getManagementClient = require('../lib/getManagementClient');
  * @params function
  */
 function checkForUpdates(req, done) {
-  models.Invitation.findAll({where: { recipient: req.user.email }, order: [['updatedAt', 'DESC']]}).then(invites => {
-    if (invites.length) {
+  models.Update.findAll({where: { recipient: req.user.email }, order: [['updatedAt', 'DESC']]}).then(updates => {
+    if (updates.length) {
       if (!req.user.user_metadata) {
         req.user.user_metadata = { rsvps: [], teams: [] };
       }
@@ -37,27 +37,27 @@ function checkForUpdates(req, done) {
         req.user.user_metadata.teams = [];
       }
 
-      for (let invite of invites) {
-        if (invite.type === 'team') {
-          let teamIndex = req.user.user_metadata.teams.findIndex(team => team.id === invite.uuid);
-          let rsvpIndex = req.user.user_metadata.rsvps.findIndex(rsvp => rsvp.uuid === invite.uuid);
+      for (let update of updates) {
+        if (update.type === 'team') {
+          let teamIndex = req.user.user_metadata.teams.findIndex(team => team.id === update.uuid);
+          let rsvpIndex = req.user.user_metadata.rsvps.findIndex(rsvp => rsvp.uuid === update.uuid);
 
           if (teamIndex > -1) {
-            req.user.user_metadata.teams[teamIndex].name = invite.name;
-            req.user.user_metadata.teams[teamIndex].organizationId = invite.organizationId;
+            req.user.user_metadata.teams[teamIndex].name = update.name;
+            req.user.user_metadata.teams[teamIndex].organizationId = update.organizationId;
           }
           else if (rsvpIndex > -1) {
-            req.user.user_metadata.rsvps[rsvpIndex].name = invite.name;
+            req.user.user_metadata.rsvps[rsvpIndex].name = update.name;
           }
           else {
-            req.user.user_metadata.rsvps.push({ uuid: invite.uuid, type: invite.type, name: invite.name, recipient: invite.recipient });
+            req.user.user_metadata.rsvps.push({ uuid: update.uuid, type: update.type, name: update.name, recipient: update.recipient });
           }
         }
-        else if (invite.type === 'organization') {
-          let teamIndex = req.user.user_metadata.teams.findIndex(team => team.id === invite.teamId);
+        else if (update.type === 'organization') {
+          let teamIndex = req.user.user_metadata.teams.findIndex(team => team.id === update.teamId);
 
           if (teamIndex > -1) {
-            req.user.user_metadata.teams[teamIndex].organizationId = invite.uuid;
+            req.user.user_metadata.teams[teamIndex].organizationId = update.uuid;
           }
         }
       }
@@ -65,7 +65,7 @@ function checkForUpdates(req, done) {
       managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
       managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
 
-        models.Invitation.destroy({ where: { recipient: req.user.email } }).then(results => {
+        models.Update.destroy({ where: { recipient: req.user.email } }).then(results => {
           done();
         }).catch(err => {
           done(err);

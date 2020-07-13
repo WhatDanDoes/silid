@@ -694,8 +694,8 @@ describe('teamSpec', () => {
             });
         });
 
-        it('updates any database invitations', done => {
-          models.Invitation.create({ name: 'Vancouver Warriors', recipient: 'onecooldude@example.com', uuid: teamId, type: 'team' }).then(results => {
+        it('updates any database updates', done => {
+          models.Update.create({ name: 'Vancouver Warriors', recipient: 'onecooldude@example.com', uuid: teamId, type: 'team' }).then(results => {
             authenticatedSession
               .put(`/team/${teamId}`)
               .send({
@@ -707,10 +707,10 @@ describe('teamSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                models.Invitation.findAll().then(invites => {
-                  expect(invites.length).toEqual(1);
-                  expect(invites[0].name).toEqual('Vancouver Riot');
-                  expect(invites[0].uuid).toEqual(teamId);
+                models.Update.findAll().then(updates => {
+                  expect(updates.length).toEqual(1);
+                  expect(updates[0].name).toEqual('Vancouver Riot');
+                  expect(updates[0].uuid).toEqual(teamId);
                   done();
                 }).catch(err => {
                   done.fail(err);
@@ -879,9 +879,9 @@ describe('teamSpec', () => {
               });
           });
 
-          it('creates an invitation record to update team info on next login', done => {
-            models.Invitation.findAll().then(invites => {
-              expect(invites.length).toEqual(0);
+          it('creates an update record to update team info on next login', done => {
+            models.Update.findAll().then(updates => {
+              expect(updates.length).toEqual(0);
 
               authenticatedSession
                 .put(`/team/${teamId}`)
@@ -893,19 +893,19 @@ describe('teamSpec', () => {
                 .expect(201)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
-                  models.Invitation.findAll().then(invites => {
+                  models.Update.findAll().then(updates => {
 
-                    expect(invites.length).toEqual(2);
+                    expect(updates.length).toEqual(2);
 
-                    expect(invites[0].name).toEqual('Vancouver Warriors');
-                    expect(invites[0].type).toEqual('team');
-                    expect(invites[0].uuid).toEqual(teamId);
-                    expect(invites[0].recipient).toEqual('someotherguy@example.com');
+                    expect(updates[0].name).toEqual('Vancouver Warriors');
+                    expect(updates[0].type).toEqual('team');
+                    expect(updates[0].uuid).toEqual(teamId);
+                    expect(updates[0].recipient).toEqual('someotherguy@example.com');
 
-                    expect(invites[1].name).toEqual('Vancouver Warriors');
-                    expect(invites[1].type).toEqual('team');
-                    expect(invites[1].uuid).toEqual(teamId);
-                    expect(invites[1].recipient).toEqual('yetanotherteamplayer@example.com');
+                    expect(updates[1].name).toEqual('Vancouver Warriors');
+                    expect(updates[1].type).toEqual('team');
+                    expect(updates[1].uuid).toEqual(teamId);
+                    expect(updates[1].recipient).toEqual('yetanotherteamplayer@example.com');
 
                     done();
                   }).catch(err => {
@@ -918,9 +918,9 @@ describe('teamSpec', () => {
           });
 
 
-          it('overwrites existing invitation records to update team info on next login', done => {
-            models.Invitation.findAll().then(invites => {
-              expect(invites.length).toEqual(0);
+          it('overwrites existing update records to update team info on next login', done => {
+            models.Update.findAll().then(updates => {
+              expect(updates.length).toEqual(0);
 
               // First update
               authenticatedSession
@@ -933,19 +933,19 @@ describe('teamSpec', () => {
                 .expect(201)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
-                  models.Invitation.findAll().then(invites => {
+                  models.Update.findAll().then(updates => {
 
-                    expect(invites.length).toEqual(2);
+                    expect(updates.length).toEqual(2);
 
-                    expect(invites[0].name).toEqual('Vancouver Warriors');
-                    expect(invites[0].type).toEqual('team');
-                    expect(invites[0].uuid).toEqual(teamId);
-                    expect(invites[0].recipient).toEqual('someotherguy@example.com');
+                    expect(updates[0].name).toEqual('Vancouver Warriors');
+                    expect(updates[0].type).toEqual('team');
+                    expect(updates[0].uuid).toEqual(teamId);
+                    expect(updates[0].recipient).toEqual('someotherguy@example.com');
 
-                    expect(invites[1].name).toEqual('Vancouver Warriors');
-                    expect(invites[1].type).toEqual('team');
-                    expect(invites[1].uuid).toEqual(teamId);
-                    expect(invites[1].recipient).toEqual('yetanotherteamplayer@example.com');
+                    expect(updates[1].name).toEqual('Vancouver Warriors');
+                    expect(updates[1].type).toEqual('team');
+                    expect(updates[1].uuid).toEqual(teamId);
+                    expect(updates[1].recipient).toEqual('yetanotherteamplayer@example.com');
 
                     // Reset mocks
 
@@ -987,19 +987,19 @@ describe('teamSpec', () => {
                                   .expect(201)
                                   .end(function(err, res) {
                                     if (err) return done.fail(err);
-                                    models.Invitation.findAll().then(invites => {
+                                    models.Update.findAll().then(updates => {
 
-                                      expect(invites.length).toEqual(2);
+                                      expect(updates.length).toEqual(2);
 
-                                      expect(invites[0].name).toEqual('Vancouver Riot');
-                                      expect(invites[0].type).toEqual('team');
-                                      expect(invites[0].uuid).toEqual(teamId);
-                                      expect(invites[0].recipient).toEqual('someotherguy@example.com');
+                                      expect(updates[0].name).toEqual('Vancouver Riot');
+                                      expect(updates[0].type).toEqual('team');
+                                      expect(updates[0].uuid).toEqual(teamId);
+                                      expect(updates[0].recipient).toEqual('someotherguy@example.com');
 
-                                      expect(invites[1].name).toEqual('Vancouver Riot');
-                                      expect(invites[1].type).toEqual('team');
-                                      expect(invites[1].uuid).toEqual(teamId);
-                                      expect(invites[1].recipient).toEqual('yetanotherteamplayer@example.com');
+                                      expect(updates[1].name).toEqual('Vancouver Riot');
+                                      expect(updates[1].type).toEqual('team');
+                                      expect(updates[1].uuid).toEqual(teamId);
+                                      expect(updates[1].recipient).toEqual('yetanotherteamplayer@example.com');
 
                                       done();
                                     }).catch(err => {

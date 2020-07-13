@@ -546,22 +546,22 @@ describe('checkPermissions', function() {
         beforeEach(done => {
           teamId = uuid.v4();
 
-          models.Invitation.create({name: 'The Calgary Roughnecks', uuid: teamId, type: 'team', recipient: 'somebrandnewguy@example.com'}).then(result => {
+          models.Update.create({name: 'The Calgary Roughnecks', uuid: teamId, type: 'team', recipient: 'somebrandnewguy@example.com'}).then(result => {
             done();
           }).catch(err => {
             done.fail(err);
           });
         });
 
-        it('removes the invitation from the database', done => {
-          models.Invitation.findAll().then(invites => {
-            expect(invites.length).toEqual(1);
+        it('removes the update from the database', done => {
+          models.Update.findAll().then(updates => {
+            expect(updates.length).toEqual(1);
 
             checkPermissions([])(request, response, err => {
               if (err) return done.fail(err);
 
-              models.Invitation.findAll().then(invites => {
-                expect(invites.length).toEqual(0);
+              models.Update.findAll().then(updates => {
+                expect(updates.length).toEqual(0);
 
                 done();
               }).catch(err => {
@@ -590,7 +590,7 @@ describe('checkPermissions', function() {
         });
 
         describe('Auth0', () => {
-          it('is called to write the invitations to the agent\'s user_metadata', done => {
+          it('is called to write the updates to the agent\'s user_metadata', done => {
             checkPermissions([])(request, response, err => {
               if (err) return done.fail(err);
 
@@ -607,22 +607,22 @@ describe('checkPermissions', function() {
           beforeEach(done => {
             anotherTeamId = uuid.v4();
 
-            models.Invitation.create({name: 'The Buffalo Bandits', uuid: anotherTeamId, type: 'team', recipient: 'somebrandnewguy@example.com'}).then(result => {
+            models.Update.create({name: 'The Buffalo Bandits', uuid: anotherTeamId, type: 'team', recipient: 'somebrandnewguy@example.com'}).then(result => {
               done();
             }).catch(err => {
               done.fail(err);
             });
           });
 
-          it('removes the invitation from the database', done => {
-            models.Invitation.findAll().then(invites => {
-              expect(invites.length).toEqual(2);
+          it('removes the update from the database', done => {
+            models.Update.findAll().then(updates => {
+              expect(updates.length).toEqual(2);
 
               checkPermissions([])(request, response, err => {
                 if (err) return done.fail(err);
 
-                models.Invitation.findAll().then(invites => {
-                  expect(invites.length).toEqual(0);
+                models.Update.findAll().then(updates => {
+                  expect(updates.length).toEqual(0);
 
                   done();
                 }).catch(err => {
@@ -657,7 +657,7 @@ describe('checkPermissions', function() {
           });
 
           describe('Auth0', () => {
-            it('is called to write the invitations to the agent\'s user_metadata', done => {
+            it('is called to write the updates to the agent\'s user_metadata', done => {
               checkPermissions([])(request, response, err => {
                 if (err) return done.fail(err);
 
@@ -820,7 +820,7 @@ describe('checkPermissions', function() {
         beforeEach(done => {
           teamId = uuid.v4();
 
-          models.Invitation.create({name: 'The Calgary Roughnecks', uuid: teamId, type: 'team', recipient: _profile.email}).then(result => {
+          models.Update.create({name: 'The Calgary Roughnecks', uuid: teamId, type: 'team', recipient: _profile.email}).then(result => {
             done();
           }).catch(err => {
             done.fail(err);
@@ -828,15 +828,15 @@ describe('checkPermissions', function() {
         });
 
 
-        it('removes the invitation from the database', done => {
-          models.Invitation.findAll().then(invites => {
-            expect(invites.length).toEqual(1);
+        it('removes the update from the database', done => {
+          models.Update.findAll().then(updates => {
+            expect(updates.length).toEqual(1);
 
             checkPermissions([])(request, response, err => {
               if (err) return done.fail(err);
 
-              models.Invitation.findAll().then(invites => {
-                expect(invites.length).toEqual(0);
+              models.Update.findAll().then(updates => {
+                expect(updates.length).toEqual(0);
 
                 done();
               }).catch(err => {
@@ -865,7 +865,7 @@ describe('checkPermissions', function() {
         });
 
         describe('Auth0', () => {
-          it('is called to write the invitations to the agent\'s user_metadata', done => {
+          it('is called to write the updates to the agent\'s user_metadata', done => {
             request = httpMocks.createRequest({
               method: 'POST',
               url: '/agent',
@@ -894,22 +894,22 @@ describe('checkPermissions', function() {
 
             anotherTeamId = uuid.v4();
 
-            models.Invitation.create({name: 'The Buffalo Bandits', uuid: anotherTeamId, type: 'team', recipient: _profile.email}).then(result => {
+            models.Update.create({name: 'The Buffalo Bandits', uuid: anotherTeamId, type: 'team', recipient: _profile.email}).then(result => {
               done();
             }).catch(err => {
               done.fail(err);
             });
           });
 
-          it('removes the invitation from the database', done => {
-            models.Invitation.findAll().then(invites => {
-              expect(invites.length).toEqual(2);
+          it('removes the update from the database', done => {
+            models.Update.findAll().then(updates => {
+              expect(updates.length).toEqual(2);
 
               checkPermissions([])(request, response, err => {
                 if (err) return done.fail(err);
 
-                models.Invitation.findAll().then(invites => {
-                  expect(invites.length).toEqual(0);
+                models.Update.findAll().then(updates => {
+                  expect(updates.length).toEqual(0);
 
                   done();
                 }).catch(err => {
@@ -944,7 +944,7 @@ describe('checkPermissions', function() {
           });
 
           describe('Auth0', () => {
-            it('is called to write the invitations to the agent\'s user_metadata', done => {
+            it('is called to write the updates to the agent\'s user_metadata', done => {
               request = httpMocks.createRequest({
                 method: 'POST',
                 url: '/agent',
@@ -982,7 +982,7 @@ describe('checkPermissions', function() {
                  user_metadata: { teams: [{name: 'The Buffalo Bandits', id: anotherTeamId, leader: _profile.email}] } }
         });
 
-        models.Invitation.create(
+        models.Update.create(
             {name: 'The Beefalo Bandits', uuid: anotherTeamId, type: 'team', recipient: 'someotherguy@example.com'}
           ).then(result => {
 
@@ -997,14 +997,14 @@ describe('checkPermissions', function() {
       });
 
       it('removes the update from the database', done => {
-        models.Invitation.findAll().then(invites => {
-          expect(invites.length).toEqual(1);
+        models.Update.findAll().then(updates => {
+          expect(updates.length).toEqual(1);
 
           checkPermissions([])(request, response, err => {
             if (err) return done.fail(err);
 
-            models.Invitation.findAll().then(invites => {
-              expect(invites.length).toEqual(0);
+            models.Update.findAll().then(updates => {
+              expect(updates.length).toEqual(0);
 
               done();
             }).catch(err => {
@@ -1059,7 +1059,7 @@ describe('checkPermissions', function() {
                  user_metadata: { rsvps: [{ name: 'The Buffalo Bandits', uuid: anotherTeamId, type: 'team', recipient: 'someotherguy@example.com' }] } }
         });
 
-        models.Invitation.create(
+        models.Update.create(
             {name: 'The Beefalo Bandits', uuid: anotherTeamId, type: 'team', recipient: 'someotherguy@example.com'}
           ).then(result => {
 
@@ -1074,14 +1074,14 @@ describe('checkPermissions', function() {
       });
 
       it('removes the update from the database', done => {
-        models.Invitation.findAll().then(invites => {
-          expect(invites.length).toEqual(1);
+        models.Update.findAll().then(updates => {
+          expect(updates.length).toEqual(1);
 
           checkPermissions([])(request, response, err => {
             if (err) return done.fail(err);
 
-            models.Invitation.findAll().then(invites => {
-              expect(invites.length).toEqual(0);
+            models.Update.findAll().then(updates => {
+              expect(updates.length).toEqual(0);
 
               done();
             }).catch(err => {
