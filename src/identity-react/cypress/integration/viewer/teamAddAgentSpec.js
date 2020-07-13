@@ -30,7 +30,7 @@ context('viewer/Team add agent', function() {
 
     afterEach(() => {
       cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
-      cy.task('query', 'TRUNCATE TABLE "Invitations" CASCADE;');
+      cy.task('query', 'TRUNCATE TABLE "Updates" CASCADE;');
     });
 
     context('creator agent visit', () => {
@@ -146,13 +146,13 @@ context('viewer/Team add agent', function() {
 
             describe('execute invitation with Enter key', () => {
               it('creates an Invitation in the database', () => {
-                cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                cy.task('query', `SELECT * FROM "Updates";`).then(([results, metadata]) => {
                   expect(results.length).to.eq(0);
 
                   cy.get('#members-table table tbody tr:nth-of-type(2) input[placeholder="Email"]').type('somenewguy@example.com{enter}');
                   cy.wait(300);
 
-                  cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                  cy.task('query', `SELECT * FROM "Updates";`).then(([results, metadata]) => {
                     expect(results.length).to.eq(1);
                   });
                 });
@@ -168,14 +168,14 @@ context('viewer/Team add agent', function() {
             describe('unknown agent', () => {
 
               it('creates an invitation in the database', function() {
-                cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                cy.task('query', `SELECT * FROM "Updates";`).then(([results, metadata]) => {
                   expect(results.length).to.eq(0);
 
                   cy.get('input[placeholder="Email"]').type('somenewguy@example.com');
                   cy.get('button[title="Save"]').click();
                   cy.wait(300);
 
-                  cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                  cy.task('query', `SELECT * FROM "Updates";`).then(([results, metadata]) => {
                     expect(results.length).to.eq(1);
                   });
                 });
@@ -271,12 +271,12 @@ context('viewer/Team add agent', function() {
                   });
 
                   it('is removed from the database', function() {
-                    cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                    cy.task('query', `SELECT * FROM "Updates";`).then(([results, metadata]) => {
                       expect(results.length).to.eq(1);
 
                       cy.login('somenewguy@example.com', {..._profile, name: 'Some New Guy'});
 
-                      cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                      cy.task('query', `SELECT * FROM "Updates";`).then(([results, metadata]) => {
                         expect(results.length).to.eq(0);
                       });
                     });
@@ -533,7 +533,7 @@ context('viewer/Team add agent', function() {
                 });
 
                 it('removes the invitation from the database', () => {
-                  cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                  cy.task('query', `SELECT * FROM "Updates";`).then(([results, metadata]) => {
                     expect(results.length).to.eq(1);
 
                     cy.get('#pending-invitations-table button[title="Delete"]').click();
@@ -542,7 +542,7 @@ context('viewer/Team add agent', function() {
 
                     cy.wait(300);
 
-                    cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                    cy.task('query', `SELECT * FROM "Updates";`).then(([results, metadata]) => {
                       expect(results.length).to.eq(0);
                     });
                   });
@@ -602,14 +602,14 @@ context('viewer/Team add agent', function() {
 
             describe('known agent', () => {
               it('does not create an invitation in the database', function() {
-                cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                cy.task('query', `SELECT * FROM "Updates";`).then(([results, metadata]) => {
                   expect(results.length).to.eq(0);
 
                   cy.get('input[placeholder="Email"]').type(anotherAgent.email);
                   cy.get('button[title="Save"]').click();
                   cy.wait(300);
 
-                  cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                  cy.task('query', `SELECT * FROM "Updates";`).then(([results, metadata]) => {
                     expect(results.length).to.eq(0);
                   });
                 });
@@ -741,7 +741,7 @@ context('viewer/Team add agent', function() {
                 });
 
                 it('does not impact the database', () => {
-                  cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                  cy.task('query', `SELECT * FROM "Updates";`).then(([results, metadata]) => {
                     expect(results.length).to.eq(0);
 
                     cy.get('#pending-invitations-table button[title="Delete"]').click();
@@ -750,7 +750,7 @@ context('viewer/Team add agent', function() {
 
                     cy.wait(300);
 
-                    cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                    cy.task('query', `SELECT * FROM "Updates";`).then(([results, metadata]) => {
                       expect(results.length).to.eq(0);
                     });
                   });
@@ -859,12 +859,12 @@ context('viewer/Team add agent', function() {
                   });
 
                   it('has no impact on the database', function() {
-                    cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                    cy.task('query', `SELECT * FROM "Updates";`).then(([results, metadata]) => {
                       expect(results.length).to.eq(0);
 
                       cy.login(anotherAgent.email, {..._profile, name: anotherAgent.name});
 
-                      cy.task('query', `SELECT * FROM "Invitations";`).then(([results, metadata]) => {
+                      cy.task('query', `SELECT * FROM "Updates";`).then(([results, metadata]) => {
                         expect(results.length).to.eq(0);
                       });
                     });

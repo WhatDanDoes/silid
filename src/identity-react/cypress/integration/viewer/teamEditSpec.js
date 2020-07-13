@@ -10,7 +10,7 @@ context('Team edit', function() {
     // This makes sure sensitive tests complete before the DB is cleaned
     cy.wait(200);
     cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
-    cy.task('query', 'TRUNCATE TABLE "Invitations" CASCADE;');
+    cy.task('query', 'TRUNCATE TABLE "Updates" CASCADE;');
   });
 
   let _profile;

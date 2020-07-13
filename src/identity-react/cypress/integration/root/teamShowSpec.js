@@ -66,7 +66,7 @@ context('root/Team show', function() {
 
     afterEach(() => {
       cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
-      cy.task('query', 'TRUNCATE TABLE "Invitations" CASCADE;');
+      cy.task('query', 'TRUNCATE TABLE "Updates" CASCADE;');
     });
 
     describe('root is not a team member', () => {
