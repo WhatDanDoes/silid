@@ -30,7 +30,6 @@ router.get('/admin', checkPermissions(roles.sudo), function(req, res, next) {
   });
 });
 
-
 router.get('/', checkPermissions([scope.read.organizations]), function(req, res, next) {
   const managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
   managementClient.getUser({id: req.user.user_id}).then(agent => {
@@ -234,61 +233,14 @@ router.put('/:id', checkPermissions([scope.update.organizations]), function(req,
         // Update organization
         organizers[organizerIndex].user_metadata.organizations[orgIndex].name = orgName;
 
-//        // Update pending updates
-//        if (!organizers[organizerIndex].user_metadata.pendingInvitations) {
-//          organizers[organizerIndex].user_metadata.pendingInvitations = [];
-//        }
-//        const pending = organizers[organizerIndex].user_metadata.pendingInvitations.filter(update => update.uuid === req.params.id);
-//        for (let p of pending) {
-//          p.name = orgName;
-//        }
-
         // Update the organizer's metadata
         managementClient.updateUser({id: organizers[organizerIndex].user_id}, { user_metadata: organizers[organizerIndex].user_metadata }).then(result => {
 
-//          // Update waiting updates
-//          models.Update.update({ name: orgName }, { where: {uuid: req.params.id} }).then(results => {
-
-            // Retrieve and consolidate organization info
-            managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.organizationId:"${req.params.id}"` }).then(agents => {
-              let organization = consolidateTeams(agents, organizers[organizerIndex].user_metadata.organizations[orgIndex], req.params.id)
-
-              // Retrieve outstanding RSVPs
-//              managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.rsvps.uuid:"${req.params.id}"` }).then(results => {
-//                const updates = [];
-//                results.forEach(a => {
-//                  // Get agent's team ID
-//                  let i = a.user_metadata.rsvps.find(r => r.uuid === req.params.id);
-////                  updates.push({ uuid: req.params.id, type: 'organization', name: orgName, recipient: a.email, teamId: i.teamId });
-//
-//                  updates.push({
-//                    uuid: i.teamId,
-//                    type: 'team',
-//                    recipient: a.email,
-//                    data: {
-//                      id: i.teamId,
-//                      name: i.name,
-//                      leader: i.email,
-//                      organizationId: req.params.id,
-//                    },
-//                  });
-//                });
-//
-//                upsertUpdates(updates, err => {
-//                  if (err) {
-//                    return res.status(500).json(err);
-//                  }
-console.log(organization);
-                  res.status(201).json(organization);
-//                });
-//              }).catch(err => {
-//                res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
-//              });
-//            }).catch(err => {
-//              res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
-//            });
+          // Retrieve and consolidate organization info
+          managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.organizationId:"${req.params.id}"` }).then(agents => {
+            let organization = consolidateTeams(agents, organizers[organizerIndex].user_metadata.organizations[orgIndex], req.params.id)
+            res.status(201).json(organization);
           }).catch(err => {
-console.log(err);
             res.status(500).json(err);
           });
         }).catch(err => {
@@ -523,6 +475,5 @@ router.delete('/:id/team/:teamId', checkPermissions([scope.delete.organizationMe
     return res.status(404).json({ message: 'No such organization' });
   }
 });
-
 
 module.exports = router;
