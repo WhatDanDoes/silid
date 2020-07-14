@@ -141,13 +141,13 @@ describe('checkForUpdates', function() {
     describe('rescinding', () => {
 
       beforeEach(done => {
-        player.user_metadata = { teams: [ {name: 'The Calgary Roughnecks', leader: 'coach@example.com', id: teamId, organizationId: organizationId} ] };
+        player.user_metadata = { teams: [ { name: 'The Calgary Roughnecks', leader: 'coach@example.com', id: teamId, organizationId: organizationId } ] };
 
-//        models.Update.create({ name: 'The National Lacrosse League', type: 'organization', uuid: organizationId, teamId: teamId, recipient: player.email }).then(results => {
+        models.Update.create({ recipient: player.email, type: 'team', uuid: teamId, data: { id: teamId, name: 'The Calgary Roughnecks', leader: 'coach@example.com' } }).then(results => {
           done();
-//        }).catch(err => {
-//          done.fail(err);
-//        });
+        }).catch(err => {
+          done.fail(err);
+        });
       });
 
       it('deletes organizationId from the team record', done => {
