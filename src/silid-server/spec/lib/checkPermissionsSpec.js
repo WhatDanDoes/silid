@@ -1076,7 +1076,10 @@ describe('checkPermissions', function() {
           method: 'POST',
           url: '/agent',
           user: {..._profile, email: 'someotherguy@example.com', name: 'Some Other Guy', scope: undefined,
-                 user_metadata: { rsvps: [{ name: 'The Buffalo Bandits', uuid: anotherTeamId, type: 'team', recipient: 'someotherguy@example.com' }] } }
+                 user_metadata: {
+                   rsvps: [{
+                     uuid: anotherTeamId, type: 'team', recipient: 'someotherguy@example.com',
+                     data: { name: 'The Buffalo Bandits', id: anotherTeamId, leader: 'coach@example.com', organizationId: uuid.v4() } }] } }
         });
 
         models.Update.create({ recipient: 'someotherguy@example.com', uuid: anotherTeamId, type: 'team',
@@ -1113,15 +1116,15 @@ describe('checkPermissions', function() {
 
       it('writes the update to the agent\'s user_metadata', done => {
         expect(request.user.user_metadata.rsvps.length).toEqual(1);
-        expect(request.user.user_metadata.rsvps[0].name).toEqual('The Buffalo Bandits');
+        expect(request.user.user_metadata.rsvps[0].data.name).toEqual('The Buffalo Bandits');
         expect(request.user.user_metadata.teams).toBeUndefined(0);
 
         checkPermissions([])(request, response, err => {
           if (err) return done.fail(err);
 
-          expect(request.user.user_metadata.rsvps.length).toEqual(1);
-          expect(request.user.user_metadata.rsvps[0].name).toEqual('The Beefalo Bandits');
           expect(request.user.user_metadata.teams.length).toEqual(0);
+          expect(request.user.user_metadata.rsvps.length).toEqual(1);
+          expect(request.user.user_metadata.rsvps[0].data.name).toEqual('The Beefalo Bandits');
 
           done();
         });

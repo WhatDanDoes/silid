@@ -251,8 +251,6 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
 
     // Update RSVPs
     managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.rsvps.uuid:"${req.params.id}"` }).then(results => {
-      agents = agents.concat(results);
-
       results.forEach(a => {
         if (a.email !== leaderEmail) {
           updates.push({
