@@ -50,7 +50,7 @@ function checkForUpdates(req, done) {
             req.user.user_metadata.rsvps[rsvpIndex].name = update.data.name;
           }
           else {
-            req.user.user_metadata.rsvps.push({ uuid: update.uuid, type: update.type, name: update.data.name, recipient: update.recipient });
+            req.user.user_metadata.rsvps.push({ uuid: update.uuid, type: update.type, recipient: update.recipient, data: update.data });
           }
         }
         else if (update.type === 'organization') {

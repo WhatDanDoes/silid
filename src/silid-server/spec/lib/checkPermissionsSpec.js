@@ -582,9 +582,12 @@ describe('checkPermissions', function() {
             expect(request.user.user_metadata).toBeDefined();
             expect(request.user.user_metadata.rsvps.length).toEqual(1);
             expect(request.user.user_metadata.rsvps[0].uuid).toEqual(teamId);
-            expect(request.user.user_metadata.rsvps[0].name).toEqual('The Calgary Roughnecks');
             expect(request.user.user_metadata.rsvps[0].type).toEqual('team');
             expect(request.user.user_metadata.rsvps[0].recipient).toEqual('somebrandnewguy@example.com');
+            expect(request.user.user_metadata.rsvps[0].data.name).toEqual('The Calgary Roughnecks');
+            expect(request.user.user_metadata.rsvps[0].data.id).toEqual(teamId);
+            expect(request.user.user_metadata.rsvps[0].data.leader).toEqual(_profile.email);
+            expect(request.user.user_metadata.rsvps[0].data.organizationId).toBeUndefined();
 
             done();
           });
@@ -645,14 +648,20 @@ describe('checkPermissions', function() {
               expect(request.user.user_metadata.rsvps.length).toEqual(2);
 
               expect(request.user.user_metadata.rsvps[0].uuid).toEqual(anotherTeamId);
-              expect(request.user.user_metadata.rsvps[0].name).toEqual('The Buffalo Bandits');
               expect(request.user.user_metadata.rsvps[0].type).toEqual('team');
               expect(request.user.user_metadata.rsvps[0].recipient).toEqual('somebrandnewguy@example.com');
+              expect(request.user.user_metadata.rsvps[0].data.name).toEqual('The Buffalo Bandits');
+              expect(request.user.user_metadata.rsvps[0].data.id).toEqual(anotherTeamId);
+              expect(request.user.user_metadata.rsvps[0].data.leader).toEqual(_profile.email);
+              expect(request.user.user_metadata.rsvps[0].data.organizationId).toBeUndefined();
 
               expect(request.user.user_metadata.rsvps[1].uuid).toEqual(teamId);
-              expect(request.user.user_metadata.rsvps[1].name).toEqual('The Calgary Roughnecks');
               expect(request.user.user_metadata.rsvps[1].type).toEqual('team');
               expect(request.user.user_metadata.rsvps[1].recipient).toEqual('somebrandnewguy@example.com');
+              expect(request.user.user_metadata.rsvps[1].data.name).toEqual('The Calgary Roughnecks');
+              expect(request.user.user_metadata.rsvps[1].data.id).toEqual(teamId);
+              expect(request.user.user_metadata.rsvps[1].data.leader).toEqual(_profile.email);
+              expect(request.user.user_metadata.rsvps[1].data.organizationId).toBeUndefined();
 
               done();
             });
@@ -859,9 +868,12 @@ describe('checkPermissions', function() {
             expect(request.user.user_metadata).toBeDefined();
             expect(request.user.user_metadata.rsvps.length).toEqual(1);
             expect(request.user.user_metadata.rsvps[0].uuid).toEqual(teamId);
-            expect(request.user.user_metadata.rsvps[0].name).toEqual('The Calgary Roughnecks');
             expect(request.user.user_metadata.rsvps[0].type).toEqual('team');
             expect(request.user.user_metadata.rsvps[0].recipient).toEqual(_profile.email);
+            expect(request.user.user_metadata.rsvps[0].data.name).toEqual('The Calgary Roughnecks');
+            expect(request.user.user_metadata.rsvps[0].data.id).toEqual(teamId);
+            expect(request.user.user_metadata.rsvps[0].data.leader).toEqual(_profile.email);
+            expect(request.user.user_metadata.rsvps[0].data.organizationId).toBeUndefined();
 
             done();
           });
@@ -934,14 +946,20 @@ describe('checkPermissions', function() {
               expect(request.user.user_metadata.rsvps.length).toEqual(2);
 
               expect(request.user.user_metadata.rsvps[0].uuid).toEqual(anotherTeamId);
-              expect(request.user.user_metadata.rsvps[0].name).toEqual('The Buffalo Bandits');
               expect(request.user.user_metadata.rsvps[0].type).toEqual('team');
               expect(request.user.user_metadata.rsvps[0].recipient).toEqual(_profile.email);
+              expect(request.user.user_metadata.rsvps[0].data.name).toEqual('The Buffalo Bandits');
+              expect(request.user.user_metadata.rsvps[0].data.id).toEqual(anotherTeamId);
+              expect(request.user.user_metadata.rsvps[0].data.leader).toEqual(_profile.email);
+              expect(request.user.user_metadata.rsvps[0].data.organizationId).toBeUndefined();
 
               expect(request.user.user_metadata.rsvps[1].uuid).toEqual(teamId);
-              expect(request.user.user_metadata.rsvps[1].name).toEqual('The Calgary Roughnecks');
               expect(request.user.user_metadata.rsvps[1].type).toEqual('team');
               expect(request.user.user_metadata.rsvps[1].recipient).toEqual(_profile.email);
+              expect(request.user.user_metadata.rsvps[1].data.name).toEqual('The Calgary Roughnecks');
+              expect(request.user.user_metadata.rsvps[1].data.id).toEqual(teamId);
+              expect(request.user.user_metadata.rsvps[1].data.leader).toEqual(_profile.email);
+              expect(request.user.user_metadata.rsvps[1].data.organizationId).toBeUndefined();
 
               done();
             });

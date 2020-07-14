@@ -145,31 +145,6 @@ describe('root/teamSpec', () => {
         });
       });
 
-//      describe('/team/admin', () => {
-//        it('retrieves all teams', done => {
-//          models.Team.create({ name: 'The Mike Tyson Mystery Team', organizationId: organization.id, creatorId: root.id }).then(o => {
-//            models.Team.findAll().then(results => {
-//              expect(results.length).toEqual(2);
-//
-//              rootSession
-//                .get('/team/admin')
-//                .set('Accept', 'application/json')
-//                .expect('Content-Type', /json/)
-//                .expect(200)
-//                .end(function(err, res) {
-//                  if (err) return done.fail(err);
-//                  expect(res.body.length).toEqual(2);
-//                  done();
-//                });
-//            }).catch(err => {
-//              done.fail(err);
-//            });
-//          }).catch(err => {
-//            done.fail(err);
-//          });
-//        });
-//      });
-
       describe('/team/:id', () => {
 
         describe('with no organizational affiliation', () => {
@@ -596,30 +571,30 @@ describe('root/teamSpec', () => {
             teamId = uuid.v4();
             _profile.user_metadata = { teams: [{ name: 'Vancouver Warriors', leader: _profile.email, id: teamId }] };
             _profile.user_metadata.teams.push({ name: 'Georgia Swarm', leader: _profile.email, id: uuid.v4() });
-  
+
             _profile.user_metadata.pendingInvitations = [];
             _profile.user_metadata.pendingInvitations.push({ name: 'Vancouver Warriors', recipient: 'someotherguy@example.com', uuid: teamId, type: 'team' });
             _profile.user_metadata.pendingInvitations.push({ name: 'Vancouver Warriors', recipient: 'anotherteamplayer@example.com', uuid: teamId, type: 'team' });
-  
+
             stubAuth0ManagementApi((err, apiScopes) => {
               if (err) return done.fail();
-  
+
               login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, [scope.update.teams], (err, session) => {
                 if (err) return done.fail(err);
                 rootSession = session;
-  
+
                 // Cached profile doesn't match "live" data, so agent needs to be updated
                 // with a call to Auth0
                 stubUserRead((err, apiScopes) => {
                   if (err) return done.fail();
-  
+
                   // Get team members
                   stubTeamRead((err, apiScopes) => {
                     if (err) return done.fail();
                     ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
                     teamMembershipReadScope = teamReadScope;
                     teamMembershipReadOauthTokenScope = teamReadOauthTokenScope;
-  
+
                     // Get RSVPs
                     const rsvps = [
                       {..._profile, email: 'someprospectiveteammember@example.com', name: 'Some Prospective Team Member',
@@ -629,7 +604,7 @@ describe('root/teamSpec', () => {
                     stubTeamRead(rsvps, (err, apiScopes) => {
                       if (err) return done.fail();
                       ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-  
+
                       stubUserAppMetadataUpdate((err, apiScopes) => {
                         if (err) return done.fail();
                         ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
@@ -641,7 +616,7 @@ describe('root/teamSpec', () => {
               });
             });
           });
-  
+
           it('allows root to update an existing record', done => {
             rootSession
               .put(`/team/${teamId}`)
@@ -653,7 +628,7 @@ describe('root/teamSpec', () => {
               .expect(201)
               .end(function(err, res) {
                 if (err) return done.fail(err);
-  
+
                 expect(res.body.name).toEqual('Vancouver Riot');
                 expect(res.body.leader).toEqual(_profile.email);
                 expect(res.body.id).toEqual(teamId);
@@ -661,7 +636,7 @@ describe('root/teamSpec', () => {
                 done();
               });
           });
-  
+
           it('updates any pending invitations', done => {
             rootSession
               .put(`/team/${teamId}`)
@@ -673,14 +648,14 @@ describe('root/teamSpec', () => {
               .expect(201)
               .end(function(err, res) {
                 if (err) return done.fail(err);
-  
+
                 expect(_profile.user_metadata.pendingInvitations.length).toEqual(2);
                 expect(_profile.user_metadata.pendingInvitations[0].name).toEqual('Vancouver Riot');
                 expect(_profile.user_metadata.pendingInvitations[1].name).toEqual('Vancouver Riot');
                 done();
               });
           });
-  
+
           it('creates a database invitation/update for any RSVPs', done => {
             models.Update.findAll().then(results => {
               expect(results.length).toEqual(0);
@@ -694,30 +669,30 @@ describe('root/teamSpec', () => {
                 .expect(201)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
-  
+
                   models.Update.findAll().then(updates => {
                     expect(updates.length).toEqual(1);
                     expect(updates[0].recipient).toEqual('someprospectiveteammember@example.com');
                     expect(updates[0].type).toEqual('team');
                     expect(updates[0].uuid).toEqual(teamId);
-                    
+
                     expect(updates[0].data).toBeDefined();
                     expect(updates[0].data.name).toEqual('Vancouver Riot');
                     expect(updates[0].data.leader).toEqual('root@example.com');
                     expect(updates[0].data.id).toEqual(teamId);
                     expect(updates[0].data.organizationId).toBeUndefined();
-  
+
                     done();
                   }).catch(err => {
                     done.fail(err);
                   });
                 });
-  
+
             }).catch(err => {
               done.fail(err);
             });
           });
-  
+
           it('updates any database updates', done => {
             models.Update.create({
               recipient: 'onecooldude@example.com',
@@ -739,19 +714,19 @@ describe('root/teamSpec', () => {
                 .expect(201)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
-  
+
                   models.Update.findAll({ where: {recipient: 'onecooldude@example.com'} }).then(updates => {
                     expect(updates.length).toEqual(1);
                     expect(updates[0].recipient).toEqual('onecooldude@example.com');
                     expect(updates[0].type).toEqual('team');
                     expect(updates[0].uuid).toEqual(teamId);
-                    
+
                     expect(updates[0].data).toBeDefined();
                     expect(updates[0].data.name).toEqual('Vancouver Riot');
                     expect(updates[0].data.leader).toEqual('root@example.com');
                     expect(updates[0].data.id).toEqual(teamId);
                     expect(updates[0].data.organizationId).toBeUndefined();
-  
+
                     done();
                   }).catch(err => {
                     done.fail(err);
@@ -761,7 +736,7 @@ describe('root/teamSpec', () => {
               done.fail(err);
             });
           });
-  
+
           it('returns an error if empty team name provided', done => {
             rootSession
               .put(`/team/${teamId}`)
@@ -778,7 +753,7 @@ describe('root/teamSpec', () => {
                 done();
               });
           });
-  
+
           it('returns an error if record already exists', done => {
             rootSession
               .put(`/team/${_profile.user_metadata.teams[1].id}`)
@@ -795,7 +770,7 @@ describe('root/teamSpec', () => {
                 done();
               });
           });
-  
+
           it('doesn\'t barf if team doesn\'t exist', done => {
             rootSession
               .put('/team/333')
@@ -811,7 +786,7 @@ describe('root/teamSpec', () => {
                 done();
               });
           });
-  
+
           describe('Auth0', () => {
             it('is called to retrieve team membership', done => {
               rootSession
@@ -824,13 +799,13 @@ describe('root/teamSpec', () => {
                 .expect(201)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
-  
+
                   expect(teamMembershipReadOauthTokenScope.isDone()).toBe(true);
                   expect(teamMembershipReadScope.isDone()).toBe(true);
                   done();
                 });
             });
-  
+
             it('is called to retrieve outstanding RSVPs', done => {
               rootSession
                 .put(`/team/${teamId}`)
@@ -842,14 +817,14 @@ describe('root/teamSpec', () => {
                 .expect(201)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
-  
+
                   // Doesn't get called because route is re-using token
                   expect(teamReadOauthTokenScope.isDone()).toBe(false);
                   expect(teamReadScope.isDone()).toBe(true);
                   done();
                 });
             });
-  
+
             it('is called to update the agent user_metadata', done => {
               rootSession
                 .put(`/team/${teamId}`)
@@ -861,14 +836,14 @@ describe('root/teamSpec', () => {
                 .expect(201)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
-  
+
                   expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
                   expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                   done();
                 });
             });
           });
-  
+
           describe('membership update', () => {
             beforeEach(done => {
               // This mainly serves to wipe out the mocks
@@ -882,15 +857,15 @@ describe('root/teamSpec', () => {
                 .expect(201)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
-  
+
                   // Cached profile doesn't match "live" data, so agent needs to be updated
                   // with a call to Auth0
                   stubUserRead((err, apiScopes) => {
                     if (err) return done.fail();
-  
+
                     stubUserRolesRead((err, apiScopes) => {
                       if (err) return done(err);
-  
+
                       // Read team membership
                       stubTeamRead([{..._profile},
                                     {..._profile, email: 'someotherguy@example.com', name: 'Some Other Guy',
@@ -901,12 +876,12 @@ describe('root/teamSpec', () => {
                                     }], (err, apiScopes) => {
                         if (err) return done.fail();
                         ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-  
+
                         // Get RSVPs
                         stubTeamRead([], (err, apiScopes) => {
                           if (err) return done.fail();
                           ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-  
+
                           stubUserAppMetadataUpdate((err, apiScopes) => {
                             if (err) return done.fail();
                             ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
@@ -918,14 +893,14 @@ describe('root/teamSpec', () => {
                   });
                 });
             });
-  
+
             // 2020-6-8 One of these is creating a sporadic 404 error. It has not been
             // reproduced and disappears on subsequent executions. Keep an eye out
             it('creates an update record to update team info on next login', done => {
               models.Update.findAll().then(updates => {
                 // One update because of the RSVP in the ancestor beforeEach
                 expect(updates.length).toEqual(1);
-  
+
                 rootSession
                   .put(`/team/${teamId}`)
                   .send({
@@ -937,9 +912,9 @@ describe('root/teamSpec', () => {
                   .end(function(err, res) {
                     if (err) return done.fail(err);
                     models.Update.findAll({ order: [['recipient', 'ASC']] }).then(updates => {
-  
+
                       expect(updates.length).toEqual(3);
-  
+
                       expect(updates[0].type).toEqual('team');
                       expect(updates[0].uuid).toEqual(teamId);
                       expect(updates[0].recipient).toEqual('someotherguy@example.com');
@@ -947,7 +922,7 @@ describe('root/teamSpec', () => {
                       expect(updates[0].data.leader).toEqual('root@example.com');
                       expect(updates[0].data.id).toEqual(teamId);
                       expect(updates[0].data.organizationId).toBeUndefined();
-  
+
                       expect(updates[1].type).toEqual('team');
                       expect(updates[1].uuid).toEqual(teamId);
                       expect(updates[1].recipient).toEqual('someprospectiveteammember@example.com');
@@ -955,7 +930,7 @@ describe('root/teamSpec', () => {
                       expect(updates[1].data.leader).toEqual('root@example.com');
                       expect(updates[1].data.id).toEqual(teamId);
                       expect(updates[1].data.organizationId).toBeUndefined();
-  
+
                       expect(updates[2].type).toEqual('team');
                       expect(updates[2].uuid).toEqual(teamId);
                       expect(updates[2].recipient).toEqual('yetanotherteamplayer@example.com');
@@ -963,7 +938,7 @@ describe('root/teamSpec', () => {
                       expect(updates[2].data.leader).toEqual('root@example.com');
                       expect(updates[2].data.id).toEqual(teamId);
                       expect(updates[2].data.organizationId).toBeUndefined();
-  
+
                       done();
                     }).catch(err => {
                       done.fail(err);
@@ -973,14 +948,14 @@ describe('root/teamSpec', () => {
                   done.fail(err);
                 });
             });
-  
+
             // 2020-6-24 One of these is creating a sporadic 404 error. It has not been
             // reproduced and disappears on subsequent executions. Keep an eye out
             it('overwrites existing update records to update team info on next login', done => {
               models.Update.findAll().then(updates => {
                 // One update because of the RSVP in the ancestor beforeEach
                 expect(updates.length).toEqual(1);
-  
+
                 // First update
                 rootSession
                   .put(`/team/${teamId}`)
@@ -993,9 +968,9 @@ describe('root/teamSpec', () => {
                   .end(function(err, res) {
                     if (err) return done.fail(err);
                     models.Update.findAll({ order: [['recipient', 'ASC']] }).then(updates => {
-  
+
                       expect(updates.length).toEqual(3);
-  
+
                       expect(updates[0].type).toEqual('team');
                       expect(updates[0].uuid).toEqual(teamId);
                       expect(updates[0].recipient).toEqual('someotherguy@example.com');
@@ -1003,7 +978,7 @@ describe('root/teamSpec', () => {
                       expect(updates[0].data.leader).toEqual('root@example.com');
                       expect(updates[0].data.id).toEqual(teamId);
                       expect(updates[0].data.organizationId).toBeUndefined();
-  
+
                       expect(updates[1].type).toEqual('team');
                       expect(updates[1].uuid).toEqual(teamId);
                       expect(updates[1].recipient).toEqual('someprospectiveteammember@example.com');
@@ -1011,7 +986,7 @@ describe('root/teamSpec', () => {
                       expect(updates[1].data.leader).toEqual('root@example.com');
                       expect(updates[1].data.id).toEqual(teamId);
                       expect(updates[1].data.organizationId).toBeUndefined();
-  
+
                       expect(updates[2].type).toEqual('team');
                       expect(updates[2].uuid).toEqual(teamId);
                       expect(updates[2].recipient).toEqual('yetanotherteamplayer@example.com');
@@ -1019,17 +994,17 @@ describe('root/teamSpec', () => {
                       expect(updates[2].data.leader).toEqual('root@example.com');
                       expect(updates[2].data.id).toEqual(teamId);
                       expect(updates[2].data.organizationId).toBeUndefined();
-  
+
                       // Reset mocks
-  
+
                       // Cached profile doesn't match "live" data, so agent needs to be updated
                       // with a call to Auth0
                       stubUserRead((err, apiScopes) => {
                         if (err) return done.fail();
-  
+
                         stubUserRolesRead((err, apiScopes) => {
                           if (err) return done(err);
-  
+
                           stubTeamRead([{..._profile},
                                         {..._profile, email: 'someotherguy@example.com', name: 'Some Other Guy',
                                            user_metadata: { teams: [{ name: 'Vancouver Warriors', leader: _profile.email, id: teamId }] }
@@ -1038,15 +1013,15 @@ describe('root/teamSpec', () => {
                                            user_metadata: { teams: [{ name: 'Vancouver Warriors', leader: _profile.email, id: teamId }] }
                                         }], (err, apiScopes) => {
                             if (err) return done.fail();
-  
+
                             // Get RSVPs
                             stubTeamRead([], (err, apiScopes) => {
                               if (err) return done.fail();
                               ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-  
+
                               stubUserAppMetadataUpdate((err, apiScopes) => {
                                 if (err) return done.fail();
-  
+
                                 rootSession
                                   .put(`/team/${teamId}`)
                                   .send({
@@ -1058,7 +1033,7 @@ describe('root/teamSpec', () => {
                                   .end(function(err, res) {
                                     if (err) return done.fail(err);
                                     models.Update.findAll({ order: [['recipient', 'ASC']] }).then(updates => {
-  
+
                                       expect(updates[0].type).toEqual('team');
                                       expect(updates[0].uuid).toEqual(teamId);
                                       expect(updates[0].recipient).toEqual('someotherguy@example.com');
@@ -1066,7 +1041,7 @@ describe('root/teamSpec', () => {
                                       expect(updates[0].data.leader).toEqual('root@example.com');
                                       expect(updates[0].data.id).toEqual(teamId);
                                       expect(updates[0].data.organizationId).toBeUndefined();
-  
+
                                       expect(updates[1].type).toEqual('team');
                                       expect(updates[1].uuid).toEqual(teamId);
                                       expect(updates[1].recipient).toEqual('someprospectiveteammember@example.com');
@@ -1074,7 +1049,7 @@ describe('root/teamSpec', () => {
                                       expect(updates[1].data.leader).toEqual('root@example.com');
                                       expect(updates[1].data.id).toEqual(teamId);
                                       expect(updates[1].data.organizationId).toBeUndefined();
-  
+
                                       expect(updates[2].type).toEqual('team');
                                       expect(updates[2].uuid).toEqual(teamId);
                                       expect(updates[2].recipient).toEqual('yetanotherteamplayer@example.com');
@@ -1082,7 +1057,7 @@ describe('root/teamSpec', () => {
                                       expect(updates[2].data.leader).toEqual('root@example.com');
                                       expect(updates[2].data.id).toEqual(teamId);
                                       expect(updates[2].data.organizationId).toBeUndefined();
-  
+
                                       done();
                                     }).catch(err => {
                                       done.fail(err);
@@ -1111,32 +1086,32 @@ describe('root/teamSpec', () => {
             organizationId = uuid.v4();
             _profile.user_metadata = { teams: [{ name: 'Vancouver Warriors', leader: _profile.email, id: teamId, organizationId: organizationId }] };
             _profile.user_metadata.teams.push({ name: 'Georgia Swarm', leader: _profile.email, id: uuid.v4(), organizationId: organizationId });
-  
+
             _profile.user_metadata.pendingInvitations = [];
             _profile.user_metadata.pendingInvitations.push({
               name: 'Vancouver Warriors', recipient: 'someotherguy@example.com', uuid: teamId, type: 'team', organizationId: organizationId });
             _profile.user_metadata.pendingInvitations.push({
               name: 'Vancouver Warriors', recipient: 'anotherteamplayer@example.com', uuid: teamId, type: 'team', organizationId: organizationId });
-  
+
             stubAuth0ManagementApi((err, apiScopes) => {
               if (err) return done.fail();
-  
+
               login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, [scope.update.teams], (err, session) => {
                 if (err) return done.fail(err);
                 rootSession = session;
-  
+
                 // Cached profile doesn't match "live" data, so agent needs to be updated
                 // with a call to Auth0
                 stubUserRead((err, apiScopes) => {
                   if (err) return done.fail();
-  
+
                   // Get team members
                   stubTeamRead((err, apiScopes) => {
                     if (err) return done.fail();
                     ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
                     teamMembershipReadScope = teamReadScope;
                     teamMembershipReadOauthTokenScope = teamReadOauthTokenScope;
-  
+
                     // Get RSVPs
                     const rsvps = [
                       {..._profile, email: 'someprospectiveteammember@example.com', name: 'Some Prospective Team Member',
@@ -1146,7 +1121,7 @@ describe('root/teamSpec', () => {
                     stubTeamRead(rsvps, (err, apiScopes) => {
                       if (err) return done.fail();
                       ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-  
+
                       stubUserAppMetadataUpdate((err, apiScopes) => {
                         if (err) return done.fail();
                         ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
@@ -1158,33 +1133,35 @@ describe('root/teamSpec', () => {
               });
             });
           });
-  
-//          it('updates any pending invitations', done => {
-//            rootSession
-//              .put(`/team/${teamId}`)
-//              .send({
-//                name: 'Vancouver Riot'
-//              })
-//              .set('Accept', 'application/json')
-//              .expect('Content-Type', /json/)
-//              .expect(201)
-//              .end(function(err, res) {
-//                if (err) return done.fail(err);
-//  
-//                expect(_profile.user_metadata.pendingInvitations.length).toEqual(2);
-//                expect(_profile.user_metadata.pendingInvitations[0].name).toEqual('Vancouver Riot');
-//                expect(_profile.user_metadata.pendingInvitations[0].leader).toEqual('root@example.com');
-//                expect(_profile.user_metadata.pendingInvitations[0].id).toEqual(teamId);
-//                expect(_profile.user_metadata.pendingInvitations[0].organizationId).toEqual(organizationId);
-// 
-//                expect(_profile.user_metadata.pendingInvitations[1].name).toEqual('Vancouver Riot');
-//                expect(_profile.user_metadata.pendingInvitations[1].leader).toEqual('root@example.com');
-//                expect(_profile.user_metadata.pendingInvitations[1].id).toEqual(teamId);
-//                expect(_profile.user_metadata.pendingInvitations[1].organizationId).toEqual(organizationId);
-//                done();
-//              });
-//          });
-  
+
+          it('updates any pending invitations', done => {
+            rootSession
+              .put(`/team/${teamId}`)
+              .send({
+                name: 'Vancouver Riot'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(_profile.user_metadata.pendingInvitations.length).toEqual(2);
+                expect(_profile.user_metadata.pendingInvitations[0].uuid).toEqual(teamId);
+                expect(_profile.user_metadata.pendingInvitations[0].type).toEqual('team');
+                expect(_profile.user_metadata.pendingInvitations[0].recipient).toEqual('someotherguy@example.com');
+                expect(_profile.user_metadata.pendingInvitations[0].name).toEqual('Vancouver Riot');
+                expect(_profile.user_metadata.pendingInvitations[0].organizationId).toEqual(organizationId);
+
+                expect(_profile.user_metadata.pendingInvitations[1].uuid).toEqual(teamId);
+                expect(_profile.user_metadata.pendingInvitations[1].type).toEqual('team');
+                expect(_profile.user_metadata.pendingInvitations[1].recipient).toEqual('anotherteamplayer@example.com');
+                expect(_profile.user_metadata.pendingInvitations[1].name).toEqual('Vancouver Riot');
+                expect(_profile.user_metadata.pendingInvitations[1].organizationId).toEqual(organizationId);
+                done();
+              });
+          });
+
           it('creates a database invitation/update for any RSVPs', done => {
             models.Update.findAll().then(results => {
               expect(results.length).toEqual(0);
@@ -1198,30 +1175,30 @@ describe('root/teamSpec', () => {
                 .expect(201)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
-  
+
                   models.Update.findAll().then(updates => {
                     expect(updates.length).toEqual(1);
                     expect(updates[0].recipient).toEqual('someprospectiveteammember@example.com');
                     expect(updates[0].type).toEqual('team');
                     expect(updates[0].uuid).toEqual(teamId);
-                    
+
                     expect(updates[0].data).toBeDefined();
                     expect(updates[0].data.name).toEqual('Vancouver Riot');
                     expect(updates[0].data.leader).toEqual('root@example.com');
                     expect(updates[0].data.id).toEqual(teamId);
                     expect(updates[0].data.organizationId).toEqual(organizationId);
-  
+
                     done();
                   }).catch(err => {
                     done.fail(err);
                   });
                 });
-  
+
             }).catch(err => {
               done.fail(err);
             });
           });
-  
+
           it('updates any database updates', done => {
             models.Update.create({
               recipient: 'onecooldude@example.com',
@@ -1243,19 +1220,19 @@ describe('root/teamSpec', () => {
                 .expect(201)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
-  
+
                   models.Update.findAll({ where: {recipient: 'onecooldude@example.com'} }).then(updates => {
                     expect(updates.length).toEqual(1);
                     expect(updates[0].recipient).toEqual('onecooldude@example.com');
                     expect(updates[0].type).toEqual('team');
                     expect(updates[0].uuid).toEqual(teamId);
-                    
+
                     expect(updates[0].data).toBeDefined();
                     expect(updates[0].data.name).toEqual('Vancouver Riot');
                     expect(updates[0].data.leader).toEqual('root@example.com');
                     expect(updates[0].data.id).toEqual(teamId);
                     expect(updates[0].data.organizationId).toEqual(organizationId);
-  
+
                     done();
                   }).catch(err => {
                     done.fail(err);
@@ -1265,7 +1242,7 @@ describe('root/teamSpec', () => {
               done.fail(err);
             });
           });
-  
+
           describe('membership update', () => {
             beforeEach(done => {
               // This mainly serves to wipe out the mocks
@@ -1279,15 +1256,15 @@ describe('root/teamSpec', () => {
                 .expect(201)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
-  
+
                   // Cached profile doesn't match "live" data, so agent needs to be updated
                   // with a call to Auth0
                   stubUserRead((err, apiScopes) => {
                     if (err) return done.fail();
-  
+
                     stubUserRolesRead((err, apiScopes) => {
                       if (err) return done(err);
-  
+
                       // Read team membership
                       stubTeamRead([{..._profile},
                                     {..._profile, email: 'someotherguy@example.com', name: 'Some Other Guy',
@@ -1298,12 +1275,12 @@ describe('root/teamSpec', () => {
                                     }], (err, apiScopes) => {
                         if (err) return done.fail();
                         ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-  
+
                         // Get RSVPs
                         stubTeamRead([], (err, apiScopes) => {
                           if (err) return done.fail();
                           ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-  
+
                           stubUserAppMetadataUpdate((err, apiScopes) => {
                             if (err) return done.fail();
                             ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
@@ -1315,14 +1292,14 @@ describe('root/teamSpec', () => {
                   });
                 });
             });
-  
+
             // 2020-6-8 One of these is creating a sporadic 404 error. It has not been
             // reproduced and disappears on subsequent executions. Keep an eye out
             it('creates an update record to update team info on next login', done => {
               models.Update.findAll().then(updates => {
                 // One update because of the RSVP in the ancestor beforeEach
                 expect(updates.length).toEqual(1);
-  
+
                 rootSession
                   .put(`/team/${teamId}`)
                   .send({
@@ -1334,9 +1311,9 @@ describe('root/teamSpec', () => {
                   .end(function(err, res) {
                     if (err) return done.fail(err);
                     models.Update.findAll({ order: [['recipient', 'ASC']] }).then(updates => {
-  
+
                       expect(updates.length).toEqual(3);
-  
+
                       expect(updates[0].type).toEqual('team');
                       expect(updates[0].uuid).toEqual(teamId);
                       expect(updates[0].recipient).toEqual('someotherguy@example.com');
@@ -1344,7 +1321,7 @@ describe('root/teamSpec', () => {
                       expect(updates[0].data.leader).toEqual('root@example.com');
                       expect(updates[0].data.id).toEqual(teamId);
                       expect(updates[0].data.organizationId).toEqual(organizationId);
-  
+
                       expect(updates[1].type).toEqual('team');
                       expect(updates[1].uuid).toEqual(teamId);
                       expect(updates[1].recipient).toEqual('someprospectiveteammember@example.com');
@@ -1352,7 +1329,7 @@ describe('root/teamSpec', () => {
                       expect(updates[1].data.leader).toEqual('root@example.com');
                       expect(updates[1].data.id).toEqual(teamId);
                       expect(updates[1].data.organizationId).toEqual(organizationId);
-  
+
                       expect(updates[2].type).toEqual('team');
                       expect(updates[2].uuid).toEqual(teamId);
                       expect(updates[2].recipient).toEqual('yetanotherteamplayer@example.com');
@@ -1360,7 +1337,7 @@ describe('root/teamSpec', () => {
                       expect(updates[2].data.leader).toEqual('root@example.com');
                       expect(updates[2].data.id).toEqual(teamId);
                       expect(updates[2].data.organizationId).toEqual(organizationId);
-  
+
                       done();
                     }).catch(err => {
                       done.fail(err);
@@ -1370,14 +1347,14 @@ describe('root/teamSpec', () => {
                   done.fail(err);
                 });
             });
-  
+
             // 2020-6-24 One of these is creating a sporadic 404 error. It has not been
             // reproduced and disappears on subsequent executions. Keep an eye out
             it('overwrites existing update records to update team info on next login', done => {
               models.Update.findAll().then(updates => {
                 // One update because of the RSVP in the ancestor beforeEach
                 expect(updates.length).toEqual(1);
-  
+
                 // First update
                 rootSession
                   .put(`/team/${teamId}`)
@@ -1390,9 +1367,9 @@ describe('root/teamSpec', () => {
                   .end(function(err, res) {
                     if (err) return done.fail(err);
                     models.Update.findAll({ order: [['recipient', 'ASC']] }).then(updates => {
-  
+
                       expect(updates.length).toEqual(3);
-  
+
                       expect(updates[0].type).toEqual('team');
                       expect(updates[0].uuid).toEqual(teamId);
                       expect(updates[0].recipient).toEqual('someotherguy@example.com');
@@ -1400,7 +1377,7 @@ describe('root/teamSpec', () => {
                       expect(updates[0].data.leader).toEqual('root@example.com');
                       expect(updates[0].data.id).toEqual(teamId);
                       expect(updates[0].data.organizationId).toEqual(organizationId);
-  
+
                       expect(updates[1].type).toEqual('team');
                       expect(updates[1].uuid).toEqual(teamId);
                       expect(updates[1].recipient).toEqual('someprospectiveteammember@example.com');
@@ -1408,7 +1385,7 @@ describe('root/teamSpec', () => {
                       expect(updates[1].data.leader).toEqual('root@example.com');
                       expect(updates[1].data.id).toEqual(teamId);
                       expect(updates[1].data.organizationId).toEqual(organizationId);
-  
+
                       expect(updates[2].type).toEqual('team');
                       expect(updates[2].uuid).toEqual(teamId);
                       expect(updates[2].recipient).toEqual('yetanotherteamplayer@example.com');
@@ -1416,34 +1393,34 @@ describe('root/teamSpec', () => {
                       expect(updates[2].data.leader).toEqual('root@example.com');
                       expect(updates[2].data.id).toEqual(teamId);
                       expect(updates[2].data.organizationId).toEqual(organizationId);
-  
+
                       // Reset mocks
-  
+
                       // Cached profile doesn't match "live" data, so agent needs to be updated
                       // with a call to Auth0
                       stubUserRead((err, apiScopes) => {
                         if (err) return done.fail();
-  
+
                         stubUserRolesRead((err, apiScopes) => {
                           if (err) return done(err);
-  
+
                           stubTeamRead([{..._profile},
                                         {..._profile, email: 'someotherguy@example.com', name: 'Some Other Guy',
-                                           user_metadata: { teams: [{ name: 'Vancouver Warriors', leader: _profile.email, id: teamId }] }
+                                           user_metadata: { teams: [{ name: 'Vancouver Warriors', leader: _profile.email, id: teamId, organizationId: organizationId }] }
                                         },
                                         {..._profile, email: 'yetanotherteamplayer@example.com', name: 'Team Player',
-                                           user_metadata: { teams: [{ name: 'Vancouver Warriors', leader: _profile.email, id: teamId }] }
+                                           user_metadata: { teams: [{ name: 'Vancouver Warriors', leader: _profile.email, id: teamId, organizationId: organizationId }] }
                                         }], (err, apiScopes) => {
                             if (err) return done.fail();
-  
+
                             // Get RSVPs
                             stubTeamRead([], (err, apiScopes) => {
                               if (err) return done.fail();
                               ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-  
+
                               stubUserAppMetadataUpdate((err, apiScopes) => {
                                 if (err) return done.fail();
-  
+
                                 rootSession
                                   .put(`/team/${teamId}`)
                                   .send({
@@ -1455,7 +1432,7 @@ describe('root/teamSpec', () => {
                                   .end(function(err, res) {
                                     if (err) return done.fail(err);
                                     models.Update.findAll({ order: [['recipient', 'ASC']] }).then(updates => {
-  
+
                                       expect(updates[0].type).toEqual('team');
                                       expect(updates[0].uuid).toEqual(teamId);
                                       expect(updates[0].recipient).toEqual('someotherguy@example.com');
@@ -1463,7 +1440,7 @@ describe('root/teamSpec', () => {
                                       expect(updates[0].data.leader).toEqual('root@example.com');
                                       expect(updates[0].data.id).toEqual(teamId);
                                       expect(updates[0].data.organizationId).toEqual(organizationId);
-  
+
                                       expect(updates[1].type).toEqual('team');
                                       expect(updates[1].uuid).toEqual(teamId);
                                       expect(updates[1].recipient).toEqual('someprospectiveteammember@example.com');
@@ -1471,7 +1448,7 @@ describe('root/teamSpec', () => {
                                       expect(updates[1].data.leader).toEqual('root@example.com');
                                       expect(updates[1].data.id).toEqual(teamId);
                                       expect(updates[1].data.organizationId).toEqual(organizationId);
-  
+
                                       expect(updates[2].type).toEqual('team');
                                       expect(updates[2].uuid).toEqual(teamId);
                                       expect(updates[2].recipient).toEqual('yetanotherteamplayer@example.com');
@@ -1479,7 +1456,7 @@ describe('root/teamSpec', () => {
                                       expect(updates[2].data.leader).toEqual('root@example.com');
                                       expect(updates[2].data.id).toEqual(teamId);
                                       expect(updates[2].data.organizationId).toEqual(organizationId);
-  
+
                                       done();
                                     }).catch(err => {
                                       done.fail(err);
@@ -1934,7 +1911,7 @@ describe('root/teamSpec', () => {
                                         expect(updates[0].data.leader).toEqual('someotherguy@example.com');
                                         expect(updates[0].data.id).toEqual(teamId);
                                         expect(updates[0].data.organizationId).toBeUndefined();
-    
+
                                         expect(updates[1].type).toEqual('team');
                                         expect(updates[1].uuid).toEqual(teamId);
                                         expect(updates[1].recipient).toEqual('yetanotherteamplayer@example.com');
@@ -2094,7 +2071,7 @@ describe('root/teamSpec', () => {
                   expect(updates[0].data.leader).toEqual('someotherguy@example.com');
                   expect(updates[0].data.id).toEqual(teamId);
                   expect(updates[0].data.organizationId).toBeUndefined();
- 
+
                   // Team member
                   expect(updates[1].uuid).toEqual(teamId);
                   expect(updates[1].recipient).toEqual('teamplayer@example.com');
@@ -2103,7 +2080,7 @@ describe('root/teamSpec', () => {
                   expect(updates[1].data.leader).toEqual('someotherguy@example.com');
                   expect(updates[1].data.id).toEqual(teamId);
                   expect(updates[1].data.organizationId).toBeUndefined();
- 
+
                   done();
                 }).catch(err => {
                   done.fail(err);
@@ -2145,7 +2122,7 @@ describe('root/teamSpec', () => {
                   expect(updates[0].data.leader).toEqual('someotherguy@example.com');
                   expect(updates[0].data.id).toEqual(teamId);
                   expect(updates[0].data.organizationId).toBeUndefined();
- 
+
                   done();
                 }).catch(err => {
                   done.fail(err);
