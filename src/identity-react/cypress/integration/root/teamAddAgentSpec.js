@@ -56,11 +56,15 @@ context('root/Team add agent', function() {
 
           describe('add-agent button', () => {
             it('reveals the input form', () => {
+
               cy.get('#members-table table tbody tr td div button[title="Save"]').should('not.exist');
               cy.get('#members-table table tbody tr td div button[title="Cancel"]').should('not.exist');
               cy.get('#members-table table tbody tr td div div input[placeholder="Name"]').should('not.exist');
               cy.get('#members-table table tbody tr td div div input[placeholder="Email"]').should('not.exist');
-              cy.get('button span span').contains('add_box').click();
+
+              cy.get('#members-table div:first-of-type div div:last-of-type span').contains('add_box').should('exist');
+              cy.get('#members-table div:first-of-type div div:last-of-type span').contains('add_box').click();
+
               cy.get('#members-table table tbody tr td div button[title="Save"]').should('exist');
               cy.get('#members-table table tbody tr td div button[title="Cancel"]').should('exist');
               cy.get('#members-table table tbody tr td div div input[placeholder="Name"]').should('not.exist');
@@ -110,7 +114,7 @@ context('root/Team add agent', function() {
 
           describe('add-agent button', () => {
             it('is not displayed', () => {
-              cy.get('#members-table button span span').should('not.exist');
+              cy.get('#members-table div:first-of-type div div:last-of-type span').not('button');;
             });
           });
         });
