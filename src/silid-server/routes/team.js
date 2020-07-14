@@ -57,21 +57,6 @@ function collateTeams(agents, teamId, agentId, isSuper=false) {
   return teams;
 }
 
-
-/* GET team listing. */
-router.get('/admin', checkPermissions(roles.sudo), function(req, res, next) {
-  if (!req.user.isSuper) {
-    return res.status(403).json({ message: 'Forbidden' });
-  }
-
-  // Super agent gets entire listing
-  models.Team.findAll().then(orgs => {
-    res.json(orgs);
-  }).catch(err => {
-    res.status(500).json(err);
-  });
-});
-
 router.get('/', checkPermissions([scope.read.teams]), function(req, res, next) {
   const managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
   managementClient.getUser({id: req.user.user_id}).then(agent => {
