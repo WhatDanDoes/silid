@@ -6,8 +6,11 @@ context('Team edit', function() {
   });
 
   afterEach(() => {
+    // Cypress thinks it can handle asynchronicity better than it can.
+    // This makes sure sensitive tests complete before the DB is cleaned
+    cy.wait(200);
     cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
-    cy.task('query', 'TRUNCATE TABLE "Invitations" CASCADE;');
+    cy.task('query', 'TRUNCATE TABLE "Updates" CASCADE;');
   });
 
   let _profile;
@@ -249,6 +252,7 @@ context('Team edit', function() {
             cy.get('#members-table button span span').contains('add_box').click();
             cy.get('#members-table [placeholder="Email"]').type('someotherguy@example.com');
             cy.get('#members-table button[title="Save"]').click();
+            cy.wait(300);
 
             // Invited member logs in...
             cy.login('someotherguy@example.com', {..._profile, name: 'Some Other Guy'});
@@ -332,6 +336,7 @@ context('Team edit', function() {
             cy.get('#members-table button span span').contains('add_box').click();
             cy.get('#members-table [placeholder="Email"]').type('someotherguy@example.com');
             cy.get('#members-table button[title="Save"]').click();
+            cy.wait(300);
 
             // Change team name
             cy.get('#team-name-field').clear();

@@ -10,18 +10,18 @@ const models = require('../models');
  * @params array
  * @params function
  */
-function upsertInvites(invites, done) {
-  if (!invites.length) {
+function upsertUpdates(updates, done) {
+  if (!updates.length) {
     return done();
   }
 
-  const invite = invites.shift();
-  models.Invitation.create(invite).then(result => {
-    upsertInvites(invites, done);
+  const update = updates.shift();
+  models.Update.create(update).then(result => {
+    upsertUpdates(updates, done);
   }).catch(err => {
     if (err.name === 'SequelizeUniqueConstraintError') {
-      models.Invitation.upsert(invite, { fields: ['name', 'updatedAt'] }).then(result => {
-        upsertInvites(invites, done);
+      models.Update.upsert(update, { fields: ['data', 'updatedAt'] }).then(result => {
+        upsertUpdates(updates, done);
       }).catch(err => {
         done(err);
       });
@@ -32,4 +32,4 @@ function upsertInvites(invites, done) {
   });
 };
 
-module.exports = upsertInvites;
+module.exports = upsertUpdates;

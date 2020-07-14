@@ -7,7 +7,7 @@ context('organizer/Organization edit', function() {
 
   afterEach(() => {
     cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
-    cy.task('query', 'TRUNCATE TABLE "Invitations" CASCADE;');
+    cy.task('query', 'TRUNCATE TABLE "Updates" CASCADE;');
   });
 
   let _profile, agent;
@@ -203,10 +203,11 @@ context('organizer/Organization edit', function() {
                 expect(results.length).to.eq(1);
                 expect(results[0].socialProfile.user_metadata.organizations.length).to.eq(1);
                 expect(results[0].socialProfile.user_metadata.organizations[0].name).to.eq('The National Lacrosse League');
-                cy.get('button#save-org').click();
-                cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
-                  expect(results[0].socialProfile.user_metadata.organizations.length).to.eq(1);
-                  expect(results[0].socialProfile.user_metadata.organizations[0].name).to.eq('The Regional Lacrosse Association');
+                cy.get('button#save-org').click().then(() => {
+                  cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
+                    expect(results[0].socialProfile.user_metadata.organizations.length).to.eq(1);
+                    expect(results[0].socialProfile.user_metadata.organizations[0].name).to.eq('The Regional Lacrosse Association');
+                  });
                 });
               });
             });

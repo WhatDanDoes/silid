@@ -194,49 +194,47 @@ const Agent = (props) => {
                       <TableCell align="right" component="th" scope="row">Locale:</TableCell>
                       <TableCell align="left">{profileData.locale}</TableCell>
                     </TableRow>
-                    {profileData.roles ?
+                    {profileData.roles && (
                       <TableRow>
                         <TableCell align="right" component="th" scope="row">Roles:</TableCell>
-                        <TableCell id="assigned-roles" align="left" component="ul" className={classes.chipList}>
+                        <TableCell id="assigned-roles" align="left" component="td" className={classes.chipList}>
                           {profileData.roles.map(data => {
                             return (
-                              <li key={data.id}>
-                                <Chip
-                                  label={data.name}
-                                  className={classes.chip}
-                                  onDelete={admin.isEnabled && data.name !== 'viewer' ?
-                                    () => {
-                                      const headers = new Headers();
-                                      headers.append('Content-Type', 'application/json; charset=utf-8');
-                                      fetch(`/role/${data.id}/agent/${profileData.user_id}`,
-                                        {
-                                          method: 'DELETE',
-                                          headers,
-                                        }
-                                      )
-                                      .then(response => response.json())
-                                      .then(response => {
-                                        if (response.message) {
-                                          setFlashProps({ message: response.message, variant: 'warning' });
-                                        }
-                                        else {
-                                          setProfileData(response);
-                                          setUnassignedRoles([]);
-                                        }
-                                      })
-                                      .catch(error => {
-                                        setFlashProps({ message: error.message, variant: 'error' });
-                                      });
-                                    }
-                                  : undefined}
-                                />
-                              </li>
+                              <Chip
+                                key={data.id}
+                                label={data.name}
+                                className={classes.chip}
+                                onDelete={admin.isEnabled && data.name !== 'viewer' ?
+                                  () => {
+                                    const headers = new Headers();
+                                    headers.append('Content-Type', 'application/json; charset=utf-8');
+                                    fetch(`/role/${data.id}/agent/${profileData.user_id}`,
+                                      {
+                                        method: 'DELETE',
+                                        headers,
+                                      }
+                                    )
+                                    .then(response => response.json())
+                                    .then(response => {
+                                      if (response.message) {
+                                        setFlashProps({ message: response.message, variant: 'warning' });
+                                      }
+                                      else {
+                                        setProfileData(response);
+                                        setUnassignedRoles([]);
+                                      }
+                                    })
+                                    .catch(error => {
+                                      setFlashProps({ message: error.message, variant: 'error' });
+                                    });
+                                  }
+                                : undefined}
+                              />
                             );
                           })}
-                          {admin.isEnabled && !unassignedRoles.length ?
-                            <>
-                              <li key="assign-role">
+                          {admin.isEnabled && !unassignedRoles.length && (
                                 <Chip
+                                  key="assign-role"
                                   id="assign-role"
                                   style={{ backgroundColor: '#ffffff' }}
                                   className={classes.chip}
@@ -272,50 +270,47 @@ const Agent = (props) => {
                                     });
                                   }}
                                 />
-                              </li>
-                            </>
-                          : ''}
+                          )}
                         </TableCell>
                       </TableRow>
-                    : ''}
+                    )}
                     {unassignedRoles.length ?
                       <TableRow>
                         <TableCell align="right" component="th" scope="row">Available roles:</TableCell>
-                        <TableCell id="unassigned-roles" align="left" component="ul" className={classes.chipList}>
+                        <TableCell id="unassigned-roles" align="left" component="td" className={classes.chipList}>
                           {unassignedRoles.map(data => {
                             return (
-                              <li key={data.id}>
-                                <Chip
-                                  label={data.name}
-                                  className={classes.chip}
-                                  onClick={() => {
-                                    const headers = new Headers();
-                                    headers.append('Content-Type', 'application/json; charset=utf-8');
-                                    fetch(`/role/${data.id}/agent/${profileData.user_id}`,
-                                      {
-                                        method: 'PUT',
-                                        headers,
-                                      }
-                                    )
-                                    .then(response => response.json())
-                                    .then(response => {
-                                      if (response.message) {
-                                        setFlashProps({ message: response.message, variant: 'warning' });
-                                      }
-                                      else {
-                                        setProfileData(response);
-                                        const roleIndex = unassignedRoles.findIndex(role => role.id === data.id);
-                                        const remainingRoles = [...unassignedRoles];
-                                        remainingRoles.splice(roleIndex, 1);
-                                        setUnassignedRoles(remainingRoles);
-                                      }
-                                    })
-                                    .catch(error => {
-                                      setFlashProps({ message: error.message, variant: 'error' });
-                                    });
-                                  }}
-                                />
-                              </li>
+                              <Chip
+                                key={data.id}
+                                label={data.name}
+                                className={classes.chip}
+                                onClick={() => {
+                                  const headers = new Headers();
+                                  headers.append('Content-Type', 'application/json; charset=utf-8');
+                                  fetch(`/role/${data.id}/agent/${profileData.user_id}`,
+                                    {
+                                      method: 'PUT',
+                                      headers,
+                                    }
+                                  )
+                                  .then(response => response.json())
+                                  .then(response => {
+                                    if (response.message) {
+                                      setFlashProps({ message: response.message, variant: 'warning' });
+                                    }
+                                    else {
+                                      setProfileData(response);
+                                      const roleIndex = unassignedRoles.findIndex(role => role.id === data.id);
+                                      const remainingRoles = [...unassignedRoles];
+                                      remainingRoles.splice(roleIndex, 1);
+                                      setUnassignedRoles(remainingRoles);
+                                    }
+                                  })
+                                  .catch(error => {
+                                    setFlashProps({ message: error.message, variant: 'error' });
+                                  });
+                                }}
+                              />
                             );
                           })}
                           <li key="close-unassigned-roles">
@@ -331,7 +326,7 @@ const Agent = (props) => {
                           </li>
                         </TableCell>
                       </TableRow>
-                    : ''}
+                    : <TableRow />}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -345,7 +340,7 @@ const Agent = (props) => {
                     title='RSVPs'
                     isLoading={isWaiting}
                     columns={[
-                      { title: 'Name', field: 'name', editable: 'never' },
+                      { title: 'Name', field: 'data.name', editable: 'never' },
                       { title: 'Type', field: 'type', editable: 'never' },
                     ]}
                     data={profileData.user_metadata ? profileData.user_metadata.rsvps : []}

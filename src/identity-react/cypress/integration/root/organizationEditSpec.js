@@ -1,4 +1,4 @@
-context('organizer/Organization edit', function() {
+context('root/Organization edit', function() {
 
   before(function() {
     cy.fixture('google-profile-response').as('profile');
@@ -7,7 +7,7 @@ context('organizer/Organization edit', function() {
 
   afterEach(() => {
     cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
-    cy.task('query', 'TRUNCATE TABLE "Invitations" CASCADE;');
+    cy.task('query', 'TRUNCATE TABLE "Updates" CASCADE;');
   });
 
   let _profile;
@@ -263,8 +263,7 @@ context('organizer/Organization edit', function() {
           context('switched off', () => {
             beforeEach(() => {
               cy.get('#app-menu-button').click();
-              cy.wait(200);
-              cy.get('#admin-switch').uncheck();
+              cy.get('#admin-switch').check().uncheck();
               cy.get('#app-menu').contains('Profile').click();
               cy.wait(200);
               cy.contains('The National Lacrosse League').click();

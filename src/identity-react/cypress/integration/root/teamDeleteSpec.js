@@ -16,7 +16,7 @@ context('root/Team delete', function() {
     // This makes sure sensitive tests complete before the DB is cleaned
     cy.wait(300);
     cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
-    cy.task('query', 'TRUNCATE TABLE "Invitations" CASCADE;');
+    cy.task('query', 'TRUNCATE TABLE "Updates" CASCADE;');
   });
 
   describe('Deleting', () => {

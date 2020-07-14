@@ -72,10 +72,10 @@ context('organizer/Agent Index', function() {
           cy.get('#profile-table table tbody tr th').contains('Locale:');
           cy.get('#profile-table table tbody tr td').contains(this.profile.locale);
           cy.get('#profile-table table tbody tr th').contains('Roles:');
-          cy.get('#profile-table table tbody tr ul li').its('length').should('eq', 2);
-          cy.get('#profile-table table tbody tr ul li:first-of-type').contains('organizer');
-          cy.get('#profile-table table tbody tr ul li:last-of-type').contains('viewer');
-          cy.get('#profile-table table tbody tr ul li #assign-role').should('not.exist');
+          cy.get('#profile-table table tbody tr div').its('length').should('eq', 2);
+          cy.get('#profile-table table tbody tr div:first-of-type').contains('organizer');
+          cy.get('#profile-table table tbody tr div:last-of-type').contains('viewer');
+          cy.get('#profile-table table tbody tr div#assign-role').should('not.exist');
         });
       });
 

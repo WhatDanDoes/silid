@@ -35,8 +35,7 @@ describe('organizationSpec', () => {
     });
   });
 
-  let originalProfile;
-  let organization, agent;
+  let originalProfile, agent;
   beforeEach(done => {
     originalProfile = {..._profile};
 
@@ -44,14 +43,7 @@ describe('organizationSpec', () => {
       fixtures.loadFile(`${__dirname}/../fixtures/agents.json`, models).then(() => {
         models.Agent.findAll().then(results => {
           agent = results[0];
-          fixtures.loadFile(`${__dirname}/../fixtures/organizations.json`, models).then(() => {
-            models.Organization.findAll().then(results => {
-              organization = results[0];
-              done();
-            });
-          }).catch(err => {
-            done.fail(err);
-          });
+          done();
         }).catch(err => {
           done.fail(err);
         });
@@ -427,38 +419,10 @@ describe('organizationSpec', () => {
                       if (err) return done.fail();
                       ({teamReadScope: teamMembershipReadScope, teamReadOauthTokenScope: teamMembershipReadOauthTokenScope} = apiScopes);
 
-                      // Get RSVPs
-                      rsvpList.push({
-                                      ..._profile,
-                                      name: 'Some Other Guy',
-                                      email: 'someotherguy@example.com',
-                                      user_id: _profile.user_id + 2,
-                                      user_metadata: {
-                                        rsvps: [
-                                          { name: 'One Book Canada', recipient: 'someotherguy@example.com', uuid: organizationId, type: 'organization', teamId: teamId }
-                                        ]
-                                      }
-                                    });
-                      rsvpList.push({
-                                      ..._profile,
-                                      name: 'Yet Another Guy',
-                                      email: 'yetanotherguy@example.com',
-                                      user_id: _profile.user_id + 3,
-                                      user_metadata: {
-                                        rsvps: [
-                                          { name: 'One Book Canada', recipient: 'yetanotherguy@example.com', uuid: organizationId, type: 'organization', teamId: team2Id }
-                                        ]
-                                      }
-                                    });
-                      stubTeamRead(rsvpList, (err, apiScopes) => {
+                      stubUserAppMetadataUpdate((err, apiScopes) => {
                         if (err) return done.fail();
-                        ({teamReadScope: teamReadRsvpsScope, teamReadOauthTokenScope: teamReadRsvpsOauthTokenScope} = apiScopes);
-
-                        stubUserAppMetadataUpdate((err, apiScopes) => {
-                          if (err) return done.fail();
-                          ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                          done();
-                        });
+                        ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                        done();
                       });
                     });
                   });
@@ -495,86 +459,6 @@ describe('organizationSpec', () => {
 
               done();
             });
-        });
-
-        it('updates any pending invitations', done => {
-          expect(_profile.user_metadata.pendingInvitations.length).toEqual(2);
-          expect(_profile.user_metadata.pendingInvitations[0].name).toEqual('One Book Canada');
-          expect(_profile.user_metadata.pendingInvitations[1].name).toEqual('One Book Canada');
-
-          authenticatedSession
-            .put(`/organization/${organizationId}`)
-            .send({
-              name: 'Two Testaments Bolivia'
-            })
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(201)
-            .end(function(err, res) {
-              if (err) return done.fail(err);
-
-              expect(_profile.user_metadata.pendingInvitations.length).toEqual(2);
-              expect(_profile.user_metadata.pendingInvitations[0].name).toEqual('Two Testaments Bolivia');
-              expect(_profile.user_metadata.pendingInvitations[1].name).toEqual('Two Testaments Bolivia');
-              done();
-            });
-        });
-
-        it('updates any database invitations', done => {
-          models.Invitation.create({ name: 'One Book Canada', recipient: 'onecooldude@example.com', uuid: organizationId, type: 'organization', teamId: teamId }).then(results => {
-            authenticatedSession
-              .put(`/organization/${organizationId}`)
-              .send({
-                name: 'Two Testaments Bolivia'
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(201)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-
-                models.Invitation.findByPk(results.id).then(invites => {
-                  expect(invites.name).toEqual('Two Testaments Bolivia');
-                  expect(invites.recipient).toEqual('onecooldude@example.com');
-                  expect(invites.uuid).toEqual(organizationId);
-                  expect(invites.teamId).toEqual(teamId);
-                  done();
-                }).catch(err => {
-                  done.fail(err);
-                });
-              });
-          }).catch(err => {
-            done.fail(err);
-          });
-        });
-
-        it('create invitation in DB to updates any RSVPs on next login', done => {
-          models.Invitation.findAll().then(invites => {
-            expect(invites.length).toEqual(0);
-
-            authenticatedSession
-              .put(`/organization/${organizationId}`)
-              .send({
-                name: 'Two Testaments Bolivia'
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(201)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-
-                models.Invitation.findAll().then(invites => {
-                  expect(invites.length).toEqual(2);
-                  expect(invites[0].name).toEqual('Two Testaments Bolivia');
-                  expect(invites[1].name).toEqual('Two Testaments Bolivia');
-                  done();
-                }).catch(err => {
-                  done.fail(err);
-                });
-              });
-          }).catch(err => {
-            done.fail(err);
-          });
         });
 
         it('returns an error if empty organization name provided', done => {
@@ -684,25 +568,6 @@ describe('organizationSpec', () => {
               });
           });
 
-          it('is called to retrieve outstanding RSVPs', done => {
-            authenticatedSession
-              .put(`/organization/${organizationId}`)
-              .send({
-                name: 'Two Testaments Bolivia'
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(201)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-
-                // 2020-6-17 Reuse token from above? This needs to be confirmed in production
-                expect(teamReadRsvpsOauthTokenScope.isDone()).toBe(false);
-                expect(teamReadRsvpsScope.isDone()).toBe(true);
-                done();
-              });
-          });
-
           it('is called to update the agent user_metadata', done => {
             authenticatedSession
               .put(`/organization/${organizationId}`)
@@ -723,7 +588,6 @@ describe('organizationSpec', () => {
           });
         });
       });
-
 
       describe('delete', () => {
         let organizationId;
@@ -1004,11 +868,7 @@ describe('organizationSpec', () => {
       beforeEach(done => {
         models.Agent.create({ email: 'invitedagent@example.com' }).then(a => {
           invitedAgent = a;
-          models.OrganizationMember.create({ AgentId: a.id, OrganizationId: organization.id }).then(o => {
-            done();
-          }).catch(err => {
-            done.fail(err);
-          });
+          done();
         }).catch(err => {
           done.fail(err);
         });
@@ -1076,100 +936,6 @@ describe('organizationSpec', () => {
                 expect(res.body.message).toEqual('You are not an organizer');
                 done();
               });
-          });
-
-          it('does not change the record in the database', done => {
-            unverifiedSession
-              .put(`/organization/${organizationId}`)
-              .send({
-                name: 'Two Testaments Bolivia'
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(403)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-                models.Organization.findOne({ where: { id: organization.id }}).then(results => {
-                  expect(results.name).toEqual(organization.name);
-                  done();
-                }).catch(err => {
-                  done.fail(err);
-                });
-              });
-          });
-        });
-
-        describe('PATCH', () => {
-
-          let unverifiedSession, anotherAgent;
-          beforeEach(done => {
-            _profile.email = invitedAgent.email;
-            _profile.name = invitedAgent.name;
-
-            models.Agent.create({ email: 'buddy@example.com' }).then(a => {
-              anotherAgent = a;
-              stubAuth0ManagementApi((err, apiScopes) => {
-                if (err) return done.fail();
-
-                login({ ..._identity, email: invitedAgent.email }, [scope.update.organizations], (err, session) => {
-                  unverifiedSession = session;
-
-                  // Cached profile doesn't match "live" data, so agent needs to be updated
-                  // with a call to Auth0
-                  stubUserRead((err, apiScopes) => {
-                    if (err) return done.fail();
-
-                    done();
-                  });
-                });
-              });
-            }).catch(err => {
-              done.fail(err);
-            });
-          });
-
-          it('returns 403', done => {
-            unverifiedSession
-              .patch('/organization')
-              .send({
-                id: organization.id,
-                memberId: anotherAgent.id
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(403)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-                expect(res.body.message).toEqual('You have not verified your invitation to this organization. Check your email.');
-                done();
-              });
-          });
-
-          it('does not change the record in the database', done => {
-            models.Organization.findOne({ where: { id: organization.id }, include: ['members'] }).then(results => {
-              expect(results.members.length).toEqual(2);
-
-              unverifiedSession
-                .patch('/organization')
-                .send({
-                  id: organization.id,
-                  memberId: anotherAgent.id
-                })
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(403)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-                  models.Organization.findOne({ where: { id: organization.id }, include: ['members'] }).then(results => {
-                    expect(results.members.length).toEqual(2);
-                    done();
-                  }).catch(err => {
-                    done.fail(err);
-                  });
-                });
-            }).catch(err => {
-              done.fail(err);
-            });
           });
         });
       });
@@ -1247,66 +1013,6 @@ describe('organizationSpec', () => {
                 if (err) done.fail(err);
                 expect(res.body.message).toEqual('You are not an organizer');
                 done();
-              });
-          });
-
-          it('does not change the record in the database', done => {
-            unauthorizedSession
-              .put(`/organization/${organizationId}`)
-              .send({
-                name: 'Two Testaments Bolivia'
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(403)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-                models.Organization.findOne({ where: { id: organization.id }}).then(results => {
-                  expect(results.name).toEqual(organization.name);
-                  done();
-                }).catch(err => {
-                  done.fail(err);
-                });
-              });
-          });
-        });
-
-        describe('PATCH', () => {
-          it('returns 403', done => {
-            unauthorizedSession
-              .patch('/organization')
-              .send({
-                id: organization.id,
-                memberId: 333
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(403)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-                expect(res.body.message).toEqual('You are not a member of this organization');
-                done();
-              });
-          });
-
-          it('does not change the record in the database', done => {
-            unauthorizedSession
-              .patch('/organization')
-              .send({
-                id: organization.id,
-                memberId: 333
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(403)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-                models.Organization.findOne({ where: { id: organization.id }, include: ['members'] }).then(results => {
-                  expect(results.members.length).toEqual(1);
-                  done();
-                }).catch(err => {
-                  done.fail(err);
-                });
               });
           });
         });

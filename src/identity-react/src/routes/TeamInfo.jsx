@@ -363,7 +363,7 @@ const TeamInfo = (props) => {
                       }
                     })
                   ]}
-                editable={ teamInfo.leader === agent.email || admin.isEnabled ? { onRowAdd: inviteToTeam } : undefined }
+                editable={ teamInfo.leader === agent.email ? { onRowAdd: inviteToTeam } : undefined }
               />
             </Grid>
             {agent.user_metadata &&

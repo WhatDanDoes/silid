@@ -4,7 +4,8 @@ const jwtAuthz = require('express-jwt-authz');
 
 const apiScope = require('../config/apiPermissions');
 const roles = require('../config/roles');
-const getManagementClient = require('../lib/getManagementClient');
+const getManagementClient = require('./getManagementClient');
+const checkForUpdates = require('./checkForUpdates');
 
 const assert = require('assert');
 
@@ -158,62 +159,6 @@ function updateDbAndVerify(permissions, req, res, next) {
   });
 };
 
-
-/**
- * When an agent is unknown (i.e., has not logged in before), he
- * may have invitations waiting in the database. These need to be
- * handed off to Auth0 user_metadata
- */
-function checkForInvites(req, done) {
-  models.Invitation.findAll({where: { recipient: req.user.email }, order: [['updatedAt', 'DESC']]}).then(invites => {
-    if (invites.length) {
-      if (!req.user.user_metadata) {
-        req.user.user_metadata = { rsvps: [], teams: [] };
-      }
-
-      if (!req.user.user_metadata.rsvps) {
-        req.user.user_metadata.rsvps = [];
-      }
-
-      if (!req.user.user_metadata.teams) {
-        req.user.user_metadata.teams = [];
-      }
-
-      for (let invite of invites) {
-        let teamIndex = req.user.user_metadata.teams.findIndex(team => team.id === invite.uuid);
-        let rsvpIndex = req.user.user_metadata.rsvps.findIndex(rsvp => rsvp.uuid === invite.uuid);
-
-        if (teamIndex > -1) {
-          req.user.user_metadata.teams[teamIndex].name = invite.name;
-        }
-        else if (rsvpIndex > -1) {
-          req.user.user_metadata.rsvps[rsvpIndex].name = invite.name;
-        }
-        else {
-          req.user.user_metadata.rsvps.push({ uuid: invite.uuid, type: invite.type, name: invite.name, recipient: invite.recipient });
-        }
-      }
-
-      managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
-      managementClient.updateUser({id: req.user.user_id}, { user_metadata: req.user.user_metadata }).then(result => {
-
-        models.Invitation.destroy({ where: { recipient: req.user.email } }).then(results => {
-          done();
-        }).catch(err => {
-          done(err);
-        });
-      }).catch(err => {
-        done(err);
-      });
-    }
-    else {
-      done();
-    }
-  }).catch(err => {
-    done(err);
-  });
-};
-
 /**
  * This is called subsequent to the `passport.authenticate` function.
  * `passport` attaches a `user` property to `req`
@@ -239,7 +184,7 @@ const checkPermissions = function(permissions) {
 
     if (isViewer) {
       // Functionality covered by client-side tests
-      checkForInvites(req, err => {
+      checkForUpdates(req, err => {
         if (err) {
           return res.status(500).json(err);
         }
@@ -259,7 +204,7 @@ const checkPermissions = function(permissions) {
         managementClient.users.assignRoles({ id: req.user.user_id }, { roles: [roleId] }).then(results => {
           req.user.scope = [...new Set(req.user.scope.concat(roles.viewer))];
 
-          checkForInvites(req, err => {
+          checkForUpdates(req, err => {
             if (err) {
               return res.status(500).json(err);
             }

@@ -10,7 +10,7 @@ context('root/Organization delete', function() {
     // This makes sure sensitive tests complete before the DB is cleaned
     cy.wait(300);
     cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
-    cy.task('query', 'TRUNCATE TABLE "Invitations" CASCADE;');
+    cy.task('query', 'TRUNCATE TABLE "Updates" CASCADE;');
   });
 
   let _profile, root;
@@ -37,10 +37,10 @@ context('root/Organization delete', function() {
         cy.login(root.email, _profile, [this.scope.create.organizations, this.scope.update.organizations]);
         cy.get('#organizations-table button span span').contains('add_box').click();
         cy.get('input[placeholder="Name"]').type('The National Lacrosse League');
-        cy.get('#organizations-table button[title="Save"]').click();
-
-        cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${root.email}' LIMIT 1;`).then(([results, metadata]) => {
-          root = results[0];
+        cy.get('#organizations-table button[title="Save"]').click().then(() => {
+          cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${root.email}' LIMIT 1;`).then(([results, metadata]) => {
+            root = results[0];
+          });
         });
       });
 
