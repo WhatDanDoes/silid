@@ -47,7 +47,7 @@ function checkForUpdates(req, done) {
             req.user.user_metadata.teams[teamIndex].organizationId = update.data.organizationId;
           }
           else if (rsvpIndex > -1) {
-            req.user.user_metadata.rsvps[rsvpIndex].name = update.data.name;
+            req.user.user_metadata.rsvps[rsvpIndex] = {...req.user.user_metadata.rsvps[rsvpIndex], data: update.data}
           }
           else {
             req.user.user_metadata.rsvps.push({ uuid: update.uuid, type: update.type, recipient: update.recipient, data: update.data });
