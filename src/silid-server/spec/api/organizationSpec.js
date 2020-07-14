@@ -35,8 +35,7 @@ describe('organizationSpec', () => {
     });
   });
 
-  let originalProfile;
-  let organization, agent;
+  let originalProfile, agent;
   beforeEach(done => {
     originalProfile = {..._profile};
 
@@ -44,14 +43,7 @@ describe('organizationSpec', () => {
       fixtures.loadFile(`${__dirname}/../fixtures/agents.json`, models).then(() => {
         models.Agent.findAll().then(results => {
           agent = results[0];
-          fixtures.loadFile(`${__dirname}/../fixtures/organizations.json`, models).then(() => {
-            models.Organization.findAll().then(results => {
-              organization = results[0];
-              done();
-            });
-          }).catch(err => {
-            done.fail(err);
-          });
+          done();
         }).catch(err => {
           done.fail(err);
         });
@@ -876,11 +868,7 @@ describe('organizationSpec', () => {
       beforeEach(done => {
         models.Agent.create({ email: 'invitedagent@example.com' }).then(a => {
           invitedAgent = a;
-          models.OrganizationMember.create({ AgentId: a.id, OrganizationId: organization.id }).then(o => {
-            done();
-          }).catch(err => {
-            done.fail(err);
-          });
+          done();
         }).catch(err => {
           done.fail(err);
         });
@@ -947,26 +935,6 @@ describe('organizationSpec', () => {
                 if (err) done.fail(err);
                 expect(res.body.message).toEqual('You are not an organizer');
                 done();
-              });
-          });
-
-          it('does not change the record in the database', done => {
-            unverifiedSession
-              .put(`/organization/${organizationId}`)
-              .send({
-                name: 'Two Testaments Bolivia'
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(403)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-                models.Organization.findOne({ where: { id: organization.id }}).then(results => {
-                  expect(results.name).toEqual(organization.name);
-                  done();
-                }).catch(err => {
-                  done.fail(err);
-                });
               });
           });
         });
@@ -1045,26 +1013,6 @@ describe('organizationSpec', () => {
                 if (err) done.fail(err);
                 expect(res.body.message).toEqual('You are not an organizer');
                 done();
-              });
-          });
-
-          it('does not change the record in the database', done => {
-            unauthorizedSession
-              .put(`/organization/${organizationId}`)
-              .send({
-                name: 'Two Testaments Bolivia'
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(403)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-                models.Organization.findOne({ where: { id: organization.id }}).then(results => {
-                  expect(results.name).toEqual(organization.name);
-                  done();
-                }).catch(err => {
-                  done.fail(err);
-                });
               });
           });
         });
