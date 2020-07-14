@@ -99,43 +99,4 @@ router.get('/logout', (req, res) => {
   });
 });
 
-
-/**
- * Verify organization membership via email
- */
-router.get('/verify/:uuid', (req, res) => {
-  models.OrganizationMember.findOne({ where: { verificationCode: req.params.uuid } }).then(membership => {
-    if (!membership) {
-      models.TeamMember.findOne({ where: { verificationCode: req.params.uuid } }).then(membership => {
-        if (!membership) {
-          return res.redirect('/login');
-        }
-        membership.verify().then(m => {
-          if (!req.user) {
-            return res.redirect('/login');
-          }
-          res.redirect(`/`);
-        }).catch(err => {
-          res.status(500).json(err);
-        });
-      }).catch(err => {
-        res.status(500).json(err);
-      });
-    }
-    else {
-      membership.verify().then(m => {
-        if (!req.user) {
-          return res.redirect('/login');
-        }
-        res.redirect(`/`);
-      }).catch(err => {
-        res.status(500).json(err);
-      });
-    }
-  }).catch(err => {
-    return res.redirect('/login');
-  });
-});
-
-
 module.exports = router;
