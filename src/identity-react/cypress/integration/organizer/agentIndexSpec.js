@@ -62,6 +62,16 @@ context('organizer/Agent Index', function() {
         cy.url().should('contain', '/#/agent');
       });
 
+      describe('hamburger menu', () => {
+        it.only('allows access to the Agent Directory', () => {
+          cy.get('#app-menu-button').click();
+          cy.get('#admin-switch').check();
+          cy.contains('Agent Directory').click();
+          cy.wait(200);
+          cy.get('#agent-directory-table').find('.agent-button').its('length').should('eq', 1);
+        });
+      });
+
       describe('profile highlights', () => {
         it('displays fields in a table', function() {
           cy.get('h3').contains('Profile');
