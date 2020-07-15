@@ -1,0 +1,17 @@
+[
+  {
+    "id": "123",
+    "name": "organizer",
+    "description": "Manage organizations and team memberships therein"
+  },
+  {
+    "id": "234",
+    "name": "sudo",
+    "description": "All-access pass to Identity resources"
+  },
+  {
+    "id": "345",
+    "name": "viewer",
+    "description": "Basic agent, organization, and team viewing permissions"
+  }
+]
