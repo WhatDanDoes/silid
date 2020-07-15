@@ -8,31 +8,13 @@ module.exports = {
   sudo: [
     scope.create.agents, scope.read.agents, scope.update.agents, scope.delete.agents,
     scope.create.organizations, scope.read.organizations, scope.update.organizations, scope.delete.organizations,
-    scope.create.organizationMembers, scope.read.organizationMembers, scope.delete.organizationMembers,
+    scope.add.organizationMembers, scope.read.organizationMembers, scope.delete.organizationMembers,
     scope.create.teams, scope.read.teams, scope.update.teams, scope.delete.teams,
     scope.create.teamMembers, scope.read.teamMembers, scope.delete.teamMembers,
   ],
-  organizationManager: [
-    scope.read.agents,
-    scope.read.organizations, scope.update.organizations,
-    scope.create.teams, scope.read.teams, scope.update.teams, scope.delete.teams,
-    scope.create.organizationMembers, scope.read.organizationMembers, scope.delete.organizationMembers,
-  ],
-  organizationMember: [
-    scope.read.agents,
-    scope.read.organizations, scope.update.organizations,
-    scope.create.teams, scope.read.teams, scope.update.teams, scope.delete.teams,
-    scope.read.organizationMembers
-  ],
-  teamManager: [
-    scope.read.agents,
-    scope.read.teams, scope.update.teams,
-    scope.create.teamMembers, scope.delete.teamMembers,
-  ],
-  teamMember: [
-    scope.read.agents,
-    scope.read.teams,
-    scope.read.teamMembers
+  organizer: [
+    scope.create.organizations, scope.read.organizations, scope.update.organizations, scope.delete.organizations,
+    scope.add.organizationMembers, scope.delete.organizationMembers,
   ],
   viewer: [
     scope.create.teamMembers, scope.delete.teamMembers,
