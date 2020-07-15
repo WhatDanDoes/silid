@@ -78,7 +78,7 @@ describe('organizationMembershipSpec', () => {
           stubAuth0ManagementApi((err, apiScopes) => {
             if (err) return done.fail(err);
 
-            login(_identity, [scope.create.organizationMembers], (err, session) => {
+            login(_identity, [scope.add.organizationMembers], (err, session) => {
               if (err) return done.fail(err);
               authenticatedSession = session;
 
@@ -291,7 +291,7 @@ describe('organizationMembershipSpec', () => {
                   stubAuth0ManagementApi((err, apiScopes) => {
                     if (err) return done.fail(err);
 
-                    login(_identity, [scope.create.organizationMembers], (err, session) => {
+                    login(_identity, [scope.add.organizationMembers], (err, session) => {
                       if (err) return done.fail(err);
                       authenticatedSession = session;
 
@@ -719,7 +719,7 @@ describe('organizationMembershipSpec', () => {
           stubAuth0ManagementApi((err, apiScopes) => {
             if (err) return done.fail();
 
-            login({ ..._identity, email: suspiciousAgent.email }, [scope.create.organizationMembers, scope.delete.organizationMembers], (err, session) => {
+            login({ ..._identity, email: suspiciousAgent.email }, [scope.add.organizationMembers, scope.delete.organizationMembers], (err, session) => {
               if (err) return done.fail(err);
               forbiddenSession = session;
 
