@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { createStyles, makeStyles } from '@material-ui/core/styles';
+import Chip from '@material-ui/core/Chip';
 import Typography from '@material-ui/core/Typography';
 import Link from '@material-ui/core/Link';
+import { green, red } from '@material-ui/core/colors';
+import Icon from '@material-ui/core/Icon';
+
 import { useAdminState } from '../auth/Admin';
 import { useAuthState } from '../auth/Auth';
 import ReactJson from 'react-json-view';
@@ -23,6 +27,7 @@ import MaterialTable, { MTableEditField } from 'material-table';
 import useGetAgentService from '../services/useGetAgentService';
 import usePostTeamService from '../services/usePostTeamService';
 import useGetTeamInviteActionService from '../services/useGetTeamInviteActionService';
+import usePostOrganizationService from '../services/usePostOrganizationService';
 
 const useStyles = makeStyles(theme =>
   createStyles({
@@ -48,6 +53,16 @@ const useStyles = makeStyles(theme =>
       wordWrap: 'break-word',
       wordBreak: 'break-all',
     },
+    chipList: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      listStyle: 'none',
+      padding: theme.spacing(0.5),
+      margin: 0,
+    },
+    chip: {
+      margin: theme.spacing(0.5),
+    },
     [theme.breakpoints.down('sm')]: {
       json: {
         maxWidth: '90%'
@@ -69,6 +84,7 @@ const Agent = (props) => {
   const [profileData, setProfileData] = useState({});
   const [flashProps, setFlashProps] = useState({});
   const [isWaiting, setIsWaiting] = useState(false);
+  const [unassignedRoles, setUnassignedRoles] = useState([]);
 
   const admin = useAdminState();
   const {agent} = useAuthState();
@@ -76,6 +92,7 @@ const Agent = (props) => {
   const classes = useStyles();
   const service = useGetAgentService(props.match.params.id, admin.viewingCached);
   const { publishTeam } = usePostTeamService();
+  const { publishOrganization } = usePostOrganizationService();
   const { respondToTeamInvitation } = useGetTeamInviteActionService();
 
   useEffect(() => {
@@ -83,7 +100,6 @@ const Agent = (props) => {
       setProfileData(service.payload);
     }
   }, [service]);
-
 
   /**
    * Create a new team
@@ -114,6 +130,37 @@ const Agent = (props) => {
         });
       }
     })
+  };
+
+  /**
+   * Create a new organization
+   */
+  const createOrganization = (newData) => {
+    return new Promise((resolve, reject) => {
+      newData.name = newData.name.trim();
+      if (!newData.name.length) {
+        setFlashProps({ message: 'Organization name can\'t be blank', variant: 'error' });
+        reject();
+      }
+      else {
+        setIsWaiting(true);
+        publishOrganization(newData).then(profile => {;
+          if (profile.statusCode) {
+            setFlashProps({ message: profile.message, variant: 'error' });
+          }
+          else if (profile.errors) {
+            setFlashProps({ errors: profile.errors, variant: 'error' });
+          }
+          else {
+            setProfileData(profile);
+          }
+          resolve();
+        }).catch(reject)
+        .finally(() => {
+          setIsWaiting(false);
+        });
+      }
+    });
   };
 
   return (
@@ -147,6 +194,139 @@ const Agent = (props) => {
                       <TableCell align="right" component="th" scope="row">Locale:</TableCell>
                       <TableCell align="left">{profileData.locale}</TableCell>
                     </TableRow>
+                    {profileData.roles && (
+                      <TableRow>
+                        <TableCell align="right" component="th" scope="row">Roles:</TableCell>
+                        <TableCell id="assigned-roles" align="left" component="td" className={classes.chipList}>
+                          {profileData.roles.map(data => {
+                            return (
+                              <Chip
+                                key={data.id}
+                                label={data.name}
+                                className={classes.chip}
+                                onDelete={admin.isEnabled && data.name !== 'viewer' ?
+                                  () => {
+                                    const headers = new Headers();
+                                    headers.append('Content-Type', 'application/json; charset=utf-8');
+                                    fetch(`/role/${data.id}/agent/${profileData.user_id}`,
+                                      {
+                                        method: 'DELETE',
+                                        headers,
+                                      }
+                                    )
+                                    .then(response => response.json())
+                                    .then(response => {
+                                      if (response.message) {
+                                        setFlashProps({ message: response.message, variant: 'warning' });
+                                      }
+                                      else {
+                                        setProfileData(response);
+                                        setUnassignedRoles([]);
+                                      }
+                                    })
+                                    .catch(error => {
+                                      setFlashProps({ message: error.message, variant: 'error' });
+                                    });
+                                  }
+                                : undefined}
+                              />
+                            );
+                          })}
+                          {admin.isEnabled && !unassignedRoles.length && (
+                                <Chip
+                                  key="assign-role"
+                                  id="assign-role"
+                                  style={{ backgroundColor: '#ffffff' }}
+                                  className={classes.chip}
+                                  label={<Icon style={{ color: green[500] }}>add_circle</Icon>}
+                                  onClick={() => {
+                                    const headers = new Headers();
+                                    headers.append('Content-Type', 'application/json; charset=utf-8');
+                                    fetch('/role',
+                                      {
+                                        method: 'GET',
+                                        headers,
+                                      }
+                                    )
+                                    .then(response => response.json())
+                                    .then(response => {
+                                      if (response.message) {
+                                        setFlashProps({ message: response.message, variant: 'warning' });
+                                      }
+                                      else {
+                                        const roles = response.filter(role => {
+                                          for (let r of profileData.roles) {
+                                            if (r.id === role.id) {
+                                              return false;
+                                            }
+                                          }
+                                          return true;
+                                        });
+                                        setUnassignedRoles(roles);
+                                      }
+                                    })
+                                    .catch(error => {
+                                      setFlashProps({ message: error.message, variant: 'error' });
+                                    });
+                                  }}
+                                />
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {unassignedRoles.length ?
+                      <TableRow>
+                        <TableCell align="right" component="th" scope="row">Available roles:</TableCell>
+                        <TableCell id="unassigned-roles" align="left" component="td" className={classes.chipList}>
+                          {unassignedRoles.map(data => {
+                            return (
+                              <Chip
+                                key={data.id}
+                                label={data.name}
+                                className={classes.chip}
+                                onClick={() => {
+                                  const headers = new Headers();
+                                  headers.append('Content-Type', 'application/json; charset=utf-8');
+                                  fetch(`/role/${data.id}/agent/${profileData.user_id}`,
+                                    {
+                                      method: 'PUT',
+                                      headers,
+                                    }
+                                  )
+                                  .then(response => response.json())
+                                  .then(response => {
+                                    if (response.message) {
+                                      setFlashProps({ message: response.message, variant: 'warning' });
+                                    }
+                                    else {
+                                      setProfileData(response);
+                                      const roleIndex = unassignedRoles.findIndex(role => role.id === data.id);
+                                      const remainingRoles = [...unassignedRoles];
+                                      remainingRoles.splice(roleIndex, 1);
+                                      setUnassignedRoles(remainingRoles);
+                                    }
+                                  })
+                                  .catch(error => {
+                                    setFlashProps({ message: error.message, variant: 'error' });
+                                  });
+                                }}
+                              />
+                            );
+                          })}
+                          <li key="close-unassigned-roles">
+                            <Chip
+                              id="close-unassigned-roles"
+                              style={{ backgroundColor: '#ffffff' }}
+                              className={classes.chip}
+                              label={<Icon style={{ color: red[500] }}>close</Icon>}
+                              onClick={() => {
+                                setUnassignedRoles([]);
+                              }}
+                            />
+                          </li>
+                        </TableCell>
+                      </TableRow>
+                    : <TableRow />}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -160,7 +340,7 @@ const Agent = (props) => {
                     title='RSVPs'
                     isLoading={isWaiting}
                     columns={[
-                      { title: 'Name', field: 'name', editable: 'never' },
+                      { title: 'Name', field: 'data.name', editable: 'never' },
                       { title: 'Type', field: 'type', editable: 'never' },
                     ]}
                     data={profileData.user_metadata ? profileData.user_metadata.rsvps : []}
@@ -208,6 +388,46 @@ const Agent = (props) => {
                 </Grid>
                 <br />
               </>
+            : '' }
+            {profileData.roles && profileData.roles.find(r => r.name === 'organizer') ?
+              <Grid id="organizations-table" item className={classes.grid}>
+                <MaterialTable
+                  title='Organizations'
+                  isLoading={isWaiting}
+                  columns={[
+                    {
+                      title: 'Name',
+                      field: 'name',
+                      render: rowData => <Link href={`#organization/${rowData.id}`}>{rowData.name}</Link>,
+                      editComponent: (props) => {
+                        return (
+                          <MTableEditField
+                            autoFocus={true}
+                            type="text"
+                            maxLength="128"
+                            placeholder="Name"
+                            columnDef={props.columnDef}
+                            value={props.value ? props.value : ''}
+                            onChange={value => props.onChange(value) }
+                            onKeyDown={evt => {
+                                if (evt.key === 'Enter') {
+                                  createOrganization({ name: evt.target.value });
+                                  props.onChange('');
+                                  return;
+                                }
+                              }
+                            }
+                          />
+                        );
+                      }
+                    },
+                    { title: 'Organizer', field: 'organizer', editable: 'never' }
+                  ]}
+                  data={profileData.user_metadata ? profileData.user_metadata.organizations : []}
+                  options={{ search: false, paging: false }}
+                  editable={ profileData.email === agent.email ? { onRowAdd: createOrganization }: undefined}
+                />
+              </Grid>
             : '' }
             <Grid id="teams-table" item className={classes.grid}>
               <MaterialTable

@@ -66,7 +66,7 @@ context('root/Team show', function() {
 
     afterEach(() => {
       cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
-      cy.task('query', 'TRUNCATE TABLE "Invitations" CASCADE;');
+      cy.task('query', 'TRUNCATE TABLE "Updates" CASCADE;');
     });
 
     describe('root is not a team member', () => {
@@ -90,6 +90,7 @@ context('root/Team show', function() {
           });
 
           it('displays common Team interface elements', () => {
+            cy.get('#team-profile-info tbody').find('tr').its('length').should('eq', 2);
             cy.get('#team-profile-info tbody tr td input#team-name-field').should('have.value', 'The Calgary Roughnecks');
             cy.get('#team-profile-info tbody tr td').contains(regularAgent.email);
             cy.get('button#delete-team').should('exist');
@@ -98,8 +99,8 @@ context('root/Team show', function() {
           });
 
           it('displays the members list with editable components', function() {
-            // Admin can add an agent
-            cy.get('#members-table button span span').contains('add_box');
+            // Admin cannot add an agent
+            cy.get('#members-table div:first-of-type div div:last-of-type span').not('button');
 
             // Team leader cannot be deleted
             cy.get('#members-table table tbody tr:nth-of-type(1) button[title=Delete]').should('not.exist');
@@ -163,6 +164,7 @@ context('root/Team show', function() {
           });
 
           it('displays common Team interface elements', () => {
+            cy.get('#team-profile-info tbody').find('tr').its('length').should('eq', 2);
             cy.get('#team-profile-info tbody tr td input#team-name-field').should('have.value', 'The Calgary Roughnecks');
             cy.get('#team-profile-info tbody tr td').contains(regularAgent.email);
             cy.get('button#delete-team').should('exist');
@@ -171,8 +173,9 @@ context('root/Team show', function() {
           });
 
           it('displays the members list with editable components', () => {
-            // Admin can add an agent
-            cy.get('#members-table button span span').contains('add_box');
+            // Admin cannot add an agent (add-agent-button)
+            cy.get('#members-table div:first-of-type div div:last-of-type span').not('button');;
+
             // Team leader still cannot be deleted
             cy.get('#members-table table tbody tr:nth-of-type(1) button[title=Delete]').should('not.exist');
             cy.get('#members-table table tbody tr:nth-of-type(1) td a').should('contain', regularAgent.name).
@@ -193,9 +196,9 @@ context('root/Team show', function() {
             cy.get('#admin-switch').uncheck();
             cy.wait(200);
             cy.get('#app-menu').contains('Profile').click();
-            cy.wait(200);
+            cy.wait(300);
             cy.contains('The Calgary Roughnecks').click();
-            cy.wait(200);
+            cy.wait(300);
           });
 
           it('lands in the right spot', () => {
@@ -203,6 +206,7 @@ context('root/Team show', function() {
           });
 
           it('displays common Team interface elements', () => {
+            cy.get('#team-profile-info tbody').find('tr').its('length').should('eq', 2);
             cy.get('#team-profile-info tbody tr td input#team-name-field').should('have.value', 'The Calgary Roughnecks');
             cy.get('#team-profile-info tbody tr td').contains(regularAgent.email);
             cy.get('button#delete-team').should('not.exist');

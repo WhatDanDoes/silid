@@ -2,7 +2,9 @@ const express = require('express');
 const router = express.Router();
 const models = require('../models');
 const mailer = require('../mailer');
+const uuid = require('uuid');
 
+const upsertUpdates = require('../lib/upsertUpdates');
 
 /**
  * Configs must match those defined for RBAC at Auth0
@@ -11,372 +13,453 @@ const scope = require('../config/permissions');
 const roles = require('../config/roles');
 const checkPermissions = require('../lib/checkPermissions');
 
-
-/* GET organization listing. */
-router.get('/admin', checkPermissions(roles.sudo), function(req, res, next) {
-  if (!req.agent.isSuper) {
-    return res.status(403).json( { message: 'Forbidden' });
-  }
-
-  // Super agent gets entire listing
-  models.Organization.findAll().then(orgs => {
-    res.json(orgs);
-  }).catch(err => {
-    res.status(500).json(err);
-  });
-});
-
+const apiScope = require('../config/apiPermissions');
+const getManagementClient = require('../lib/getManagementClient');
 
 router.get('/', checkPermissions([scope.read.organizations]), function(req, res, next) {
-  req.agent.getOrganizations().then(orgs => {
-    res.json(orgs);
-  }).catch(err => {
-    res.status(500).json(err);
-  });
-});
+  const managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
+  managementClient.getUser({id: req.user.user_id}).then(agent => {
 
-
-router.get('/:id', checkPermissions([scope.read.organizations]), function(req, res, next) {
-  models.Organization.findOne({ where: { id: req.params.id },
-                                include: [ { model: models.Agent, as: 'creator' },
-                                           { model: models.Agent, as: 'members' },
-                                           { model: models.Team, as: 'teams',
-                                             include: [{ model: models.Agent, as: 'members' }] } ] }).then(result => {
-    if (!result) {
-      return res.status(404).json({ message: 'No such organization' });
-    }
-
-    const memberIds = result.members.map(member => member.id);
-    const memberIdIndex = memberIds.indexOf(req.agent.id);
-
-    // Super agent gets all-access pass
-    if (!req.agent.isSuper) {
-
-      // Make sure agent is a member
-      if (memberIdIndex < 0) {
-        return res.status(403).json({ message: 'You are not a member of that organization' });
-      }
-
-      // Make sure agent is email verified
-      if (result.members[memberIdIndex].OrganizationMember.verificationCode) {
-        return res.status(403).json({ message: 'You have not verified your invitation to this organization. Check your email.' });
-      }
-    }
-
-    res.status(200).json(result);
-  }).catch(err => {
-    res.status(500).json(err);
-  });
-});
-
-router.post('/', checkPermissions([scope.create.organizations]), function(req, res, next) {
-  req.body.creatorId = req.agent.id;
-
-  req.agent.createOrganization(req.body).then(org => {
-    res.status(201).json(org);
-  }).catch(err => {
-    let status = 500;
-    if (err instanceof models.Sequelize.UniqueConstraintError) {
-      status = 200;
-    }
-    res.status(status).json(err);
-  });
-});
-
-router.put('/', checkPermissions([scope.update.organizations]), function(req, res, next) {
-  models.Organization.findOne({ where: { id: req.body.id } }).then(organization => {
-    if (!organization) {
-      return res.json( { message: 'No such organization' });
-    }
-
-    organization.getCreator().then(creator => {
-      if (!req.agent.isSuper && req.agent.email !== creator.email) {
-        return res.status(403).json( { message: 'Unauthorized' });
-      }
-
-      for (let key in req.body) {
-        if (organization[key]) {
-          organization[key] = req.body[key];
+    if (agent.user_metadata && agent.user_metadata.organizations) {
+      const orgs = agent.user_metadata.organizations.sort((a, b) => {
+        if (a.name < b.name) {
+          return -1;
         }
-      }
-      organization.save().then(result => {
-        res.status(201).json(result);
-      }).catch(err => {
-        res.status(500).json(err);
+        if (a.name > b.name) {
+          return 1;
+        }
+        return 0;
       });
-    }).catch(err => {
-      res.status(500).json(err);
-    });
+
+      return res.status(200).json(orgs);
+    }
+    res.status(404).json([]);
   }).catch(err => {
-    res.status(500).json(err);
+    res.status(err.statusCode).json(err.message.error_description);
   });
 });
 
 /**
- * PATCH is used to modify associations (i.e., memberships and teams).
- * cf., PUT
+ * Consolidates an organization's member teams
+ *
+ * @param array
+ * @param object
+ * @param string
  */
-const patchOrg = function(req, res, next) {
-  models.Organization.findOne({ where: { id: req.body.id },
-                                include: ['members', 'teams'] }).then(organization => {
-    if (!organization) {
-      return res.status(404).json( { message: 'No such organization' });
-    }
-
-    let members = organization.members.map(member => member.id);
-    const memberIdIndex = members.indexOf(req.agent.id);
-
-    // Super agent gets all-access pass
-    if (!req.agent.isSuper) {
-      // Make sure agent is a member
-      if (memberIdIndex < 0) {
-        return res.status(403).json( { message: 'You are not a member of this organization' });
+function consolidateTeams(agents, org, id) {
+  // Get all the teams belonging to this organization
+  let teamIds = [];
+  let teams = [];
+  for (let agent of agents) {
+    let t = agent.user_metadata.teams.filter(team => {
+      if (team.organizationId === id && teamIds.indexOf(team.id) < 0) {
+        teamIds.push(team.id);
+        return true;
       }
-
-      // Make sure agent is email verified
-      if (organization.members[memberIdIndex].OrganizationMember.verificationCode) {
-        return res.status(403).json({ message: 'You have not verified your invitation to this organization. Check your email.' });
-      }
-    }
-
-    // Agent membership
-    let memberStatus = 'have been invited to join';
-    let subjectLine = 'Identity organization invitation';
-    if (req.body.memberId) {
-      const index = members.indexOf(req.body.memberId);
-      // Delete
-      if (index > -1) {
-        memberStatus = 'are no longer a member of';
-        members.splice(index, 1);
-        subjectLine = 'Identity membership update';
-      }
-      // Add
-      else {
-        members.push(req.body.memberId);
-      }
-    }
-
-    // Team
-    let teams = organization.teams.map(team => team.id);
-    if (req.body.teamId) {
-      const index = teams.indexOf(req.body.teamId);
-      // Delete
-      if (index > -1) {
-        teams.splice(index, 1);
-      }
-      // Add
-      else {
-        teams.push(req.body.teamId);
-      }
-    }
-
-    Promise.all([ organization.setMembers(members), organization.setTeams(teams) ]).then(results => {
-      if (req.body.memberId) {
-        models.Agent.findOne({ where: { id: req.body.memberId } }).then(agent => {
-          let mailOptions = {
-            to: agent.email,
-            from: process.env.NOREPLY_EMAIL,
-            subject: subjectLine,
-            text: `You ${memberStatus} ${organization.name}`
-          };
-          mailer.transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-              console.error('Mailer Error', error);
-              return res.status(501).json(error);
-            }
-            res.status(201).json({ message: 'Update successful' });
-          });
-        }).catch(err => {
-          res.status(status).json(err);
-        });
-      }
-      else {
-        res.status(201).json({ message: 'Update successful' });
-      }
-    }).catch(err => {
-      let status = 500;
-      if (err instanceof models.Sequelize.ForeignKeyConstraintError) {
-        status = 404;
-        if (err.parent.table === 'OrganizationMembers') {
-          err = { message: 'No such agent' }
-        }
-        else if (err.parent.table === 'organization_team') {
-          err = { message: 'No such team' }
-        }
-      }
-      res.status(status).json(err);
+      return false;
     });
-  }).catch(err => {
-    res.status(500).json(err);
+    teams = teams.concat(t);
+  }
+  // Sort teams alphabetically by team name
+  teams.sort((a, b) => {
+    if (a.name < b.name) {
+      return -1;
+    }
+    if (a.name > b.name) {
+      return 1;
+    }
+    return 0;
   });
+
+  org.teams = teams;
+  return org;
 }
 
-router.patch('/', checkPermissions([scope.update.organizations]), function(req, res, next) {
-  if (req.body.email) {
-    models.Agent.findOne({ where: { email: req.body.email } }).then(agent => {
-      if (!agent) {
-        let newAgent = new models.Agent({ email: req.body.email });
-        newAgent.save().then(result => {
-          req.body.memberId = result.id;
-          patchOrg(req, res, next);
+router.get('/:id', checkPermissions([scope.read.organizations]), function(req, res, next) {
+  const managementClient = getManagementClient(apiScope.read.usersAppMetadata);
+  managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.organizations.id:"${req.params.id}"` }).then(organizers => {
+    if (organizers.length) {
+
+      // Get the organization
+      const organization = organizers[0].user_metadata.organizations.find(org => org.id === req.params.id);
+
+      managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.organizationId:"${req.params.id}"` }).then(agents => {
+
+        // Is this agent allowed to view this organization?
+        let isAffiliate = true;
+        if (organization.organizer !== req.user.email) {
+          isAffiliate = agents.some(a => a.email === req.user.email);
+        }
+
+        if (isAffiliate || req.user.isSuper) {
+          // Get all the teams belonging to this organization
+          consolidateTeams(agents, organization, req.params.id)
+
+          return res.status(200).json(organization);
+        }
+        else {
+          return res.status(403).json({ message: 'You are not a member of that organization' });
+        }
+      }).catch(err => {
+        res.status(err.statusCode).json(err.message.error_description);
+      });
+    }
+    else {
+      res.status(404).json({ message: 'No such organization' });
+    }
+  }).catch(err => {
+    res.status(err.statusCode).json(err.message.error_description);
+  });
+});
+
+router.post('/', checkPermissions([scope.create.organizations]), function(req, res, next) {
+  // Make sure incoming data is legit
+  let orgName = req.body.name;
+  if (orgName) {
+    orgName = orgName.trim();
+  }
+
+  if (!orgName) {
+    return res.status(400).json({ errors: [{ message: 'Organization requires a name' }] });
+  }
+  else if (orgName.length > 128) {
+    return res.status(400).json({ errors: [{ message: 'Organization name is too long' }] });
+  }
+
+  let managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
+  managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.organizations.name:"${orgName}"` }).then(organizers => {
+
+    if (organizers.length) {
+      return res.status(400).json({ errors: [{ message: 'That organization is already registered' }] });
+    }
+
+    managementClient.getUser({id: req.user.user_id}).then(agent => {
+
+      // No duplicate team names
+      if (agent.user_metadata) {
+        if (agent.user_metadata.organizations) {
+          let organizations = agent.user_metadata.organizations.map(org => org.name);
+          if (organizations.includes(orgName)) {
+            return res.status(400).json({ errors: [{ message: 'That organization is already registered' }] });
+          }
+        }
+        else {
+          agent.user_metadata.organizations = [];
+        }
+      }
+      else {
+        agent.user_metadata = { organizations: [] };
+      }
+
+      agent.user_metadata.organizations.push({
+        id: uuid.v4(),
+        name: orgName,
+        organizer: req.user.email,
+      });
+
+      managementClient.updateUser({id: req.user.user_id}, { user_metadata: agent.user_metadata }).then(result => {
+        // Auth0 does not return agent scope
+        result.scope = req.user.scope;
+        result.roles = req.user.roles;
+        // 2020-4-30 https://stackoverflow.com/a/24498660/1356582
+        // This updates the agent's session data
+        req.login(result, err => {
+          if (err) return next(err);
+
+          res.status(201).json({...result, roles: req.user.roles});
+        });
+      }).catch(err => {
+        res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+      });
+    }).catch(err => {
+      res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+    });
+  }).catch(err => {
+    res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+  });
+});
+
+router.put('/:id', checkPermissions([scope.update.organizations]), function(req, res, next) {
+  // Make sure incoming data is legit
+  let orgName = req.body.name;
+  if (orgName) {
+    orgName = orgName.trim();
+  }
+
+  if (!orgName) {
+    return res.status(400).json({ errors: [{ message: 'Organization requires a name' }] });
+  }
+  else if (orgName.length > 128) {
+    return res.status(400).json({ errors: [{ message: 'Organization name is too long' }] });
+  }
+
+  let managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
+  managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.organizations.name:"${orgName}"` }).then(organizers => {
+
+    if (organizers.length) {
+      return res.status(400).json({ errors: [{ message: 'That organization is already registered' }] });
+    }
+
+    managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.organizations.id:"${req.params.id}"` }).then(organizers => {
+
+      if (organizers.length) {
+
+        // Anticipating multiple organizers... right now, there should only be one per organization
+        let organizerIndex = organizers.findIndex(o => o.email === req.user.email);
+        if (organizerIndex < 0 && !req.user.isSuper) {
+          return res.status(403).json({ message: 'You are not an organizer' });
+        }
+        else {
+          organizerIndex = 0;
+        }
+
+        // Find the organization to be updated
+        const orgIndex = organizers[organizerIndex].user_metadata.organizations.findIndex(org => org.id === req.params.id);
+
+        // Update organization
+        organizers[organizerIndex].user_metadata.organizations[orgIndex].name = orgName;
+
+        // Update the organizer's metadata
+        managementClient.updateUser({id: organizers[organizerIndex].user_id}, { user_metadata: organizers[organizerIndex].user_metadata }).then(result => {
+
+          // Retrieve and consolidate organization info
+          managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.organizationId:"${req.params.id}"` }).then(agents => {
+            let organization = consolidateTeams(agents, organizers[organizerIndex].user_metadata.organizations[orgIndex], req.params.id)
+            res.status(201).json(organization);
+          }).catch(err => {
+            res.status(500).json(err);
+          });
         }).catch(err => {
-          res.status(500).json(err);
+          res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
         });
       }
       else {
-        req.body.memberId = agent.id;
-        patchOrg(req, res, next);
+        res.status(404).json({ message: 'No such organization' });
       }
     }).catch(err => {
-      res.status(500).json(err);
+      res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+    });
+  }).catch(err => {
+    res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+  });
+});
+
+router.delete('/:id', checkPermissions([scope.delete.organizations]), function(req, res, next) {
+  let managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
+
+  // Check for member teams
+  managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.organizationId:"${req.params.id}"` }).then(teams => {
+    if (teams.length){
+      return res.status(400).json({ message: 'Organization has member teams. Cannot delete' });
+    }
+
+    // Get organizer
+    managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.organizations.id:"${req.params.id}"` }).then(organizers => {
+
+      // For the moment, there is only one organizer
+      if (organizers.length) {
+        if (organizers[0].email !== req.user.email && !req.user.isSuper) {
+          return res.status(403).json({ message: 'You are not the organizer' });
+        }
+
+        if (organizers[0].user_metadata && organizers[0].user_metadata.pendingInvitations) {
+          const update = organizers[0].user_metadata.pendingInvitations.find(i => i.uuid === req.params.id);
+          if (update) {
+            return res.status(400).json({ message: 'Organization has invitations pending. Cannot delete' });
+          }
+        }
+
+        // Find the organization
+        const orgIndex = organizers[0].user_metadata.organizations.findIndex(o => o.id === req.params.id);
+        organizers[0].user_metadata.organizations.splice(orgIndex, 1);
+
+        // Update the organizer's metadata
+        managementClient.updateUser({id: organizers[0].user_id}, { user_metadata: organizers[0].user_metadata }).then(result => {
+          res.status(201).json({ message: 'Organization deleted', organizerId: organizers[0].user_id });
+        }).catch(err => {
+          res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+        });
+      }
+      else {
+        res.status(404).json({ message: 'No such organization' });
+      }
+    }).catch(err => {
+      res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+    });
+  }).catch(err => {
+    res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+  });
+});
+
+router.put('/:id/team', checkPermissions([scope.create.organizationMembers]), function(req, res, next) {
+  if (!req.body.teamId || !req.body.teamId.trim()) {
+    return res.status(400).json({ message: 'No team provided' });
+  }
+
+  let organization;
+  if (req.user.user_metadata.organizations) {
+    organization = req.user.user_metadata.organizations.find(o => o.id === req.params.id);
+  }
+
+  if (!organization) {
+    return res.status(404).json({ message: 'No such organization' });
+  }
+
+  let managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
+  managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.body.teamId}"` }).then(agents => {
+
+    if (!agents.length) {
+      return res.status(404).json({ message: 'No such team' });
+    }
+
+    // Find the team leader
+    let leader, teamIndex;
+    for (agent of agents) {
+      teamIndex = agent.user_metadata.teams.findIndex(team => team.leader === agent.email && team.id === req.body.teamId);
+      if (teamIndex > -1) {
+        leader = agent;
+        break;
+      }
+    }
+
+    if (leader.user_metadata.teams[teamIndex].organizationId) {
+      if (leader.user_metadata.teams[teamIndex].organizationId === req.params.id) {
+        return res.status(200).json({ message: 'That team is already a member of the organization' });
+      }
+      return res.status(200).json({ message: 'That team is already a member of another organization' });
+    }
+
+    // Add organizationId to team record
+    leader.user_metadata.teams[teamIndex].organizationId = req.params.id;
+
+    // Prepare updates to update team members
+    let updates = [];
+    agents.forEach(agent => {
+      if (agent.email !== leader.email) {
+        updates.push({
+          uuid: req.body.teamId,
+          type: 'team',
+          recipient: agent.email,
+          data: {
+            id: req.body.teamId,
+            name: leader.user_metadata.teams[teamIndex].name,
+            leader: leader.email,
+            organizationId: req.params.id,
+          }
+        });
+      }
+    });
+
+    managementClient.updateUser({id: leader.user_id}, { user_metadata: leader.user_metadata }).then(result => {
+
+      upsertUpdates(updates, err => {
+        if (err) {
+          return res.status(500).json(err);
+        }
+        res.redirect(`/organization/${req.params.id}`);
+      });
+    }).catch(err => {
+      res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+    });
+  }).catch(err => {
+    res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+  });
+});
+
+/**
+ * Update team leader's team record to remove organization ID
+ *
+ * For use with DELETE /organization/:id/team/:teamId route
+ *
+ * @params obj
+ * @params obj
+ * @returns undefined
+ */
+function deleteTeamMembership(req, res) {
+  let managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
+  managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.teamId}"` }).then(agents => {
+
+    if (!agents.length) {
+      return res.status(404).json({ message: 'No such team' });
+    }
+
+    // Find the team leader
+    let leader, teamIndex;
+    for (agent of agents) {
+      teamIndex = agent.user_metadata.teams.findIndex(team => team.leader === agent.email && team.id === req.params.teamId);
+      if (teamIndex > -1) {
+        leader = agent;
+        break;
+      }
+    }
+
+    if (!leader.user_metadata.teams[teamIndex].organizationId) {
+      return res.status(400).json({ message: 'That team is not a member of any organization' });
+    }
+    else if (leader.user_metadata.teams[teamIndex].organizationId !== req.params.id) {
+      return res.status(400).json({ message: 'That team is not a member of that organization' });
+    }
+
+    // Remove organizationId from the team record
+    delete leader.user_metadata.teams[teamIndex].organizationId;
+
+    // Prepare updates to update team members
+    let updates = [];
+    agents.forEach(agent => {
+      if (agent.email !== leader.email) {
+        updates.push({
+          uuid: req.params.teamId,
+          type: 'team',
+          recipient: agent.email,
+          data: {
+            id: req.params.teamId,
+            name: leader.user_metadata.teams[teamIndex].name,
+            leader: leader.email,
+          },
+        });
+      }
+    });
+
+    managementClient.updateUser({id: leader.user_id}, { user_metadata: leader.user_metadata }).then(result => {
+
+      upsertUpdates(updates, err => {
+        if (err) {
+          return res.status(500).json(err);
+        }
+
+        res.redirect(`/organization/${req.params.id}`);
+      });
+    }).catch(err => {
+      res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+    });
+  }).catch(err => {
+    res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
+  });
+};
+
+router.delete('/:id/team/:teamId', checkPermissions([scope.delete.organizationMembers]), function(req, res, next) {
+  let organization;
+  if (req.user.user_metadata.organizations) {
+    organization = req.user.user_metadata.organizations.find(o => o.id === req.params.id);
+  }
+
+  if (organization) {
+    deleteTeamMembership(req, res);
+  }
+  else if (req.user.isSuper) {
+    let managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
+    managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.organizations.id:"${req.params.id}"` }).then(agents => {
+      if (!agents.length) {
+        return res.status(404).json({ message: 'No such organization' });
+      }
+      deleteTeamMembership(req, res);
+    }).catch(err => {
+      res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
     });
   }
   else {
-    patchOrg(req, res, next);
+    return res.status(404).json({ message: 'No such organization' });
   }
 });
-
-router.delete('/', checkPermissions([scope.delete.organizations]), function(req, res, next) {
-  models.Organization.findOne({ where: { id: req.body.id } }).then(organization => {
-    if (!organization) {
-      return res.json( { message: 'No such organization' });
-    }
-
-    organization.getCreator().then(creator => {
-      if (!req.agent.isSuper && req.agent.email !== creator.email) {
-        return res.status(401).json( { message: 'Unauthorized' });
-      }
-
-      organization.destroy().then(results => {
-        res.json( { message: 'Organization deleted' });
-      }).catch(err => {
-        res.status(500).json(err);
-      });
-    }).catch(err => {
-      res.status(500).json(err);
-    });
-  }).catch(err => {
-    res.status(500).json(err);
-  });
-});
-
-router.put('/:id/agent', checkPermissions([scope.create.organizationMembers]), function(req, res, next) {
-  models.Organization.findOne({ where: { id: req.params.id },
-                                include: [ 'creator',
-                                           { model: models.Agent, as: 'members' },
-                                           'teams'] }).then(organization => {
-
-    if (!organization) {
-      return res.status(404).json( { message: 'No such organization' });
-    }
-
-    if (!req.agent.isSuper && !organization.members.map(member => member.id).includes(req.agent.id)) {
-      return res.status(403).json({ message: 'You are not a member of this organization' });
-    }
-
-    models.Agent.findOne({ where: { email: req.body.email } }).then(agent => {
-
-      // Text is real ugly. Don't touch unless you know a better way!
-      const mailOptions = {
-        from: process.env.NOREPLY_EMAIL,
-        subject: 'Identity organization invitation',
-        text: `You have been invited to join ${organization.name}
-
-Click or copy-paste the link below to accept:
-
-`
-      };
-
-      if (!agent) {
-        let newAgent = new models.Agent({ email: req.body.email });
-        newAgent.save().then(result => {
-          organization.addMember(newAgent.id).then(result => {
-            mailOptions.text += `${process.env.SERVER_DOMAIN}/verify/${result[0].verificationCode}\n`;
-            mailOptions.to = newAgent.email;
-            mailer.transporter.sendMail(mailOptions, (error, info) => {
-              if (error) {
-                console.error('Mailer Error', error);
-                return res.status(501).json(error);
-              }
-              res.status(201).json(newAgent);
-            });
-          }).catch(err => {
-            res.status(500).json(err);
-          })
-        }).catch(err => {
-          res.status(500).json(err);
-        });
-      }
-      else {
-        if (organization.members.map(a => a.id).includes(agent.id)) {
-          return res.status(200).json({ message: `${agent.email} is already a member of this organization` });
-        }
-
-        organization.addMember(agent.id).then(result => {
-          mailOptions.text += `${process.env.SERVER_DOMAIN}/verify/${result[0].verificationCode}\n`;
-          mailOptions.to = agent.email;
-          mailer.transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-              console.error('Mailer Error', error);
-              return res.status(501).json(error);
-            }
-            res.status(201).json(agent);
-          });
-        }).catch(err => {
-          res.status(500).json(err);
-        });
-      }
-    }).catch(err => {
-      res.status(500).json(err);
-    });
-  }).catch(err => {
-    res.status(500).json(err);
-  });
-});
-
-
-router.delete('/:id/agent/:agentId', checkPermissions([scope.delete.organizationMembers]), function(req, res, next) {
-  models.Organization.findOne({ where: { id: req.params.id },
-                                include: [ 'creator',
-                                           { model: models.Agent, as: 'members' },
-                                           'teams'] }).then(organization => {
-    if (!organization) {
-      return res.status(404).json( { message: 'No such organization' });
-    }
-
-    if (!req.agent.isSuper && req.agent.email !== organization.creator.email) {
-      return res.status(401).json( { message: 'Unauthorized' });
-    }
-
-    models.Agent.findOne({ where: { id: req.params.agentId } }).then(agent => {
-      if (!agent || !organization.members.map(member => member.id).includes(agent.id)) {
-        return res.status(404).json({ message: 'That agent is not a member' });
-      }
-
-      organization.removeMember(req.params.agentId).then(results => {
-        let mailOptions = {
-          to: agent.email,
-          from: process.env.NOREPLY_EMAIL,
-          subject: 'Identity membership update',
-          text: `You are no longer a member of ${organization.name}`
-        };
-        mailer.transporter.sendMail(mailOptions, (error, info) => {
-          if (error) {
-            console.error('Mailer Error', error);
-            return res.status(501).json(error);
-          }
-          res.status(201).json({ message: 'Member removed' });
-        });
-      }).catch(err => {
-        res.status(500).json(err);
-      });
-    }).catch(err => {
-      res.status(500).json(err);
-    });
-  }).catch(err => {
-    res.status(500).json(err);
-  });
-});
-
 
 module.exports = router;

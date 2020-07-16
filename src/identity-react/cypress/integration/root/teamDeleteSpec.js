@@ -12,8 +12,11 @@ context('root/Team delete', function() {
   });
 
   afterEach(() => {
+    // Cypress thinks it can handle asynchronicity better than it can.
+    // This makes sure sensitive tests complete before the DB is cleaned
+    cy.wait(300);
     cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
-    cy.task('query', 'TRUNCATE TABLE "Invitations" CASCADE;');
+    cy.task('query', 'TRUNCATE TABLE "Updates" CASCADE;');
   });
 
   describe('Deleting', () => {
@@ -369,7 +372,7 @@ context('root/Team delete', function() {
                 root = results[0];
 
                 cy.get('#app-menu-button').click();
-                cy.wait(100); // This seems to only be required on `uncheck`
+                cy.wait(200); // This seems to only be required on `uncheck`
                 cy.get('#admin-switch').uncheck();
                 cy.get('#app-menu').contains('Profile').click();
                 cy.wait(200);

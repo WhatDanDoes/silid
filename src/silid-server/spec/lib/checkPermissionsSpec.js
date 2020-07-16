@@ -11,6 +11,9 @@ const Profile = require('passport-auth0/lib/Profile');
 const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
 const stubUserAppMetadataUpdate = require('../support/auth0Endpoints/stubUserAppMetadataUpdate');
 const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
+const stubRolesRead = require('../support/auth0Endpoints/stubRolesRead');
+const stubUserRolesRead = require('../support/auth0Endpoints/stubUserRolesRead');
+const stubUserAssignRoles = require('../support/auth0Endpoints/stubUserAssignRoles');
 
 const checkPermissions = require('../../lib/checkPermissions');
 
@@ -29,7 +32,7 @@ const roles = require('../../config/roles');
 
 describe('checkPermissions', function() {
 
-  let agent, request, response, rolesReadScope, userAssignRolesScope, userReadScope;
+  let agent, request, response, rolesReadScope, userAssignRolesScope, userReadScope, userRolesReadScope;
 
   beforeEach(done => {
     nock.cleanAll();
@@ -41,7 +44,8 @@ describe('checkPermissions', function() {
      */
     stubAuth0ManagementApi((err, apiScopes) => {
       if (err) return done.fail(err);
-      ({rolesReadScope, userAssignRolesScope, userReadScope} = apiScopes);
+      ({rolesReadScope, userAssignRolesScope, userReadScope, userRolesReadScope} = apiScopes);
+
       done();
     });
   });
@@ -51,6 +55,8 @@ describe('checkPermissions', function() {
     // This resets the default values
     delete _profile.scope;
     delete _profile.user_metadata;
+    delete _profile.roles;
+    delete _profile.isSuper;
   });
 
   describe('returning visitor', () => {
@@ -80,7 +86,7 @@ describe('checkPermissions', function() {
       request = httpMocks.createRequest({
         method: 'POST',
         url: '/agent',
-        user: _profile
+        user: {..._profile},
       });
 
       checkPermissions([scope.read.agents])(request, response, err => {
@@ -90,11 +96,31 @@ describe('checkPermissions', function() {
       });
     });
 
+    it('attaches roles to req.user', done => {
+      request = httpMocks.createRequest({
+        method: 'POST',
+        url: '/agent',
+        user: {..._profile},
+      });
+
+      expect(request.user.roles).toBeUndefined();
+
+      checkPermissions([])(request, response, err => {
+        if (err) return done.fail(err);
+
+        expect(request.user.roles).toBeDefined();
+        expect(request.user.roles.length).toEqual(1);
+        expect(request.user.roles[0].name).toEqual('viewer');
+
+        done();
+      });
+    });
+
     it('saves the Auth0-provided profile the agent\'s socialProfile', done => {
       request = httpMocks.createRequest({
         method: 'POST',
         url: '/agent',
-        user: _profile
+        user: {..._profile}
       });
 
       expect(agent.socialProfile).toBeNull();
@@ -128,6 +154,22 @@ describe('checkPermissions', function() {
         });
       });
 
+      it('is called to retrieve the roles assigned to the agent', done => {
+        request = httpMocks.createRequest({
+          method: 'POST',
+          url: '/agent',
+          user: {..._profile, scope: null}
+        });
+
+        checkPermissions([])(request, response, err => {
+          if (err) return done.fail(err);
+
+          expect(userRolesReadScope.isDone()).toBe(true);
+
+          done();
+        });
+      });
+
       it('calls the management API to assign viewer role if agent not already a viewer', done => {
         request = httpMocks.createRequest({
           method: 'POST',
@@ -143,7 +185,6 @@ describe('checkPermissions', function() {
           done();
         });
       });
-
 
       it('does not call the management API if agent is already a viewer', done => {
         request = httpMocks.createRequest({
@@ -179,6 +220,76 @@ describe('checkPermissions', function() {
           done();
         });
       });
+
+      describe('req.user.isSuper', () => {
+        it('is set to false if not a super agent', done => {
+          request = httpMocks.createRequest({
+            method: 'POST',
+            url: '/agent',
+            user: {..._profile},
+          });
+
+          expect(request.user.isSuper).toBeUndefined();
+
+          checkPermissions([])(request, response, err => {
+            if (err) return done.fail(err);
+
+            expect(request.user.isSuper).toBe(false);
+
+            done();
+          });
+        });
+
+        it('is set to true if a super agent', done => {
+          request = httpMocks.createRequest({
+            method: 'POST',
+            url: '/agent',
+            user: {..._profile},
+          });
+
+          expect(request.user.isSuper).toBeUndefined();
+
+          // Clear the mocks and set them up again
+          checkPermissions([])(request, response, err => {
+            if (err) return done.fail(err);
+
+            stubUserRead((err, apiScopes) => {
+              if (err) return done(err);
+
+              stubRolesRead((err, apiScopes) => {
+                if (err) return done(err);
+
+                stubUserAssignRoles((err, apiScopes) => {
+                  if (err) return done(err);
+
+                  stubUserRolesRead([{
+                    "id": "234",
+                    "name": "sudo",
+                    "description": "All-access pass to Identity resources"
+                  },
+                  {
+                    "id": "345",
+                    "name": "viewer",
+                    "description": "Basic agent, organization, and team viewing permissions"
+                  }], (err, apiScopes) => {
+                    if (err) return done(err);
+
+                    expect(request.user.isSuper).toBe(false);
+
+                    // Try again with mocks reset
+                    checkPermissions([])(request, response, err => {
+                      if (err) return done.fail(err);
+
+                      expect(request.user.isSuper).toBe(true);
+                      done();
+                    });
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
     });
 
     /**
@@ -205,13 +316,18 @@ describe('checkPermissions', function() {
             stubUserRead((err, apiScopes) => {
               if (err) return done.fail(err);
               ({userReadScope: newReadScope} = apiScopes);
-              done();
+
+              stubUserRolesRead((err, apiScopes) => {
+                if (err) return done(err);
+                ({userRolesReadScope} = apiScopes);
+
+                done();
+              });
             });
           }).catch(err => {
             done.fail(err);
           });
         });
-
       });
 
       it('does not call the management API if Auth0 and the local cache data are consistent', done => {
@@ -259,7 +375,6 @@ describe('checkPermissions', function() {
         });
       });
     });
-
   });
 
   describe('first visit', () => {
@@ -295,6 +410,26 @@ describe('checkPermissions', function() {
         }).catch(err => {
           done.fail(err);
         });
+      });
+    });
+
+    it('attaches roles to req.user', done => {
+      request = httpMocks.createRequest({
+        method: 'POST',
+        url: '/agent',
+        user: {..._profile, scope: undefined}
+      });
+
+      expect(request.user.roles).toBeUndefined();
+
+      checkPermissions([])(request, response, err => {
+        if (err) return done.fail(err);
+
+        expect(request.user.roles).toBeDefined();
+        expect(request.user.roles.length).toEqual(1);
+        expect(request.user.roles[0].name).toEqual('viewer');
+
+        done();
       });
     });
 
@@ -377,6 +512,22 @@ describe('checkPermissions', function() {
           done();
         });
       });
+
+      it('is called to retrieve the roles assigned to the agent', done => {
+        request = httpMocks.createRequest({
+          method: 'POST',
+          url: '/agent',
+          user: {..._profile, scope: undefined}
+        });
+
+        checkPermissions([])(request, response, err => {
+          if (err) return done.fail(err);
+
+          expect(userRolesReadScope.isDone()).toBe(true);
+
+          done();
+        });
+      });
     });
 
     describe('with pending team invitations', () => {
@@ -395,23 +546,23 @@ describe('checkPermissions', function() {
         beforeEach(done => {
           teamId = uuid.v4();
 
-          models.Invitation.create({name: 'The Calgary Roughnecks', uuid: teamId, type: 'team', recipient: 'somebrandnewguy@example.com'}).then(result => {
+          models.Update.create({ recipient: 'somebrandnewguy@example.com', uuid: teamId, type: 'team',
+                                 data: {name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId} }).then(results => {
             done();
           }).catch(err => {
             done.fail(err);
           });
         });
 
-
-        it('removes the invitation from the database', done => {
-          models.Invitation.findAll().then(invites => {
-            expect(invites.length).toEqual(1);
+        it('removes the update from the database', done => {
+          models.Update.findAll().then(updates => {
+            expect(updates.length).toEqual(1);
 
             checkPermissions([])(request, response, err => {
               if (err) return done.fail(err);
 
-              models.Invitation.findAll().then(invites => {
-                expect(invites.length).toEqual(0);
+              models.Update.findAll().then(updates => {
+                expect(updates.length).toEqual(0);
 
                 done();
               }).catch(err => {
@@ -431,16 +582,19 @@ describe('checkPermissions', function() {
             expect(request.user.user_metadata).toBeDefined();
             expect(request.user.user_metadata.rsvps.length).toEqual(1);
             expect(request.user.user_metadata.rsvps[0].uuid).toEqual(teamId);
-            expect(request.user.user_metadata.rsvps[0].name).toEqual('The Calgary Roughnecks');
             expect(request.user.user_metadata.rsvps[0].type).toEqual('team');
             expect(request.user.user_metadata.rsvps[0].recipient).toEqual('somebrandnewguy@example.com');
+            expect(request.user.user_metadata.rsvps[0].data.name).toEqual('The Calgary Roughnecks');
+            expect(request.user.user_metadata.rsvps[0].data.id).toEqual(teamId);
+            expect(request.user.user_metadata.rsvps[0].data.leader).toEqual(_profile.email);
+            expect(request.user.user_metadata.rsvps[0].data.organizationId).toBeUndefined();
 
             done();
           });
         });
 
         describe('Auth0', () => {
-          it('is called to write the invitations to the agent\'s user_metadata', done => {
+          it('is called to write the updates to the agent\'s user_metadata', done => {
             checkPermissions([])(request, response, err => {
               if (err) return done.fail(err);
 
@@ -457,22 +611,23 @@ describe('checkPermissions', function() {
           beforeEach(done => {
             anotherTeamId = uuid.v4();
 
-            models.Invitation.create({name: 'The Buffalo Bandits', uuid: anotherTeamId, type: 'team', recipient: 'somebrandnewguy@example.com'}).then(result => {
+            models.Update.create({ recipient: 'somebrandnewguy@example.com', uuid: anotherTeamId, type: 'team',
+                                   data: {name: 'The Buffalo Bandits', leader: _profile.email, id: anotherTeamId} }).then(results => {
               done();
             }).catch(err => {
               done.fail(err);
             });
           });
 
-          it('removes the invitation from the database', done => {
-            models.Invitation.findAll().then(invites => {
-              expect(invites.length).toEqual(2);
+          it('removes the update from the database', done => {
+            models.Update.findAll().then(updates => {
+              expect(updates.length).toEqual(2);
 
               checkPermissions([])(request, response, err => {
                 if (err) return done.fail(err);
 
-                models.Invitation.findAll().then(invites => {
-                  expect(invites.length).toEqual(0);
+                models.Update.findAll().then(updates => {
+                  expect(updates.length).toEqual(0);
 
                   done();
                 }).catch(err => {
@@ -493,21 +648,27 @@ describe('checkPermissions', function() {
               expect(request.user.user_metadata.rsvps.length).toEqual(2);
 
               expect(request.user.user_metadata.rsvps[0].uuid).toEqual(anotherTeamId);
-              expect(request.user.user_metadata.rsvps[0].name).toEqual('The Buffalo Bandits');
               expect(request.user.user_metadata.rsvps[0].type).toEqual('team');
               expect(request.user.user_metadata.rsvps[0].recipient).toEqual('somebrandnewguy@example.com');
+              expect(request.user.user_metadata.rsvps[0].data.name).toEqual('The Buffalo Bandits');
+              expect(request.user.user_metadata.rsvps[0].data.id).toEqual(anotherTeamId);
+              expect(request.user.user_metadata.rsvps[0].data.leader).toEqual(_profile.email);
+              expect(request.user.user_metadata.rsvps[0].data.organizationId).toBeUndefined();
 
               expect(request.user.user_metadata.rsvps[1].uuid).toEqual(teamId);
-              expect(request.user.user_metadata.rsvps[1].name).toEqual('The Calgary Roughnecks');
               expect(request.user.user_metadata.rsvps[1].type).toEqual('team');
               expect(request.user.user_metadata.rsvps[1].recipient).toEqual('somebrandnewguy@example.com');
+              expect(request.user.user_metadata.rsvps[1].data.name).toEqual('The Calgary Roughnecks');
+              expect(request.user.user_metadata.rsvps[1].data.id).toEqual(teamId);
+              expect(request.user.user_metadata.rsvps[1].data.leader).toEqual(_profile.email);
+              expect(request.user.user_metadata.rsvps[1].data.organizationId).toBeUndefined();
 
               done();
             });
           });
 
           describe('Auth0', () => {
-            it('is called to write the invitations to the agent\'s user_metadata', done => {
+            it('is called to write the updates to the agent\'s user_metadata', done => {
               checkPermissions([])(request, response, err => {
                 if (err) return done.fail(err);
 
@@ -550,7 +711,7 @@ describe('checkPermissions', function() {
       request = httpMocks.createRequest({
         method: 'GET',
         url: '/agent',
-        user: _profile
+        user: {..._profile}
       });
 
       expect(invitedAgent.socialProfile).toBeNull();
@@ -575,7 +736,7 @@ describe('checkPermissions', function() {
         request = httpMocks.createRequest({
           method: 'GET',
           url: '/agent',
-          user: _profile
+          user: {..._profile}
         });
 
         expect(savedAgent.socialProfile).toEqual(_identity);
@@ -609,6 +770,7 @@ describe('checkPermissions', function() {
 
           expect(rolesReadScope.isDone()).toBe(true);
           expect(userAssignRolesScope.isDone()).toBe(true);
+          expect(userRolesReadScope.isDone()).toBe(true);
 
           done();
         });
@@ -631,6 +793,26 @@ describe('checkPermissions', function() {
           done();
         });
       });
+
+      it('attaches roles to req.user', done => {
+        request = httpMocks.createRequest({
+          method: 'POST',
+          url: '/agent',
+          user: {..._profile, scope: undefined}
+        });
+
+        expect(request.user.roles).toBeUndefined();
+
+        checkPermissions([])(request, response, err => {
+          if (err) return done.fail(err);
+
+          expect(request.user.roles).toBeDefined();
+          expect(request.user.roles.length).toEqual(1);
+          expect(request.user.roles[0].name).toEqual('viewer');
+
+          done();
+        });
+      });
     });
 
     describe('with pending team invitations', () => {
@@ -649,7 +831,8 @@ describe('checkPermissions', function() {
         beforeEach(done => {
           teamId = uuid.v4();
 
-          models.Invitation.create({name: 'The Calgary Roughnecks', uuid: teamId, type: 'team', recipient: _profile.email}).then(result => {
+          models.Update.create({ recipient: _profile.email, uuid: teamId, type: 'team',
+                                 data: {name: 'The Calgary Roughnecks', leader: _profile.email, id: teamId} }).then(results => {
             done();
           }).catch(err => {
             done.fail(err);
@@ -657,15 +840,15 @@ describe('checkPermissions', function() {
         });
 
 
-        it('removes the invitation from the database', done => {
-          models.Invitation.findAll().then(invites => {
-            expect(invites.length).toEqual(1);
+        it('removes the update from the database', done => {
+          models.Update.findAll().then(updates => {
+            expect(updates.length).toEqual(1);
 
             checkPermissions([])(request, response, err => {
               if (err) return done.fail(err);
 
-              models.Invitation.findAll().then(invites => {
-                expect(invites.length).toEqual(0);
+              models.Update.findAll().then(updates => {
+                expect(updates.length).toEqual(0);
 
                 done();
               }).catch(err => {
@@ -685,16 +868,19 @@ describe('checkPermissions', function() {
             expect(request.user.user_metadata).toBeDefined();
             expect(request.user.user_metadata.rsvps.length).toEqual(1);
             expect(request.user.user_metadata.rsvps[0].uuid).toEqual(teamId);
-            expect(request.user.user_metadata.rsvps[0].name).toEqual('The Calgary Roughnecks');
             expect(request.user.user_metadata.rsvps[0].type).toEqual('team');
             expect(request.user.user_metadata.rsvps[0].recipient).toEqual(_profile.email);
+            expect(request.user.user_metadata.rsvps[0].data.name).toEqual('The Calgary Roughnecks');
+            expect(request.user.user_metadata.rsvps[0].data.id).toEqual(teamId);
+            expect(request.user.user_metadata.rsvps[0].data.leader).toEqual(_profile.email);
+            expect(request.user.user_metadata.rsvps[0].data.organizationId).toBeUndefined();
 
             done();
           });
         });
 
         describe('Auth0', () => {
-          it('is called to write the invitations to the agent\'s user_metadata', done => {
+          it('is called to write the updates to the agent\'s user_metadata', done => {
             request = httpMocks.createRequest({
               method: 'POST',
               url: '/agent',
@@ -723,22 +909,23 @@ describe('checkPermissions', function() {
 
             anotherTeamId = uuid.v4();
 
-            models.Invitation.create({name: 'The Buffalo Bandits', uuid: anotherTeamId, type: 'team', recipient: _profile.email}).then(result => {
+            models.Update.create({ recipient: _profile.email, uuid: anotherTeamId, type: 'team',
+                                   data: {name: 'The Buffalo Bandits', leader: _profile.email, id: anotherTeamId} }).then(results => {
               done();
             }).catch(err => {
               done.fail(err);
             });
           });
 
-          it('removes the invitation from the database', done => {
-            models.Invitation.findAll().then(invites => {
-              expect(invites.length).toEqual(2);
+          it('removes the update from the database', done => {
+            models.Update.findAll().then(updates => {
+              expect(updates.length).toEqual(2);
 
               checkPermissions([])(request, response, err => {
                 if (err) return done.fail(err);
 
-                models.Invitation.findAll().then(invites => {
-                  expect(invites.length).toEqual(0);
+                models.Update.findAll().then(updates => {
+                  expect(updates.length).toEqual(0);
 
                   done();
                 }).catch(err => {
@@ -759,21 +946,27 @@ describe('checkPermissions', function() {
               expect(request.user.user_metadata.rsvps.length).toEqual(2);
 
               expect(request.user.user_metadata.rsvps[0].uuid).toEqual(anotherTeamId);
-              expect(request.user.user_metadata.rsvps[0].name).toEqual('The Buffalo Bandits');
               expect(request.user.user_metadata.rsvps[0].type).toEqual('team');
               expect(request.user.user_metadata.rsvps[0].recipient).toEqual(_profile.email);
+              expect(request.user.user_metadata.rsvps[0].data.name).toEqual('The Buffalo Bandits');
+              expect(request.user.user_metadata.rsvps[0].data.id).toEqual(anotherTeamId);
+              expect(request.user.user_metadata.rsvps[0].data.leader).toEqual(_profile.email);
+              expect(request.user.user_metadata.rsvps[0].data.organizationId).toBeUndefined();
 
               expect(request.user.user_metadata.rsvps[1].uuid).toEqual(teamId);
-              expect(request.user.user_metadata.rsvps[1].name).toEqual('The Calgary Roughnecks');
               expect(request.user.user_metadata.rsvps[1].type).toEqual('team');
               expect(request.user.user_metadata.rsvps[1].recipient).toEqual(_profile.email);
+              expect(request.user.user_metadata.rsvps[1].data.name).toEqual('The Calgary Roughnecks');
+              expect(request.user.user_metadata.rsvps[1].data.id).toEqual(teamId);
+              expect(request.user.user_metadata.rsvps[1].data.leader).toEqual(_profile.email);
+              expect(request.user.user_metadata.rsvps[1].data.organizationId).toBeUndefined();
 
               done();
             });
           });
 
           describe('Auth0', () => {
-            it('is called to write the invitations to the agent\'s user_metadata', done => {
+            it('is called to write the updates to the agent\'s user_metadata', done => {
               request = httpMocks.createRequest({
                 method: 'POST',
                 url: '/agent',
@@ -811,10 +1004,8 @@ describe('checkPermissions', function() {
                  user_metadata: { teams: [{name: 'The Buffalo Bandits', id: anotherTeamId, leader: _profile.email}] } }
         });
 
-        models.Invitation.create(
-            {name: 'The Beefalo Bandits', uuid: anotherTeamId, type: 'team', recipient: 'someotherguy@example.com'}
-          ).then(result => {
-
+        models.Update.create({ recipient: 'someotherguy@example.com', uuid: anotherTeamId, type: 'team',
+                               data: {name: 'The Beefalo Bandits', leader: _profile.email, id: anotherTeamId} }).then(results => {
           stubUserAppMetadataUpdate((err, apiScopes) => {
             if (err) return done.fail();
             ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
@@ -826,14 +1017,14 @@ describe('checkPermissions', function() {
       });
 
       it('removes the update from the database', done => {
-        models.Invitation.findAll().then(invites => {
-          expect(invites.length).toEqual(1);
+        models.Update.findAll().then(updates => {
+          expect(updates.length).toEqual(1);
 
           checkPermissions([])(request, response, err => {
             if (err) return done.fail(err);
 
-            models.Invitation.findAll().then(invites => {
-              expect(invites.length).toEqual(0);
+            models.Update.findAll().then(updates => {
+              expect(updates.length).toEqual(0);
 
               done();
             }).catch(err => {
@@ -885,13 +1076,14 @@ describe('checkPermissions', function() {
           method: 'POST',
           url: '/agent',
           user: {..._profile, email: 'someotherguy@example.com', name: 'Some Other Guy', scope: undefined,
-                 user_metadata: { rsvps: [{ name: 'The Buffalo Bandits', uuid: anotherTeamId, type: 'team', recipient: 'someotherguy@example.com' }] } }
+                 user_metadata: {
+                   rsvps: [{
+                     uuid: anotherTeamId, type: 'team', recipient: 'someotherguy@example.com',
+                     data: { name: 'The Buffalo Bandits', id: anotherTeamId, leader: 'coach@example.com', organizationId: uuid.v4() } }] } }
         });
 
-        models.Invitation.create(
-            {name: 'The Beefalo Bandits', uuid: anotherTeamId, type: 'team', recipient: 'someotherguy@example.com'}
-          ).then(result => {
-
+        models.Update.create({ recipient: 'someotherguy@example.com', uuid: anotherTeamId, type: 'team',
+                               data: {name: 'The Beefalo Bandits', leader: _profile.email, id: anotherTeamId} }).then(results => {
           stubUserAppMetadataUpdate((err, apiScopes) => {
             if (err) return done.fail();
             ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
@@ -903,14 +1095,14 @@ describe('checkPermissions', function() {
       });
 
       it('removes the update from the database', done => {
-        models.Invitation.findAll().then(invites => {
-          expect(invites.length).toEqual(1);
+        models.Update.findAll().then(updates => {
+          expect(updates.length).toEqual(1);
 
           checkPermissions([])(request, response, err => {
             if (err) return done.fail(err);
 
-            models.Invitation.findAll().then(invites => {
-              expect(invites.length).toEqual(0);
+            models.Update.findAll().then(updates => {
+              expect(updates.length).toEqual(0);
 
               done();
             }).catch(err => {
@@ -924,15 +1116,15 @@ describe('checkPermissions', function() {
 
       it('writes the update to the agent\'s user_metadata', done => {
         expect(request.user.user_metadata.rsvps.length).toEqual(1);
-        expect(request.user.user_metadata.rsvps[0].name).toEqual('The Buffalo Bandits');
+        expect(request.user.user_metadata.rsvps[0].data.name).toEqual('The Buffalo Bandits');
         expect(request.user.user_metadata.teams).toBeUndefined(0);
 
         checkPermissions([])(request, response, err => {
           if (err) return done.fail(err);
 
-          expect(request.user.user_metadata.rsvps.length).toEqual(1);
-          expect(request.user.user_metadata.rsvps[0].name).toEqual('The Beefalo Bandits');
           expect(request.user.user_metadata.teams.length).toEqual(0);
+          expect(request.user.user_metadata.rsvps.length).toEqual(1);
+          expect(request.user.user_metadata.rsvps[0].data.name).toEqual('The Beefalo Bandits');
 
           done();
         });

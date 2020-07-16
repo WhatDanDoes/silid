@@ -7,6 +7,7 @@ const stubAuth0Sessions = require('../../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../../support/stubAuth0ManagementApi');
 const stubAuth0ManagementEndpoint = require('../../support/stubAuth0ManagementEndpoint');
 const stubUserRead = require('../../support/auth0Endpoints/stubUserRead');
+const stubUserRolesRead = require('../../support/auth0Endpoints/stubUserRolesRead');
 const scope = require('../../../config/permissions');
 const apiScope = require('../../../config/apiPermissions');
 const jwt = require('jsonwebtoken');
@@ -100,17 +101,25 @@ describe('root/agentSpec', () => {
 
       describe('/agent', () => {
 
-        let oauthTokenScope, userReadScope;
+        let oauthTokenScope, userReadScope,
+            userRolesReadScope, userRolesReadOauthTokenScope;
+
         beforeEach(done => {
           stubUserRead((err, apiScopes) => {
             if (err) return done.fail(err);
             ({userReadScope, oauthTokenScope} = apiScopes);
 
-            done();
+             // Retrieve the roles to which this agent is assigned
+             stubUserRolesRead((err, apiScopes) => {
+               if (err) return done.fail(err);
+               ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+              done();
+            });
           });
         });
 
-        it('attaches isSuper flag to user_metadata for app-configured root agent', done => {
+        it('attaches isSuper flag for app-configured root agent', done => {
           rootSession
             .get('/agent')
             .set('Accept', 'application/json')
@@ -120,7 +129,7 @@ describe('root/agentSpec', () => {
               if (err) return done.fail(err);
 
               expect(res.body.email).toEqual(_profile.email);
-              expect(res.body.user_metadata.isSuper).toBe(true);
+              expect(res.body.isSuper).toBe(true);
               done();
             });
         });
@@ -136,6 +145,22 @@ describe('root/agentSpec', () => {
                 if (err) return done.fail(err);
                 expect(oauthTokenScope.isDone()).toBe(true);
                 expect(userReadScope.isDone()).toBe(true);
+                done();
+              });
+          });
+
+          it('is called to retrieve the roles to which the agent is assigned', done => {
+            rootSession
+              .get('/agent')
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(userRolesReadOauthTokenScope.isDone()).toBe(true);
+                expect(userRolesReadScope.isDone()).toBe(true);
+
                 done();
               });
           });
@@ -240,19 +265,6 @@ describe('root/agentSpec', () => {
         });
 
         describe('Auth0', () => {
-          it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
-            rootSession
-              .get('/agent/admin')
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(200)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-                expect(oauthTokenScope.isDone()).toBe(true);
-                done();
-              });
-          });
-
           it('calls Auth0 to read the agent at the Auth0-defined connection', done => {
             rootSession
               .get('/agent/admin')
@@ -263,6 +275,7 @@ describe('root/agentSpec', () => {
                 if (err) return done.fail(err);
 
                 expect(userListScope.isDone()).toBe(true);
+                expect(oauthTokenScope.isDone()).toBe(true);
                 done();
               });
           });
@@ -431,30 +444,40 @@ describe('root/agentSpec', () => {
       });
 
       describe('/agent/:id', () => {
-        let oauthTokenScope, userReadScope;
+
+        let oauthTokenScope, userReadScope,
+            userRolesReadScope, userRolesReadOauthTokenScope;
+
         beforeEach(done => {
           stubUserRead((err, apiScopes) => {
             if (err) return done.fail(err);
             ({userReadScope, oauthTokenScope} = apiScopes);
-            done();
+
+            // Retrieve the roles to which this agent is assigned
+            stubUserRolesRead((err, apiScopes) => {
+              if (err) return done.fail(err);
+              ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+              done();
+            });
           });
         });
 
+        it('retrieves a record from Auth0', done => {
+          rootSession
+            .get(`/agent/${agent.id}`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(200)
+            .end(function(err, res) {
+              if (err) return done.fail(err);
+
+              expect(res.body.email).toBeDefined();
+              done();
+            });
+        });
 
         describe('Auth0', () => {
-          it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
-            rootSession
-              .get(`/agent/${_identity.sub}`)
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(200)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-                expect(oauthTokenScope.isDone()).toBe(true);
-                done();
-              });
-          });
-
           it('calls Auth0 to read the agent at the Auth0-defined connection', done => {
             rootSession
               .get(`/agent/${_identity.sub}`)
@@ -465,91 +488,28 @@ describe('root/agentSpec', () => {
                 if (err) return done.fail(err);
 
                 expect(userReadScope.isDone()).toBe(true);
+                expect(oauthTokenScope.isDone()).toBe(true);
                 done();
               });
           });
 
-          it('retrieves a record from Auth0', done => {
+          it('is called to retrieve the roles to which the agent is assigned', done => {
             rootSession
-              .get(`/agent/${agent.id}`)
+              .get(`/agent/${_identity.sub}`)
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(200)
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(res.body.email).toBeDefined();
+                expect(userRolesReadOauthTokenScope.isDone()).toBe(true);
+                expect(userRolesReadScope.isDone()).toBe(true);
+
                 done();
               });
           });
         });
       });
-
-        /**
-         * 2020-5-5
-         *
-         * These tests and corresponding functionality are deprecated for the
-         * forseeable future.
-         *
-         * See notes on the route.
-         */
-//      describe('/agent/:id/cached', () => {
-//        let oauthTokenScope, userReadScope;
-//        beforeEach(done => {
-//          const stubUserRead = require('../../support/auth0Endpoints/stubUserRead');
-//
-//          stubUserRead((err, apiScopes) => {
-//            if (err) return done.fail(err);
-//            ({userReadScope, oauthTokenScope} = apiScopes);
-//            done();
-//          });
-//        });
-//
-//
-//        it('retrieves root agent\'s own record from the database', done => {
-//          rootSession
-//            .get(`/agent/${root.id}/cached`)
-//            .set('Accept', 'application/json')
-//            .expect('Content-Type', /json/)
-//            .expect(200)
-//            .end(function(err, res) {
-//              if (err) return done.fail(err);
-//
-//              expect(res.body.email).toEqual(root.email);
-//              expect(res.body.isSuper).toEqual(true);
-//              done();
-//            });
-//        });
-//
-//        it('retrieves another agent\'s record from the database', done => {
-//          rootSession
-//            .get(`/agent/${agent.id}/cached`)
-//            .set('Accept', 'application/json')
-//            .expect('Content-Type', /json/)
-//            .expect(200)
-//            .end(function(err, res) {
-//              if (err) return done.fail(err);
-//
-//              expect(res.body.email).toEqual(agent.email);
-//              expect(res.body.isSuper).toEqual(false);
-//              done();
-//            });
-//        });
-//
-//        it('doesn\'t barf if record doesn\'t exist', done => {
-//          rootSession
-//            .get('/agent/33/cached')
-//            .set('Accept', 'application/json')
-//            .expect('Content-Type', /json/)
-//            .expect(404)
-//            .end(function(err, res) {
-//              if (err) done.fail(err);
-//
-//              expect(res.body.message).toEqual('No such agent');
-//              done();
-//            });
-//        });
-//      });
     });
 
     describe('create', () => {

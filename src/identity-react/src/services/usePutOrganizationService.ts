@@ -16,7 +16,7 @@ const usePutOrganizationService = () => {
     headers.append('Content-Type', 'application/json; charset=utf-8');
 
     return new Promise((resolve, reject) => {
-      fetch('/organization',
+      fetch(`/organization/${organization.id}`,
         {
           method: 'PUT',
           body: JSON.stringify(organization),

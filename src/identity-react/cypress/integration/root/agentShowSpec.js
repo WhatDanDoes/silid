@@ -14,7 +14,7 @@ context('root/Agent show', function() {
 
   afterEach(() => {
     cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
-    cy.task('query', 'TRUNCATE TABLE "Invitations" CASCADE;');
+    cy.task('query', 'TRUNCATE TABLE "Updates" CASCADE;');
   });
 
   describe('unauthenticated', done => {
@@ -67,14 +67,18 @@ context('root/Agent show', function() {
             cy.url().should('contain', `/#/agent/${memberAgent.socialProfile.user_id}`);
           });
 
-          it('displays agent\'s info', function() {
+          it('displays agent\'s info', () => {
             cy.get('h3').contains('Profile');
-            cy.get('table tbody tr th').contains('Name:');
-            cy.get('table tbody tr td').contains(memberAgent.socialProfile.name);
-            cy.get('table tbody tr th').contains('Email:');
-            cy.get('table tbody tr td').contains(memberAgent.socialProfile.email);
-            cy.get('table tbody tr th').contains('Locale:');
-            cy.get('table tbody tr td').contains(memberAgent.socialProfile.locale);
+            cy.get('#profile-table table tbody tr th').contains('Name:');
+            cy.get('#profile-table table tbody tr td').contains(memberAgent.socialProfile.name);
+            cy.get('#profile-table table tbody tr th').contains('Email:');
+            cy.get('#profile-table table tbody tr td').contains(memberAgent.socialProfile.email);
+            cy.get('#profile-table table tbody tr th').contains('Locale:');
+            cy.get('#profile-table table tbody tr td').contains(memberAgent.socialProfile.locale);
+            cy.get('#profile-table table tbody tr th').contains('Roles:');
+            cy.get('#profile-table table tbody tr div').its('length').should('eq', 2);
+            cy.get('#profile-table table tbody tr div').contains('viewer');
+            cy.get('#profile-table table tbody tr div:last-of-type#assign-role').should('exist');
           });
 
           describe('teams', () => {
@@ -170,12 +174,17 @@ context('root/Agent show', function() {
 
           it('displays agent\'s info', () => {
             cy.get('h3').contains('Profile');
-            cy.get('table tbody tr th').contains('Name:');
-            cy.get('table tbody tr td').contains(root.socialProfile.name);
-            cy.get('table tbody tr th').contains('Email:');
-            cy.get('table tbody tr td').contains(root.socialProfile.email);
-            cy.get('table tbody tr th').contains('Locale:');
-            cy.get('table tbody tr td').contains(root.socialProfile.locale);
+            cy.get('#profile-table table tbody tr th').contains('Name:');
+            cy.get('#profile-table table tbody tr td').contains(root.socialProfile.name);
+            cy.get('#profile-table table tbody tr th').contains('Email:');
+            cy.get('#profile-table table tbody tr td').contains(root.socialProfile.email);
+            cy.get('#profile-table table tbody tr th').contains('Locale:');
+            cy.get('#profile-table table tbody tr td').contains(root.socialProfile.locale);
+            cy.get('#profile-table table tbody tr th').contains('Roles:');
+            cy.get('#profile-table table tbody tr div').its('length').should('eq', 2);
+            // 2020-6-24 This should be `sudo`, but will remain like this for now
+            cy.get('#profile-table table tbody tr div').contains('viewer');
+            cy.get('#profile-table table tbody tr div:last-of-type#assign-role').should('exist');
           });
 
           describe('teams', () => {
@@ -274,6 +283,9 @@ context('root/Agent show', function() {
           cy.get('table tbody tr td').contains(memberAgent.socialProfile.email);
           cy.get('table tbody tr th').contains('Locale:');
           cy.get('table tbody tr td').contains(memberAgent.socialProfile.locale);
+          cy.get('table tbody tr th').contains('Roles:');
+          cy.get('table tbody tr div').its('length').should('eq', 1);
+          cy.get('table tbody tr div').contains('viewer');
         });
 
         describe('teams', () => {
@@ -352,7 +364,8 @@ context('root/Agent show', function() {
         beforeEach(function() {
           cy.login(_profile.email, _profile);
           cy.get('#app-menu-button').click();
-          cy.get('#admin-switch').check();
+          cy.wait(200);
+          cy.get('#admin-switch').uncheck();
           cy.get('#agent-button').contains('Profile').click();
           cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
             root = results[0];
@@ -373,6 +386,9 @@ context('root/Agent show', function() {
           cy.get('table tbody tr td').contains(root.socialProfile.email);
           cy.get('table tbody tr th').contains('Locale:');
           cy.get('table tbody tr td').contains(root.socialProfile.locale);
+          cy.get('table tbody tr th').contains('Roles:');
+          cy.get('table tbody tr div').its('length').should('eq', 1);
+          cy.get('table tbody tr div').contains('viewer');
         });
 
         describe('teams', () => {
@@ -405,7 +421,7 @@ context('root/Agent show', function() {
             });
 
             it('displays teams in a table', function() {
-              cy.get('h6').contains('Teams');
+              cy.get('h6', {timeout: 6000}).contains('Teams');
               cy.get('#teams-table table tbody tr td').contains('No records to display').should('not.exist');
               cy.get('#teams-table button span span').contains('add_box');
               cy.get('#teams-table table thead tr th').contains('Name');

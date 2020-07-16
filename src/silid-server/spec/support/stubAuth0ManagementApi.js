@@ -7,6 +7,7 @@ const apiScope = require('../../config/apiPermissions');
 const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
 const stubRolesRead = require('../support/auth0Endpoints/stubRolesRead');
 const stubUserAssignRoles = require('../support/auth0Endpoints/stubUserAssignRoles');
+const stubUserRolesRead = require('../support/auth0Endpoints/stubUserRolesRead');
 
 module.exports = function(done) {
 
@@ -36,7 +37,13 @@ module.exports = function(done) {
         if (err) return done(err);
         ({userAssignRolesScope} = apiScopes);
 
-        done(null, {userReadScope, rolesReadScope, userAssignRolesScope});
+
+        stubUserRolesRead((err, apiScopes) => {
+          if (err) return done(err);
+          ({userRolesReadScope} = apiScopes);
+
+          done(null, {userReadScope, rolesReadScope, userAssignRolesScope, userRolesReadScope});
+        });
       });
     });
   });

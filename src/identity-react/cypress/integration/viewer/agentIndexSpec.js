@@ -59,9 +59,15 @@ context('viewer/Agent Index', function() {
         });
       });
 
+      describe('organizations', () => {
+        it('does not display the organizations table', () => {
+          cy.get('#organizations-table').should('not.exist');
+        });
+      });
+
       describe('teams', () => {
         describe('none created', () => {
-          it('displays teams table', function() {
+          it('displays teams table', () => {
             cy.get('#teams-table h6').contains('Teams');
             cy.get('#teams-table table tbody tr td').contains('No records to display');
           });
@@ -69,7 +75,7 @@ context('viewer/Agent Index', function() {
 
         describe('some created', () => {
           let agent;
-          beforeEach(function() {
+          beforeEach(() => {
             cy.login(_profile.email, {..._profile, user_metadata: {
                                                      teams: [
                                                        {
@@ -88,7 +94,7 @@ context('viewer/Agent Index', function() {
             });
           });
 
-          it('displays teams in a table', function() {
+          it('displays teams in a table', () => {
             cy.get('#teams-table h6').contains('Teams');
             cy.get('#teams-table table tbody tr td').contains('No records to display').should('not.exist');
             cy.get('#teams-table button span span').contains('add_box');

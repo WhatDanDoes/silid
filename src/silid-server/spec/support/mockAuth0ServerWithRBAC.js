@@ -411,6 +411,27 @@ require('../support/setupKeystore').then(keyStuff => {
           }
 
           /**
+           * For retrieving member teams in an organization
+           */
+          if (request.query.q && /user_metadata\.teams\.organizationId/.test(request.query.q)) {
+            const results = await models.Agent.findAll(searchParams);
+
+            // Get organization ID from search string
+            const orgId = request.query.q.match(/(?<=(["']\b))(?:(?=(\\?))\2.)*?(?=\1)/)[0];
+
+            let data = results.filter(agent => {
+              if (agent.socialProfile.user_metadata && agent.socialProfile.user_metadata.teams) {
+                return agent.socialProfile.user_metadata.teams.find(team => team.organizationId === orgId);
+              }
+              return false;
+            });
+
+            data = data.map(d => ({...d.socialProfile, email: d.socialProfile.email, name: d.socialProfile.name }));
+
+            return h.response(data);
+          }
+
+          /**
            * For retrieving a team leader's pendingInvitations
            */
           if (request.query.q && /user_metadata\.pendingInvitations\.uuid/.test(request.query.q)) {
@@ -443,6 +464,48 @@ require('../support/setupKeystore').then(keyStuff => {
             let data = results.filter(agent => {
               if (agent.socialProfile.user_metadata && agent.socialProfile.user_metadata.rsvps) {
                 return agent.socialProfile.user_metadata.rsvps.find(rsvp => rsvp.uuid === teamId);
+              }
+              return false;
+            });
+
+            data = data.map(d => ({...d.socialProfile, email: d.socialProfile.email, name: d.socialProfile.name }));
+
+            return h.response(data);
+          }
+
+          /**
+           * For retrieving organizations
+           */
+          if (request.query.q && /user_metadata\.organizations\.name/.test(request.query.q)) {
+            const results = await models.Agent.findAll(searchParams);
+
+            // Get organization name from search string
+            const orgName = request.query.q.match(/(?<=(["']\b))(?:(?=(\\?))\2.)*?(?=\1)/)[0];
+
+            let data = results.filter(agent => {
+              if (agent.socialProfile.user_metadata && agent.socialProfile.user_metadata.organizations) {
+                return agent.socialProfile.user_metadata.organizations.find(org => org.name === orgName);
+              }
+              return false;
+            });
+
+            data = data.map(d => ({...d.socialProfile, email: d.socialProfile.email, name: d.socialProfile.name }));
+
+            return h.response(data);
+          }
+
+          /**
+           * For retrieving organizers (i.e., those who organize organizations)
+           */
+          if (request.query.q && /user_metadata\.organizations\.id/.test(request.query.q)) {
+            const results = await models.Agent.findAll(searchParams);
+
+            // Get organization ID from search string
+            const orgId = request.query.q.match(/(?<=(["']\b))(?:(?=(\\?))\2.)*?(?=\1)/)[0];
+
+            let data = results.filter(agent => {
+              if (agent.socialProfile.user_metadata && agent.socialProfile.user_metadata.organizations) {
+                return agent.socialProfile.user_metadata.organizations.find(org => org.id === orgId);
               }
               return false;
             });
@@ -558,6 +621,32 @@ require('../support/setupKeystore').then(keyStuff => {
         }
       });
 
+      /**************************/
+      /**        ROLES         **/
+      /**************************/
+      // These default roles match those defined at Auth0 (actual `id`s will vary)
+      const _roles = [
+        {
+          "id": "123",
+          "name": "organizer",
+          "description": "Manage organizations and team memberships therein"
+        },
+        {
+          "id": "234",
+          "name": "sudo",
+          "description": "All-access pass to Identity resources"
+        },
+        {
+          "id": "345",
+          "name": "viewer",
+          "description": "Basic agent, organization, and team viewing permissions"
+        }
+      ];
+
+      // RBAC is managed at Auth0. None of this gets saved to app database.
+      // As such, this object serves as Auth0's roles "database"
+      const _rolesDb = {};
+
       /**
        * POST `/users/:id/roles`
        */
@@ -565,27 +654,73 @@ require('../support/setupKeystore').then(keyStuff => {
         method: 'POST',
         path: '/api/v2/users/{id}/roles',
         handler: (request, h) => {
-          console.log('/api/v2/users/{id}/roles');
+          console.log('POST /api/v2/users/{id}/roles');
+          const roles = request.payload.roles.map(roleId => _roles.find(role => role.id === roleId));
+
+          if (!_rolesDb[request.params.id]) {
+            _rolesDb[request.params.id] = [];
+          }
+
+          for (let roleId of request.payload.roles) {
+            const roleIndex = _rolesDb[request.params.id].findIndex(role => role.id === roleId);
+            if (roleIndex < 0) {
+              _rolesDb[request.params.id].push(_roles.find(r => r.id === roleId));
+            }
+          }
+
           return h.response({});
         }
       });
 
+      /**
+       * DELETE `/users/:id/roles`
+       */
+      server.route({
+        method: 'DELETE',
+        path: '/api/v2/users/{id}/roles',
+        handler: (request, h) => {
+          console.log('DELETE /api/v2/users/{id}/roles');
+
+          if (_rolesDb[request.params.id]) {
+            for (let roleId of request.payload.roles) {
+              const roleIndex = _rolesDb[request.params.id].findIndex(role => role.id === roleId);
+              if (roleIndex > -1) {
+                _rolesDb[request.params.id].splice(roleIndex, 1);
+              }
+            }
+          }
+
+          return h.response({});
+        }
+      });
+
+      /**
+       * GET `/users/:id/roles`
+       */
+      server.route({
+        method: 'GET',
+        path: '/api/v2/users/{id}/roles',
+        handler: (request, h) => {
+          console.log('GET /api/v2/users/{id}/roles');
+
+          if (!_rolesDb[request.params.id]) {
+            _rolesDb[request.params.id] = [_roles.find(r => r.name === 'viewer')];
+          }
+
+          return h.response(_rolesDb[request.params.id]);
+        }
+      });
 
       /**
        * GET `/roles`
+       *
        */
       server.route({
         method: 'GET',
         path: '/api/v2/roles',
         handler: (request, h) => {
-          console.log('/api/v2/roles');
-          return h.response([
-            {
-              "id": "123",
-              "name": "viewer",
-              "description": "View all roles"
-            }
-          ]);
+          console.log('GET /api/v2/roles');
+          return h.response(_roles);
         }
       });
 

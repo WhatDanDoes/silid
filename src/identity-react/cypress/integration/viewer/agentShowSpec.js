@@ -13,7 +13,7 @@ context('viewer/Agent show', function() {
 
   afterEach(() => {
     cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
-    cy.task('query', 'TRUNCATE TABLE "Invitations" CASCADE;');
+    cy.task('query', 'TRUNCATE TABLE "Updates" CASCADE;');
   });
 
   describe('unauthenticated', done => {
@@ -67,6 +67,14 @@ context('viewer/Agent show', function() {
         cy.get('#profile-table table tbody tr td').contains(memberAgent.socialProfile.email);
         cy.get('#profile-table table tbody tr th').contains('Locale:');
         cy.get('#profile-table table tbody tr td').contains(memberAgent.socialProfile.locale);
+        cy.get('#profile-table table tbody tr th').contains('Roles:');
+        cy.get('#profile-table table tbody tr div').its('length').should('eq', 1);
+        cy.get('#profile-table table tbody tr div').contains('viewer');
+        cy.get('#profile-table table tbody tr div#assign-role').should('not.exist');
+      });
+
+      it('does not display the assign-role chip', () => {
+        cy.get('#profile-table table tbody tr ul li:last-of-type #assign-role').should('not.exist');
       });
 
       describe('teams', () => {
@@ -76,7 +84,7 @@ context('viewer/Agent show', function() {
 
         describe('none created', () => {
           it('displays teams table', function() {
-            cy.get('h6').contains('Teams');
+            cy.get('#teams-table h6').contains('Teams');
             cy.get('#teams-table table tbody tr td').contains('No records to display');
           });
         });
@@ -103,7 +111,7 @@ context('viewer/Agent show', function() {
           });
 
           it('displays teams in a table', function() {
-            cy.get('h6').contains('Teams');
+            cy.get('#teams-table h6').contains('Teams');
             cy.get('#teams-table table tbody tr td').contains('No records to display').should('not.exist');
             cy.get('#teams-table button span span').should('not.exist');
             cy.get('#teams-table table thead tr th').contains('Name');
@@ -167,6 +175,10 @@ context('viewer/Agent show', function() {
         cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.email);
         cy.get('#profile-table table tbody tr th').contains('Locale:');
         cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.locale);
+        cy.get('#profile-table table tbody tr th').contains('Roles:');
+        cy.get('#profile-table table tbody tr div').its('length').should('eq', 1);
+        cy.get('#profile-table table tbody tr div').contains('viewer');
+        cy.get('#profile-table table tbody tr div#assign-role').should('not.exist');
       });
 
       describe('teams', () => {
@@ -176,7 +188,7 @@ context('viewer/Agent show', function() {
 
         describe('none created', () => {
           it('displays teams table', function() {
-            cy.get('h6').contains('Teams');
+            cy.get('#teams-table h6').contains('Teams');
             cy.get('#teams-table table tbody tr td').contains('No records to display');
           });
         });
@@ -197,12 +209,12 @@ context('viewer/Agent show', function() {
             cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
               agent = results[0];
               cy.reload(true);
-              cy.wait(300);
+              cy.wait(400);
             });
           });
 
           it('displays teams in a table', function() {
-            cy.get('h6').contains('Teams');
+            cy.get('#teams-table h6').contains('Teams');
             cy.get('#teams-table table tbody tr td').contains('No records to display').should('not.exist');
             cy.get('#teams-table button span span').contains('add_box');
             cy.get('#teams-table table thead tr th').contains('Name');
