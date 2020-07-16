@@ -1,28 +1,22 @@
+// 2020-7-16 https://github.com/cypress-io/cypress/issues/1271
+// Can't import regular Javascript as a fixture
+import rolePermissions from '../../fixtures/roles-with-permissions.js';
+
 context('organizer/Agent Index', function() {
 
   before(function() {
     cy.fixture('google-profile-response.json').as('profile');
     cy.fixture('permissions.js').as('scope');
+    cy.fixture('roles-defined-at-auth0.json').as('roleDescriptions');
   });
 
-  let _profile;
-  beforeEach(function() {
-    _profile = {
-      ...this.profile,
-      // 2020-7-3 This is a shortcut. Should I have root assign the organizer role?
-      roles: [
-        {
-          "id": "123",
-          "name": "organizer",
-          "description": "Manage organizations and team memberships therein"
-        },
-        {
-          "id": "345",
-          "name": "viewer",
-          "description": "Basic agent, organization, and team viewing permissions"
-        }
-      ]
-    };
+  let organizerRole;
+  before(function() {
+    /**
+     * 2020-7-16
+     * Why can't this happen in the `before` block above?
+     */
+    organizerRole = this.roleDescriptions.find(r => r.name === 'organizer');
   });
 
   afterEach(() => {
@@ -53,9 +47,22 @@ context('organizer/Agent Index', function() {
 
   describe('authenticated', () => {
 
+    let _profile, organizerAgent;
+    beforeEach(function() {
+      _profile = { ...this.profile };
+
+      // A convenient way to create a new agent
+      cy.login(_profile.email, _profile, rolePermissions.organizer);
+      // Make this agent an organizer via a call to the mock server
+      cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
+        organizerAgent = results[0];
+        cy.request('POST', `https://localhost:3002/api/v2/users/${organizerAgent.socialProfile.user_id}/roles`, { roles: [organizerRole.id] });
+      });
+    });
+
     context('first visit', () => {
       beforeEach(() => {
-        cy.login(_profile.email, _profile);
+        cy.login(_profile.email, _profile, rolePermissions.organizer);
       });
 
       it('lands in the right spot', () => {
@@ -63,9 +70,17 @@ context('organizer/Agent Index', function() {
       });
 
       describe('hamburger menu', () => {
-        it.only('allows access to the Agent Directory', () => {
+        beforeEach(() => {
           cy.get('#app-menu-button').click();
-          cy.get('#admin-switch').check();
+        });
+
+        it('displays the correct options', () => {
+          cy.get('#app-menu').find('ul>div').its('length').should('eq', 2);
+          cy.get('#app-menu').contains('Profile').should('exist');
+          cy.get('#app-menu').contains('Agent Directory').should('exist');
+        });
+
+        it('allows access to the Agent Directory', () => {
           cy.contains('Agent Directory').click();
           cy.wait(200);
           cy.get('#agent-directory-table').find('.agent-button').its('length').should('eq', 1);
