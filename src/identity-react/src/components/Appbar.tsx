@@ -119,18 +119,6 @@ const Home = (props: IProps) => {
             <ListItemText primary='Profile' />
           </ListItemLink>
         </ListItem>
-        <ListItem button id='organization-button' key='Organizations'>
-          <ListItemIcon><InboxIcon /></ListItemIcon>
-          <ListItemLink href='#organization'>
-            <ListItemText primary='Organizations' />
-          </ListItemLink>
-        </ListItem>
-        <ListItem button id='team-button' key='Teams'>
-          <ListItemIcon><InboxIcon /></ListItemIcon>
-          <ListItemLink href='#team'>
-            <ListItemText primary='Teams' />
-          </ListItemLink>
-        </ListItem>
         {agent.isSuper && (
           <ListItem button key='Admin'>
             <FormControlLabel
@@ -141,24 +129,12 @@ const Home = (props: IProps) => {
             />
           </ListItem>
         )}
-        {admin.isEnabled && (
+        {(admin.isEnabled || agent.isOrganizer) && (
           <>
             <ListItem button id='directory-button' key='Directory'>
               <ListItemIcon><InboxIcon /></ListItemIcon>
               <ListItemLink href='#agent/admin'>
                 <ListItemText primary='Agent Directory' />
-              </ListItemLink>
-            </ListItem>
-            <ListItem button id='organizations-button' key='OrganizationDirectory'>
-              <ListItemIcon><InboxIcon /></ListItemIcon>
-              <ListItemLink href='#organization/admin'>
-                <ListItemText primary='Organization Directory' />
-              </ListItemLink>
-            </ListItem>
-            <ListItem button id='teams-button' key='TeamDirectory'>
-              <ListItemIcon><InboxIcon /></ListItemIcon>
-              <ListItemLink href='#team/admin'>
-                <ListItemText primary='Team Directory' />
               </ListItemLink>
             </ListItem>
           </>
@@ -171,7 +147,7 @@ const Home = (props: IProps) => {
   return (
     <AppBar position="static">
       <Toolbar>
-        {agent.isSuper && (
+        {(agent.isSuper || agent.isOrganizer) && (
           <>
             <IconButton
               id="app-menu-button"
