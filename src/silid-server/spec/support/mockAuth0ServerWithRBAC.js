@@ -625,23 +625,7 @@ require('../support/setupKeystore').then(keyStuff => {
       /**        ROLES         **/
       /**************************/
       // These default roles match those defined at Auth0 (actual `id`s will vary)
-      const _roles = [
-        {
-          "id": "123",
-          "name": "organizer",
-          "description": "Manage organizations and team memberships therein"
-        },
-        {
-          "id": "234",
-          "name": "sudo",
-          "description": "All-access pass to Identity resources"
-        },
-        {
-          "id": "345",
-          "name": "viewer",
-          "description": "Basic agent, organization, and team viewing permissions"
-        }
-      ];
+      const _roles = require('../fixtures/roles');
 
       // RBAC is managed at Auth0. None of this gets saved to app database.
       // As such, this object serves as Auth0's roles "database"
