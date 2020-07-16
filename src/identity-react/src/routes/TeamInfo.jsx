@@ -3,6 +3,10 @@ import { Redirect } from 'react-router-dom';
 import { createStyles, makeStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import Button from '@material-ui/core/Button';
+import Chip from '@material-ui/core/Chip';
+import { green, red } from '@material-ui/core/colors';
+import Icon from '@material-ui/core/Icon';
+
 
 import Grid from '@material-ui/core/Grid';
 
@@ -68,6 +72,7 @@ const TeamInfo = (props) => {
   const [toAgent, setToAgent] = useState(false);
   const [flashProps, setFlashProps] = useState({});
   const [isWaiting, setIsWaiting] = useState(false);
+  const [showOrganizations, setShowOrganizations] = useState(false);
 
   const [teamInfo, setTeamInfo] = useState({});
 
@@ -236,6 +241,38 @@ const TeamInfo = (props) => {
                         </TableCell>
                       </TableRow>
                     )}
+                    { agent.isOrganizer && (
+                      <TableRow>
+                        <TableCell align="right" component="th" scope="row">Organization:</TableCell>
+                        <TableCell align="left">
+                        { showOrganizations ?
+                          <Chip
+                            key="close-team-organization-menu"
+                            id="close-team-organization-menu"
+                            style={{ backgroundColor: '#ffffff' }}
+                            className={classes.chip}
+                            label={<Icon style={{ color: red[500] }}>close</Icon>}
+                            onClick={() => {
+                              setShowOrganizations(false);
+                            }}
+                          />
+                        :
+                          <Chip
+                            key="add-team-to-organization"
+                            id="add-team-to-organization"
+                            style={{ backgroundColor: '#ffffff' }}
+                            className={classes.chip}
+                            label={<Icon style={{ color: green[500] }}>add_circle</Icon>}
+                            onClick={() => {
+                              setShowOrganizations(true);
+                            }}
+                          />
+                        }
+                        </TableCell>
+                      </TableRow>
+                    )}
+
+
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -277,7 +314,41 @@ const TeamInfo = (props) => {
                 </TableContainer>
               </Grid>
             : ''}
-
+            {showOrganizations && (
+              <Grid id="organizations-table" item className={classes.grid}>
+                <MaterialTable
+                  title='Your Organizations'
+                  isLoading={isWaiting}
+                  columns={[
+                    {
+                      title: 'Name',
+                      field: 'name',
+                      editable: 'never',
+                      render: (rowData) => {
+                        return rowData ? <Link href={`#organization/${rowData.id}`}>{rowData.name}</Link> : null;
+                      }
+                    },
+                  ]}
+                  data={agent.user_metadata.organizations ? agent.user_metadata.organizations : []}
+                  options={{ search: false, paging: false }}
+                  actions={
+                    [
+                      rowData => ({
+                        icon: 'add',
+                        isFreeAction: false,
+                        tooltip: 'Add team to organization',
+                        onClick:() => {
+                          new Promise((resolve, reject) => {
+                            setShowOrganizations(false);
+                            resolve();
+                          })
+                        }
+                      })
+                    ]
+                  }
+                />
+              </Grid>
+            )}
             <Grid id="members-table" item className={classes.grid}>
               <MaterialTable
                 title='Members'
