@@ -119,8 +119,8 @@ describe('organizationMembershipSpec', () => {
                 teamId: teamId
               })
               .set('Accept', 'application/json')
-              .expect('Location', `/organization/${organizationId}`)
-              .expect(302)
+              .expect('Location', `/team/${teamId}`)
+              .expect(303)
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
@@ -137,8 +137,8 @@ describe('organizationMembershipSpec', () => {
                 teamId: teamId
               })
               .set('Accept', 'application/json')
-              .expect('Location', `/organization/${organizationId}`)
-              .expect(302)
+              .expect('Location', `/team/${teamId}`)
+              .expect(303)
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
@@ -159,7 +159,7 @@ describe('organizationMembershipSpec', () => {
                   teamId: teamId
                 })
                 .set('Accept', 'application/json')
-                .expect(302)
+                .expect(303)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
@@ -192,8 +192,7 @@ describe('organizationMembershipSpec', () => {
                   teamId: teamId
                 })
                 .set('Accept', 'application/json')
-                //.expect('Content-Type', /json/)
-                .expect(302)
+                .expect(303)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
                   expect(teamReadOauthTokenScope.isDone()).toBe(true);
@@ -210,7 +209,7 @@ describe('organizationMembershipSpec', () => {
                   teamId: teamId
                 })
                 .set('Accept', 'application/json')
-                .expect(302)
+                .expect(303)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
                   expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
@@ -281,7 +280,7 @@ describe('organizationMembershipSpec', () => {
                   teamId: teamId
                 })
                 .set('Accept', 'application/json')
-                .expect(302)
+                .expect(303)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
@@ -390,7 +389,7 @@ describe('organizationMembershipSpec', () => {
                   teamId: teamId
                 })
                 .set('Accept', 'application/json')
-                .expect(302)
+                .expect(303)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 

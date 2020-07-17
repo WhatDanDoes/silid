@@ -356,7 +356,8 @@ router.put('/:id/team', checkPermissions([scope.add.organizationMembers]), funct
         if (err) {
           return res.status(500).json(err);
         }
-        res.redirect(`/organization/${req.params.id}`);
+        // 2020-7-17 - 303 status??? https://stackoverflow.com/questions/33214717/why-post-redirects-to-get-and-put-redirects-to-put
+        res.redirect(303, `/team/${req.body.teamId}`);
       });
     }).catch(err => {
       res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
