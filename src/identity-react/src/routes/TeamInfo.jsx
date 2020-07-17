@@ -72,7 +72,7 @@ const TeamInfo = (props) => {
   const [toAgent, setToAgent] = useState(false);
   const [flashProps, setFlashProps] = useState({});
   const [isWaiting, setIsWaiting] = useState(false);
-  const [showOrganizations, setShowOrganizations] = useState(false);
+  const [organizations, setOrganizations] = useState([]);
 
   const [teamInfo, setTeamInfo] = useState({});
 
@@ -233,19 +233,31 @@ const TeamInfo = (props) => {
                       <TableCell align="right" component="th" scope="row">Email:</TableCell>
                       <TableCell align="left">{teamInfo.leader}</TableCell>
                     </TableRow>
-                    { teamInfo.organization && (
+                    {teamInfo.organization && (
                       <TableRow>
                         <TableCell align="right" component="th" scope="row">Organization:</TableCell>
                         <TableCell align="left">
                           <Link href={`#organization/${teamInfo.organization.id}`}>{teamInfo.organization.name}</Link>
+                          {(agent.isOrganizer && teamInfo.organization.organizer === agent.email ) && (
+                            <Chip
+                              key="remove-team-from-organization"
+                              id="remove-team-from-organization"
+                              style={{ backgroundColor: '#ffffff' }}
+                              className={classes.chip}
+                              label={<Icon style={{ color: red[500] }}>remove_circle</Icon>}
+                              onClick={() => {
+                                setOrganizations([]);
+                              }}
+                            />
+                          )}
                         </TableCell>
                       </TableRow>
                     )}
-                    { agent.isOrganizer && (
+                    { (agent.isOrganizer && !teamInfo.organization) && (
                       <TableRow>
                         <TableCell align="right" component="th" scope="row">Organization:</TableCell>
                         <TableCell align="left">
-                        { showOrganizations ?
+                        { organizations.length ?
                           <Chip
                             key="close-team-organization-menu"
                             id="close-team-organization-menu"
@@ -253,7 +265,7 @@ const TeamInfo = (props) => {
                             className={classes.chip}
                             label={<Icon style={{ color: red[500] }}>close</Icon>}
                             onClick={() => {
-                              setShowOrganizations(false);
+                              setOrganizations([]);
                             }}
                           />
                         :
@@ -264,15 +276,39 @@ const TeamInfo = (props) => {
                             className={classes.chip}
                             label={<Icon style={{ color: green[500] }}>add_circle</Icon>}
                             onClick={() => {
-                              setShowOrganizations(true);
+                              new Promise((resolve, reject) => {
+                                setIsWaiting(true);
+
+                                const headers = new Headers();
+                                headers.append('Content-Type', 'application/json; charset=utf-8');
+                                fetch(`/organization`,
+                                  {
+                                    method: 'GET',
+                                    headers,
+                                  }
+                                )
+                                .then(response => response.json())
+                                .then(response => {
+                                  if (response.message) {
+                                    setFlashProps({ message: response.message, variant: 'error' });
+                                    reject(response);
+                                  }
+                                  else {
+                                    setOrganizations(response);
+                                    resolve();
+                                  }
+                                }).catch(error => {
+                                  reject(error);
+                                }).finally(() => {
+                                  setIsWaiting(false);
+                                });
+                              });
                             }}
                           />
                         }
                         </TableCell>
                       </TableRow>
                     )}
-
-
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -314,7 +350,7 @@ const TeamInfo = (props) => {
                 </TableContainer>
               </Grid>
             : ''}
-            {showOrganizations && (
+            {organizations.length ? (
               <Grid id="organizations-table" item className={classes.grid}>
                 <MaterialTable
                   title='Your Organizations'
@@ -329,7 +365,7 @@ const TeamInfo = (props) => {
                       }
                     },
                   ]}
-                  data={agent.user_metadata.organizations ? agent.user_metadata.organizations : []}
+                  data={organizations}
                   options={{ search: false, paging: false }}
                   actions={
                     [
@@ -339,8 +375,36 @@ const TeamInfo = (props) => {
                         tooltip: 'Add team to organization',
                         onClick:() => {
                           new Promise((resolve, reject) => {
-                            setShowOrganizations(false);
-                            resolve();
+                            setIsWaiting(true);
+
+                            const headers = new Headers();
+                            headers.append('Content-Type', 'application/json; charset=utf-8');
+                            headers.append('Accept', 'application/json');
+                            fetch(`/organization/${rowData.id}/team`,
+                              {
+                                method: 'PUT',
+                                headers,
+                                body: JSON.stringify({ teamId: teamInfo.id }),
+                                redirect: 'follow'
+                              }
+                            )
+                            .then(response => response.json())
+                            .then(response => {
+                              if (response.message) {
+                                setFlashProps({ message: response.message, variant: 'error' });
+                                reject(response);
+                              }
+                              else {
+                                setTeamInfo(response);
+                                setFlashProps({ message: `${teamInfo.name} are now part of ${rowData.name}`, variant: 'success' });
+                                resolve();
+                              }
+                            }).catch(error => {
+                              reject(error);
+                            }).finally(() => {
+                              setIsWaiting(false);
+                              setOrganizations([]);
+                            });
                           })
                         }
                       })
@@ -348,7 +412,7 @@ const TeamInfo = (props) => {
                   }
                 />
               </Grid>
-            )}
+            ) : ''}
             <Grid id="members-table" item className={classes.grid}>
               <MaterialTable
                 title='Members'
