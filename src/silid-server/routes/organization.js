@@ -428,7 +428,7 @@ function deleteTeamMembership(req, res) {
           return res.status(500).json(err);
         }
 
-        res.redirect(`/organization/${req.params.id}`);
+        res.redirect(`/team/${req.params.teamId}`);
       });
     }).catch(err => {
       res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);

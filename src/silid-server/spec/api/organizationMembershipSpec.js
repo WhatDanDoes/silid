@@ -112,7 +112,7 @@ describe('organizationMembershipSpec', () => {
         });
 
         describe('successfully', () => {
-          it('redirects to /organization/:id', done => {
+          it('redirects to /team/:id', done => {
             authenticatedSession
               .put(`/organization/${organizationId}/team`)
               .send({
@@ -545,12 +545,12 @@ describe('organizationMembershipSpec', () => {
         });
 
         describe('successfully', () => {
-          it('redirects to /organization/:id', done => {
+          it('redirects to /team/:id', done => {
             authenticatedSession
               .delete(`/organization/${organizationId}/team/${teamId}`)
               .set('Accept', 'application/json')
               .expect(302)
-              .expect('Location', `/organization/${organizationId}`)
+              .expect('Location', `/team/${teamId}`)
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
@@ -565,7 +565,7 @@ describe('organizationMembershipSpec', () => {
               .delete(`/organization/${organizationId}/team/${teamId}`)
               .set('Accept', 'application/json')
               .expect(302)
-              .expect('Location', `/organization/${organizationId}`)
+              .expect('Location', `/team/${teamId}`)
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
@@ -583,7 +583,7 @@ describe('organizationMembershipSpec', () => {
               authenticatedSession
                 .delete(`/organization/${organizationId}/team/${teamId}`)
                 .set('Accept', 'application/json')
-                .expect('Location', `/organization/${organizationId}`)
+                .expect('Location', `/team/${teamId}`)
                 .expect(302)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
@@ -615,7 +615,7 @@ describe('organizationMembershipSpec', () => {
               authenticatedSession
                 .delete(`/organization/${organizationId}/team/${teamId}`)
                 .set('Accept', 'application/json')
-                .expect('Location', `/organization/${organizationId}`)
+                .expect('Location', `/team/${teamId}`)
                 .expect(302)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
@@ -630,7 +630,7 @@ describe('organizationMembershipSpec', () => {
               authenticatedSession
                 .delete(`/organization/${organizationId}/team/${teamId}`)
                 .set('Accept', 'application/json')
-                .expect('Location', `/organization/${organizationId}`)
+                .expect('Location', `/team/${teamId}`)
                 .expect(302)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
