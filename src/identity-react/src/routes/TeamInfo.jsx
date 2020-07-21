@@ -246,7 +246,41 @@ const TeamInfo = (props) => {
                               className={classes.chip}
                               label={<Icon style={{ color: red[500] }}>remove_circle</Icon>}
                               onClick={() => {
-                                setOrganizations([]);
+                                //setOrganizations([]);
+                                if (window.confirm('Remove team from organization?')) {
+
+                                  new Promise((resolve, reject) => {
+                                    setIsWaiting(true);
+
+                                    const headers = new Headers();
+                                    headers.append('Content-Type', 'application/json; charset=utf-8');
+                                    console.log("/organization/${teamInfo.organization.id}/team/${teamInfo.id}");
+                                    console.log(`/organization/${teamInfo.organization.id}/team/${teamInfo.id}`);
+                                    fetch(`/organization/${teamInfo.organization.id}/team/${teamInfo.id}`,
+                                      {
+                                        method: 'DELETE',
+                                        headers,
+                                        redirect: 'follow'
+                                      }
+                                    )
+                                    .then(response => response.json())
+                                    .then(response => {
+                                      if (response.message) {
+                                        setFlashProps({ message: response.message, variant: 'error' });
+                                        reject(response);
+                                      }
+                                      else {
+                                        setTeamInfo(response);
+                                        setFlashProps({ message: `${teamInfo.name} have been removed from ${teamInfo.organization.name}`, variant: 'success' });
+                                        resolve();
+                                      }
+                                    }).catch(error => {
+                                      reject(error);
+                                    }).finally(() => {
+                                      setIsWaiting(false);
+                                    });
+                                  })
+                                }
                               }}
                             />
                           )}

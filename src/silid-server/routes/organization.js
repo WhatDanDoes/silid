@@ -427,8 +427,8 @@ function deleteTeamMembership(req, res) {
         if (err) {
           return res.status(500).json(err);
         }
-
-        res.redirect(`/team/${req.params.teamId}`);
+        // 2020-7-17 - 303 status??? https://stackoverflow.com/questions/33214717/why-post-redirects-to-get-and-put-redirects-to-put
+        res.redirect(303, `/team/${req.params.teamId}`);
       });
     }).catch(err => {
       res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);

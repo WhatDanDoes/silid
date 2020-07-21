@@ -21,6 +21,7 @@ context('organizer/Organization delete team', function() {
 
   afterEach(() => {
     cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
+    cy.task('query', 'TRUNCATE TABLE "Updates" CASCADE;');
   });
 
   let _profile, organizerAgent, teamLeaderAgent;
@@ -122,14 +123,14 @@ context('organizer/Organization delete team', function() {
           // Delete member
           cy.get('#team-profile-info #remove-team-from-organization').click();
           cy.wait(300);
-          cy.url().should('contain', `/#/team/${agent.socialProfile.user_metadata.teams[0].id}`);
+          cy.url().should('contain', `/#/team/${teamLeaderAgent.socialProfile.user_metadata.teams[0].id}`);
         });
 
         it('displays a success message', () => {
           cy.on('window:confirm', str => true);
           cy.get('#team-profile-info #remove-team-from-organization').click();
           cy.wait(300);
-          cy.contains(`Team removed from organization`);
+          cy.contains(`${teamLeaderAgent.socialProfile.user_metadata.teams[0].name} have been removed from ${organizerAgent.socialProfile.user_metadata.organizations[0].name}`);
         });
 
         it('displays progress spinner', () => {
@@ -235,14 +236,14 @@ context('organizer/Organization delete team', function() {
           // Delete member
           cy.get('#team-profile-info #remove-team-from-organization').click();
           cy.wait(300);
-          cy.url().should('contain', `/#/team/${agent.socialProfile.user_metadata.teams[0].id}`);
+          cy.url().should('contain', `/#/team/${teamLeaderAgent.socialProfile.user_metadata.teams[0].id}`);
         });
 
         it('displays a success message', () => {
           cy.on('window:confirm', str => true);
           cy.get('#team-profile-info #remove-team-from-organization').click();
           cy.wait(300);
-          cy.contains(`Team removed from organization`);
+          cy.contains(`${teamLeaderAgent.socialProfile.user_metadata.teams[0].name} have been removed from ${organizerAgent.socialProfile.user_metadata.organizations[0].name}`);
         });
 
         it('displays progress spinner', () => {
@@ -289,7 +290,7 @@ context('organizer/Organization delete team', function() {
         cy.get('#team-profile-info tbody').find('tr').its('length').should('eq', 3);
         cy.get('#team-profile-info tbody tr td input#team-name-field').should('have.value', 'The Saskatchewan Rush');
         cy.get('#team-profile-info tbody tr td input#team-name-field').should('not.be.disabled');
-        cy.get('#team-profile-info tbody tr td').contains('coach@example.com');
+        cy.get('#team-profile-info tbody tr td').contains(organizerAgent.email);
         cy.get('#team-profile-info #remove-team-from-organization').should('exist');
         cy.get('#team-profile-info #add-team-to-organization').should('not.exist');
         cy.get('button#delete-team').should('exist');
@@ -315,8 +316,8 @@ context('organizer/Organization delete team', function() {
  
           cy.get('#team-profile-info tbody').find('tr').its('length').should('eq', 3);
           cy.get('#team-profile-info tbody tr td input#team-name-field').should('have.value', 'The Saskatchewan Rush');
-          cy.get('#team-profile-info tbody tr td input#team-name-field').should('be.disabled');
-          cy.get('#team-profile-info tbody tr td').contains('coach@example.com');
+          cy.get('#team-profile-info tbody tr td input#team-name-field').should('not.be.disabled');
+          cy.get('#team-profile-info tbody tr td').contains(organizerAgent.email);
           cy.get('#team-profile-info #remove-team-from-organization').should('not.exist');
           cy.get('#team-profile-info #add-team-to-organization').should('exist');
           cy.get('button#delete-team').should('exist');
@@ -327,18 +328,18 @@ context('organizer/Organization delete team', function() {
         it('lands in the proper place', () => {
           cy.on('window:confirm', str => true);
 
-          cy.url().should('contain', `/#/team/${teamLeaderAgent.socialProfile.user_metadata.teams[0].id}`);
+          cy.url().should('contain', `/#/team/${organizerAgent.socialProfile.user_metadata.teams[0].id}`);
           // Delete member
           cy.get('#team-profile-info #remove-team-from-organization').click();
           cy.wait(300);
-          cy.url().should('contain', `/#/team/${agent.socialProfile.user_metadata.teams[0].id}`);
+          cy.url().should('contain', `/#/team/${organizerAgent.socialProfile.user_metadata.teams[0].id}`);
         });
 
         it('displays a success message', () => {
           cy.on('window:confirm', str => true);
           cy.get('#team-profile-info #remove-team-from-organization').click();
           cy.wait(300);
-          cy.contains(`Team removed from organization`);
+          cy.contains(`${organizerAgent.socialProfile.user_metadata.teams[0].name} have been removed from ${organizerAgent.socialProfile.user_metadata.organizations[0].name}`);
         });
 
         it('displays progress spinner', () => {
