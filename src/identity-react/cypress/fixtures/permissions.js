@@ -4,12 +4,11 @@
  * They also match `silid-server/config/permissions.js`
  */
 module.exports = {
-  // Create
+ // Create
   create: {
     agents: 'create:agents',
     organizations: 'create:organizations',
     teams: 'create:teams',
-    organizationMembers: 'create:organization-member',
     teamMembers: 'create:team-member',
   },
   // Read
@@ -33,6 +32,9 @@ module.exports = {
     teams: 'delete:teams',
     organizationMembers: 'delete:organization-member',
     teamMembers: 'delete:team-member',
+  },
+  add: {
+    organizationMembers: 'add:organization-member',
   }
 }
 

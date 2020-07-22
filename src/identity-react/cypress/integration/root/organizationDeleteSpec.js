@@ -3,6 +3,16 @@ context('root/Organization delete', function() {
   before(function() {
     cy.fixture('google-profile-response').as('profile');
     cy.fixture('permissions').as('scope');
+    cy.fixture('roles-defined-at-auth0.json').as('roleDescriptions');
+  });
+
+  let organizerRole;
+  before(function() {
+    /**
+     * 2020-7-16
+     * Why can't this happen in the `before` block above?
+     */
+    organizerRole = this.roleDescriptions.find(r => r.name === 'organizer');
   });
 
   afterEach(() => {
@@ -31,7 +41,7 @@ context('root/Organization delete', function() {
     context('root is organizer', () => {
       beforeEach(function() {
         // The '123' role ID matches that defined in the RBAC mock server
-        cy.request('POST', `https://localhost:3002/api/v2/users/${root.socialProfile.user_id}/roles`, { roles: ['123'] });
+        cy.request('POST', `https://localhost:3002/api/v2/users/${root.socialProfile.user_id}/roles`, { roles: [organizerRole.id] });
 
         // Login to make role assignment take effect
         cy.login(root.email, _profile, [this.scope.create.organizations, this.scope.update.organizations]);

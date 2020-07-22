@@ -23,6 +23,7 @@ const scope = require('../../../config/permissions');
  */
 const _identity = require('../../fixtures/sample-auth0-identity-token');
 const _profile = require('../../fixtures/sample-auth0-profile-response');
+const _roles = require('../../fixtures/roles');
 
 describe('root/roleSpec', () => {
 
@@ -59,24 +60,6 @@ describe('root/roleSpec', () => {
       done.fail(err);
     });
   });
-
-  const _roles = [
-    {
-      "id": "123",
-      "name": "organizer",
-      "description": "Manage organizations and team memberships therein"
-    },
-    {
-      "id": "234",
-      "name": "sudo",
-      "description": "All-access pass to Identity resources"
-    },
-    {
-      "id": "345",
-      "name": "viewer",
-      "description": "Basic agent, organization, and team viewing permissions"
-    }
-  ];
 
   describe('authorized', () => {
 

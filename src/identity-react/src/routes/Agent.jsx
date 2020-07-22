@@ -233,43 +233,43 @@ const Agent = (props) => {
                             );
                           })}
                           {admin.isEnabled && !unassignedRoles.length && (
-                                <Chip
-                                  key="assign-role"
-                                  id="assign-role"
-                                  style={{ backgroundColor: '#ffffff' }}
-                                  className={classes.chip}
-                                  label={<Icon style={{ color: green[500] }}>add_circle</Icon>}
-                                  onClick={() => {
-                                    const headers = new Headers();
-                                    headers.append('Content-Type', 'application/json; charset=utf-8');
-                                    fetch('/role',
-                                      {
-                                        method: 'GET',
-                                        headers,
+                            <Chip
+                              key="assign-role"
+                              id="assign-role"
+                              style={{ backgroundColor: '#ffffff' }}
+                              className={classes.chip}
+                              label={<Icon style={{ color: green[500] }}>add_circle</Icon>}
+                              onClick={() => {
+                                const headers = new Headers();
+                                headers.append('Content-Type', 'application/json; charset=utf-8');
+                                fetch('/role',
+                                  {
+                                    method: 'GET',
+                                    headers,
+                                  }
+                                )
+                                .then(response => response.json())
+                                .then(response => {
+                                  if (response.message) {
+                                    setFlashProps({ message: response.message, variant: 'warning' });
+                                  }
+                                  else {
+                                    const roles = response.filter(role => {
+                                      for (let r of profileData.roles) {
+                                        if (r.id === role.id) {
+                                          return false;
+                                        }
                                       }
-                                    )
-                                    .then(response => response.json())
-                                    .then(response => {
-                                      if (response.message) {
-                                        setFlashProps({ message: response.message, variant: 'warning' });
-                                      }
-                                      else {
-                                        const roles = response.filter(role => {
-                                          for (let r of profileData.roles) {
-                                            if (r.id === role.id) {
-                                              return false;
-                                            }
-                                          }
-                                          return true;
-                                        });
-                                        setUnassignedRoles(roles);
-                                      }
-                                    })
-                                    .catch(error => {
-                                      setFlashProps({ message: error.message, variant: 'error' });
+                                      return true;
                                     });
-                                  }}
-                                />
+                                    setUnassignedRoles(roles);
+                                  }
+                                })
+                                .catch(error => {
+                                  setFlashProps({ message: error.message, variant: 'error' });
+                                });
+                              }}
+                            />
                           )}
                         </TableCell>
                       </TableRow>
