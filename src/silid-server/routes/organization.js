@@ -428,7 +428,7 @@ function deleteTeamMembership(req, res) {
           return res.status(500).json(err);
         }
         // 2020-7-17 - 303 status??? https://stackoverflow.com/questions/33214717/why-post-redirects-to-get-and-put-redirects-to-put
-        res.redirect(303, `/team/${req.params.teamId}`);
+        res.redirect(303, `/team/${req.params.teamId}${!!req.params.admin ? '/admin' : ''}`);
       });
     }).catch(err => {
       res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
@@ -438,7 +438,7 @@ function deleteTeamMembership(req, res) {
   });
 };
 
-router.delete('/:id/team/:teamId', checkPermissions([scope.delete.organizationMembers]), function(req, res, next) {
+router.delete('/:id/team/:teamId/:admin?', checkPermissions([scope.delete.organizationMembers]), function(req, res, next) {
   let organization;
   if (req.user.user_metadata.organizations) {
     organization = req.user.user_metadata.organizations.find(o => o.id === req.params.id);
