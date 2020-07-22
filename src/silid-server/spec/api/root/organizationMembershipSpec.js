@@ -551,7 +551,7 @@ describe('root/organizationMembershipSpec', () => {
             rootSession
               .delete(`/organization/${organizationId}/team/${teamId}`)
               .set('Accept', 'application/json')
-              .expect(302)
+              .expect(303)
               .expect('Location', `/team/${teamId}`)
               .end(function(err, res) {
                 if (err) return done.fail(err);
@@ -566,7 +566,7 @@ describe('root/organizationMembershipSpec', () => {
             rootSession
               .delete(`/organization/${organizationId}/team/${teamId}`)
               .set('Accept', 'application/json')
-              .expect(302)
+              .expect(303)
               .expect('Location', `/team/${teamId}`)
               .end(function(err, res) {
                 if (err) return done.fail(err);
@@ -586,7 +586,7 @@ describe('root/organizationMembershipSpec', () => {
                 .delete(`/organization/${organizationId}/team/${teamId}`)
                 .set('Accept', 'application/json')
                 .expect('Location', `/team/${teamId}`)
-                .expect(302)
+                .expect(303)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
@@ -618,7 +618,7 @@ describe('root/organizationMembershipSpec', () => {
                 .delete(`/organization/${organizationId}/team/${teamId}`)
                 .set('Accept', 'application/json')
                 .expect('Location', `/team/${teamId}`)
-                .expect(302)
+                .expect(303)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
                   expect(teamReadOauthTokenScope.isDone()).toBe(true);
@@ -633,7 +633,7 @@ describe('root/organizationMembershipSpec', () => {
                 .delete(`/organization/${organizationId}/team/${teamId}`)
                 .set('Accept', 'application/json')
                 .expect('Location', `/team/${teamId}`)
-                .expect(302)
+                .expect(303)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
                   expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
@@ -778,7 +778,7 @@ describe('root/organizationMembershipSpec', () => {
             rootSession
               .delete(`/organization/${organizationId}/team/${teamId}`)
               .set('Accept', 'application/json')
-              .expect(302)
+              .expect(303)
               .expect('Location', `/team/${teamId}`)
               .end(function(err, res) {
                 if (err) return done.fail(err);
@@ -793,7 +793,7 @@ describe('root/organizationMembershipSpec', () => {
             rootSession
               .delete(`/organization/${organizationId}/team/${teamId}`)
               .set('Accept', 'application/json')
-              .expect(302)
+              .expect(303)
               .expect('Location', `/team/${teamId}`)
               .end(function(err, res) {
                 if (err) return done.fail(err);
@@ -813,7 +813,7 @@ describe('root/organizationMembershipSpec', () => {
                 .delete(`/organization/${organizationId}/team/${teamId}`)
                 .set('Accept', 'application/json')
                 .expect('Location', `/team/${teamId}`)
-                .expect(302)
+                .expect(303)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
@@ -845,7 +845,7 @@ describe('root/organizationMembershipSpec', () => {
                 .delete(`/organization/${organizationId}/team/${teamId}`)
                 .set('Accept', 'application/json')
                 .expect('Location', `/team/${teamId}`)
-                .expect(302)
+                .expect(303)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
                   expect(teamReadOauthTokenScope.isDone()).toBe(true);
@@ -860,7 +860,7 @@ describe('root/organizationMembershipSpec', () => {
                 .delete(`/organization/${organizationId}/team/${teamId}`)
                 .set('Accept', 'application/json')
                 .expect('Location', `/team/${teamId}`)
-                .expect(302)
+                .expect(303)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
                   expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
@@ -875,7 +875,7 @@ describe('root/organizationMembershipSpec', () => {
                 .delete(`/organization/${organizationId}/team/${teamId}`)
                 .set('Accept', 'application/json')
                 .expect('Location', `/team/${teamId}`)
-                .expect(302)
+                .expect(303)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
                   expect(organizationReadOauthTokenScope.isDone()).toBe(true);
