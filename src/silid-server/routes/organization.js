@@ -291,7 +291,7 @@ router.delete('/:id', checkPermissions([scope.delete.organizations]), function(r
   });
 });
 
-router.put('/:id/team', checkPermissions([scope.create.organizationMembers]), function(req, res, next) {
+router.put('/:id/team', checkPermissions([scope.add.organizationMembers]), function(req, res, next) {
   if (!req.body.teamId || !req.body.teamId.trim()) {
     return res.status(400).json({ message: 'No team provided' });
   }
@@ -356,7 +356,8 @@ router.put('/:id/team', checkPermissions([scope.create.organizationMembers]), fu
         if (err) {
           return res.status(500).json(err);
         }
-        res.redirect(`/organization/${req.params.id}`);
+        // 2020-7-17 - 303 status??? https://stackoverflow.com/questions/33214717/why-post-redirects-to-get-and-put-redirects-to-put
+        res.redirect(303, `/team/${req.body.teamId}`);
       });
     }).catch(err => {
       res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
@@ -426,8 +427,8 @@ function deleteTeamMembership(req, res) {
         if (err) {
           return res.status(500).json(err);
         }
-
-        res.redirect(`/organization/${req.params.id}`);
+        // 2020-7-17 - 303 status??? https://stackoverflow.com/questions/33214717/why-post-redirects-to-get-and-put-redirects-to-put
+        res.redirect(303, `/team/${req.params.teamId}${!!req.params.admin ? '/admin' : ''}`);
       });
     }).catch(err => {
       res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
@@ -437,7 +438,7 @@ function deleteTeamMembership(req, res) {
   });
 };
 
-router.delete('/:id/team/:teamId', checkPermissions([scope.delete.organizationMembers]), function(req, res, next) {
+router.delete('/:id/team/:teamId/:admin?', checkPermissions([scope.delete.organizationMembers]), function(req, res, next) {
   let organization;
   if (req.user.user_metadata.organizations) {
     organization = req.user.user_metadata.organizations.find(o => o.id === req.params.id);

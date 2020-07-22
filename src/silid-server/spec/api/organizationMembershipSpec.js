@@ -78,7 +78,7 @@ describe('organizationMembershipSpec', () => {
           stubAuth0ManagementApi((err, apiScopes) => {
             if (err) return done.fail(err);
 
-            login(_identity, [scope.create.organizationMembers], (err, session) => {
+            login(_identity, [scope.add.organizationMembers], (err, session) => {
               if (err) return done.fail(err);
               authenticatedSession = session;
 
@@ -112,15 +112,15 @@ describe('organizationMembershipSpec', () => {
         });
 
         describe('successfully', () => {
-          it('redirects to /organization/:id', done => {
+          it('redirects to /team/:id', done => {
             authenticatedSession
               .put(`/organization/${organizationId}/team`)
               .send({
                 teamId: teamId
               })
               .set('Accept', 'application/json')
-              .expect('Location', `/organization/${organizationId}`)
-              .expect(302)
+              .expect('Location', `/team/${teamId}`)
+              .expect(303)
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
@@ -137,8 +137,8 @@ describe('organizationMembershipSpec', () => {
                 teamId: teamId
               })
               .set('Accept', 'application/json')
-              .expect('Location', `/organization/${organizationId}`)
-              .expect(302)
+              .expect('Location', `/team/${teamId}`)
+              .expect(303)
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
@@ -159,7 +159,7 @@ describe('organizationMembershipSpec', () => {
                   teamId: teamId
                 })
                 .set('Accept', 'application/json')
-                .expect(302)
+                .expect(303)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
@@ -192,8 +192,7 @@ describe('organizationMembershipSpec', () => {
                   teamId: teamId
                 })
                 .set('Accept', 'application/json')
-                //.expect('Content-Type', /json/)
-                .expect(302)
+                .expect(303)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
                   expect(teamReadOauthTokenScope.isDone()).toBe(true);
@@ -210,7 +209,7 @@ describe('organizationMembershipSpec', () => {
                   teamId: teamId
                 })
                 .set('Accept', 'application/json')
-                .expect(302)
+                .expect(303)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
                   expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
@@ -281,7 +280,7 @@ describe('organizationMembershipSpec', () => {
                   teamId: teamId
                 })
                 .set('Accept', 'application/json')
-                .expect(302)
+                .expect(303)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
@@ -291,7 +290,7 @@ describe('organizationMembershipSpec', () => {
                   stubAuth0ManagementApi((err, apiScopes) => {
                     if (err) return done.fail(err);
 
-                    login(_identity, [scope.create.organizationMembers], (err, session) => {
+                    login(_identity, [scope.add.organizationMembers], (err, session) => {
                       if (err) return done.fail(err);
                       authenticatedSession = session;
 
@@ -390,7 +389,7 @@ describe('organizationMembershipSpec', () => {
                   teamId: teamId
                 })
                 .set('Accept', 'application/json')
-                .expect(302)
+                .expect(303)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
@@ -546,12 +545,12 @@ describe('organizationMembershipSpec', () => {
         });
 
         describe('successfully', () => {
-          it('redirects to /organization/:id', done => {
+          it('redirects to /team/:id', done => {
             authenticatedSession
               .delete(`/organization/${organizationId}/team/${teamId}`)
               .set('Accept', 'application/json')
-              .expect(302)
-              .expect('Location', `/organization/${organizationId}`)
+              .expect(303)
+              .expect('Location', `/team/${teamId}`)
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
@@ -565,8 +564,8 @@ describe('organizationMembershipSpec', () => {
             authenticatedSession
               .delete(`/organization/${organizationId}/team/${teamId}`)
               .set('Accept', 'application/json')
-              .expect(302)
-              .expect('Location', `/organization/${organizationId}`)
+              .expect(303)
+              .expect('Location', `/team/${teamId}`)
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
@@ -584,8 +583,8 @@ describe('organizationMembershipSpec', () => {
               authenticatedSession
                 .delete(`/organization/${organizationId}/team/${teamId}`)
                 .set('Accept', 'application/json')
-                .expect('Location', `/organization/${organizationId}`)
-                .expect(302)
+                .expect('Location', `/team/${teamId}`)
+                .expect(303)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
@@ -616,8 +615,8 @@ describe('organizationMembershipSpec', () => {
               authenticatedSession
                 .delete(`/organization/${organizationId}/team/${teamId}`)
                 .set('Accept', 'application/json')
-                .expect('Location', `/organization/${organizationId}`)
-                .expect(302)
+                .expect('Location', `/team/${teamId}`)
+                .expect(303)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
                   expect(teamReadOauthTokenScope.isDone()).toBe(true);
@@ -631,8 +630,8 @@ describe('organizationMembershipSpec', () => {
               authenticatedSession
                 .delete(`/organization/${organizationId}/team/${teamId}`)
                 .set('Accept', 'application/json')
-                .expect('Location', `/organization/${organizationId}`)
-                .expect(302)
+                .expect('Location', `/team/${teamId}`)
+                .expect(303)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
                   expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
@@ -719,7 +718,7 @@ describe('organizationMembershipSpec', () => {
           stubAuth0ManagementApi((err, apiScopes) => {
             if (err) return done.fail();
 
-            login({ ..._identity, email: suspiciousAgent.email }, [scope.create.organizationMembers, scope.delete.organizationMembers], (err, session) => {
+            login({ ..._identity, email: suspiciousAgent.email }, [scope.add.organizationMembers, scope.delete.organizationMembers], (err, session) => {
               if (err) return done.fail(err);
               forbiddenSession = session;
 

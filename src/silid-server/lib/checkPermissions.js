@@ -27,6 +27,9 @@ function updateDbAndVerify(permissions, req, res, next) {
       // Is this a super agent?
       req.user.isSuper = !!req.user.roles.find(r => r.name === 'sudo');
 
+      // Is this an organizer agent?
+      req.user.isOrganizer = !!req.user.roles.find(r => r.name === 'organizer');
+
       // Fill in any blank agent columns with social profile data
       const updates = {};
       if (req.agent) {

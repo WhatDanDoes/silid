@@ -9,7 +9,18 @@ const stubRolesRead = require('../support/auth0Endpoints/stubRolesRead');
 const stubUserAssignRoles = require('../support/auth0Endpoints/stubUserAssignRoles');
 const stubUserRolesRead = require('../support/auth0Endpoints/stubUserRolesRead');
 
-module.exports = function(done) {
+/**
+ * Stuff that happens on every logon
+ *
+ * @params object
+ * @params function 
+ */
+module.exports = function(options, done) {
+
+  if (typeof options === 'function') {
+    done = options;
+    options = {};
+  }
 
   let userReadScope, getRolesScope, userAssignRolesScope;
 
@@ -38,7 +49,7 @@ module.exports = function(done) {
         ({userAssignRolesScope} = apiScopes);
 
 
-        stubUserRolesRead((err, apiScopes) => {
+        stubUserRolesRead(options.userRoles ? options.userRoles : undefined, (err, apiScopes) => {
           if (err) return done(err);
           ({userRolesReadScope} = apiScopes);
 

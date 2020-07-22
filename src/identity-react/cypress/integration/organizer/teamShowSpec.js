@@ -90,6 +90,8 @@ context('organizer/Team show', function() {
           .should('contain', agent.socialProfile.user_metadata.organizations[0].name)
           .and('have.attr', 'href')
           .and('equal', `#organization/${agent.socialProfile.user_metadata.organizations[0].id}`);
+        cy.get('#team-profile-info #add-team-to-organization').should('not.exist');
+        cy.get('#team-profile-info tbody tr:last-of-type td:last-of-type #remove-team-from-organization').should('exist');
         cy.get('button#delete-team').should('not.exist');
         cy.get('button#save-team').should('not.exist');
         cy.get('button#cancel-team-changes').should('not.exist');

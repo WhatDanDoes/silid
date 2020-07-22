@@ -1,6 +1,8 @@
 /**
  * As with those set in `./permissions.js`, these roles must match those
  * configured for the API at Auth0
+ *
+ * They also match `silid-server/config/roles.js`
  */
 const scope = require('./permissions');
 

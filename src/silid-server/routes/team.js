@@ -74,6 +74,7 @@ router.get('/:id/:admin?', checkPermissions([scope.read.teams]), function(req, r
       const requestedTeam = agents[0].user_metadata.teams.find(t => t.id === req.params.id);
 
       if (requestedTeam.organizationId) {
+
         // Is the requesting agent an organizer?
         let organization;
         if (req.user.user_metadata && req.user.user_metadata.organizations) {
@@ -91,12 +92,13 @@ router.get('/:id/:admin?', checkPermissions([scope.read.teams]), function(req, r
         }
         else {
           managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.organizations.id:"${requestedTeam.organizationId}"` }).then(organizers => {
+
             // For now, there can only be one
             if (organizers.length) {
 
               let organization = organizers[0].user_metadata.organizations.find(o => o.id === requestedTeam.organizationId);
 
-              const team = collateTeams(agents, req.params.id, req.user.user_id, (req.user.isSuper && !!req.params.admin));
+              const team = collateTeams(agents, req.params.id, req.user.user_id, (req.user.isSuper && !!req.params.admin) || req.user.isOrganizer);
 
               if (!team) {
                 return res.status(403).json({ message: 'You are not a member of that team' });
@@ -111,7 +113,7 @@ router.get('/:id/:admin?', checkPermissions([scope.read.teams]), function(req, r
         }
       }
       else {
-        const team = collateTeams(agents, req.params.id, req.user.user_id, req.user.isSuper && !!req.params.admin);
+        const team = collateTeams(agents, req.params.id, req.user.user_id, (req.user.isSuper && !!req.params.admin) || req.user.isOrganizer);
 
         if (!team) {
           return res.status(403).json({ message: 'You are not a member of that team' });
