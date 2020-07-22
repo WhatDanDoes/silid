@@ -77,76 +77,158 @@ context('organizer/Organization delete team', function() {
         cy.wait(300);
       });
 
-      it('displays the appropriate organizer interface', () => {
-        cy.get('#team-profile-info tbody').find('tr').its('length').should('eq', 3);
-        cy.get('#team-profile-info tbody tr td input#team-name-field').should('have.value', 'The Calgary Roughnecks');
-        cy.get('#team-profile-info tbody tr td input#team-name-field').should('be.disabled');
-        cy.get('#team-profile-info tbody tr td').contains('coach@example.com');
-        cy.get('#team-profile-info #remove-team-from-organization').should('exist');
-        cy.get('#team-profile-info #add-team-to-organization').should('not.exist');
-        cy.get('button#delete-team').should('not.exist');
-        cy.get('#team-profile-info button#save-team').should('not.exist');
-        cy.get('#team-profile-info button#cancel-team-changes').should('not.exist');
-      });
+      context('in Team view', () => {
 
-      describe('#remove-team-from-organization', () => {
-        it('displays a popup warning', function(done) {
-          cy.on('window:confirm', (str) => {
-            expect(str).to.eq('Remove team from organization?');
-            done();
-          });
-          // Delete member team
-          cy.get('#team-profile-info #remove-team-from-organization').click();
-        });
-
-        it('updates the interface', () => {
-          cy.on('window:confirm', str => true);
-
-          // Delete member team
-          cy.get('#team-profile-info #remove-team-from-organization').click();
- 
+        it('displays the appropriate organizer interface', () => {
           cy.get('#team-profile-info tbody').find('tr').its('length').should('eq', 3);
           cy.get('#team-profile-info tbody tr td input#team-name-field').should('have.value', 'The Calgary Roughnecks');
           cy.get('#team-profile-info tbody tr td input#team-name-field').should('be.disabled');
           cy.get('#team-profile-info tbody tr td').contains('coach@example.com');
-          cy.get('#team-profile-info #remove-team-from-organization').should('not.exist');
-          cy.get('#team-profile-info #add-team-to-organization').should('exist');
+          cy.get('#team-profile-info #remove-team-from-organization').should('exist');
+          cy.get('#team-profile-info #add-team-to-organization').should('not.exist');
           cy.get('button#delete-team').should('not.exist');
           cy.get('#team-profile-info button#save-team').should('not.exist');
           cy.get('#team-profile-info button#cancel-team-changes').should('not.exist');
         });
 
-        it('lands in the proper place', () => {
-          cy.on('window:confirm', str => true);
+        describe('#remove-team-from-organization', () => {
+          it('displays a popup warning', function(done) {
+            cy.on('window:confirm', (str) => {
+              expect(str).to.eq('Remove team from organization?');
+              done();
+            });
+            // Delete member team
+            cy.get('#team-profile-info #remove-team-from-organization').click();
+          });
 
-          cy.url().should('contain', `/#/team/${teamLeaderAgent.socialProfile.user_metadata.teams[0].id}`);
-          // Delete member
-          cy.get('#team-profile-info #remove-team-from-organization').click();
+          it('updates the interface', () => {
+            cy.on('window:confirm', str => true);
+
+            // Delete member team
+            cy.get('#team-profile-info #remove-team-from-organization').click();
+
+            cy.get('#team-profile-info tbody').find('tr').its('length').should('eq', 3);
+            cy.get('#team-profile-info tbody tr td input#team-name-field').should('have.value', 'The Calgary Roughnecks');
+            cy.get('#team-profile-info tbody tr td input#team-name-field').should('be.disabled');
+            cy.get('#team-profile-info tbody tr td').contains('coach@example.com');
+            cy.get('#team-profile-info #remove-team-from-organization').should('not.exist');
+            cy.get('#team-profile-info #add-team-to-organization').should('exist');
+            cy.get('button#delete-team').should('not.exist');
+            cy.get('#team-profile-info button#save-team').should('not.exist');
+            cy.get('#team-profile-info button#cancel-team-changes').should('not.exist');
+          });
+
+          it('lands in the proper place', () => {
+            cy.on('window:confirm', str => true);
+
+            cy.url().should('contain', `/#/team/${teamLeaderAgent.socialProfile.user_metadata.teams[0].id}`);
+            // Delete member
+            cy.get('#team-profile-info #remove-team-from-organization').click();
+            cy.wait(300);
+            cy.url().should('contain', `/#/team/${teamLeaderAgent.socialProfile.user_metadata.teams[0].id}`);
+          });
+
+          it('displays a success message', () => {
+            cy.on('window:confirm', str => true);
+            cy.get('#team-profile-info #remove-team-from-organization').click();
+            cy.wait(300);
+            cy.contains(`${teamLeaderAgent.socialProfile.user_metadata.teams[0].name} have been removed from ${organizerAgent.socialProfile.user_metadata.organizations[0].name}`);
+          });
+
+          it('displays progress spinner', () => {
+            cy.on('window:confirm', str => true);
+            cy.get('#progress-spinner').should('not.exist');
+            cy.get('#team-profile-info #remove-team-from-organization').click();
+            // 2020-5-21
+            // Cypress goes too fast for this. Cypress also cannot intercept
+            // native `fetch` calls to allow stubbing and delaying the route.
+            // Shamefully, this is currently manually tested, though I suspect
+            // I will use this opportunity to learn Jest
+            // Despite its name, this test really ensures the spinner disappears
+            // after all is said and done
+            //cy.get('#progress-spinner').should('exist');
+            cy.wait(100);
+            cy.get('#progress-spinner').should('not.exist');
+          });
+        });
+      });
+
+      context('in Organization view', () => {
+        beforeEach(() => {
+          cy.get('#app-menu-button').click();
+          cy.contains('Profile').click();
           cy.wait(300);
-          cy.url().should('contain', `/#/team/${teamLeaderAgent.socialProfile.user_metadata.teams[0].id}`);
+          cy.contains('The National Lacrosse League').click();
+          cy.wait(300);
         });
 
-        it('displays a success message', () => {
-          cy.on('window:confirm', str => true);
-          cy.get('#team-profile-info #remove-team-from-organization').click();
-          cy.wait(300);
-          cy.contains(`${teamLeaderAgent.socialProfile.user_metadata.teams[0].name} have been removed from ${organizerAgent.socialProfile.user_metadata.organizations[0].name}`);
+        it('displays the appropriate organizer interface', () => {
+          cy.get('#member-teams-table tbody').find('tr').its('length').should('eq', 1);
+
+          cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').should('exist');
+          cy.get('#member-teams-table table tbody tr:nth-of-type(1) td a')
+            .should('contain', teamLeaderAgent.socialProfile.user_metadata.teams[0].name)
+            .and('have.attr', 'href')
+            .and('equal', `#team/${teamLeaderAgent.socialProfile.user_metadata.teams[0].id}`);
+          cy.get('#member-teams-table table tbody tr:nth-of-type(1) td').contains(teamLeaderAgent.email);
         });
 
-        it('displays progress spinner', () => {
-          cy.on('window:confirm', str => true);
-          cy.get('#progress-spinner').should('not.exist');
-          cy.get('#team-profile-info #remove-team-from-organization').click();
-          // 2020-5-21
-          // Cypress goes too fast for this. Cypress also cannot intercept
-          // native `fetch` calls to allow stubbing and delaying the route.
-          // Shamefully, this is currently manually tested, though I suspect
-          // I will use this opportunity to learn Jest
-          // Despite its name, this test really ensures the spinner disappears
-          // after all is said and done
-          //cy.get('#progress-spinner').should('exist');
-          cy.wait(100);
-          cy.get('#progress-spinner').should('not.exist');
+        describe('record delete button', () => {
+          it('displays a popup warning', function(done) {
+            cy.on('window:confirm', (str) => {
+              expect(str).to.eq('Remove team from organization?');
+              done();
+            });
+            // Delete member team
+            cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
+          });
+
+          it('updates the interface', () => {
+            cy.on('window:confirm', str => true);
+
+            // Delete member team
+            cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
+            cy.wait(300);
+
+            cy.get('#member-teams-table tbody').find('tr').its('length').should('eq', 1);
+            cy.get('#member-teams-table table tbody tr td').contains('No records to display').should('exist');
+          });
+
+          it('lands in the proper place', () => {
+            cy.on('window:confirm', str => true);
+
+            cy.url().should('contain', `/#/organization/${organizerAgent.socialProfile.user_metadata.organizations[0].id}`);
+            // Delete member
+            cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
+
+            cy.wait(300);
+            cy.url().should('contain', `/#/organization/${organizerAgent.socialProfile.user_metadata.organizations[0].id}`);
+          });
+
+          it('displays a success message', () => {
+            cy.on('window:confirm', str => true);
+            cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
+            cy.wait(300);
+            cy.contains(`${teamLeaderAgent.socialProfile.user_metadata.teams[0].name} have been removed from ${organizerAgent.socialProfile.user_metadata.organizations[0].name}`);
+          });
+
+          it('displays progress spinner', () => {
+            cy.on('window:confirm', str => true);
+            cy.get('#progress-spinner').should('not.exist');
+
+            cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
+
+            // 2020-5-21
+            // Cypress goes too fast for this. Cypress also cannot intercept
+            // native `fetch` calls to allow stubbing and delaying the route.
+            // Shamefully, this is currently manually tested, though I suspect
+            // I will use this opportunity to learn Jest
+            // Despite its name, this test really ensures the spinner disappears
+            // after all is said and done
+            //cy.get('#progress-spinner').should('exist');
+            cy.wait(100);
+            cy.get('#progress-spinner').should('not.exist');
+          });
         });
       });
     });
@@ -190,76 +272,157 @@ context('organizer/Organization delete team', function() {
         });
       });
 
-      it('displays the appropriate organizer interface', () => {
-        cy.get('#team-profile-info tbody').find('tr').its('length').should('eq', 3);
-        cy.get('#team-profile-info tbody tr td input#team-name-field').should('have.value', 'The Calgary Roughnecks');
-        cy.get('#team-profile-info tbody tr td input#team-name-field').should('be.disabled');
-        cy.get('#team-profile-info tbody tr td').contains('coach@example.com');
-        cy.get('#team-profile-info #remove-team-from-organization').should('exist');
-        cy.get('#team-profile-info #add-team-to-organization').should('not.exist');
-        cy.get('button#delete-team').should('not.exist');
-        cy.get('#team-profile-info button#save-team').should('not.exist');
-        cy.get('#team-profile-info button#cancel-team-changes').should('not.exist');
-      });
-
-      describe('#remove-team-from-organization', () => {
-        it('displays a popup warning', function(done) {
-          cy.on('window:confirm', (str) => {
-            expect(str).to.eq('Remove team from organization?');
-            done();
-          });
-          // Delete member team
-          cy.get('#team-profile-info #remove-team-from-organization').click();
-        });
-
-        it('updates the interface', () => {
-          cy.on('window:confirm', str => true);
-
-          // Delete member team
-          cy.get('#team-profile-info #remove-team-from-organization').click();
- 
+      context('in Team view', () => {
+        it('displays the appropriate organizer interface', () => {
           cy.get('#team-profile-info tbody').find('tr').its('length').should('eq', 3);
           cy.get('#team-profile-info tbody tr td input#team-name-field').should('have.value', 'The Calgary Roughnecks');
           cy.get('#team-profile-info tbody tr td input#team-name-field').should('be.disabled');
           cy.get('#team-profile-info tbody tr td').contains('coach@example.com');
-          cy.get('#team-profile-info #remove-team-from-organization').should('not.exist');
-          cy.get('#team-profile-info #add-team-to-organization').should('exist');
+          cy.get('#team-profile-info #remove-team-from-organization').should('exist');
+          cy.get('#team-profile-info #add-team-to-organization').should('not.exist');
           cy.get('button#delete-team').should('not.exist');
           cy.get('#team-profile-info button#save-team').should('not.exist');
           cy.get('#team-profile-info button#cancel-team-changes').should('not.exist');
         });
 
-        it('lands in the proper place', () => {
-          cy.on('window:confirm', str => true);
+        describe('#remove-team-from-organization', () => {
+          it('displays a popup warning', function(done) {
+            cy.on('window:confirm', (str) => {
+              expect(str).to.eq('Remove team from organization?');
+              done();
+            });
+            // Delete member team
+            cy.get('#team-profile-info #remove-team-from-organization').click();
+          });
 
-          cy.url().should('contain', `/#/team/${teamLeaderAgent.socialProfile.user_metadata.teams[0].id}`);
-          // Delete member
-          cy.get('#team-profile-info #remove-team-from-organization').click();
+          it('updates the interface', () => {
+            cy.on('window:confirm', str => true);
+
+            // Delete member team
+            cy.get('#team-profile-info #remove-team-from-organization').click();
+
+            cy.get('#team-profile-info tbody').find('tr').its('length').should('eq', 3);
+            cy.get('#team-profile-info tbody tr td input#team-name-field').should('have.value', 'The Calgary Roughnecks');
+            cy.get('#team-profile-info tbody tr td input#team-name-field').should('be.disabled');
+            cy.get('#team-profile-info tbody tr td').contains('coach@example.com');
+            cy.get('#team-profile-info #remove-team-from-organization').should('not.exist');
+            cy.get('#team-profile-info #add-team-to-organization').should('exist');
+            cy.get('button#delete-team').should('not.exist');
+            cy.get('#team-profile-info button#save-team').should('not.exist');
+            cy.get('#team-profile-info button#cancel-team-changes').should('not.exist');
+          });
+
+          it('lands in the proper place', () => {
+            cy.on('window:confirm', str => true);
+
+            cy.url().should('contain', `/#/team/${teamLeaderAgent.socialProfile.user_metadata.teams[0].id}`);
+            // Delete member
+            cy.get('#team-profile-info #remove-team-from-organization').click();
+            cy.wait(300);
+            cy.url().should('contain', `/#/team/${teamLeaderAgent.socialProfile.user_metadata.teams[0].id}`);
+          });
+
+          it('displays a success message', () => {
+            cy.on('window:confirm', str => true);
+            cy.get('#team-profile-info #remove-team-from-organization').click();
+            cy.wait(300);
+            cy.contains(`${teamLeaderAgent.socialProfile.user_metadata.teams[0].name} have been removed from ${organizerAgent.socialProfile.user_metadata.organizations[0].name}`);
+          });
+
+          it('displays progress spinner', () => {
+            cy.on('window:confirm', str => true);
+            cy.get('#progress-spinner').should('not.exist');
+            cy.get('#team-profile-info #remove-team-from-organization').click();
+            // 2020-5-21
+            // Cypress goes too fast for this. Cypress also cannot intercept
+            // native `fetch` calls to allow stubbing and delaying the route.
+            // Shamefully, this is currently manually tested, though I suspect
+            // I will use this opportunity to learn Jest
+            // Despite its name, this test really ensures the spinner disappears
+            // after all is said and done
+            //cy.get('#progress-spinner').should('exist');
+            cy.wait(100);
+            cy.get('#progress-spinner').should('not.exist');
+          });
+        });
+      });
+
+      context('in Organization view', () => {
+        beforeEach(() => {
+          cy.get('#app-menu-button').click();
+          cy.contains('Profile').click();
           cy.wait(300);
-          cy.url().should('contain', `/#/team/${teamLeaderAgent.socialProfile.user_metadata.teams[0].id}`);
+          cy.contains('The National Lacrosse League').click();
+          cy.wait(300);
         });
 
-        it('displays a success message', () => {
-          cy.on('window:confirm', str => true);
-          cy.get('#team-profile-info #remove-team-from-organization').click();
-          cy.wait(300);
-          cy.contains(`${teamLeaderAgent.socialProfile.user_metadata.teams[0].name} have been removed from ${organizerAgent.socialProfile.user_metadata.organizations[0].name}`);
+        it('displays the appropriate organizer interface', () => {
+          cy.get('#member-teams-table tbody').find('tr').its('length').should('eq', 1);
+
+          cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').should('exist');
+          cy.get('#member-teams-table table tbody tr:nth-of-type(1) td a')
+            .should('contain', teamLeaderAgent.socialProfile.user_metadata.teams[0].name)
+            .and('have.attr', 'href')
+            .and('equal', `#team/${teamLeaderAgent.socialProfile.user_metadata.teams[0].id}`);
+          cy.get('#member-teams-table table tbody tr:nth-of-type(1) td').contains(teamLeaderAgent.email);
         });
 
-        it('displays progress spinner', () => {
-          cy.on('window:confirm', str => true);
-          cy.get('#progress-spinner').should('not.exist');
-          cy.get('#team-profile-info #remove-team-from-organization').click();
-          // 2020-5-21
-          // Cypress goes too fast for this. Cypress also cannot intercept
-          // native `fetch` calls to allow stubbing and delaying the route.
-          // Shamefully, this is currently manually tested, though I suspect
-          // I will use this opportunity to learn Jest
-          // Despite its name, this test really ensures the spinner disappears
-          // after all is said and done
-          //cy.get('#progress-spinner').should('exist');
-          cy.wait(100);
-          cy.get('#progress-spinner').should('not.exist');
+        describe('record delete button', () => {
+          it('displays a popup warning', function(done) {
+            cy.on('window:confirm', (str) => {
+              expect(str).to.eq('Remove team from organization?');
+              done();
+            });
+            // Delete member team
+            cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
+          });
+
+          it('updates the interface', () => {
+            cy.on('window:confirm', str => true);
+
+            // Delete member team
+            cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
+            cy.wait(300);
+
+            cy.get('#member-teams-table tbody').find('tr').its('length').should('eq', 1);
+            cy.get('#member-teams-table table tbody tr td').contains('No records to display').should('exist');
+          });
+
+          it('lands in the proper place', () => {
+            cy.on('window:confirm', str => true);
+
+            cy.url().should('contain', `/#/organization/${organizerAgent.socialProfile.user_metadata.organizations[0].id}`);
+            // Delete member
+            cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
+
+            cy.wait(300);
+            cy.url().should('contain', `/#/organization/${organizerAgent.socialProfile.user_metadata.organizations[0].id}`);
+          });
+
+          it('displays a success message', () => {
+            cy.on('window:confirm', str => true);
+            cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
+            cy.wait(300);
+            cy.contains(`${teamLeaderAgent.socialProfile.user_metadata.teams[0].name} have been removed from ${organizerAgent.socialProfile.user_metadata.organizations[0].name}`);
+          });
+
+          it('displays progress spinner', () => {
+            cy.on('window:confirm', str => true);
+            cy.get('#progress-spinner').should('not.exist');
+
+            cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
+
+            // 2020-5-21
+            // Cypress goes too fast for this. Cypress also cannot intercept
+            // native `fetch` calls to allow stubbing and delaying the route.
+            // Shamefully, this is currently manually tested, though I suspect
+            // I will use this opportunity to learn Jest
+            // Despite its name, this test really ensures the spinner disappears
+            // after all is said and done
+            //cy.get('#progress-spinner').should('exist');
+            cy.wait(100);
+            cy.get('#progress-spinner').should('not.exist');
+          });
         });
       });
     });
@@ -286,76 +449,157 @@ context('organizer/Organization delete team', function() {
         });
       });
 
-      it('displays the appropriate organizer interface', () => {
-        cy.get('#team-profile-info tbody').find('tr').its('length').should('eq', 3);
-        cy.get('#team-profile-info tbody tr td input#team-name-field').should('have.value', 'The Saskatchewan Rush');
-        cy.get('#team-profile-info tbody tr td input#team-name-field').should('not.be.disabled');
-        cy.get('#team-profile-info tbody tr td').contains(organizerAgent.email);
-        cy.get('#team-profile-info #remove-team-from-organization').should('exist');
-        cy.get('#team-profile-info #add-team-to-organization').should('not.exist');
-        cy.get('button#delete-team').should('exist');
-        cy.get('#team-profile-info button#save-team').should('not.exist');
-        cy.get('#team-profile-info button#cancel-team-changes').should('not.exist');
-      });
-
-      describe('#remove-team-from-organization', () => {
-        it('displays a popup warning', function(done) {
-          cy.on('window:confirm', (str) => {
-            expect(str).to.eq('Remove team from organization?');
-            done();
-          });
-          // Delete member team
-          cy.get('#team-profile-info #remove-team-from-organization').click();
-        });
-
-        it('updates the interface', () => {
-          cy.on('window:confirm', str => true);
-
-          // Delete member team
-          cy.get('#team-profile-info #remove-team-from-organization').click();
- 
+      context('in Team view', () => {
+        it('displays the appropriate organizer interface', () => {
           cy.get('#team-profile-info tbody').find('tr').its('length').should('eq', 3);
           cy.get('#team-profile-info tbody tr td input#team-name-field').should('have.value', 'The Saskatchewan Rush');
           cy.get('#team-profile-info tbody tr td input#team-name-field').should('not.be.disabled');
           cy.get('#team-profile-info tbody tr td').contains(organizerAgent.email);
-          cy.get('#team-profile-info #remove-team-from-organization').should('not.exist');
-          cy.get('#team-profile-info #add-team-to-organization').should('exist');
+          cy.get('#team-profile-info #remove-team-from-organization').should('exist');
+          cy.get('#team-profile-info #add-team-to-organization').should('not.exist');
           cy.get('button#delete-team').should('exist');
           cy.get('#team-profile-info button#save-team').should('not.exist');
           cy.get('#team-profile-info button#cancel-team-changes').should('not.exist');
         });
 
-        it('lands in the proper place', () => {
-          cy.on('window:confirm', str => true);
+        describe('#remove-team-from-organization', () => {
+          it('displays a popup warning', function(done) {
+            cy.on('window:confirm', (str) => {
+              expect(str).to.eq('Remove team from organization?');
+              done();
+            });
+            // Delete member team
+            cy.get('#team-profile-info #remove-team-from-organization').click();
+          });
 
-          cy.url().should('contain', `/#/team/${organizerAgent.socialProfile.user_metadata.teams[0].id}`);
-          // Delete member
-          cy.get('#team-profile-info #remove-team-from-organization').click();
+          it('updates the interface', () => {
+            cy.on('window:confirm', str => true);
+
+            // Delete member team
+            cy.get('#team-profile-info #remove-team-from-organization').click();
+
+            cy.get('#team-profile-info tbody').find('tr').its('length').should('eq', 3);
+            cy.get('#team-profile-info tbody tr td input#team-name-field').should('have.value', 'The Saskatchewan Rush');
+            cy.get('#team-profile-info tbody tr td input#team-name-field').should('not.be.disabled');
+            cy.get('#team-profile-info tbody tr td').contains(organizerAgent.email);
+            cy.get('#team-profile-info #remove-team-from-organization').should('not.exist');
+            cy.get('#team-profile-info #add-team-to-organization').should('exist');
+            cy.get('button#delete-team').should('exist');
+            cy.get('#team-profile-info button#save-team').should('not.exist');
+            cy.get('#team-profile-info button#cancel-team-changes').should('not.exist');
+          });
+
+          it('lands in the proper place', () => {
+            cy.on('window:confirm', str => true);
+
+            cy.url().should('contain', `/#/team/${organizerAgent.socialProfile.user_metadata.teams[0].id}`);
+            // Delete member
+            cy.get('#team-profile-info #remove-team-from-organization').click();
+            cy.wait(300);
+            cy.url().should('contain', `/#/team/${organizerAgent.socialProfile.user_metadata.teams[0].id}`);
+          });
+
+          it('displays a success message', () => {
+            cy.on('window:confirm', str => true);
+            cy.get('#team-profile-info #remove-team-from-organization').click();
+            cy.wait(300);
+            cy.contains(`${organizerAgent.socialProfile.user_metadata.teams[0].name} have been removed from ${organizerAgent.socialProfile.user_metadata.organizations[0].name}`);
+          });
+
+          it('displays progress spinner', () => {
+            cy.on('window:confirm', str => true);
+            cy.get('#progress-spinner').should('not.exist');
+            cy.get('#team-profile-info #remove-team-from-organization').click();
+            // 2020-5-21
+            // Cypress goes too fast for this. Cypress also cannot intercept
+            // native `fetch` calls to allow stubbing and delaying the route.
+            // Shamefully, this is currently manually tested, though I suspect
+            // I will use this opportunity to learn Jest
+            // Despite its name, this test really ensures the spinner disappears
+            // after all is said and done
+            //cy.get('#progress-spinner').should('exist');
+            cy.wait(100);
+            cy.get('#progress-spinner').should('not.exist');
+          });
+        });
+      });
+
+      context('in Organization view', () => {
+        beforeEach(() => {
+          cy.get('#app-menu-button').click();
+          cy.contains('Profile').click();
           cy.wait(300);
-          cy.url().should('contain', `/#/team/${organizerAgent.socialProfile.user_metadata.teams[0].id}`);
+          cy.contains('The National Lacrosse League').click();
+          cy.wait(300);
         });
 
-        it('displays a success message', () => {
-          cy.on('window:confirm', str => true);
-          cy.get('#team-profile-info #remove-team-from-organization').click();
-          cy.wait(300);
-          cy.contains(`${organizerAgent.socialProfile.user_metadata.teams[0].name} have been removed from ${organizerAgent.socialProfile.user_metadata.organizations[0].name}`);
+        it('displays the appropriate organizer interface', () => {
+          cy.get('#member-teams-table tbody').find('tr').its('length').should('eq', 1);
+
+          cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').should('exist');
+          cy.get('#member-teams-table table tbody tr:nth-of-type(1) td a')
+            .should('contain', organizerAgent.socialProfile.user_metadata.teams[0].name)
+            .and('have.attr', 'href')
+            .and('equal', `#team/${organizerAgent.socialProfile.user_metadata.teams[0].id}`);
+          cy.get('#member-teams-table table tbody tr:nth-of-type(1) td').contains(organizerAgent.email);
         });
 
-        it('displays progress spinner', () => {
-          cy.on('window:confirm', str => true);
-          cy.get('#progress-spinner').should('not.exist');
-          cy.get('#team-profile-info #remove-team-from-organization').click();
-          // 2020-5-21
-          // Cypress goes too fast for this. Cypress also cannot intercept
-          // native `fetch` calls to allow stubbing and delaying the route.
-          // Shamefully, this is currently manually tested, though I suspect
-          // I will use this opportunity to learn Jest
-          // Despite its name, this test really ensures the spinner disappears
-          // after all is said and done
-          //cy.get('#progress-spinner').should('exist');
-          cy.wait(100);
-          cy.get('#progress-spinner').should('not.exist');
+        describe('record delete button', () => {
+          it('displays a popup warning', function(done) {
+            cy.on('window:confirm', (str) => {
+              expect(str).to.eq('Remove team from organization?');
+              done();
+            });
+            // Delete member team
+            cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
+          });
+
+          it('updates the interface', () => {
+            cy.on('window:confirm', str => true);
+
+            // Delete member team
+            cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
+            cy.wait(300);
+
+            cy.get('#member-teams-table tbody').find('tr').its('length').should('eq', 1);
+            cy.get('#member-teams-table table tbody tr td').contains('No records to display').should('exist');
+          });
+
+          it('lands in the proper place', () => {
+            cy.on('window:confirm', str => true);
+
+            cy.url().should('contain', `/#/organization/${organizerAgent.socialProfile.user_metadata.organizations[0].id}`);
+            // Delete member
+            cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
+
+            cy.wait(300);
+            cy.url().should('contain', `/#/organization/${organizerAgent.socialProfile.user_metadata.organizations[0].id}`);
+          });
+
+          it('displays a success message', () => {
+            cy.on('window:confirm', str => true);
+            cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
+            cy.wait(300);
+            cy.contains(`${organizerAgent.socialProfile.user_metadata.teams[0].name} have been removed from ${organizerAgent.socialProfile.user_metadata.organizations[0].name}`);
+          });
+
+          it('displays progress spinner', () => {
+            cy.on('window:confirm', str => true);
+            cy.get('#progress-spinner').should('not.exist');
+
+            cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
+
+            // 2020-5-21
+            // Cypress goes too fast for this. Cypress also cannot intercept
+            // native `fetch` calls to allow stubbing and delaying the route.
+            // Shamefully, this is currently manually tested, though I suspect
+            // I will use this opportunity to learn Jest
+            // Despite its name, this test really ensures the spinner disappears
+            // after all is said and done
+            //cy.get('#progress-spinner').should('exist');
+            cy.wait(100);
+            cy.get('#progress-spinner').should('not.exist');
+          });
         });
       });
     });
@@ -393,21 +637,34 @@ context('organizer/Organization delete team', function() {
         });
       });
 
-      it('displays the organizer-disabled interface', () => {
-        cy.get('#team-profile-info tbody').find('tr').its('length').should('eq', 3);
-        cy.get('#team-profile-info tbody tr td input#team-name-field').should('have.value', 'The Calgary Roughnecks');
-        cy.get('#team-profile-info tbody tr td input#team-name-field').should('be.disabled');
-        cy.get('#team-profile-info tbody tr td').contains('coach@example.com');
-        cy.get('#team-profile-info #add-team-to-organization').should('not.exist');
-        cy.get('#team-profile-info #remove-team-from-organization').should('not.exist');
-        cy.get('button#delete-team').should('not.exist');
-        cy.get('#team-profile-info button#save-team').should('not.exist');
-        cy.get('#team-profile-info button#cancel-team-changes').should('not.exist');
-        cy.get('#team-profile-info tbody tr:last-of-type td a').should('contain', organizerAgent.socialProfile.user_metadata.organizations[0].name).
-          and('have.attr', 'href').and('equal', `#organization/${organizerAgent.socialProfile.user_metadata.organizations[0].id}`);
+      context('in Team view', () => {
+        it('displays the organizer-disabled interface', () => {
+          cy.get('#team-profile-info tbody').find('tr').its('length').should('eq', 3);
+          cy.get('#team-profile-info tbody tr td input#team-name-field').should('have.value', 'The Calgary Roughnecks');
+          cy.get('#team-profile-info tbody tr td input#team-name-field').should('be.disabled');
+          cy.get('#team-profile-info tbody tr td').contains('coach@example.com');
+          cy.get('#team-profile-info #add-team-to-organization').should('not.exist');
+          cy.get('#team-profile-info #remove-team-from-organization').should('not.exist');
+          cy.get('button#delete-team').should('not.exist');
+          cy.get('#team-profile-info button#save-team').should('not.exist');
+          cy.get('#team-profile-info button#cancel-team-changes').should('not.exist');
+          cy.get('#team-profile-info tbody tr:last-of-type td a').should('contain', organizerAgent.socialProfile.user_metadata.organizations[0].name).
+            and('have.attr', 'href').and('equal', `#organization/${organizerAgent.socialProfile.user_metadata.organizations[0].id}`);
 
-        cy.get('#team-profile-info tbody tr:last-of-type td:last-of-type #close-team-organization-menu').should('not.exist');
-        cy.get('#team-profile-info tbody tr:last-of-type td:last-of-type #remove-team-from-organization').should('not.exist');
+          cy.get('#team-profile-info tbody tr:last-of-type td:last-of-type #close-team-organization-menu').should('not.exist');
+          cy.get('#team-profile-info tbody tr:last-of-type td:last-of-type #remove-team-from-organization').should('not.exist');
+        });
+      });
+
+      context('in Organization view', () => {
+        beforeEach(() => {
+          cy.contains('The National Lacrosse League').click();
+          cy.wait(300);
+        });
+
+        it('displays the organizer-disabled interface', () => {
+          cy.get('h3').contains('You are not a member of that organization');
+        });
       });
     });
   });

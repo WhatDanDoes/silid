@@ -107,7 +107,7 @@ context('root/Organization show', function() {
           it('displays member teams in a table', () => {
             cy.get('#member-teams-table h6').contains('Teams');
             cy.get('#member-teams-table table tbody tr td').contains('No records to display').should('not.exist');
-            cy.get('#member-teams-table button span span').contains('add_box').should('exist');
+            cy.get('#member-teams-table button span span').contains('add_box').should('not.exist');
 
             cy.get('#member-teams-table table thead tr th').contains('Name');
             cy.get('#member-teams-table table thead tr th').contains('Leader');
@@ -149,7 +149,7 @@ context('root/Organization show', function() {
           it('displays member teams in a table', () => {
             cy.get('#member-teams-table h6').contains('Teams');
             cy.get('#member-teams-table table tbody tr td').contains('No records to display').should('not.exist');
-            cy.get('#member-teams-table button span span').contains('add_box').should('exist');
+            cy.get('#member-teams-table button span span').contains('add_box').should('not.exist');
 
             cy.get('#member-teams-table table thead tr th').contains('Name');
             cy.get('#member-teams-table table thead tr th').contains('Leader');
@@ -218,7 +218,7 @@ context('root/Organization show', function() {
           it('displays member teams in a table', () => {
             cy.get('#member-teams-table h6').contains('Teams');
             cy.get('#member-teams-table table tbody tr td').contains('No records to display').should('not.exist');
-            cy.get('#member-teams-table button span span').contains('add_box').should('exist');
+            cy.get('#member-teams-table button span span').contains('add_box').should('not.exist');
 
             cy.get('#member-teams-table table thead tr th').contains('Name');
             cy.get('#member-teams-table table thead tr th').contains('Leader');
