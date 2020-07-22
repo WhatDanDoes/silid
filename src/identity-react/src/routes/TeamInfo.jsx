@@ -238,7 +238,7 @@ const TeamInfo = (props) => {
                         <TableCell align="right" component="th" scope="row">Organization:</TableCell>
                         <TableCell align="left">
                           <Link href={`#organization/${teamInfo.organization.id}`}>{teamInfo.organization.name}</Link>
-                          {(agent.isOrganizer && teamInfo.organization.organizer === agent.email ) && (
+                          {((agent.isOrganizer && teamInfo.organization.organizer === agent.email) || admin.isEnabled) && (
                             <Chip
                               key="remove-team-from-organization"
                               id="remove-team-from-organization"
@@ -256,7 +256,7 @@ const TeamInfo = (props) => {
                                     headers.append('Content-Type', 'application/json; charset=utf-8');
                                     console.log("/organization/${teamInfo.organization.id}/team/${teamInfo.id}");
                                     console.log(`/organization/${teamInfo.organization.id}/team/${teamInfo.id}`);
-                                    fetch(`/organization/${teamInfo.organization.id}/team/${teamInfo.id}`,
+                                    fetch(`/organization/${teamInfo.organization.id}/team/${teamInfo.id}${admin.isEnabled ? '/admin' : ''}`,
                                       {
                                         method: 'DELETE',
                                         headers,
@@ -287,7 +287,7 @@ const TeamInfo = (props) => {
                         </TableCell>
                       </TableRow>
                     )}
-                    { (agent.isOrganizer && !teamInfo.organization) && (
+                    {(agent.isOrganizer && !teamInfo.organization) && (
                       <TableRow>
                         <TableCell align="right" component="th" scope="row">Organization:</TableCell>
                         <TableCell align="left">
