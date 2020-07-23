@@ -97,7 +97,12 @@ const Agent = (props) => {
 
   useEffect(() => {
     if (service.status === 'loaded') {
-      setProfileData(service.payload);
+      if (service.payload.message) {
+        setFlashProps({ message: service.payload.message, variant: 'warning' });
+      }
+      else {
+        setProfileData(service.payload);
+      }
     }
   }, [service]);
 
@@ -437,7 +442,7 @@ const Agent = (props) => {
                   {
                     title: 'Name',
                     field: 'name',
-                    render: rowData => <Link href={`#team/${rowData.id}`}>{rowData.name}</Link>,
+                    render: rowData => {return profileData.email_verified ? <Link href={`#team/${rowData.id}`}>{rowData.name}</Link> : rowData.name},
                     editComponent: (props) => {
                       return (
                         <MTableEditField
@@ -464,7 +469,7 @@ const Agent = (props) => {
                 ]}
                 data={profileData.user_metadata ? profileData.user_metadata.teams : []}
                 options={{ search: false, paging: false }}
-                editable={ profileData.email === agent.email ? { onRowAdd: createTeam }: undefined}
+                editable={ (profileData.email === agent.email && profileData.email_verified) ? { onRowAdd: createTeam }: undefined}
               />
             </Grid>
             <Grid item>
