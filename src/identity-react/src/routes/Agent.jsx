@@ -5,6 +5,7 @@ import Typography from '@material-ui/core/Typography';
 import Link from '@material-ui/core/Link';
 import { green, red } from '@material-ui/core/colors';
 import Icon from '@material-ui/core/Icon';
+import Button from '@material-ui/core/Button';
 
 import { useAdminState } from '../auth/Admin';
 import { useAuthState } from '../auth/Auth';
@@ -336,6 +337,50 @@ const Agent = (props) => {
                 </Table>
               </TableContainer>
             </Grid>
+            {!profileData.email_verified ?
+              <Grid item className={classes.grid}>
+                <TableContainer>
+                  <Table className={classes.table} aria-label="Resend Verification Email">
+                    <TableBody>
+                      <TableRow>
+                        <TableCell align="center">
+                          <Button
+                            id="resend-verification-email-button"
+                            variant="contained"
+                            color="secondary"
+                            onClick={() => {
+                              const headers = new Headers();
+                              headers.append('Content-Type', 'application/json; charset=utf-8');
+                              fetch('/agent/verify',
+                                {
+                                  method: 'POST',
+                                  body: JSON.stringify({ id: profileData.user_id }),
+                                  headers,
+                                }
+                              )
+                              .then(response => response.json())
+                              .then(response => {
+                                if (response.message) {
+                                  setFlashProps({ message: response.message, variant: 'success' });
+                                }
+                                else {
+                                  setFlashProps({ message: 'Could not verify email was sent', variant: 'warning' });
+                                }
+                              })
+                              .catch(error => {
+                                setFlashProps({ message: error.message, variant: 'error' });
+                              });
+                            }}
+                          >
+                            Resend Verification Email
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Grid>
+            : ''}
             {profileData.user_metadata &&
              profileData.user_metadata.rsvps &&
              profileData.user_metadata.rsvps.length ?
@@ -351,7 +396,7 @@ const Agent = (props) => {
                     data={profileData.user_metadata ? profileData.user_metadata.rsvps : []}
                     options={{ search: false, paging: false }}
                     localization={{ body: { editRow: { deleteText: 'Are you sure you want to ignore this invitation?' } } }}
-                    editable={{
+                    editable={profileData.email_verified ? {
                       onRowDelete: (oldData) => new Promise((resolve, reject) => {
                         respondToTeamInvitation(oldData.uuid, 'reject').then(results => {
                           if (results.error) {
@@ -365,8 +410,8 @@ const Agent = (props) => {
                           reject(err);
                         });
                       }),
-                    }}
-                    actions={[
+                    } : undefined}
+                    actions={profileData.email_verified ? [
                       {
                         icon: 'check',
                         tooltip: 'Accept invitation',
@@ -388,7 +433,7 @@ const Agent = (props) => {
                             });
                           })
                       }
-                    ]}
+                    ]: []}
                   />
                 </Grid>
                 <br />
