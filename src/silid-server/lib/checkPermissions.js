@@ -63,10 +63,11 @@ function updateDbAndVerify(permissions, req, res, next) {
             { returning: true, where: { email: socialProfile.email } }).then(function([rowsUpdate, [updatedAgent]]) {
 
             // Has this agent verified his email?
-            if (!req.user.email_verified && !(req.method === 'GET' && (req.baseUrl + req.path === '/agent/'))) {
+            if (!req.user.email_verified &&
+                !(req.method === 'GET' && (req.baseUrl + req.path === '/agent/')) &&
+                !(req.method === 'POST' && (req.baseUrl + req.path === '/agent/verify'))) {
               return res.status(401).json({message: 'Check your email to verify your account'});
             }
-
 
             if (updatedAgent) {
               req.agent = updatedAgent;
@@ -92,7 +93,9 @@ function updateDbAndVerify(permissions, req, res, next) {
                 req.agent = agent;
 
                 // Has this agent verified his email?
-                if (!req.user.email_verified && !(req.method === 'GET' && (req.baseUrl + req.path === '/agent/'))) {
+                if (!req.user.email_verified &&
+                    !(req.method === 'GET' && (req.baseUrl + req.path === '/agent/')) &&
+                    !(req.method === 'POST' && (req.baseUrl + req.path === '/agent/verify'))) {
                   return res.status(401).json({message: 'Check your email to verify your account'});
                 }
 
