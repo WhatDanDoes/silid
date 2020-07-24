@@ -9,6 +9,7 @@ const stubAuth0ManagementEndpoint = require('../support/stubAuth0ManagementEndpo
 const stubUserAppMetadataUpdate = require('../support/auth0Endpoints/stubUserAppMetadataUpdate');
 const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
 const stubUserRolesRead = require('../support/auth0Endpoints/stubUserRolesRead');
+const stubEmailVerification = require('../support/auth0Endpoints/stubEmailVerification');
 const scope = require('../../config/permissions');
 const apiScope = require('../../config/apiPermissions');
 const jwt = require('jsonwebtoken');
@@ -981,6 +982,133 @@ describe('agentSpec', () => {
                 expect(res.body.message).toEqual('Check your email to verify your account');
                 done();
               });
+          });
+        });
+      });
+
+      describe('/agent/verify - email verification', () => {
+
+        describe('email already verified', () => {
+          beforeEach(done => {
+            stubAuth0ManagementApi((err, apiScopes) => {
+              if (err) return done.fail(err);
+
+              login(_identity, (err, session) => {
+                if (err) return done.fail(err);
+                authenticatedSession = session;
+
+                // Cached profile doesn't match "live" data, so agent needs to be updated
+                // with a call to Auth0
+                stubUserRead((err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  stubEmailVerification((err, apiScopes) => {
+                    if (err) return done.fail(err);
+                    ({emailVerificationScope, emailVerificationOauthTokenScope} = apiScopes);
+                    done();
+                  });
+                });
+              });
+            });
+          });
+
+          it('returns a friendly message', done => {
+            authenticatedSession
+              .post('/agent/verify')
+              .send({
+                id: 'some-uuid-v4'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(res.body.message).toBe('Email already verified');
+                done();
+              });
+          });
+
+          describe('Auth0', () => {
+            it('is not called to re-send an email verification', done => {
+              authenticatedSession
+                .post('/agent/verify')
+                .send({
+                  id: 'some-uuid-v4'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(emailVerificationOauthTokenScope.isDone()).toBe(false);
+                  expect(emailVerificationScope.isDone()).toBe(false);
+                  done();
+                });
+            });
+          });
+        });
+
+        describe('email not yet verified', () => {
+          beforeEach(done => {
+            stubAuth0ManagementApi({ userRead: {..._profile, email_verified: false} }, (err, apiScopes) => {
+              if (err) return done.fail(err);
+
+              login(_identity, [scope.delete.agents], (err, session) => {
+                if (err) return done.fail(err);
+                authenticatedSession = session;
+
+                // Cached profile doesn't match "live" data, so agent needs to be updated
+                // with a call to Auth0
+                stubUserRead((err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  stubEmailVerification((err, apiScopes) => {
+                    if (err) return done.fail(err);
+                    ({emailVerificationScope, emailVerificationOauthTokenScope} = apiScopes);
+                    done();
+                  });
+                });
+              });
+            });
+          });
+
+          it('returns a friendly message', done => {
+            authenticatedSession
+              .post('/agent/verify')
+              .send({
+                id: 'some-uuid-v4'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(res.body.message).toBe('Verification sent. Check your email');
+                done();
+              });
+          });
+
+          describe('Auth0', () => {
+            it('is called to re-send an email verification', done => {
+              authenticatedSession
+                .post('/agent/verify')
+                .send({
+                  id: 'some-uuid-v4'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(emailVerificationOauthTokenScope.isDone()).toBe(true);
+                  expect(emailVerificationScope.isDone()).toBe(true);
+                  done();
+                });
+            });
           });
         });
       });
