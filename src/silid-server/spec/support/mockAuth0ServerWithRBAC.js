@@ -708,6 +708,33 @@ require('../support/setupKeystore').then(keyStuff => {
         }
       });
 
+
+      /***************************************/
+      /**        EMAIL VERIFICATION         **/
+      /***************************************/
+      /**
+       * POST `/api/v2/jobs/email-verification`
+       *
+       * 2020-7-24
+       * Sample response taken from:
+       * https://auth0.com/docs/api/management/v2?_ga=2.91635738.1600097788.1595507023-63924015.1587573995#!/Jobs/post_verification_email
+       */
+      server.route({
+        method: 'POST',
+        path: '/api/v2/jobs/verification-email',
+        handler: (request, h) => {
+          console.log('POST /api/v2/jobs/email-verification');
+
+          return h.response({
+            "status": "completed",
+            "type": "verification_email",
+            "created_at": "",
+            "id": "job_0000000000000001"
+          });
+        }
+      });
+
+
       await server.start();
       console.log('Server running on %s', server.info.uri);
     };

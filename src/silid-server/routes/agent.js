@@ -194,4 +194,18 @@ router.delete('/', checkPermissions([scope.delete.agents]), function(req, res, n
   });
 });
 
+router.post('/verify', checkPermissions([scope.update.agents]), function(req, res, next) {
+  if (req.user.email_verified) {
+    return res.status(200).json({ message: 'Email already verified' });
+  }
+  const managementClient = getManagementClient(apiScope.update.users);
+  managementClient.jobs.verifyEmail({ user_id: req.body.id }).then(result => {
+    res.status(201).json({ message: 'Verification sent. Check your email' });
+  })
+  .catch(err => {
+    res.status(err.statusCode).json(err.message.error_description);
+  });
+});
+
+
 module.exports = router;

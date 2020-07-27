@@ -5,6 +5,7 @@ import Typography from '@material-ui/core/Typography';
 import Link from '@material-ui/core/Link';
 import { green, red } from '@material-ui/core/colors';
 import Icon from '@material-ui/core/Icon';
+import Button from '@material-ui/core/Button';
 
 import { useAdminState } from '../auth/Admin';
 import { useAuthState } from '../auth/Auth';
@@ -97,7 +98,12 @@ const Agent = (props) => {
 
   useEffect(() => {
     if (service.status === 'loaded') {
-      setProfileData(service.payload);
+      if (service.payload.message) {
+        setFlashProps({ message: service.payload.message, variant: 'warning' });
+      }
+      else {
+        setProfileData(service.payload);
+      }
     }
   }, [service]);
 
@@ -240,6 +246,7 @@ const Agent = (props) => {
                               className={classes.chip}
                               label={<Icon style={{ color: green[500] }}>add_circle</Icon>}
                               onClick={() => {
+                                setIsWaiting(true);
                                 const headers = new Headers();
                                 headers.append('Content-Type', 'application/json; charset=utf-8');
                                 fetch('/role',
@@ -267,6 +274,8 @@ const Agent = (props) => {
                                 })
                                 .catch(error => {
                                   setFlashProps({ message: error.message, variant: 'error' });
+                                }).finally(() => {
+                                  setIsWaiting(false);
                                 });
                               }}
                             />
@@ -285,6 +294,7 @@ const Agent = (props) => {
                                 label={data.name}
                                 className={classes.chip}
                                 onClick={() => {
+                                  setIsWaiting(true);
                                   const headers = new Headers();
                                   headers.append('Content-Type', 'application/json; charset=utf-8');
                                   fetch(`/role/${data.id}/agent/${profileData.user_id}`,
@@ -308,6 +318,9 @@ const Agent = (props) => {
                                   })
                                   .catch(error => {
                                     setFlashProps({ message: error.message, variant: 'error' });
+                                  })
+                                  .finally(() => {
+                                    setIsWaiting(false);
                                   });
                                 }}
                               />
@@ -331,6 +344,56 @@ const Agent = (props) => {
                 </Table>
               </TableContainer>
             </Grid>
+            {!profileData.email_verified ?
+              <Grid item className={classes.grid}>
+                <TableContainer>
+                  <Table className={classes.table} aria-label="Resend Verification Email">
+                    <TableBody>
+                      <TableRow>
+                        <TableCell align="center">
+                          {profileData.email === agent.email ?
+                            <Button
+                              id="resend-verification-email-button"
+                              variant="contained"
+                              color="secondary"
+                              onClick={() => {
+                                const headers = new Headers();
+                                headers.append('Content-Type', 'application/json; charset=utf-8');
+                                fetch('/agent/verify',
+                                  {
+                                    method: 'POST',
+                                    body: JSON.stringify({ id: profileData.user_id }),
+                                    headers,
+                                  }
+                                )
+                                .then(response => response.json())
+                                .then(response => {
+                                  if (response.message) {
+                                    setFlashProps({ message: response.message, variant: 'success' });
+                                  }
+                                  else {
+                                    setFlashProps({ message: 'Could not verify email was sent', variant: 'warning' });
+                                  }
+                                })
+                                .catch(error => {
+                                  setFlashProps({ message: error.message, variant: 'error' });
+                                });
+                              }}
+                            >
+                              Resend Verification Email
+                            </Button>
+                          :
+                            <div id='verification-status' style={{ color: 'red' }}>
+                              This is an unverified account
+                            </div>
+                          }
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Grid>
+            : ''}
             {profileData.user_metadata &&
              profileData.user_metadata.rsvps &&
              profileData.user_metadata.rsvps.length ?
@@ -346,7 +409,7 @@ const Agent = (props) => {
                     data={profileData.user_metadata ? profileData.user_metadata.rsvps : []}
                     options={{ search: false, paging: false }}
                     localization={{ body: { editRow: { deleteText: 'Are you sure you want to ignore this invitation?' } } }}
-                    editable={{
+                    editable={profileData.email_verified ? {
                       onRowDelete: (oldData) => new Promise((resolve, reject) => {
                         respondToTeamInvitation(oldData.uuid, 'reject').then(results => {
                           if (results.error) {
@@ -360,8 +423,8 @@ const Agent = (props) => {
                           reject(err);
                         });
                       }),
-                    }}
-                    actions={[
+                    } : undefined}
+                    actions={profileData.email_verified ? [
                       {
                         icon: 'check',
                         tooltip: 'Accept invitation',
@@ -383,7 +446,7 @@ const Agent = (props) => {
                             });
                           })
                       }
-                    ]}
+                    ]: []}
                   />
                 </Grid>
                 <br />
@@ -437,7 +500,7 @@ const Agent = (props) => {
                   {
                     title: 'Name',
                     field: 'name',
-                    render: rowData => <Link href={`#team/${rowData.id}`}>{rowData.name}</Link>,
+                    render: rowData => {return profileData.email_verified ? <Link href={`#team/${rowData.id}`}>{rowData.name}</Link> : rowData.name},
                     editComponent: (props) => {
                       return (
                         <MTableEditField
@@ -464,7 +527,7 @@ const Agent = (props) => {
                 ]}
                 data={profileData.user_metadata ? profileData.user_metadata.teams : []}
                 options={{ search: false, paging: false }}
-                editable={ profileData.email === agent.email ? { onRowAdd: createTeam }: undefined}
+                editable={ (profileData.email === agent.email && profileData.email_verified) ? { onRowAdd: createTeam }: undefined}
               />
             </Grid>
             <Grid item>

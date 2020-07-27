@@ -53,14 +53,21 @@ function updateDbAndVerify(permissions, req, res, next) {
           console.log('these aren\'t equal');
         }
       }
-      if (!req.agent || profileChanged) {
 
+      if (!req.agent || profileChanged) {
         managementClient = getManagementClient(apiScope.read.users);
         managementClient.getUser({id: socialProfile.user_id}).then(results => {
 
           models.Agent.update(
             { socialProfile: results, ...updates },
             { returning: true, where: { email: socialProfile.email } }).then(function([rowsUpdate, [updatedAgent]]) {
+
+            // Has this agent verified his email?
+            if (!req.user.email_verified &&
+                !(req.method === 'GET' && (req.baseUrl + req.path === '/agent/')) &&
+                !(req.method === 'POST' && (req.baseUrl + req.path === '/agent/verify'))) {
+              return res.status(401).json({message: 'Check your email to verify your account'});
+            }
 
             if (updatedAgent) {
               req.agent = updatedAgent;
@@ -84,6 +91,13 @@ function updateDbAndVerify(permissions, req, res, next) {
             else {
               models.Agent.create({ name: socialProfile.name, email: socialProfile.email, socialProfile: socialProfile }).then(agent => {
                 req.agent = agent;
+
+                // Has this agent verified his email?
+                if (!req.user.email_verified &&
+                    !(req.method === 'GET' && (req.baseUrl + req.path === '/agent/')) &&
+                    !(req.method === 'POST' && (req.baseUrl + req.path === '/agent/verify'))) {
+                  return res.status(401).json({message: 'Check your email to verify your account'});
+                }
 
                 if (req.agent.isSuper) {
                   req.user.isSuper = true;
@@ -205,6 +219,7 @@ const checkPermissions = function(permissions) {
         // 2020-6-23 It is assumed that if an agent is not a viewer, then no other role has been assigned
         managementClient = getManagementClient([apiScope.read.roles, apiScope.update.users].join(' '));
         managementClient.users.assignRoles({ id: req.user.user_id }, { roles: [roleId] }).then(results => {
+
           req.user.scope = [...new Set(req.user.scope.concat(roles.viewer))];
 
           checkForUpdates(req, err => {
