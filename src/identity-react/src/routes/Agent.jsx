@@ -246,6 +246,7 @@ const Agent = (props) => {
                               className={classes.chip}
                               label={<Icon style={{ color: green[500] }}>add_circle</Icon>}
                               onClick={() => {
+                                setIsWaiting(true);
                                 const headers = new Headers();
                                 headers.append('Content-Type', 'application/json; charset=utf-8');
                                 fetch('/role',
@@ -273,6 +274,8 @@ const Agent = (props) => {
                                 })
                                 .catch(error => {
                                   setFlashProps({ message: error.message, variant: 'error' });
+                                }).finally(() => {
+                                  setIsWaiting(false);
                                 });
                               }}
                             />
@@ -291,6 +294,7 @@ const Agent = (props) => {
                                 label={data.name}
                                 className={classes.chip}
                                 onClick={() => {
+                                  setIsWaiting(true);
                                   const headers = new Headers();
                                   headers.append('Content-Type', 'application/json; charset=utf-8');
                                   fetch(`/role/${data.id}/agent/${profileData.user_id}`,
@@ -314,6 +318,9 @@ const Agent = (props) => {
                                   })
                                   .catch(error => {
                                     setFlashProps({ message: error.message, variant: 'error' });
+                                  })
+                                  .finally(() => {
+                                    setIsWaiting(false);
                                   });
                                 }}
                               />
@@ -344,36 +351,42 @@ const Agent = (props) => {
                     <TableBody>
                       <TableRow>
                         <TableCell align="center">
-                          <Button
-                            id="resend-verification-email-button"
-                            variant="contained"
-                            color="secondary"
-                            onClick={() => {
-                              const headers = new Headers();
-                              headers.append('Content-Type', 'application/json; charset=utf-8');
-                              fetch('/agent/verify',
-                                {
-                                  method: 'POST',
-                                  body: JSON.stringify({ id: profileData.user_id }),
-                                  headers,
-                                }
-                              )
-                              .then(response => response.json())
-                              .then(response => {
-                                if (response.message) {
-                                  setFlashProps({ message: response.message, variant: 'success' });
-                                }
-                                else {
-                                  setFlashProps({ message: 'Could not verify email was sent', variant: 'warning' });
-                                }
-                              })
-                              .catch(error => {
-                                setFlashProps({ message: error.message, variant: 'error' });
-                              });
-                            }}
-                          >
-                            Resend Verification Email
-                          </Button>
+                          {profileData.email === agent.email ?
+                            <Button
+                              id="resend-verification-email-button"
+                              variant="contained"
+                              color="secondary"
+                              onClick={() => {
+                                const headers = new Headers();
+                                headers.append('Content-Type', 'application/json; charset=utf-8');
+                                fetch('/agent/verify',
+                                  {
+                                    method: 'POST',
+                                    body: JSON.stringify({ id: profileData.user_id }),
+                                    headers,
+                                  }
+                                )
+                                .then(response => response.json())
+                                .then(response => {
+                                  if (response.message) {
+                                    setFlashProps({ message: response.message, variant: 'success' });
+                                  }
+                                  else {
+                                    setFlashProps({ message: 'Could not verify email was sent', variant: 'warning' });
+                                  }
+                                })
+                                .catch(error => {
+                                  setFlashProps({ message: error.message, variant: 'error' });
+                                });
+                              }}
+                            >
+                              Resend Verification Email
+                            </Button>
+                          :
+                            <div id='verification-status' style={{ color: 'red' }}>
+                              This is an unverified account
+                            </div>
+                          }
                         </TableCell>
                       </TableRow>
                     </TableBody>
