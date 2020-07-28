@@ -75,13 +75,15 @@ context('organizer/Agent show', function() {
         cy.get('#profile-table table tbody tr td').contains(organizerAgent.socialProfile.name);
         cy.get('#profile-table table tbody tr th').contains('Email:');
         cy.get('#profile-table table tbody tr td').contains(organizerAgent.socialProfile.email);
-        cy.get('#profile-table table tbody tr th').contains('Locale:');
+        cy.get('#profile-table table tbody tr th').contains('Provider Locale:');
         cy.get('#profile-table table tbody tr td').contains(organizerAgent.socialProfile.locale);
-        cy.get('#profile-table table tbody tr th').contains('Roles:');
-        cy.get('#profile-table table tbody tr div').its('length').should('eq', 2);
-        cy.get('#profile-table table tbody tr div').contains('organizer');
-        cy.get('#profile-table table tbody tr div').contains('viewer');
-        cy.get('#profile-table table tbody tr div#assign-role').should('not.exist');
+        cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
+        cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('be.disabled');
+        cy.get('#profile-table table tbody tr:last-of-type th').contains('Roles:');
+        cy.get('#profile-table table tbody tr:last-of-type div').its('length').should('eq', 2);
+        cy.get('#profile-table table tbody tr:last-of-type div:first-of-type').contains('organizer');
+        cy.get('#profile-table table tbody tr:last-of-type div:last-of-type').contains('viewer');
+        cy.get('#profile-table table tbody tr:last-of-type div#assign-role').should('not.exist');
       });
 
       it('does not display the assign-role chip', () => {
@@ -235,13 +237,15 @@ context('organizer/Agent show', function() {
         cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.name);
         cy.get('#profile-table table tbody tr th').contains('Email:');
         cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.email);
-        cy.get('#profile-table table tbody tr th').contains('Locale:');
+        cy.get('#profile-table table tbody tr th').contains('Provider Locale:');
         cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.locale);
-        cy.get('#profile-table table tbody tr th').contains('Roles:');
-        cy.get('#profile-table table tbody tr div').its('length').should('eq', 2);
-        cy.get('#profile-table table tbody tr div').contains('organizer');
-        cy.get('#profile-table table tbody tr div').contains('viewer');
-        cy.get('#profile-table table tbody tr div#assign-role').should('not.exist');
+        cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
+        cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
+        cy.get('#profile-table table tbody tr:last-of-type th').contains('Roles:');
+        cy.get('#profile-table table tbody tr:last-of-type div').its('length').should('eq', 2);
+        cy.get('#profile-table table tbody tr:last-of-type div:first-of-type').contains('organizer');
+        cy.get('#profile-table table tbody tr:last-of-type div:last-of-type').contains('viewer');
+        cy.get('#profile-table table tbody tr:last-of-type div#assign-role').should('not.exist');
       });
 
       describe('organizations', () => {

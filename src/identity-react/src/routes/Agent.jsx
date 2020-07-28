@@ -30,6 +30,16 @@ import usePostTeamService from '../services/usePostTeamService';
 import useGetTeamInviteActionService from '../services/useGetTeamInviteActionService';
 import usePostOrganizationService from '../services/usePostOrganizationService';
 
+/**
+ * For SIL Locale selection
+ *
+ * 2020-7-27 - Swiped from https://material-ui.com/components/autocomplete/#asynchronous-requests
+ */
+import TextField from '@material-ui/core/TextField';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CircularProgress from '@material-ui/core/CircularProgress'
+
+
 const useStyles = makeStyles(theme =>
   createStyles({
     root: {
@@ -106,6 +116,42 @@ const Agent = (props) => {
       }
     }
   }, [service]);
+
+  /**
+   * For SIL Locale selection
+   *
+   * 2020-7-27 - Swiped from https://material-ui.com/components/autocomplete/#asynchronous-requests
+   */
+  const [localeIsOpen, setLocaleIsOpen] = React.useState(false);
+  const [localeOptions, setLocaleOptions] = React.useState([]);
+  const loadingLocale = localeIsOpen && localeOptions.length === 0;
+
+  React.useEffect(() => {
+    let active = true;
+
+    if (!loadingLocale) {
+      return undefined;
+    }
+
+    (async () => {
+      const response = await fetch('/locale');
+      const languages = await response.json();
+
+      if (active) {
+        setLocaleOptions(languages);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [loadingLocale]);
+
+  React.useEffect(() => {
+    if (!localeIsOpen) {
+      setLocaleOptions([]);
+    }
+  }, [localeIsOpen]);
 
   /**
    * Create a new team
@@ -197,8 +243,45 @@ const Agent = (props) => {
                       <TableCell align="left">{profileData.email}</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell align="right" component="th" scope="row">Locale:</TableCell>
+                      <TableCell align="right" component="th" scope="row">Provider Locale:</TableCell>
                       <TableCell align="left">{profileData.locale}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell align="right" component="th" scope="row">SIL Locale:</TableCell>
+                      <TableCell align="left">
+                        <Autocomplete
+                          id="sil-local-dropdown"
+                          style={{ width: 300 }}
+                          open={localeIsOpen}
+                          onOpen={() => {
+                            setLocaleIsOpen(true);
+                          }}
+                          onClose={() => {
+                            setLocaleIsOpen(false);
+                          }}
+                          getOptionSelected={(option, value) => option.name === value.name}
+                          getOptionLabel={(option) => option.name}
+                          options={localeOptions}
+                          loading={loadingLocale}
+                          disabled={profileData.email !== agent.email}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Asynchronous"
+                              variant="outlined"
+                              InputProps={{
+                                ...params.InputProps,
+                                endAdornment: (
+                                  <React.Fragment>
+                                    {loadingLocale ? <CircularProgress color="inherit" size={20} /> : null}
+                                    {params.InputProps.endAdornment}
+                                  </React.Fragment>
+                                ),
+                              }}
+                            />
+                          )}
+                        />
+                      </TableCell>
                     </TableRow>
                     {profileData.roles && (
                       <TableRow>
@@ -339,7 +422,7 @@ const Agent = (props) => {
                           </li>
                         </TableCell>
                       </TableRow>
-                    : <TableRow />}
+                    : ''}
                   </TableBody>
                 </Table>
               </TableContainer>
