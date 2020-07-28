@@ -17,15 +17,17 @@ const getManagementClient = require('../lib/getManagementClient');
  * This retrieves all living and constructed languages as decided by ISO-639-3
  */
 const _languages = [];
-router.get('/', checkPermissions([scope.read.agents]), function(req, res, next) {
-  // This will only be called once per server execution
-  if (!_languages.length) {
-    for (let lang of iso6393) {
-      if (lang.type === 'living' || lang.type === 'constructed') {
-        _languages.push(lang);
-      }
+// This will only be called once per server execution
+if (!_languages.length) {
+  for (let lang of iso6393) {
+    if (lang.type === 'living' || lang.type === 'constructed') {
+      _languages.push(lang);
     }
   }
+  _languages.sort((a, b) => a.name < b.name ? -1 : 1);
+}
+
+router.get('/', checkPermissions([scope.read.agents]), function(req, res, next) {
   res.status(200).json(_languages);
 });
 
