@@ -2,17 +2,10 @@ const express = require('express');
 const router = express.Router();
 const iso6393 = require('iso-639-3')
 
-//const models = require('../models');
-//const mailer = require('../mailer');
-//const uuid = require('uuid');
-
-//const upsertUpdates = require('../lib/upsertUpdates');
-
 /**
  * Configs must match those defined for RBAC at Auth0
  */
 const scope = require('../config/permissions');
-//const roles = require('../config/roles');
 const checkPermissions = require('../lib/checkPermissions');
 
 const apiScope = require('../config/apiPermissions');
@@ -56,7 +49,6 @@ router.put('/:code', checkPermissions([scope.update.agents]), function(req, res,
   if (!lang) {
     return res.status(404).json({message: 'That language does not exist'});
   }
-
 
   req.user.user_metadata.silLocale = lang;
 
