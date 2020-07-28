@@ -310,7 +310,7 @@ context('viewer/Agent show', function() {
           cy.get('#profile-table table tbody tr th').contains('Provider Locale:');
           cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.locale);
           cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
-          cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
+          cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('be.disabled');
           cy.get('#profile-table table tbody tr:last-of-type th').contains('Roles:');
           cy.get('#profile-table table tbody tr:last-of-type div').its('length').should('eq', 1);
           cy.get('#profile-table table tbody tr:last-of-type div').contains('viewer');
