@@ -30,6 +30,15 @@ import usePostTeamService from '../services/usePostTeamService';
 import useGetTeamInviteActionService from '../services/useGetTeamInviteActionService';
 import usePostOrganizationService from '../services/usePostOrganizationService';
 
+/**
+ * For SIL Locale selection
+ *
+ * 2020-7-27 - Swiped from https://material-ui.com/components/autocomplete/#asynchronous-requests
+ */
+import TextField from '@material-ui/core/TextField';
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import CircularProgress from '@material-ui/core/CircularProgress'
+
 const useStyles = makeStyles(theme =>
   createStyles({
     root: {
@@ -102,10 +111,45 @@ const Agent = (props) => {
         setFlashProps({ message: service.payload.message, variant: 'warning' });
       }
       else {
+        console.log('JSON.stringify(service.payload)');
+        console.log(JSON.stringify(service.payload));
         setProfileData(service.payload);
+        console.log('JSON.stringify(profileData)');
+        console.log(JSON.stringify(profileData));
       }
     }
   }, [service]);
+
+  /**
+   * For SIL Locale selection
+   *
+   * 2020-7-27 - Swiped from https://material-ui.com/components/autocomplete/#asynchronous-requests
+   */
+  const [localeIsOpen, setLocaleIsOpen] = React.useState(false);
+  const [localeOptions, setLocaleOptions] = React.useState([]);
+  const [isSettingLocale, setIsSettingLocale] = React.useState(false);
+  const loadingLocale = localeIsOpen && localeOptions.length === 0;
+
+  React.useEffect(() => {
+    let active = true;
+
+    if (!loadingLocale) {
+      return undefined;
+    }
+
+    (async () => {
+      const response = await fetch('/locale');
+      const languages = await response.json();
+
+      if (active) {
+        setLocaleOptions(languages);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [loadingLocale]);
 
   /**
    * Create a new team
@@ -197,8 +241,83 @@ const Agent = (props) => {
                       <TableCell align="left">{profileData.email}</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell align="right" component="th" scope="row">Locale:</TableCell>
+                      <TableCell align="right" component="th" scope="row">Provider Locale:</TableCell>
                       <TableCell align="left">{profileData.locale}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell align="right" component="th" scope="row">SIL Locale:</TableCell>
+                      <TableCell align="left">
+                        <Autocomplete
+                          id="sil-local-dropdown"
+                          style={{ width: 300 }}
+                          open={localeIsOpen}
+                          onOpen={() => {
+                            setLocaleIsOpen(true);
+                          }}
+                          onClose={async(event, value) => {
+                            setLocaleIsOpen(false);
+                          }}
+                          onChange={async (event, value) => {
+
+                            if (value && value.iso6393) {
+                              return new Promise((resolve, reject) => {
+                                setIsSettingLocale(true);
+                                const headers = new Headers();
+                                headers.append('Access-Control-Allow-Credentials', 'true');
+                                headers.append('Content-Type', 'application/json; charset=utf-8');
+                                fetch(`/locale/${value.iso6393}`,
+                                  {
+                                    method: 'PUT',
+                                    headers,
+                                  }
+                                )
+                                .then(response => response.json())
+                                .then(async(response) => {
+                                  if (response.message) {
+                                    setFlashProps({ message: response.message, variant: 'error' });
+                                  }
+                                  else {
+                                    setProfileData(response);
+                                    setFlashProps({ message: 'Preferred SIL language updated', variant: 'success' });
+                                    setLocaleOptions(localeOptions);
+                                  }
+
+                                  resolve();
+                                })
+                                .catch(error => {
+                                  setFlashProps({ message: error.message, variant: 'error' });
+                                  reject(error);
+                                }).finally(() => {
+                                  setIsSettingLocale(false);
+                                });
+                              });
+                            }
+                          }}
+                          getOptionSelected={(option, value) => option.name === value.name}
+                          getOptionLabel={(option) => `${option.name}`}
+                          options={localeOptions}
+                          loading={loadingLocale}
+                          disabled={profileData.email !== agent.email || !profileData.email_verified}
+                          value={profileData.user_metadata && profileData.user_metadata.silLocale ? profileData.user_metadata.silLocale : { name: 'English', iso6393: 'eng' }}
+                          autoHighlight
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Set SIL language preference"
+                              variant="outlined"
+                              InputProps={{
+                                ...params.InputProps,
+                                endAdornment: (
+                                  <React.Fragment>
+                                    {loadingLocale || isSettingLocale ? <CircularProgress id="set-locale-spinner" color="inherit" size={20} /> : null}
+                                    {params.InputProps.endAdornment}
+                                  </React.Fragment>
+                                ),
+                              }}
+                            />
+                          )}
+                        />
+                      </TableCell>
                     </TableRow>
                     {profileData.roles && (
                       <TableRow>
@@ -339,7 +458,7 @@ const Agent = (props) => {
                           </li>
                         </TableCell>
                       </TableRow>
-                    : <TableRow />}
+                    : undefined}
                   </TableBody>
                 </Table>
               </TableContainer>
