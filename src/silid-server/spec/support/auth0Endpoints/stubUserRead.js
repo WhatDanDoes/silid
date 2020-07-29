@@ -42,7 +42,9 @@ module.exports = function(profile, done, options) {
         .log(console.log)
         .get(/api\/v2\/users\/[\w-%]+$/)
         .query({})
-        .reply(options.status, profile || _profile);
+        .reply(options.status, (uri, requestBody) => {
+          return profile || _profile;
+        });
 
       done(null, {userReadScope, oauthTokenScope});
 
