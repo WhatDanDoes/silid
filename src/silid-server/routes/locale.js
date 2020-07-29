@@ -57,7 +57,7 @@ router.put('/:code', checkPermissions([scope.update.agents]), function(req, res,
   // Update user_metadata at Auth0
   const managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
   managementClient.updateUserMetadata({id: req.user.user_id}, req.user.user_metadata).then(agent => {
-    res.status(201).json(agent);
+    res.redirect(303, '/agent');
   }).catch(err => {
     res.status(err.statusCode).json(err.message.error_description);
   });

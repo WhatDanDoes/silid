@@ -6,6 +6,7 @@ const request = require('supertest');
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
 const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
+const stubUserRolesRead = require('../support/auth0Endpoints/stubUserRolesRead');
 const stubUserAppMetadataUpdate = require('../support/auth0Endpoints/stubUserAppMetadataUpdate');
 const scope = require('../../config/permissions');
 const apiScope = require('../../config/apiPermissions');
@@ -130,7 +131,22 @@ describe('localeSpec', () => {
                       if (err) return done.fail();
                       ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
 
-                      done();
+                      /**
+                       * For redirect after locale update
+                       */
+                      stubAuth0ManagementApi((err, apiScopes) => {
+                        if (err) return done.fail();
+
+                        stubUserRead((err, apiScopes) => {
+                          if (err) return done.fail();
+
+                          stubUserRolesRead((err, apiScopes) => {
+                            if (err) return done.fail();
+
+                            done();
+                          });
+                        });
+                      });
                     });
                   });
                 });
@@ -141,8 +157,9 @@ describe('localeSpec', () => {
               authenticatedSession
                 .put('/locale/tlh')
                 .set('Accept', 'application/json')
+                .redirects(1)
                 .expect('Content-Type', /json/)
-                .expect(201)
+                .expect(200)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
@@ -155,6 +172,18 @@ describe('localeSpec', () => {
                   expect(res.body.user_metadata.silLocale.iso6393).toEqual('tlh');
                   expect(res.body.user_metadata.silLocale.iso6392B).toEqual('tlh');
                   expect(res.body.user_metadata.silLocale.iso6392T).toEqual('tlh');
+                  done();
+                });
+            });
+
+            it('redirects to the /agent route', done => {
+              authenticatedSession
+                .put('/locale/tlh')
+                .set('Accept', 'application/json')
+                .expect('Location', '/agent')
+                .expect(303)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
                   done();
                 });
             });
@@ -177,8 +206,8 @@ describe('localeSpec', () => {
                 authenticatedSession
                   .put('/locale/tlh')
                   .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(201)
+                  .expect('Location', '/agent')
+                  .expect(303)
                   .end(function(err, res) {
                     if (err) return done.fail(err);
 
@@ -218,23 +247,51 @@ describe('localeSpec', () => {
                   stubUserRead((err, apiScopes) => {
                     if (err) return done.fail();
 
-                    stubUserAppMetadataUpdate((err, apiScopes) => {
+                    stubUserAppMetadataUpdate(_profile, (err, apiScopes) => {
                       if (err) return done.fail();
                       ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
 
-                      done();
+                      /**
+                       * For redirect after locale update
+                       */
+                      stubAuth0ManagementApi((err, apiScopes) => {
+                        if (err) return done.fail();
+
+                        stubUserRead((err, apiScopes) => {
+                          if (err) return done.fail();
+
+                          stubUserRolesRead((err, apiScopes) => {
+                            if (err) return done.fail();
+
+                            done();
+                          });
+                        });
+                      });
                     });
                   });
                 });
               });
             });
 
+            it('redirects to the /agent route', done => {
+              authenticatedSession
+                .put('/locale/tlh')
+                .set('Accept', 'application/json')
+                .expect('Location', '/agent')
+                .expect(303)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+                  done();
+                });
+            });
+
             it('returns the agent\'s profile with the silLocale field', done => {
               authenticatedSession
                 .put('/locale/tlh')
                 .set('Accept', 'application/json')
+                .redirects(1)
                 .expect('Content-Type', /json/)
-                .expect(201)
+                .expect(200)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
@@ -269,8 +326,8 @@ describe('localeSpec', () => {
                 authenticatedSession
                   .put('/locale/tlh')
                   .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(201)
+                  .expect('Location', '/agent')
+                  .expect(303)
                   .end(function(err, res) {
                     if (err) return done.fail(err);
 
