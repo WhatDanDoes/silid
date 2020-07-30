@@ -712,7 +712,7 @@ const Agent = (props) => {
                 isLoading={isWaiting}
                 columns={[
                   {
-                    title: 'Teams',
+                    title: 'Name',
                     field: 'name',
                     render: rowData => {return profileData.email_verified ? <Link href={`#team/${rowData.id}`}>{rowData.name}</Link> : rowData.name},
                     editComponent: (props) => {
