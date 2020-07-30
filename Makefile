@@ -59,5 +59,8 @@ silid-compose-restart-client:
 silid-e2e-open:
 	cd $(client_src); npx cypress	open
 
+silid-e2e-run:
+	cd $(client_src); npx cypress	run --headed
+
 silid-e2e-headless:
 	cd $(client_src); npm run test:headless
