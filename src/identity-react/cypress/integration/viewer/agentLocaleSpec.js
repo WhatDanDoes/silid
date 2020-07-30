@@ -82,20 +82,32 @@ context('viewer/Agent locale', function() {
             });
 
             it('updates the interface', () => {
-              cy.get('h3').contains('Profile');
-              cy.get('#profile-table table tbody tr th').contains('Name:');
+              // Profile table
+              cy.get('h3').contains('tlhIlHal De\'');
+
+              // Name
+              cy.get('#profile-table table tbody tr th').contains('Pong:');
               cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.name);
-              cy.get('#profile-table table tbody tr th').contains('Email:');
+              // Email
+              cy.get('#profile-table table tbody tr th').contains('De\'wI\' QIn:');
               cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.email);
-              cy.get('#profile-table table tbody tr th').contains('Provider Locale:');
+              // Provider locale
+              cy.get('#profile-table table tbody tr th').contains('Latlh Hol:');
               cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.locale);
-              cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
+
+              // SIL locale
+              cy.get('#profile-table table tbody tr th').contains('SIL Hol:');
               cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
               cy.get('#profile-table table tbody tr td input#sil-local-dropdown').should('have.attr', 'value').and('equal', 'Klingon');
-              cy.get('#profile-table table tbody tr:last-of-type th').contains('Roles:');
+
+              // Roles
+              cy.get('#profile-table table tbody tr:last-of-type th').contains('Naw\':');
               cy.get('#profile-table table tbody tr:last-of-type div').its('length').should('eq', 1);
               cy.get('#profile-table table tbody tr:last-of-type div').contains('viewer');
               cy.get('#profile-table table tbody tr:last-of-type div#assign-role').should('not.exist');
+
+              // Social Data
+              cy.get('h3:last-of-type').contains('BoS De\'');
             });
 
             it('persists the change', () => {
@@ -106,48 +118,21 @@ context('viewer/Agent locale', function() {
             });
 
             describe('interface language', () => {
-              describe('agent show view', () => {
+              describe('#teams-table', () => {
                 beforeEach(() => {
                   cy.contains('Identity').click();
                   cy.wait(300);
                 });
 
-                it('changes interface language', () => {
-                  // Profile table
-                  cy.get('h3').contains('tlhIlHal De\'');
-                  // Name
-                  cy.get('#profile-table table tbody tr th').contains('Pong:');
-                  // Email
-                  cy.get('#profile-table table tbody tr th').contains('De\'wI\' QIn:');
-                  // Provider locale
-                  cy.get('#profile-table table tbody tr th').contains('Latlh Hol:');
-                  // SIL locale
-                  cy.get('#profile-table table tbody tr th').contains('SIL Hol:');
-                  // Roles
-                  cy.get('#profile-table table tbody tr:last-of-type th').contains('Naw\':');
-
-                  // Organizations table
-//                  cy.get('#organizations-table h6').contains('Teams');
-//                  cy.get('#organizations-table table tbody tr td').contains('No records to display');
-//                  cy.get('#organizations-table table thead tr th').contains('Name');
-//                  cy.get('#organizations-table table thead tr th').contains('Leader');
-
-
+                it('displays translated copy', () => {
                   // Teams table
-//                  cy.get('#teams-table h6').contains('Ghom');
+                  cy.get('#teams-table h6').contains('Ghom');
                   // No records to display
-//                  cy.get('#teams-table table tbody tr td').contains('Pagh ta');
+                  cy.get('#teams-table table tbody tr td').contains('Pagh ta');
                   // Name
-//                  cy.get('#teams-table table thead tr th').contains('Pong');
-//                  // Leader
-//                  cy.get('#teams-table table thead tr th').contains('DevwI\'');
-//
-                  // Social Data
-                  cy.get('h3:last-of-type').contains('BoS De\'');
-
-                });
-
-                it('changes interface language', () => {
+                  cy.get('#teams-table table thead tr th').contains('Pong');
+                  // Leader
+                  cy.get('#teams-table table thead tr th').contains('DevwI\'');
                 });
               });
             });

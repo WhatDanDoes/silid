@@ -708,11 +708,11 @@ const Agent = (props) => {
             : '' }
             <Grid id="teams-table" item className={classes.grid}>
               <MaterialTable
-                title='Teams'
+                title={messages[locale]['teams-table.header']}
                 isLoading={isWaiting}
                 columns={[
                   {
-                    title: 'Name',
+                    title: messages[locale]['teams-table.name'],
                     field: 'name',
                     render: rowData => {return profileData.email_verified ? <Link href={`#team/${rowData.id}`}>{rowData.name}</Link> : rowData.name},
                     editComponent: (props) => {
@@ -737,7 +737,7 @@ const Agent = (props) => {
                       );
                     }
                   },
-                  { title: 'Leader', field: 'leader', editable: 'never' }
+                  { title: messages[locale]['teams-table.leader'], field: 'leader', editable: 'never' }
                 ]}
                 data={profileData.user_metadata ? profileData.user_metadata.teams : []}
                 options={{ search: false, paging: false }}
@@ -745,10 +745,11 @@ const Agent = (props) => {
                     //title: {messages[locale]['teams-table.header']},
                 localization={{
                   header: {
-
+                    name: messages[locale]['teams-table.name'],
+                    leader: messages[locale]['teams-table.leader']
                   },
                   body: {
-                    emptyDataSourceMessages: messages[locale]['teams-table.empty'],
+                    emptyDataSourceMessage: messages[locale]['teams-table.empty'],
                   }
 
                 }}
