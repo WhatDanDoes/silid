@@ -254,8 +254,6 @@ const TeamInfo = (props) => {
 
                                     const headers = new Headers();
                                     headers.append('Content-Type', 'application/json; charset=utf-8');
-                                    console.log("/organization/${teamInfo.organization.id}/team/${teamInfo.id}");
-                                    console.log(`/organization/${teamInfo.organization.id}/team/${teamInfo.id}`);
                                     fetch(`/organization/${teamInfo.organization.id}/team/${teamInfo.id}${admin.isEnabled ? '/admin' : ''}`,
                                       {
                                         method: 'DELETE',
