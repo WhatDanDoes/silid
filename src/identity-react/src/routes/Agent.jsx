@@ -115,7 +115,7 @@ const messages = {
 
 
 
-const flattenedMessages = (messages, roots = [], sep = '.') => Object.keys(messages).reduce((memo, prop) => Object.assign({}, memo, Object.prototype.toString.call(messages[prop]) === '[object Object]' ? flatten(messages[prop], roots.concat([prop])) : {[roots.concat([prop]).join(sep)]: messages[prop]}), {})
+//const flattenedMessages = (messages, roots = [], sep = '.') => Object.keys(messages).reduce((memo, prop) => Object.assign({}, memo, Object.prototype.toString.call(messages[prop]) === '[object Object]' ? flatten(messages[prop], roots.concat([prop])) : {[roots.concat([prop]).join(sep)]: messages[prop]}), {})
 
 
 
@@ -192,19 +192,11 @@ const Agent = (props) => {
         setFlashProps({ message: service.payload.message, variant: 'warning' });
       }
       else {
-        console.log('JSON.stringify(service.payload)');
-        console.log(JSON.stringify(service.payload));
         setProfileData(service.payload);
-        console.log('JSON.stringify(profileData)');
-        console.log(JSON.stringify(profileData));
 
         if (service.payload.user_metadata && service.payload.user_metadata.silLocale && service.payload.user_metadata.silLocale.iso6393) {
-        console.log('LOCALL SET TO');
-        console.log(service.payload.user_metadata.silLocale);
           setLocale(service.payload.user_metadata.silLocale.iso6393);
         }
-
-//agent.user_metadata && agent.user_metadata.silLocale && agent.user_metadata.silLocale.iso6393 ? agent.user_metadata.silLocale.iso6393 : 'eng'
       }
     }
   }, [service]);
