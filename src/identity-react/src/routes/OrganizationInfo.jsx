@@ -26,10 +26,7 @@ import { useAdminState } from '../auth/Admin';
 
 import useGetOrganizationInfoService from '../services/useGetOrganizationInfoService';
 import usePutOrganizationService from '../services/usePutOrganizationService';
-import usePutOrganizationMemberService from '../services/usePutOrganizationMemberService';
 import useDeleteOrganizationService from '../services/useDeleteOrganizationService';
-import useDeleteMemberAgentService from '../services/useDeleteMemberAgentService';
-import useDeleteTeamService from '../services/useDeleteTeamService';
 
 const useStyles = makeStyles((theme) =>
   createStyles({
@@ -65,8 +62,6 @@ const OrganizationInfo = (props) => {
 
   const [prevInputState, setPrevInputState] = useState({});
 
-  const [agentFormVisible, setAgentFormVisible] = useState(false);
-  const [prevState, setPrevState] = useState({});
   const [toAgent, setToAgent] = useState(null);
   const [flashProps, setFlashProps] = useState({});
   const [isWaiting, setIsWaiting] = useState(false);
@@ -75,10 +70,7 @@ const OrganizationInfo = (props) => {
 
   const service = useGetOrganizationInfoService(props.match.params.id);
   let { publishOrganization } = usePutOrganizationService();
-  let { putOrganizationMember } = usePutOrganizationMemberService();
   let { deleteOrganization } = useDeleteOrganizationService();
-  let { deleteMemberAgent } = useDeleteMemberAgentService(props.match.params.id);
-  let { deleteTeam } = useDeleteTeamService();
 
   useEffect(() => {
     if (service.status === 'loaded') {
