@@ -144,6 +144,7 @@ context('viewer/Agent locale', function() {
               cy.wait(300);
               // This needs to _blur_ because `Enter` does nothing when there's no valid selection
               cy.get('#profile-table table tbody tr td #sil-local-dropdown').type('danielese{enter}').blur();
+              cy.wait(300);
             });
 
             it('displays agent\'s info', () => {
@@ -170,6 +171,43 @@ context('viewer/Agent locale', function() {
               cy.reload();
               cy.wait(300);
               cy.get('#profile-table table tbody tr td input#sil-local-dropdown').should('have.attr', 'value').and('equal', 'English');
+              cy.get('#profile-table table tbody tr td label[for="sil-local-dropdown"]').contains('Set SIL language preference');
+            });
+          });
+
+          context('language with no translated copy selected', () => {
+            beforeEach(() => {
+              cy.get('#profile-table table tbody tr td #sil-local-dropdown + div button:last-of-type').click();
+              cy.wait(300);
+              // This needs to _blur_ because `Enter` does nothing when there's no valid selection
+              cy.get('#profile-table table tbody tr td #sil-local-dropdown').type('Chinook{downarrow}{enter}');
+              cy.wait(300);
+            });
+
+            it('displays agent\'s info', () => {
+              cy.get('h3').contains('Profile');
+              cy.get('#profile-table table tbody tr th').contains('Name:');
+              cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.name);
+              cy.get('#profile-table table tbody tr th').contains('Email:');
+              cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.email);
+              cy.get('#profile-table table tbody tr th').contains('Provider Locale:');
+              cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.locale);
+              cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
+              cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
+              cy.get('#profile-table table tbody tr td label[for="sil-local-dropdown"]').contains('Set SIL language preference');
+              cy.get('#profile-table table tbody tr td input#sil-local-dropdown').should('have.attr', 'value').and('equal', 'Chinook jargon');
+              cy.get('#profile-table table tbody tr:last-of-type th').contains('Roles:');
+              cy.get('#profile-table table tbody tr:last-of-type div').its('length').should('eq', 1);
+              cy.get('#profile-table table tbody tr:last-of-type div').contains('viewer');
+              cy.get('#profile-table table tbody tr:last-of-type div#assign-role').should('not.exist');
+            });
+
+            it('persists in having not changed', () => {
+              cy.get('#profile-table table tbody tr td label[for="sil-local-dropdown"]').contains('Set SIL language preference');
+              cy.get('#profile-table table tbody tr td input#sil-local-dropdown').should('have.attr', 'value').and('equal', 'Chinook jargon');
+              cy.reload();
+              cy.wait(300);
+              cy.get('#profile-table table tbody tr td input#sil-local-dropdown').should('have.attr', 'value').and('equal', 'Chinook jargon');
               cy.get('#profile-table table tbody tr td label[for="sil-local-dropdown"]').contains('Set SIL language preference');
             });
           });
