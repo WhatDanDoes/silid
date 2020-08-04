@@ -45,11 +45,20 @@ export function LanguageProvider({children}) {
       fetch(`/languages/${langCode}.json`, {method: 'GET', headers: headers}).then(response => {
         return response.json();
       }).then(messages => {
-        setIntl(createIntl({
-          locale: langCode,
-          defaultLocale: 'eng',
-          messages: messages
-        }, cache));
+        if (messages.statusCode) {
+          setIntl(createIntl({
+            locale: langCode,
+            defaultLocale: 'eng',
+            messages: defaultEnglishMessages
+          }, cache));
+        }
+        else {
+          setIntl(createIntl({
+            locale: langCode,
+            defaultLocale: 'eng',
+            messages: messages
+          }, cache));
+        }
       }).catch(error => {
         console.log(error);
       });
@@ -64,7 +73,6 @@ export function LanguageProvider({children}) {
 };
 
 export function LPFormattedMessage(props) {
-  //const intl = React.useContext(IntlContext);
 
   return (
     <IntlContext.Consumer>
