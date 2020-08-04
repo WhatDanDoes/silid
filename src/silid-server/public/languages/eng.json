@@ -1,0 +1,13 @@
+{
+  "profile-table.header": "Profile",
+  "profile-table.name": "Name",
+  "profile-table.email": "Email",
+  "profile-table.providerLocale": "Provider Locale",
+  "profile-table.silLocale": "SIL Locale",
+  "profile-table.roles": "Roles",
+  "teams-table.header": "Teams",
+  "teams-table.name": "Name",
+  "teams-table.leader": "Leader",
+  "teams-table.empty": "No records to display",
+  "social-data.header": "Social Data"
+}
