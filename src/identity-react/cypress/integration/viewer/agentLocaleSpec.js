@@ -98,6 +98,7 @@ context('viewer/Agent locale', function() {
               // SIL locale
               cy.get('#profile-table table tbody tr th').contains('SIL Hol:');
               cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
+              cy.get('#profile-table table tbody tr td label[for="sil-local-dropdown"]').contains('HIjmeH SIL Hol neH');
               cy.get('#profile-table table tbody tr td input#sil-local-dropdown').should('have.attr', 'value').and('equal', 'Klingon');
 
               // Roles
