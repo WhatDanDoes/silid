@@ -179,7 +179,6 @@ context('viewer/Agent locale', function() {
             beforeEach(() => {
               cy.get('#profile-table table tbody tr td #sil-local-dropdown + div button:last-of-type').click();
               cy.wait(300);
-              // This needs to _blur_ because `Enter` does nothing when there's no valid selection
               cy.get('#profile-table table tbody tr td #sil-local-dropdown').type('Chinook{downarrow}{enter}');
               cy.wait(300);
             });
