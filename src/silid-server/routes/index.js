@@ -48,6 +48,15 @@ if (process.env.NODE_ENV === 'e2e' || process.env.NODE_ENV === 'development') {
     res,
     next
   ) {
+
+    /**
+     * Language data is not proxied. Neither is any static asset,
+     * for that matter...
+     */
+    if (/\/languages\/.+\.json/.test(req.path)) {
+      return res.sendFile(req.path, { root: staticPath });
+    }
+
     if (req.session.passport) {
       return clientProxy.web(req, res, { target: 'http://localhost:3000' });
     }
