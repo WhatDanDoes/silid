@@ -38,87 +38,7 @@ import usePostOrganizationService from '../services/usePostOrganizationService';
 import TextField from '@material-ui/core/TextField';
 import Autocomplete from '@material-ui/lab/Autocomplete';
 import CircularProgress from '@material-ui/core/CircularProgress'
-import { IntlProvider, FormattedMessage } from "react-intl";
-
-/**
- * Localization
- */
-const messages = {
-  eng: {
-    'profile-table.header': 'Profile',
-    'profile-table.name': 'Name',
-    'profile-table.email': 'Email',
-    'profile-table.providerLocale': 'Provider Locale',
-    'profile-table.silLocale': 'SIL Locale',
-    'profile-table.roles': 'Roles',
-    'teams-table.header': 'Teams',
-    'teams-table.name': 'Name',
-    'teams-table.leader': 'Leader',
-    'teams-table.empty': 'No records to display',
-    'social-data.header': 'Social Data',
-  },
-  tlh: {
-    'profile-table.header': 'tlhIlHal De\'',
-    'profile-table.name': 'Pong',
-    'profile-table.email': 'De\'wI\' QIn',
-    'profile-table.providerLocale': 'Latlh Hol',
-    'profile-table.silLocale': 'SIL Hol',
-    'profile-table.roles': 'Naw\'',
-    'teams-table.header': 'Ghom',
-    'teams-table.name': 'Pong',
-    'teams-table.leader': 'DevwI\'',
-    'teams-table.empty': 'Pagh ta',
-    'social-data.header': 'BoS De\'',
-  }
-};
-
-
-//const messages = {
-//  eng: {
-//    profileTable: {
-//      header: 'Profile',
-//      email: 'Email',
-//      providerLocale: 'Provider Locale',
-//      silLocale: 'SIL Locale',
-//      Roles: 'Roles',
-//    },
-//    teamsTable: {
-//      header: 'Teams',
-//      name: 'Name',
-//      leader: 'Leader',
-//      empty: 'No records to display',
-//    },
-//    socialData: {
-//      header: 'Social Data',
-//    }
-//  },
-//  tlh: {
-//    profileTable: {
-//      header: 'tlhIlHal De\'',
-//      email: 'De\'wI\' QIn',
-//      providerLocale: 'Latlh Hol',
-//      silLocale: 'SIL Hol',
-//      Roles: 'Naw\'',
-//    },
-//    teamsTable: {
-//      header: 'Ghom',
-//      name: 'Pong',
-//      leader: 'DevwI\'',
-//      empty: 'Pagh ta',
-//    },
-//    socialData: {
-//      header: 'BoS De\'',
-//    }
-//
-//  },
-//};
-
-
-
-//const flattenedMessages = (messages, roots = [], sep = '.') => Object.keys(messages).reduce((memo, prop) => Object.assign({}, memo, Object.prototype.toString.call(messages[prop]) === '[object Object]' ? flatten(messages[prop], roots.concat([prop])) : {[roots.concat([prop]).join(sep)]: messages[prop]}), {})
-
-
-
+import { useLanguageProviderState, LPFormattedMessage as FormattedMessage } from '../components/LanguageProvider';
 
 const useStyles = makeStyles(theme =>
   createStyles({
@@ -186,6 +106,7 @@ const Agent = (props) => {
   const { publishOrganization } = usePostOrganizationService();
   const { respondToTeamInvitation } = useGetTeamInviteActionService();
 
+
   useEffect(() => {
     if (service.status === 'loaded') {
       if (service.payload.message) {
@@ -193,10 +114,6 @@ const Agent = (props) => {
       }
       else {
         setProfileData(service.payload);
-
-        if (service.payload.user_metadata && service.payload.user_metadata.silLocale && service.payload.user_metadata.silLocale.iso6393) {
-          setLocale(service.payload.user_metadata.silLocale.iso6393);
-        }
       }
     }
   }, [service]);
@@ -210,9 +127,7 @@ const Agent = (props) => {
   const [localeOptions, setLocaleOptions] = React.useState([]);
   const [isSettingLocale, setIsSettingLocale] = React.useState(false);
   const loadingLocale = localeIsOpen && localeOptions.length === 0;
-
-  //let locale = agent.user_metadata && agent.user_metadata.silLocale && agent.user_metadata.silLocale.iso6393 ? agent.user_metadata.silLocale.iso6393 : 'eng';
-  const [locale, setLocale] = React.useState('eng');
+  const { messages, setLangCode } = useLanguageProviderState();
 
   React.useEffect(() => {
     let active = true;
@@ -299,7 +214,6 @@ const Agent = (props) => {
 
 
   return (
-    <IntlProvider locale={locale} messages={messages[locale]}>
     <div className={classes.root}>
       <Grid container direction="column" justify="center" alignItems="center">
         <Grid item>
@@ -366,7 +280,7 @@ const Agent = (props) => {
                                     setProfileData(response);
                                     setFlashProps({ message: 'Preferred SIL language updated', variant: 'success' });
                                     setLocaleOptions(localeOptions);
-                                    setLocale(response.user_metadata.silLocale.iso6393);
+                                    setLangCode(response.user_metadata.silLocale.iso6393);
                                   }
 
                                   resolve();
@@ -390,7 +304,7 @@ const Agent = (props) => {
                           renderInput={(params) => (
                             <TextField
                               {...params}
-                              label="Set SIL language preference"
+                              label={messages['profile-table.silLocale.label']}
                               variant="outlined"
                               InputProps={{
                                 ...params.InputProps,
@@ -700,11 +614,11 @@ const Agent = (props) => {
             : '' }
             <Grid id="teams-table" item className={classes.grid}>
               <MaterialTable
-                title={messages[locale]['teams-table.header']}
+                title={messages['teams-table.header']}
                 isLoading={isWaiting}
                 columns={[
                   {
-                    title: messages[locale]['teams-table.name'],
+                    title: messages['teams-table.name'],
                     field: 'name',
                     render: rowData => {return profileData.email_verified ? <Link href={`#team/${rowData.id}`}>{rowData.name}</Link> : rowData.name},
                     editComponent: (props) => {
@@ -729,21 +643,20 @@ const Agent = (props) => {
                       );
                     }
                   },
-                  { title: messages[locale]['teams-table.leader'], field: 'leader', editable: 'never' }
+                  { title: messages['teams-table.leader'], field: 'leader', editable: 'never' }
                 ]}
                 data={profileData.user_metadata ? profileData.user_metadata.teams : []}
                 options={{ search: false, paging: false }}
                 editable={ (profileData.email === agent.email && profileData.email_verified) ? { onRowAdd: createTeam }: undefined}
-                    //title: {messages[locale]['teams-table.header']},
+                    //title: {messages['teams-table.header']},
                 localization={{
                   header: {
-                    name: messages[locale]['teams-table.name'],
-                    leader: messages[locale]['teams-table.leader']
+                    name: messages['teams-table.name'],
+                    leader: messages['teams-table.leader']
                   },
                   body: {
-                    emptyDataSourceMessage: messages[locale]['teams-table.empty'],
+                    emptyDataSourceMessage: messages['teams-table.empty'],
                   }
-
                 }}
               />
             </Grid>
@@ -774,7 +687,6 @@ const Agent = (props) => {
                                                                            onClose={() => setFlashProps({})}
                                                                            key={`flash-${index}`} />) : '' }
     </div>
-    </IntlProvider>
   )
 };
 

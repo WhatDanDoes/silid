@@ -13,6 +13,7 @@ import { AuthProvider } from './auth/Auth';
 import { AdminProvider } from './auth/Admin';
 import PrivateRoute from './components/PrivateRoute';
 import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
+import { LanguageProvider } from './components/LanguageProvider';
 
 /**
  * Colour everything SIL blue
@@ -31,27 +32,29 @@ function App() {
   return (
     <div className="App">
       <AuthProvider>
-        <AdminProvider>
-          <ThemeProvider theme={theme}>
-            <HashRouter>
-              <Route
-                path="/"
-                render={props => <Home message={message} {...props} />}
-              />
-              <Switch>
-                <PrivateRoute path="/agent/admin" component={AgentDirectory} redirect="/" />
-                <PrivateRoute path="/agent/:id" component={Agent} redirect="/" />
-                <PrivateRoute path="/agent" component={Agent} redirect="/" />
-                <PrivateRoute path="/organization/admin" component={Organization} redirect="/" />
-                <PrivateRoute path="/organization/:id" component={OrganizationInfo} redirect="/" />
-                <PrivateRoute path="/organization" component={Organization} redirect="/" />
-                <PrivateRoute path="/team/admin" component={Team} redirect="/" />
-                <PrivateRoute path="/team/:id" component={TeamInfo} redirect="/" />
-                <PrivateRoute path="/team" component={Team} redirect="/" />
-              </Switch>
-            </HashRouter>
-          </ThemeProvider>
-        </AdminProvider>
+        <LanguageProvider>
+          <AdminProvider>
+            <ThemeProvider theme={theme}>
+              <HashRouter>
+                <Route
+                  path="/"
+                  render={props => <Home message={message} {...props} />}
+                />
+                <Switch>
+                  <PrivateRoute path="/agent/admin" component={AgentDirectory} redirect="/" />
+                  <PrivateRoute path="/agent/:id" component={Agent} redirect="/" />
+                  <PrivateRoute path="/agent" component={Agent} redirect="/" />
+                  <PrivateRoute path="/organization/admin" component={Organization} redirect="/" />
+                  <PrivateRoute path="/organization/:id" component={OrganizationInfo} redirect="/" />
+                  <PrivateRoute path="/organization" component={Organization} redirect="/" />
+                  <PrivateRoute path="/team/admin" component={Team} redirect="/" />
+                  <PrivateRoute path="/team/:id" component={TeamInfo} redirect="/" />
+                  <PrivateRoute path="/team" component={Team} redirect="/" />
+                </Switch>
+              </HashRouter>
+            </ThemeProvider>
+          </AdminProvider>
+        </LanguageProvider>
       </AuthProvider>
     </div>
   );

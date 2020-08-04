@@ -55,12 +55,24 @@ silid-compose-restart-client:
 	cd src/; docker-compose restart client
 
 
+#
 # Execute silid platform end-to-end tests
+#
 silid-e2e-open:
 	cd $(client_src); npx cypress	open
 
+#
+# Execute all tests
+#
+# 2020-7-31 Don't use `cypress open` for this (i.e., `silid-e2e-open`)
+#
+# https://github.com/cypress-io/cypress/issues/2028#issuecomment-400356563
+#
 silid-e2e-run:
 	cd $(client_src); npx cypress	run --headed
 
+#
+# This executes a containerized headless run
+#
 silid-e2e-headless:
 	cd $(client_src); npm run test:headless
