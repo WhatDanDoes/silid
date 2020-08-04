@@ -304,7 +304,7 @@ const Agent = (props) => {
                           renderInput={(params) => (
                             <TextField
                               {...params}
-                              label="Set SIL language preference"
+                              label={messages['profile-table.silLocale.label']}
                               variant="outlined"
                               InputProps={{
                                 ...params.InputProps,
