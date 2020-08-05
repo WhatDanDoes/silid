@@ -37,31 +37,29 @@ export function LanguageProvider({children}) {
                             messages: defaultEnglishMessages
                           }, cache));
 
-
   React.useEffect(() => {
     if (isSuccess) {
       const headers = new Headers();
       headers.append('Content-Type', 'application/json; charset=utf-8');
 
       fetch(`/languages/${langCode}.json`, {method: 'GET', headers: headers}).then(response => {
+        if (!response.ok) {
+          throw new Error('Language file could not be retrieved');
+        }
         return response.json();
       }).then(messages => {
-        if (messages.statusCode) {
-          setIntl(createIntl({
-            locale: langCode,
-            defaultLocale: 'eng',
-            messages: defaultEnglishMessages
-          }, cache));
-        }
-        else {
-          setIntl(createIntl({
-            locale: langCode,
-            defaultLocale: 'eng',
-            messages: messages
-          }, cache));
-        }
+        setIntl(createIntl({
+          locale: langCode,
+          defaultLocale: 'eng',
+          messages: messages
+        }, cache));
       }).catch(error => {
         console.log(error);
+        setIntl(createIntl({
+          locale: langCode,
+          defaultLocale: 'eng',
+          messages: defaultEnglishMessages
+        }, cache));
       });
     }
   }, [langCode, isSuccess]);
