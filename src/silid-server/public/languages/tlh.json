@@ -1,14 +1,14 @@
 {
-  "profile-table.header": "tlhIlHal De'",
-  "profile-table.name": "Pong",
-  "profile-table.email": "De'wI' QIn",
-  "profile-table.providerLocale": "Latlh Hol",
-  "profile-table.roles": "Naw'",
-  "profile-table.silLocale": "SIL Hol",
-  "profile-table.silLocale.label": "HIjmeH SIL Hol neH",
-  "teams-table.header": "Ghom",
-  "teams-table.name": "Pong",
-  "teams-table.leader": "DevwI'",
-  "teams-table.empty": "Pagh ta",
-  "social-data.header": "BoS De'"
+  "Email": "De'wI' QIn",
+  "Leader": "DevwI'",
+  "Name": "Pong",
+  "Organization": "DIvI'",
+  "Profile": "tlhIlHal De'",
+  "Provider Locale": "Latlh Hol",
+  "Roles": "Naw'",
+  "SIL Locale": "SIL Hol",
+  "Set SIL language preference": "HIjmeH SIL Hol neH",
+  "Teams": "Ghom",
+  "No records to display": "Pagh ta",
+  "Social Data": "BoS De'"
 }

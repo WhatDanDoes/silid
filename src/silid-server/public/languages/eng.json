@@ -1,14 +1,15 @@
 {
-  "profile-table.header": "Profile",
-  "profile-table.name": "Name",
-  "profile-table.email": "Email",
-  "profile-table.providerLocale": "Provider Locale",
-  "profile-table.roles": "Roles",
-  "profile-table.silLocale": "SIL Locale",
-  "profile-table.silLocale.label": "Set SIL language preference",
-  "teams-table.header": "Teams",
-  "teams-table.name": "Name",
-  "teams-table.leader": "Leader",
-  "teams-table.empty": "No records to display",
-  "social-data.header": "Social Data"
+  "Delete": "Delete",
+  "Email": "Email",
+  "Leader": "Leader",
+  "Name": "Name",
+  "Organization": "Organization",
+  "Profile": "Profile",
+  "Provider Locale": "Provider Locale",
+  "Roles": "Roles",
+  "SIL Locale": "SIL Locale",
+  "Set SIL language preference": "Set SIL language preference",
+  "Teams": "Teams",
+  "No records to display": "No records to display",
+  "Social Data": "Social Data"
 }
