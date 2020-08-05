@@ -17,18 +17,16 @@ context('viewer/Agent locale', function() {
   });
 
   describe('authenticated', () => {
-
-    describe('email verified', () => {
-
-      let agent;
-      beforeEach(() => {
-        cy.login(_profile.email, _profile);
-        cy.get('#flash-message #close-flash').click();
-        cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
-          agent = results[0];
-        });
+    let agent;
+    beforeEach(() => {
+      cy.login(_profile.email, _profile);
+      cy.get('#flash-message #close-flash').click();
+      cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
+        agent = results[0];
       });
+    });
 
+    describe('agentShow', () => {
       describe('no SIL language preference set', () => {
 
         it('displays agent\'s info', () => {

@@ -3,24 +3,6 @@ import { useAuthState } from '../auth/Auth';
 
 import {createIntl, createIntlCache, RawIntlProvider, IntlContext,} from 'react-intl'
 
-/**
- * Backup Localization
- */
-const defaultEnglishMessages = {
-  'profile-table.header': 'Profile',
-  'profile-table.name': 'Name',
-  'profile-table.email': 'Email',
-  'profile-table.providerLocale': 'Provider Locale',
-  'profile-table.roles': 'Roles',
-  'profile-table.silLocale': 'SIL Locale',
-  'profile-table.silLocale.label': 'Set SIL language preference',
-  'teams-table.header': 'Teams',
-  'teams-table.name': 'Name',
-  'teams-table.leader': 'Leader',
-  'teams-table.empty': 'No records to display',
-  'social-data.header': 'Social Data',
-};
-
 const cache = createIntlCache();
 
 export function LanguageProvider({children}) {
@@ -33,8 +15,7 @@ export function LanguageProvider({children}) {
 
   const [intl, setIntl] = React.useState(createIntl({
                             locale: langCode,
-                            defaultLocale: 'eng',
-                            messages: defaultEnglishMessages
+                            defaultLocale: agent.providerLocale,
                           }, cache));
 
   React.useEffect(() => {
@@ -50,16 +31,11 @@ export function LanguageProvider({children}) {
       }).then(messages => {
         setIntl(createIntl({
           locale: langCode,
-          defaultLocale: 'eng',
+          defaultLocale: agent.providerLocale,
           messages: messages
         }, cache));
       }).catch(error => {
         console.log(error);
-        setIntl(createIntl({
-          locale: langCode,
-          defaultLocale: 'eng',
-          messages: defaultEnglishMessages
-        }, cache));
       });
     }
   }, [langCode, isSuccess]);
@@ -77,7 +53,7 @@ export function LPFormattedMessage(props) {
     <IntlContext.Consumer>
       {context => {
         return (
-          <span>{context.messages[props.id]}</span>
+          <span>{context.messages[props.id] || props.id}</span>
         )
       }}
     </IntlContext.Consumer>

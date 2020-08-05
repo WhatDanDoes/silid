@@ -223,7 +223,7 @@ const Agent = (props) => {
         </Grid>
         <Grid item>
           <Typography className={classes.header} variant="h5" component="h3">
-            <FormattedMessage id='profile-table.header' />
+            <FormattedMessage id='Profile' />
           </Typography>
         </Grid>
         {service.status === 'loaded' && service.payload ?
@@ -233,19 +233,19 @@ const Agent = (props) => {
                 <Table className={classes.table} aria-label="Agent profile info">
                   <TableBody>
                     <TableRow>
-                      <TableCell align="right" component="th" scope="row"><FormattedMessage id='profile-table.name' />:</TableCell>
+                      <TableCell align="right" component="th" scope="row"><FormattedMessage id='Name' />:</TableCell>
                       <TableCell align="left">{profileData.name}</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell align="right" component="th" scope="row"><FormattedMessage id='profile-table.email' />:</TableCell>
+                      <TableCell align="right" component="th" scope="row"><FormattedMessage id='Email' />:</TableCell>
                       <TableCell align="left">{profileData.email}</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell align="right" component="th" scope="row"><FormattedMessage id='profile-table.providerLocale' />:</TableCell>
+                      <TableCell align="right" component="th" scope="row"><FormattedMessage id='Provider Locale' />:</TableCell>
                       <TableCell align="left">{profileData.locale}</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell align="right" component="th" scope="row"><FormattedMessage id='profile-table.silLocale' />:</TableCell>
+                      <TableCell align="right" component="th" scope="row"><FormattedMessage id='SIL Locale' />:</TableCell>
                       <TableCell align="left">
                         <Autocomplete
                           id="sil-local-dropdown"
@@ -304,7 +304,7 @@ const Agent = (props) => {
                           renderInput={(params) => (
                             <TextField
                               {...params}
-                              label={messages['profile-table.silLocale.label']}
+                              label={messages['Set SIL language preference'] || 'Set SIL language preference'}
                               variant="outlined"
                               InputProps={{
                                 ...params.InputProps,
@@ -322,7 +322,7 @@ const Agent = (props) => {
                     </TableRow>
                     {profileData.roles && (
                       <TableRow>
-                        <TableCell align="right" component="th" scope="row"><FormattedMessage id='profile-table.roles' />:</TableCell>
+                        <TableCell align="right" component="th" scope="row"><FormattedMessage id='Roles' />:</TableCell>
                         <TableCell id="assigned-roles" align="left" component="td" className={classes.chipList}>
                           {profileData.roles.map(data => {
                             return (
@@ -614,11 +614,11 @@ const Agent = (props) => {
             : '' }
             <Grid id="teams-table" item className={classes.grid}>
               <MaterialTable
-                title={messages['teams-table.header']}
+                title={messages['Teams'] || 'Teams'}
                 isLoading={isWaiting}
                 columns={[
                   {
-                    title: messages['teams-table.name'],
+                    title: messages['Name'] || 'Name',
                     field: 'name',
                     render: rowData => {return profileData.email_verified ? <Link href={`#team/${rowData.id}`}>{rowData.name}</Link> : rowData.name},
                     editComponent: (props) => {
@@ -643,7 +643,7 @@ const Agent = (props) => {
                       );
                     }
                   },
-                  { title: messages['teams-table.leader'], field: 'leader', editable: 'never' }
+                  { title: messages['Leader'] || 'Leader', field: 'leader', editable: 'never' }
                 ]}
                 data={profileData.user_metadata ? profileData.user_metadata.teams : []}
                 options={{ search: false, paging: false }}
@@ -651,18 +651,18 @@ const Agent = (props) => {
                     //title: {messages['teams-table.header']},
                 localization={{
                   header: {
-                    name: messages['teams-table.name'],
-                    leader: messages['teams-table.leader']
+                    name: messages['Name'] || 'Name',
+                    leader: messages['Leader'] || 'Leader'
                   },
                   body: {
-                    emptyDataSourceMessage: messages['teams-table.empty'],
+                    emptyDataSourceMessage: messages['No records to display'] || 'No records to display',
                   }
                 }}
               />
             </Grid>
             <Grid item>
               <Typography className={classes.header} variant="h5" component="h3">
-                <FormattedMessage id='social-data.header' />
+                <FormattedMessage id='Social Data' />
               </Typography>
             </Grid>
             <Grid item className={classes.json}>

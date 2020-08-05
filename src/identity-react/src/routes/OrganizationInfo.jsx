@@ -28,6 +28,8 @@ import useGetOrganizationInfoService from '../services/useGetOrganizationInfoSer
 import usePutOrganizationService from '../services/usePutOrganizationService';
 import useDeleteOrganizationService from '../services/useDeleteOrganizationService';
 
+import { useLanguageProviderState, LPFormattedMessage as FormattedMessage } from '../components/LanguageProvider';
+
 const useStyles = makeStyles((theme) =>
   createStyles({
     margin: {
@@ -72,6 +74,8 @@ const OrganizationInfo = (props) => {
   let { publishOrganization } = usePutOrganizationService();
   let { deleteOrganization } = useDeleteOrganizationService();
 
+  const { messages } = useLanguageProviderState();
+
   useEffect(() => {
     if (service.status === 'loaded') {
       setOrgInfo(service.payload);
@@ -82,12 +86,11 @@ const OrganizationInfo = (props) => {
    * Update this organization
    */
   const handleUpdate = (evt) => {
-    // Front-end validation (sufficient for now...)
+    // Front-end validation
     if (!orgInfo.name.trim()) {
       return setFlashProps({ message: 'Organization name can\'t be blank', variant: 'error' });
     }
 
-    //publishOrganization({...orgInfo, members: undefined, tableData: undefined}).then(results => {
     publishOrganization({...orgInfo}).then(results => {
       if (results.statusCode) {
         setFlashProps({ message: results.message, variant: 'error' });
@@ -141,7 +144,7 @@ const OrganizationInfo = (props) => {
           <>
             <Grid item>
               <Typography className={classes.header} variant="h5" component="h3">
-                Organization
+                <FormattedMessage id='Organization' />
               </Typography>
             </Grid>
             <Grid item className={classes.grid}>
@@ -149,7 +152,9 @@ const OrganizationInfo = (props) => {
                 <Table id="org-profile-info" className={classes.table} aria-label="Team profile info">
                   <TableBody>
                     <TableRow>
-                      <TableCell align="right" component="th" scope="row">Name:</TableCell>
+                      <TableCell align="right" component="th" scope="row">
+                        <FormattedMessage id='Name' />:
+                      </TableCell>
                       <TableCell align="left">
                         <input id="org-name-field" value={orgInfo.name || ''} disabled={agent.email !== orgInfo.organizer && !admin.isEnabled}
                           onChange={e => {
@@ -162,7 +167,9 @@ const OrganizationInfo = (props) => {
                       </TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell align="right" component="th" scope="row">Email:</TableCell>
+                      <TableCell align="right" component="th" scope="row">
+                        <FormattedMessage id='Email' />:
+                      </TableCell>
                       <TableCell align="left">{orgInfo.organizer}</TableCell>
                     </TableRow>
                   </TableBody>
@@ -196,7 +203,7 @@ const OrganizationInfo = (props) => {
                         :
                           <TableCell align="left">
                             <Button id="delete-org" variant="contained" color="secondary" onClick={handleDelete}>
-                              Delete
+                              <FormattedMessage id='Delete' />
                             </Button>
                           </TableCell>
                         }
@@ -209,11 +216,11 @@ const OrganizationInfo = (props) => {
 
             <Grid id="member-teams-table" item className={classes.grid}>
               <MaterialTable
-                title='Teams'
+                title={messages['Teams'] || 'Teams'}
                 isLoading={isWaiting}
                 columns={[
                   {
-                    title: 'Name',
+                    title: messages['Name'] || 'Name',
                     field: 'name',
                     editable: 'never',
                     render: (rowData) => {
@@ -221,7 +228,7 @@ const OrganizationInfo = (props) => {
                     }
                   },
                   {
-                    title: 'Leader',
+                    title: messages['Leader'] || 'Leader',
                     field: 'leader',
                     editable: 'never',
                   }
@@ -233,7 +240,7 @@ const OrganizationInfo = (props) => {
                     rowData => ({
                       icon: 'delete_outline',
                       isFreeAction: false,
-                      tooltip: 'Delete',
+                      tooltip: messages['Delete'] || 'Delete',
                       hidden: orgInfo.organizer !== agent.email && !admin.isEnabled,
                       onClick:() => {
                         new Promise((resolve, reject) => {

@@ -53,7 +53,7 @@ if (process.env.NODE_ENV === 'e2e' || process.env.NODE_ENV === 'development') {
      * Language data is not proxied. Neither is any static asset,
      * for that matter...
      */
-    if (/\/languages\/.+\.json/.test(req.path)) {
+    if (/\/languages\/.+\.json/.test(req.path) || /jpg/.test(req.path)) {
       return res.sendFile(req.path, { root: staticPath });
     }
 
