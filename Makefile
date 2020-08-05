@@ -74,5 +74,10 @@ silid-e2e-run:
 #
 # This executes a containerized headless run
 #
+# 2020-8-5
+#   The original _headless_ command looked like this:
+#       cd $(client_src); npm run test:headless
+#   That found below is the recommend way to run headless tests (I think)
+#
 silid-e2e-headless:
-	cd $(client_src); npm run test:headless
+	cd $(client_src); npx cypress	run
