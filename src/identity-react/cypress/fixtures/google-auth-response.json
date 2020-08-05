@@ -11,7 +11,7 @@
       "value": "someguy@example.com"
     }
   ],
-  "picture": "/image/photo.jpg",
+  "picture": "/images/photo.jpg",
   "locale": "en",
   "nickname": "someguy"
 }
