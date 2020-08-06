@@ -5,6 +5,7 @@
   "Identity": "vIchIDmeH, Qatlh Qu'",
   "Leader": "DevwI'",
   "Logout": "Mej",
+  "Members": "Qoch",
   "Name": "Pong",
   "No records to display": "Pagh ta",
   "Organization": "DIvI'",
@@ -15,6 +16,8 @@
   "Set SIL language preference": "HIjmeH SIL Hol neH",
   "SIL Locale": "SIL Hol",
   "Social Data": "BoS De'",
+  "Team": "Ghom",
   "Teams": "Ghom",
-  "Verification sent. Check your email": "'Ol ngeH. Legh de'wI' QIn"
+  "Verification sent. Check your email": "'Ol ngeH. Legh de'wI' QIn",
+  "You are not a member of that team": "Ghom qoch'be'"
 }

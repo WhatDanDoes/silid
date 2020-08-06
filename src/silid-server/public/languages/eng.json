@@ -5,6 +5,7 @@
   "Identity": "Identity",
   "Leader": "Leader",
   "Logout": "Logout",
+  "Members": "Members",
   "Name": "Name",
   "No records to display": "No records to display",
   "Organization": "Organization",
@@ -15,6 +16,8 @@
   "Set SIL language preference": "Set SIL language preference",
   "SIL Locale": "SIL Locale",
   "Social Data": "Social Data",
+  "Team": "Team",
   "Teams": "Teams",
-  "Verification sent. Check your email": "Verification sent. Check your email"
+  "Verification sent. Check your email": "Verification sent. Check your email",
+  "You are not a member of that team": "You are not a member of that team"
 }
