@@ -21,6 +21,8 @@ import { useAdminState } from '../auth/Admin';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Switch from '@material-ui/core/Switch';
 
+import { LPFormattedMessage as FormattedMessage } from './LanguageProvider';
+
 interface IProps {
 }
 
@@ -164,7 +166,7 @@ const Home = (props: IProps) => {
           </>
         )}
         <Typography variant="h6" className={classes.title}>
-          <a className={classes.homeLink} href="/">Identity</a>
+          <a className={classes.homeLink} href="/"><FormattedMessage id='Identity' /></a>
         </Typography>
 
         {agent && (
@@ -185,7 +187,7 @@ const Home = (props: IProps) => {
               color="inherit"
               onClick={logout}
             >
-              Logout
+              <FormattedMessage id='Logout' />
             </Button>
           </>
         )}

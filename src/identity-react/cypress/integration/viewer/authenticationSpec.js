@@ -124,6 +124,27 @@ context('viewer/Authentication', function() {
         cy.get('#logout-button').should('not.exist');
       });
     });
+
+    describe('localization', () => {
+      beforeEach(() => {
+        cy.get('#profile-table table tbody tr td #sil-local-dropdown + div button:last-of-type').click();
+        cy.wait(300);
+        cy.get('#profile-table table tbody tr td #sil-local-dropdown').type('kling{downarrow}{enter}');
+        cy.wait(300);
+        cy.contains('Mej').click(); // Because it's in Klingon now
+        cy.contains('Login').click();
+      });
+
+      it('displays a friendly message', function() {
+        cy.contains(`NuqneH, ${this.profile.name}`);
+      });
+
+      it('renders the navbar correctly', function() {
+        cy.get('#logout-button').contains('Mej');
+        cy.get('img[alt=avatar]').should('have.attr', 'src', this.profile.picture);
+        cy.get('header h6 a').should('contain', 'vIchIDmeH, Qatlh Qu\'').and('have.attr', 'href').and('equal', '/');
+      });
+    });
   });
 });
 
