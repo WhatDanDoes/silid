@@ -1,14 +1,18 @@
 {
+  "Delete": "Teq",
   "Email": "De'wI' QIn",
+  "Hello": "NuqneH",
+  "Identity": "vIchIDmeH, Qatlh Qu'",
   "Leader": "DevwI'",
+  "Logout": "Mej",
   "Name": "Pong",
+  "No records to display": "Pagh ta",
   "Organization": "DIvI'",
   "Profile": "tlhIlHal De'",
   "Provider Locale": "Latlh Hol",
   "Roles": "Naw'",
-  "SIL Locale": "SIL Hol",
   "Set SIL language preference": "HIjmeH SIL Hol neH",
-  "Teams": "Ghom",
-  "No records to display": "Pagh ta",
-  "Social Data": "BoS De'"
+  "SIL Locale": "SIL Hol",
+  "Social Data": "BoS De'",
+  "Teams": "Ghom"
 }
