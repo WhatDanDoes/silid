@@ -35,6 +35,9 @@ import MaterialTable, { MTableEditField } from 'material-table';
 
 import Link from '@material-ui/core/Link';
 
+
+import { useLanguageProviderState, LPFormattedMessage as FormattedMessage } from '../components/LanguageProvider';
+
 const useStyles = makeStyles((theme) =>
   createStyles({
     margin: {
@@ -82,6 +85,8 @@ const TeamInfo = (props) => {
   let { sendTeamInvitation } = useSendTeamInvitationService();
   let { rescindTeamInvitation } = useRescindTeamInvitationService();
 //  let { deleteTeamMember, service: deleteTeamMemberService } = useDeleteTeamMemberService(props.match.params.id);
+
+  const { messages } = useLanguageProviderState();
 
   useEffect(() => {
     if (service.status === 'loaded') {
@@ -209,7 +214,7 @@ const TeamInfo = (props) => {
           <>
             <Grid item>
               <Typography className={classes.header} variant="h5" component="h3">
-                Team
+                <FormattedMessage id='Team' />
               </Typography>
             </Grid>
             <Grid item className={classes.grid}>
@@ -217,7 +222,9 @@ const TeamInfo = (props) => {
                 <Table id="team-profile-info" className={classes.table} aria-label="Team profile info">
                   <TableBody>
                     <TableRow>
-                      <TableCell align="right" component="th" scope="row">Name:</TableCell>
+                      <TableCell align="right" component="th" scope="row">
+                        <FormattedMessage id='Name' />:
+                      </TableCell>
                       <TableCell align="left">
                         <input id="team-name-field" value={teamInfo.name || ''} disabled={agent.email !== teamInfo.leader && !admin.isEnabled}
                           onChange={e => {
@@ -230,7 +237,9 @@ const TeamInfo = (props) => {
                       </TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell align="right" component="th" scope="row">Email:</TableCell>
+                      <TableCell align="right" component="th" scope="row">
+                        <FormattedMessage id='Email' />:
+                      </TableCell>
                       <TableCell align="left">{teamInfo.leader}</TableCell>
                     </TableRow>
                     {teamInfo.organization && (
@@ -372,7 +381,7 @@ const TeamInfo = (props) => {
                         :
                           <TableCell align="left">
                             <Button id="delete-team" variant="contained" color="secondary" onClick={handleDelete}>
-                              Delete
+                              <FormattedMessage id='Delete' />
                             </Button>
                           </TableCell>
                         }
@@ -447,11 +456,11 @@ const TeamInfo = (props) => {
             ) : ''}
             <Grid id="members-table" item className={classes.grid}>
               <MaterialTable
-                title='Members'
+                title={messages['Members'] || 'Members'}
                 isLoading={isWaiting}
                 columns={[
                   {
-                    title: 'Name',
+                    title: messages['Name'] || 'Name',
                     field: 'name',
                     editable: 'never',
                     render: (rowData) => {
@@ -459,7 +468,7 @@ const TeamInfo = (props) => {
                     }
                   },
                   {
-                    title: 'Email',
+                    title: messages['Email'] || 'Email',
                     field: 'email',
                     editComponent: (props) => {
                       return (
@@ -490,7 +499,7 @@ const TeamInfo = (props) => {
                     rowData => ({
                       icon: 'delete_outline',
                       isFreeAction: false,
-                      tooltip: 'Delete',
+                      tooltip: messages['Delete'] || 'Delete',
                       hidden: rowData.email === teamInfo.leader || (teamInfo.leader !== agent.email && !admin.isEnabled),
                       onClick:() => {
                         new Promise((resolve, reject) => {
@@ -603,7 +612,7 @@ const TeamInfo = (props) => {
         : ''}
         {service.status === 'error' && (
           <Typography id="error-message" variant="h5" component="h3">
-            {service.error}
+            <FormattedMessage id={service.error} />
           </Typography>
         )}
       </Grid>
