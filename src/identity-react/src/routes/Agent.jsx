@@ -298,7 +298,7 @@ const Agent = (props) => {
                           getOptionLabel={(option) => `${option.name}`}
                           options={localeOptions}
                           loading={loadingLocale}
-                          disabled={profileData.email !== agent.email || !profileData.email_verified}
+                          disabled={profileData.email !== agent.email}
                           value={profileData.user_metadata && profileData.user_metadata.silLocale ? profileData.user_metadata.silLocale : { name: 'English', iso6393: 'eng' }}
                           autoHighlight
                           renderInput={(params) => (
@@ -489,7 +489,7 @@ const Agent = (props) => {
                                 .then(response => response.json())
                                 .then(response => {
                                   if (response.message) {
-                                    setFlashProps({ message: response.message, variant: 'success' });
+                                    setFlashProps({ message: messages[response.message] || response.message, variant: 'success' });
                                   }
                                   else {
                                     setFlashProps({ message: 'Could not verify email was sent', variant: 'warning' });
@@ -500,7 +500,7 @@ const Agent = (props) => {
                                 });
                               }}
                             >
-                              Resend Verification Email
+                              <FormattedMessage id='Resend Verification Email' />
                             </Button>
                           :
                             <div id='verification-status' style={{ color: 'red' }}>
