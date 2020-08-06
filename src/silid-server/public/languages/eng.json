@@ -4,15 +4,17 @@
   "Hello": "Hello",
   "Identity": "Identity",
   "Leader": "Leader",
-  "Logout": "Logout'",
+  "Logout": "Logout",
   "Name": "Name",
   "No records to display": "No records to display",
   "Organization": "Organization",
   "Profile": "Profile",
   "Provider Locale": "Provider Locale",
+  "Resend Verification Email": "Resend verification email",
   "Roles": "Roles",
   "Set SIL language preference": "Set SIL language preference",
   "SIL Locale": "SIL Locale",
   "Social Data": "Social Data",
-  "Teams": "Teams"
+  "Teams": "Teams",
+  "Verification sent. Check your email": "Verification sent. Check your email"
 }
