@@ -17,6 +17,8 @@ import InboxIcon from '@material-ui/icons/MoveToInbox';
 
 import useGetOrganizationService, { Organizations } from '../services/useGetOrganizationService';
 
+import { useLanguageProviderState, LPFormattedMessage as FormattedMessage} from '../components/LanguageProvider';
+
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
     margin: {
@@ -51,6 +53,8 @@ const Organization = (props: any) => {
   const classes = useStyles();
   const service = useGetOrganizationService();
 
+  const { getFormattedMessage } = useLanguageProviderState();
+
   useEffect(() => {
     if (service.status === 'loaded') {
       if (service.payload.error) {
@@ -71,10 +75,10 @@ const Organization = (props: any) => {
       <Card className={classes.card}>
         <CardContent>
           <Typography variant="h5" component="h3">
-            Organizations
+            <FormattedMessage id='Organizations' />
           </Typography>
-          { props.location.state ? <Flash message={props.location.state} variant="success" /> : '' }
-          { flashProps.errors ? flashProps.errors.map((error, index) => <Flash message={error.message} variant={flashProps.variant} key={`flash-${index}`} />) : '' }
+          { props.location.state ? <Flash message={getFormattedMessage(props.location.state)} variant="success" /> : '' }
+          { flashProps.errors ? flashProps.errors.map((error, index) => <Flash message={getFormattedMessage(error.message)} variant={flashProps.variant} key={`flash-${index}`} />) : '' }
           { formVisible ?
               <React.Fragment>
                 <OrgCreateForm
@@ -92,17 +96,17 @@ const Organization = (props: any) => {
                   onClick={() => {
                     toggleFormVisible(false)
                   }}>
-                    Cancel
+                    <FormattedMessage id='Cancel' />
                 </Button>
               </React.Fragment>
             :
-              <Fab id="add-organization" color="secondary" aria-label="add" className={classes.margin}>
+              <Fab id="add-organization" color="secondary" aria-label={getFormattedMessage('add')} className={classes.margin}>
                 <AddIcon onClick={() => toggleFormVisible(true)} />
               </Fab>
           }
 
           <Typography variant="body2" color="textSecondary" component="div">
-          {service.status === 'loading' && <div>Loading...</div>}
+          {service.status === 'loading' && <div><FormattedMessage id='Loading...' /></div>}
           {service.status === 'loaded' && orgList.results.length ?
             <List id="organization-list">
               { orgList.results.map(org => (
