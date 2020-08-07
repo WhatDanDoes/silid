@@ -127,7 +127,7 @@ const Agent = (props) => {
   const [localeOptions, setLocaleOptions] = React.useState([]);
   const [isSettingLocale, setIsSettingLocale] = React.useState(false);
   const loadingLocale = localeIsOpen && localeOptions.length === 0;
-  const { messages, setLangCode, getFormattedMessage } = useLanguageProviderState();
+  const { setLangCode, getFormattedMessage } = useLanguageProviderState();
 
   React.useEffect(() => {
     let active = true;
