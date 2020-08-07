@@ -64,14 +64,11 @@ export function useLanguageProviderState() {
 
   return {
     ...state,
-    getFormattedMessage: (key) => state.messages[key] || key
-  }
-};
-
-export function useTest() {
-  const state = React.useContext(IntlContext);
-
-  return {
-    ...state,
+    getFormattedMessage: (id, obj) => {
+      if (obj) {
+        return state.formatMessage({ id: id }, obj);
+      }
+      return state.messages[id] || id
+    }
   }
 };
