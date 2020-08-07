@@ -20,7 +20,6 @@ import usePutTeamService from '../services/usePutTeamService';
 import useDeleteTeamService from '../services/useDeleteTeamService';
 import useSendTeamInvitationService from '../services/useSendTeamInvitationService';
 import useRescindTeamInvitationService from '../services/useRescindTeamInvitationService';
-//import useDeleteTeamMemberService from '../services/useDeleteTeamMemberService';
 
 /**
  * For profile data display
@@ -84,9 +83,8 @@ const TeamInfo = (props) => {
   let { deleteTeam } = useDeleteTeamService();
   let { sendTeamInvitation } = useSendTeamInvitationService();
   let { rescindTeamInvitation } = useRescindTeamInvitationService();
-//  let { deleteTeamMember, service: deleteTeamMemberService } = useDeleteTeamMemberService(props.match.params.id);
 
-  const { messages } = useLanguageProviderState();
+  const { getFormattedMessage } = useLanguageProviderState();
 
   useEffect(() => {
     if (service.status === 'loaded') {
@@ -100,12 +98,12 @@ const TeamInfo = (props) => {
   const handleUpdate = (evt) => {
     // Front-end validation (sufficient for now...)
     if (!teamInfo.name.trim()) {
-      return setFlashProps({ message: 'Team name can\'t be blank', variant: 'error' });
+      return setFlashProps({ message: getFormattedMessage('Team name can\'t be blank'), variant: 'error' });
     }
 
     publishTeam({...teamInfo, members: undefined, tableData: undefined}).then(results => {
       if (results.statusCode) {
-        setFlashProps({ message: results.message, variant: 'error' });
+        setFlashProps({ message: getFormattedMessage(results.message), variant: 'error' });
       }
       else if (results.errors) {
         setFlashProps({...results, variant: 'error' });
@@ -113,7 +111,7 @@ const TeamInfo = (props) => {
       else {
         setPrevInputState({});
         setTeamInfo(results);
-        setFlashProps({ message: 'Team updated', variant: 'success' });
+        setFlashProps({ message: getFormattedMessage('Team updated'), variant: 'success' });
       }
     }).catch(err => {
       console.log(JSON.stringify(err));
@@ -125,18 +123,18 @@ const TeamInfo = (props) => {
    */
   const handleDelete = (evt) => {
     if (teamInfo.members.length > 1) {
-      return window.alert('Remove all team members before deleting the team');
+      return window.alert(getFormattedMessage('Remove all team members before deleting the team'));
     }
 
     if (agent.user_metadata.pendingInvitations && agent.user_metadata.pendingInvitations.find(p => p.uuid === teamInfo.id)) {
-      return window.alert('Remove all pending invitations before deleting the team');
+      return window.alert(getFormattedMessage('Remove all pending invitations before deleting the team'));
     }
 
-    if (window.confirm('Delete team?')) {
+    if (window.confirm(getFormattedMessage('Delete team?'))) {
       setIsWaiting(true);
       deleteTeam(teamInfo.id).then(results => {
         if (results.statusCode) {
-          setFlashProps({ message: results.message, variant: 'error' });
+          setFlashProps({ message: getFormattedMessage(results.message), variant: 'error' });
         }
         else {
           setToAgent(true);
@@ -155,10 +153,10 @@ const TeamInfo = (props) => {
    */
   if (toAgent) {
     if (teamInfo.leader === agent.email) {
-      return <Redirect to={{ pathname: `/agent`, state: 'Team deleted' }} />
+      return <Redirect to={{ pathname: `/agent`, state: getFormattedMessage('Team deleted') }} />
     }
     const leader = teamInfo.members.find(m => m.email === teamInfo.leader);
-    return <Redirect to={{ pathname: `/agent/${leader.user_id}`, state: 'Team deleted' }} />
+    return <Redirect to={{ pathname: `/agent/${leader.user_id}`, state: getFormattedMessage('Team deleted') }} />
   }
 
 
@@ -172,22 +170,22 @@ const TeamInfo = (props) => {
       newData.email = newData.email.trim();
 
       if (!newData.email.length) {
-        setFlashProps({ message: 'Email can\'t be blank', variant: 'error' });
+        setFlashProps({ message: getFormattedMessage('Email can\'t be blank'), variant: 'error' });
         reject();
       }
       // 2020-5-5 email regex from here: https://redux-form.com/6.5.0/examples/material-ui/
       else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(newData.email)) {
-        setFlashProps({ message: 'That\'s not a valid email address', variant: 'error' });
+        setFlashProps({ message: getFormattedMessage('That\'s not a valid email address'), variant: 'error' });
         reject();
       }
       else {
         setIsWaiting(true);
         sendTeamInvitation(teamInfo.id, newData).then((results) => {
           if (results.message) {
-            setFlashProps({ message: results.message, variant: 'warning' });
+            setFlashProps({ message: getFormattedMessage(results.message), variant: 'warning' });
           }
           else {
-            setFlashProps({ message: 'Invitation sent', variant: 'success' });
+            setFlashProps({ message: getFormattedMessage('Invitation sent'), variant: 'success' });
             updateAgent(results);
           }
           resolve();
@@ -207,7 +205,7 @@ const TeamInfo = (props) => {
       <Grid container direction="column" justify="center" alignItems="center">
         <Grid item>
           <Typography variant="body2" color="textSecondary" component="p">
-            {service.status === 'loading' && <span>Loading...</span>}
+            {service.status === 'loading' && <span><FormattedMessage id='Loading...' /></span>}
           </Typography>
         </Grid>
         {service.status === 'loaded' && service.payload ?
@@ -219,7 +217,7 @@ const TeamInfo = (props) => {
             </Grid>
             <Grid item className={classes.grid}>
               <TableContainer component={Paper}>
-                <Table id="team-profile-info" className={classes.table} aria-label="Team profile info">
+                <Table id="team-profile-info" className={classes.table} aria-label={getFormattedMessage('Team profile info')}>
                   <TableBody>
                     <TableRow>
                       <TableCell align="right" component="th" scope="row">
@@ -244,7 +242,7 @@ const TeamInfo = (props) => {
                     </TableRow>
                     {teamInfo.organization && (
                       <TableRow>
-                        <TableCell align="right" component="th" scope="row">Organization:</TableCell>
+                        <TableCell align="right" component="th" scope="row"><FormattedMessage id='Organization' />:</TableCell>
                         <TableCell align="left">
                           <Link href={`#organization/${teamInfo.organization.id}`}>{teamInfo.organization.name}</Link>
                           {((agent.isOrganizer && teamInfo.organization.organizer === agent.email) || admin.isEnabled) && (
@@ -255,8 +253,7 @@ const TeamInfo = (props) => {
                               className={classes.chip}
                               label={<Icon style={{ color: red[500] }}>remove_circle</Icon>}
                               onClick={() => {
-                                //setOrganizations([]);
-                                if (window.confirm('Remove team from organization?')) {
+                                if (window.confirm(getFormattedMessage('Remove team from organization?'))) {
 
                                   new Promise((resolve, reject) => {
                                     setIsWaiting(true);
@@ -273,12 +270,14 @@ const TeamInfo = (props) => {
                                     .then(response => response.json())
                                     .then(response => {
                                       if (response.message) {
-                                        setFlashProps({ message: response.message, variant: 'error' });
+                                        setFlashProps({ message: getFormattedMessage(response.message), variant: 'error' });
                                         reject(response);
                                       }
                                       else {
                                         setTeamInfo(response);
-                                        setFlashProps({ message: `${teamInfo.name} have been removed from ${teamInfo.organization.name}`, variant: 'success' });
+                                        setFlashProps({
+                                          message: getFormattedMessage('{team} have been removed from {organization}', { team: teamInfo.name, organization: teamInfo.organization.name }),
+                                          variant: 'success' });
                                         resolve();
                                       }
                                     }).catch(error => {
@@ -296,7 +295,7 @@ const TeamInfo = (props) => {
                     )}
                     {(agent.isOrganizer && !teamInfo.organization) && (
                       <TableRow>
-                        <TableCell align="right" component="th" scope="row">Organization:</TableCell>
+                        <TableCell align="right" component="th" scope="row"><FormattedMessage id='Organization' />:</TableCell>
                         <TableCell align="left">
                         { organizations.length ?
                           <Chip
@@ -331,7 +330,7 @@ const TeamInfo = (props) => {
                                 .then(response => response.json())
                                 .then(response => {
                                   if (response.message) {
-                                    setFlashProps({ message: response.message, variant: 'error' });
+                                    setFlashProps({ message: getFormattedMessage(response.message), variant: 'error' });
                                     reject(response);
                                   }
                                   else {
@@ -357,7 +356,7 @@ const TeamInfo = (props) => {
             {teamInfo.leader === agent.email || admin.isEnabled ?
               <Grid item className={classes.grid}>
                 <TableContainer>
-                  <Table className={classes.table} aria-label="Team delete">
+                  <Table className={classes.table} aria-label={getFormattedMessage('Team delete')}>
                     <TableBody>
                       <TableRow>
                         { Object.keys(prevInputState).length ?
@@ -369,12 +368,12 @@ const TeamInfo = (props) => {
                                         setPrevInputState({});
                                       }
                               }>
-                                Cancel
+                                <FormattedMessage id='Cancel' />
                               </Button>
                             </TableCell>
                             <TableCell align="left">
                               <Button id="save-team" variant="contained" color="primary" onClick={handleUpdate}>
-                                Save
+                                <FormattedMessage id='Save' />
                               </Button>
                             </TableCell>
                           </>
@@ -394,11 +393,11 @@ const TeamInfo = (props) => {
             {organizations.length ? (
               <Grid id="organizations-table" item className={classes.grid}>
                 <MaterialTable
-                  title='Your Organizations'
+                  title={getFormattedMessage('Your Organizations')}
                   isLoading={isWaiting}
                   columns={[
                     {
-                      title: 'Name',
+                      title: getFormattedMessage('Name'),
                       field: 'name',
                       editable: 'never',
                       render: (rowData) => {
@@ -411,9 +410,9 @@ const TeamInfo = (props) => {
                   actions={
                     [
                       rowData => ({
-                        icon: 'add',
+                        icon: getFormattedMessage('add'),
                         isFreeAction: false,
-                        tooltip: 'Add team to organization',
+                        tooltip: getFormattedMessage('Add team to organization'),
                         onClick:() => {
                           new Promise((resolve, reject) => {
                             setIsWaiting(true);
@@ -432,12 +431,13 @@ const TeamInfo = (props) => {
                             .then(response => response.json())
                             .then(response => {
                               if (response.message) {
-                                setFlashProps({ message: response.message, variant: 'error' });
+                                setFlashProps({ message: getFormattedMessage(response.message), variant: 'error' });
                                 reject(response);
                               }
                               else {
                                 setTeamInfo(response);
-                                setFlashProps({ message: `${teamInfo.name} are now part of ${rowData.name}`, variant: 'success' });
+                                //setFlashProps({ message: `${teamInfo.name} are now part of ${rowData.name}`, variant: 'success' });
+                                setFlashProps({ message: getFormattedMessage('{team} are now part of {organization}', { team: teamInfo.name, organization: rowData.name }), variant: 'success' });
                                 resolve();
                               }
                             }).catch(error => {
@@ -456,11 +456,11 @@ const TeamInfo = (props) => {
             ) : ''}
             <Grid id="members-table" item className={classes.grid}>
               <MaterialTable
-                title={messages['Members'] || 'Members'}
+                title={getFormattedMessage('Members')}
                 isLoading={isWaiting}
                 columns={[
                   {
-                    title: messages['Name'] || 'Name',
+                    title: getFormattedMessage('Name'),
                     field: 'name',
                     editable: 'never',
                     render: (rowData) => {
@@ -468,7 +468,7 @@ const TeamInfo = (props) => {
                     }
                   },
                   {
-                    title: messages['Email'] || 'Email',
+                    title: getFormattedMessage('Email'),
                     field: 'email',
                     editComponent: (props) => {
                       return (
@@ -476,7 +476,7 @@ const TeamInfo = (props) => {
                           autoFocus={true}
                           type="text"
                           columnDef={props.columnDef}
-                          placeholder="Email"
+                          placeholder={getFormattedMessage('Email')}
                           value={props.value ? props.value : ''}
                           onChange={value => props.onChange(value) }
                           onKeyDown={evt => {
@@ -499,11 +499,11 @@ const TeamInfo = (props) => {
                     rowData => ({
                       icon: 'delete_outline',
                       isFreeAction: false,
-                      tooltip: messages['Delete'] || 'Delete',
+                      tooltip: getFormattedMessage('Delete'),
                       hidden: rowData.email === teamInfo.leader || (teamInfo.leader !== agent.email && !admin.isEnabled),
                       onClick:() => {
                         new Promise((resolve, reject) => {
-                          if (window.confirm('Remove member?')) {
+                          if (window.confirm(getFormattedMessage('Remove member?'))) {
                             setIsWaiting(true);
 
                             const headers = new Headers();
@@ -518,11 +518,11 @@ const TeamInfo = (props) => {
                             .then(response => {
                               if (response.message) {
                                 teamInfo.members.splice(teamInfo.members.findIndex(m => m.user_id === rowData.user_id), 1);
-                                setFlashProps({ message: response.message, variant: 'success' });
+                                setFlashProps({ message: getFormattedMessage(response.message), variant: 'success' });
                                 resolve();
                               }
                               else {
-                                setFlashProps({ message: 'Deletion cannot be confirmed', variant: 'warning' });
+                                setFlashProps({ message: getFormattedMessage('Deletion cannot be confirmed'), variant: 'warning' });
                                 reject(response);
                               }
                             }).catch(error => {
@@ -550,15 +550,15 @@ const TeamInfo = (props) => {
                 <br />
                 <Grid id="pending-invitations-table" item className={classes.grid}>
                   <MaterialTable
-                    title='Pending Invitations'
+                    title={getFormattedMessage('Pending Invitations')}
                     isLoading={isWaiting}
                     columns={[
-                      { title: 'Email', field: 'recipient', editable: 'never' }
+                      { title: getFormattedMessage('Email'), field: 'recipient', editable: 'never' }
                     ]}
                     data={agent.user_metadata.pendingInvitations.filter(i => i.uuid === teamInfo.id).length ?
                           agent.user_metadata.pendingInvitations.filter(i => i.uuid === teamInfo.id) : []}
                     options={{ search: false, paging: false }}
-                    localization={{ body: { editRow: { deleteText: 'Are you sure you want to revoke this invitation?' } } }}
+                    localization={{ body: { editRow: { deleteText: getFormattedMessage('Are you sure you want to revoke this invitation?') } } }}
                     editable={ teamInfo.leader === agent.email ? {
                       onRowDelete: oldData =>
                         new Promise((resolve, reject) => {
@@ -567,7 +567,7 @@ const TeamInfo = (props) => {
                               setFlashProps({ message: results.message, variant: 'error' });
                               return reject(results);
                             }
-                            setFlashProps({ message: 'Invitation canceled', variant: 'success' });
+                            setFlashProps({ message: getFormattedMessage('Invitation canceled'), variant: 'success' });
                             updateAgent(results);
                             resolve();
                           }).catch(err => {
@@ -580,16 +580,16 @@ const TeamInfo = (props) => {
                     actions={[
                       {
                         icon: 'refresh',
-                        tooltip: 'Re-send invitation',
+                        tooltip: getFormattedMessage('Re-send invitation'),
                         onClick: (event, rowData) =>
                           new Promise((resolve, reject) => {
                             setIsWaiting(true);
                             sendTeamInvitation(teamInfo.id, { email: rowData.recipient }).then((results) => {
                               if (results.message) {
-                                setFlashProps({ message: results.message, variant: 'warning' });
+                                setFlashProps({ message: getFormattedMessage(results.message), variant: 'warning' });
                               }
                               else {
-                                setFlashProps({ message: 'Invitation sent', variant: 'success' });
+                                setFlashProps({ message: getFormattedMessage('Invitation sent'), variant: 'success' });
                                 updateAgent(results);
                               }
                               resolve();
@@ -617,8 +617,8 @@ const TeamInfo = (props) => {
         )}
       </Grid>
 
-      { flashProps.message ? <Flash message={flashProps.message} onClose={() => setFlashProps({})} variant={flashProps.variant} /> : '' }
-      { flashProps.errors ? flashProps.errors.map(error => <Flash message={error.message}
+      { flashProps.message ? <Flash message={getFormattedMessage(flashProps.message)} onClose={() => setFlashProps({})} variant={flashProps.variant} /> : '' }
+      { flashProps.errors ? flashProps.errors.map(error => <Flash message={getFormattedMessage(error.message)}
                                                                   onClose={() => setFlashProps({})}
                                                                   variant={flashProps.variant}
                                                                   key={`error-${error.message}`} />) : '' }
