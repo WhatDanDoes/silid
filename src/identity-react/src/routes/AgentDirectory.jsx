@@ -12,6 +12,8 @@ import Grid from '@material-ui/core/Grid';
 
 import useGetAgentDirectoryService from '../services/useGetAgentDirectoryService';
 
+import { useLanguageProviderState } from '../components/LanguageProvider';
+
 const useStyles = makeStyles((theme) =>
   createStyles({
     margin: {
@@ -45,6 +47,8 @@ const AgentDirectory = (props) => {
 
   const classes = useStyles();
 
+  const { getFormattedMessage } = useLanguageProviderState();
+
   /**
    * Pager handler
    */
@@ -57,13 +61,13 @@ const AgentDirectory = (props) => {
   useEffect(() => {
     if (service.status === 'loaded') {
       if (service.payload.message) {
-        setFlashProps({ message: service.payload.message, variant: 'error' });
+        setFlashProps({ message: getFormattedMessage(service.payload.message), variant: 'error' });
       }
       else {
         setAgentList(service.payload);
       }
     }
-  }, [service]);
+  }, [service, getFormattedMessage]);
 
   function ListItemLink(props) {
     return <ListItem className='list-item' button component="a" {...props} />;
@@ -74,11 +78,11 @@ const AgentDirectory = (props) => {
       <Grid container direction="column" justify="center" alignItems="center">
         <Grid id="agent-directory-table" item className={classes.grid}>
           <MaterialTable
-            title='Directory'
+            title={getFormattedMessage('Directory')}
             isLoading={service.status === 'loading'}
             columns={[
               {
-                title: 'Agent',
+                title: getFormattedMessage('Agent'),
                 editable: 'never',
                 render: (rowData) => {
                   return (
@@ -112,8 +116,8 @@ const AgentDirectory = (props) => {
         </Grid>
       </Grid>
 
-      { flashProps.message ? <Flash message={flashProps.message} onClose={() => setFlashProps({})} variant={flashProps.variant} /> : '' }
-      { flashProps.errors ? flashProps.errors.map(error => <Flash message={error.message}
+      { flashProps.message ? <Flash message={getFormattedMessage(flashProps.message)} onClose={() => setFlashProps({})} variant={flashProps.variant} /> : '' }
+      { flashProps.errors ? flashProps.errors.map(error => <Flash message={getFormattedMessage(error.message)}
                                                                   onClose={() => setFlashProps({})}
                                                                   variant={flashProps.variant}
                                                                   key={`error-${error.message}`} />) : '' }
