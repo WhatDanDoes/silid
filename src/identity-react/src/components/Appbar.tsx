@@ -21,7 +21,7 @@ import { useAdminState } from '../auth/Admin';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Switch from '@material-ui/core/Switch';
 
-import { LPFormattedMessage as FormattedMessage } from './LanguageProvider';
+import { useLanguageProviderState, LPFormattedMessage as FormattedMessage} from '../components/LanguageProvider';
 
 interface IProps {
 }
@@ -68,6 +68,8 @@ const Home = (props: IProps) => {
   const {agent, logout} = useAuthState();
 
   const classes = useStyles();
+
+  const { getFormattedMessage } = useLanguageProviderState();
 
   /**
    * Admin toggle
@@ -118,7 +120,7 @@ const Home = (props: IProps) => {
         <ListItem button id='agent-button' key='Agents'>
           <ListItemIcon><InboxIcon /></ListItemIcon>
           <ListItemLink href='#agent'>
-            <ListItemText primary='Profile' />
+            <ListItemText primary={getFormattedMessage('Profile')} />
           </ListItemLink>
         </ListItem>
         {agent.isSuper && (
@@ -127,7 +129,7 @@ const Home = (props: IProps) => {
               control={
                 <Switch id='admin-switch' checked={admin.isEnabled} onChange={toggleAdminMode} value="admin" />
               }
-              label="Admin Mode"
+              label={getFormattedMessage('Admin Mode')}
             />
           </ListItem>
         )}
@@ -136,7 +138,7 @@ const Home = (props: IProps) => {
             <ListItem button id='directory-button' key='Directory'>
               <ListItemIcon><InboxIcon /></ListItemIcon>
               <ListItemLink href='#agent/admin'>
-                <ListItemText primary='Agent Directory' />
+                <ListItemText primary={getFormattedMessage('Agent Directory')} />
               </ListItemLink>
             </ListItem>
           </>
