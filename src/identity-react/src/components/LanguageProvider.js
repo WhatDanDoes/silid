@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuthState } from '../auth/Auth';
 
-import {createIntl, createIntlCache, RawIntlProvider, IntlContext,} from 'react-intl'
+import {createIntl, createIntlCache, RawIntlProvider, IntlContext} from 'react-intl'
 
 const cache = createIntlCache();
 
@@ -38,7 +38,7 @@ export function LanguageProvider({children}) {
         console.log(error);
       });
     }
-  }, [langCode, isSuccess]);
+  }, [langCode, isSuccess, agent.providerLocale]);
 
   return (
     <RawIntlProvider value={{...intl, setLangCode}}>
@@ -48,7 +48,6 @@ export function LanguageProvider({children}) {
 };
 
 export function LPFormattedMessage(props) {
-
   return (
     <IntlContext.Consumer>
       {context => {
@@ -65,5 +64,14 @@ export function useLanguageProviderState() {
 
   return {
     ...state,
+    getFormattedMessage: (key) => state.messages[key] || key
   }
-}
+};
+
+export function useTest() {
+  const state = React.useContext(IntlContext);
+
+  return {
+    ...state,
+  }
+};
