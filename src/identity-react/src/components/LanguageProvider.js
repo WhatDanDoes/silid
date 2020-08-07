@@ -70,5 +70,5 @@ export function useLanguageProviderState() {
       }
       return state.messages[id] || id
     }
-  }
+  };
 };
