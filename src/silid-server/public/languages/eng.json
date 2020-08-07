@@ -13,7 +13,7 @@
   "Deletion cannot be confirmed": "Deletion cannot be confirmed",
   "Directory": "Directory",
   "Email": "Email",
-  "Hello": "Hello",
+  "Hello, {name}": "Hello, {name}",
   "Identity": "Identity",
   "Invitation ignored": "Invitation ignored",
   "Leader": "Leader",

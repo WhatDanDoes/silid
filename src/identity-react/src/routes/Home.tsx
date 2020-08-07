@@ -20,7 +20,7 @@ const Home = (props: IProps) => {
       <AppBar {...props} />
       { props.message && (<h3>{getFormattedMessage(props.message)}</h3>) }
       { agent ?
-        <Redirect to={{ pathname: '/agent', state: `${getFormattedMessage('Hello')}, ${agent.name}` }} />
+        <Redirect to={{ pathname: '/agent', state: getFormattedMessage('Hello, {name}', {name: agent.name}) }} />
       : ''}
     </div>
   );
