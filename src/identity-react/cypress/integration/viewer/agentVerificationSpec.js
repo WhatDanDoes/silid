@@ -58,6 +58,35 @@ context('viewer/Agent Index', function() {
           cy.get('#flash-message').contains('Verification sent. Check your email');
         });
       });
+
+      describe('localization', () => {
+        it('can be configured', () => {
+          cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
+        });
+
+        describe('interface', () => {
+          beforeEach(() => {
+            cy.get('#profile-table table tbody tr td #sil-local-dropdown + div button:last-of-type').click();
+            cy.wait(300);
+            cy.get('#profile-table table tbody tr td #sil-local-dropdown').type('kling{downarrow}{enter}');
+            cy.wait(300);
+          });
+
+          it('is locale responsive', () => {
+            cy.get('#logout-button').contains('Mej');
+            cy.get('header h6 a').should('contain', 'vIchIDmeH, Qatlh Qu\'').and('have.attr', 'href').and('equal', '/');
+            cy.get('#resend-verification-email-button').contains('NgeH \'ol De\'wI\' QIn');
+          });
+
+          describe('#resend-verification-email-button', () => {
+            it('displays a friendly message', () => {
+              cy.get('#resend-verification-email-button').click();
+              cy.wait(300);
+              cy.get('#flash-message').contains('Ol ngeH. Legh de\'wI\' QIn');
+            });
+          });
+        });
+      });
     });
   });
 });

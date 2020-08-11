@@ -65,7 +65,8 @@ function updateDbAndVerify(permissions, req, res, next) {
             // Has this agent verified his email?
             if (!req.user.email_verified &&
                 !(req.method === 'GET' && (req.baseUrl + req.path === '/agent/')) &&
-                !(req.method === 'POST' && (req.baseUrl + req.path === '/agent/verify'))) {
+                !(req.method === 'POST' && (req.baseUrl + req.path === '/agent/verify')) &&
+                !((req.method === 'GET' || req.method === 'PUT') && (req.baseUrl === '/locale'))) {
               return res.status(401).json({message: 'Check your email to verify your account'});
             }
 

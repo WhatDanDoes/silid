@@ -150,6 +150,43 @@ context('organizer/Organization delete team', function() {
             cy.wait(100);
             cy.get('#progress-spinner').should('not.exist');
           });
+
+          describe('localization', () => {
+            beforeEach(() => {
+              // Navigate home and set language preference
+              cy.contains('Identity').click();
+              cy.wait(300);
+              cy.get('#profile-table table tbody tr td #sil-local-dropdown + div button:last-of-type').click();
+              cy.wait(300);
+              cy.get('#profile-table table tbody tr td #sil-local-dropdown').type('kling{downarrow}{enter}');
+              cy.wait(300);
+
+              // Navigate back to team slated for removal (via 'Agent Directory' now in Klingon)
+              cy.get('#app-menu-button').click();
+              cy.contains('Duy Hoch').click();
+              cy.wait(300);
+              cy.contains(teamLeaderAgent.name).click();
+              cy.wait(300);
+              cy.contains('The Calgary Roughnecks').click();
+              cy.wait(300);
+            });
+
+            it('displays a popup warning', function(done) {
+              cy.on('window:confirm', (str) => {
+                expect(str).to.eq('Teq ghom vo\' dIvI\'\'a\'?');
+                done();
+              });
+              // Delete member team
+              cy.get('#team-profile-info #remove-team-from-organization').click();
+            });
+
+            it('displays a success message', () => {
+              cy.on('window:confirm', str => true);
+              cy.get('#team-profile-info #remove-team-from-organization').click();
+              cy.wait(300);
+              cy.contains(`${teamLeaderAgent.socialProfile.user_metadata.teams[0].name} teqta' vo' ${organizerAgent.socialProfile.user_metadata.organizations[0].name}`);
+            });
+          });
         });
       });
 

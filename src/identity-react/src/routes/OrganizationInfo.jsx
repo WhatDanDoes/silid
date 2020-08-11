@@ -74,7 +74,7 @@ const OrganizationInfo = (props) => {
   let { publishOrganization } = usePutOrganizationService();
   let { deleteOrganization } = useDeleteOrganizationService();
 
-  const { messages } = useLanguageProviderState();
+  const { getFormattedMessage } = useLanguageProviderState();
 
   useEffect(() => {
     if (service.status === 'loaded') {
@@ -216,11 +216,11 @@ const OrganizationInfo = (props) => {
 
             <Grid id="member-teams-table" item className={classes.grid}>
               <MaterialTable
-                title={messages['Teams'] || 'Teams'}
+                title={getFormattedMessage('Teams')}
                 isLoading={isWaiting}
                 columns={[
                   {
-                    title: messages['Name'] || 'Name',
+                    title: getFormattedMessage('Name'),
                     field: 'name',
                     editable: 'never',
                     render: (rowData) => {
@@ -228,7 +228,7 @@ const OrganizationInfo = (props) => {
                     }
                   },
                   {
-                    title: messages['Leader'] || 'Leader',
+                    title: getFormattedMessage('Leader'),
                     field: 'leader',
                     editable: 'never',
                   }
@@ -240,11 +240,11 @@ const OrganizationInfo = (props) => {
                     rowData => ({
                       icon: 'delete_outline',
                       isFreeAction: false,
-                      tooltip: messages['Delete'] || 'Delete',
+                      tooltip: getFormattedMessage('Delete'),
                       hidden: orgInfo.organizer !== agent.email && !admin.isEnabled,
                       onClick:() => {
                         new Promise((resolve, reject) => {
-                          if (window.confirm('Remove team from organization?')) {
+                          if (window.confirm(getFormattedMessage('Remove team from organization?'))) {
                             setIsWaiting(true);
 
                             const headers = new Headers();
@@ -265,7 +265,7 @@ const OrganizationInfo = (props) => {
                                 resolve();
                               }
                               else {
-                                setFlashProps({ message: 'Deletion cannot be confirmed', variant: 'warning' });
+                                setFlashProps({ message: getFormattedMessage('Deletion cannot be confirmed'), variant: 'warning' });
                                 reject(response);
                               }
                             }).catch(error => {
@@ -294,8 +294,8 @@ const OrganizationInfo = (props) => {
         )}
       </Grid>
 
-      { flashProps.message ? <Flash message={flashProps.message} onClose={() => setFlashProps({})} variant={flashProps.variant} /> : '' }
-      { flashProps.errors ? flashProps.errors.map(error => <Flash message={error.message}
+      { flashProps.message ? <Flash message={getFormattedMessage(flashProps.message)} onClose={() => setFlashProps({})} variant={flashProps.variant} /> : '' }
+      { flashProps.errors ? flashProps.errors.map(error => <Flash message={getFormattedMessage(error.message)}
                                                                   onClose={() => setFlashProps({})}
                                                                   variant={flashProps.variant}
                                                                   key={`error-${error.message}`} />) : '' }

@@ -119,7 +119,8 @@ context('viewer/Agent locale', function() {
             describe('interface language', () => {
               describe('#teams-table', () => {
                 beforeEach(() => {
-                  cy.contains('Identity').click();
+                  // Identity
+                  cy.contains('vIchIDmeH, Qatlh Qu\'').click();
                   cy.wait(300);
                 });
 

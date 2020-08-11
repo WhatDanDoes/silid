@@ -38,7 +38,7 @@ import usePostOrganizationService from '../services/usePostOrganizationService';
 import TextField from '@material-ui/core/TextField';
 import Autocomplete from '@material-ui/lab/Autocomplete';
 import CircularProgress from '@material-ui/core/CircularProgress'
-import { useLanguageProviderState, LPFormattedMessage as FormattedMessage } from '../components/LanguageProvider';
+import { useLanguageProviderState, LPFormattedMessage as FormattedMessage} from '../components/LanguageProvider';
 
 const useStyles = makeStyles(theme =>
   createStyles({
@@ -127,7 +127,7 @@ const Agent = (props) => {
   const [localeOptions, setLocaleOptions] = React.useState([]);
   const [isSettingLocale, setIsSettingLocale] = React.useState(false);
   const loadingLocale = localeIsOpen && localeOptions.length === 0;
-  const { messages, setLangCode } = useLanguageProviderState();
+  const { setLangCode, getFormattedMessage } = useLanguageProviderState();
 
   React.useEffect(() => {
     let active = true;
@@ -157,7 +157,7 @@ const Agent = (props) => {
     return new Promise((resolve, reject) => {
       newData.name = newData.name.trim();
       if (!newData.name.length) {
-        setFlashProps({ message: 'Team name can\'t be blank', variant: 'error' });
+        setFlashProps({ message: getFormattedMessage('Team name can\'t be blank'), variant: 'error' });
         reject();
       }
       else {
@@ -188,7 +188,7 @@ const Agent = (props) => {
     return new Promise((resolve, reject) => {
       newData.name = newData.name.trim();
       if (!newData.name.length) {
-        setFlashProps({ message: 'Organization name can\'t be blank', variant: 'error' });
+        setFlashProps({ message: getFormattedMessage('Organization name can\'t be blank'), variant: 'error' });
         reject();
       }
       else {
@@ -218,7 +218,7 @@ const Agent = (props) => {
       <Grid container direction="column" justify="center" alignItems="center">
         <Grid item>
           <Typography variant="body2" color="textSecondary" component="p">
-            {service.status === 'loading' && <span>Loading...</span>}
+            {service.status === 'loading' && <FormattedMessage id='Loading...' />}
           </Typography>
         </Grid>
         <Grid item>
@@ -230,7 +230,7 @@ const Agent = (props) => {
           <>
             <Grid item className={classes.grid}>
               <TableContainer id="profile-table" component={Paper}>
-                <Table className={classes.table} aria-label="Agent profile info">
+                <Table className={classes.table} aria-label={getFormattedMessage('Agent profile info')}>
                   <TableBody>
                     <TableRow>
                       <TableCell align="right" component="th" scope="row"><FormattedMessage id='Name' />:</TableCell>
@@ -278,7 +278,7 @@ const Agent = (props) => {
                                   }
                                   else {
                                     setProfileData(response);
-                                    setFlashProps({ message: 'Preferred SIL language updated', variant: 'success' });
+                                    setFlashProps({ message: getFormattedMessage('Preferred SIL language updated'), variant: 'success' });
                                     setLocaleOptions(localeOptions);
                                     setLangCode(response.user_metadata.silLocale.iso6393);
                                   }
@@ -298,13 +298,13 @@ const Agent = (props) => {
                           getOptionLabel={(option) => `${option.name}`}
                           options={localeOptions}
                           loading={loadingLocale}
-                          disabled={profileData.email !== agent.email || !profileData.email_verified}
+                          disabled={profileData.email !== agent.email}
                           value={profileData.user_metadata && profileData.user_metadata.silLocale ? profileData.user_metadata.silLocale : { name: 'English', iso6393: 'eng' }}
                           autoHighlight
                           renderInput={(params) => (
                             <TextField
                               {...params}
-                              label={messages['Set SIL language preference'] || 'Set SIL language preference'}
+                              label={getFormattedMessage('Set SIL language preference')}
                               variant="outlined"
                               InputProps={{
                                 ...params.InputProps,
@@ -467,7 +467,7 @@ const Agent = (props) => {
             {!profileData.email_verified ?
               <Grid item className={classes.grid}>
                 <TableContainer>
-                  <Table className={classes.table} aria-label="Resend Verification Email">
+                  <Table className={classes.table} aria-label={getFormattedMessage('Resend Verification Email')}>
                     <TableBody>
                       <TableRow>
                         <TableCell align="center">
@@ -489,10 +489,10 @@ const Agent = (props) => {
                                 .then(response => response.json())
                                 .then(response => {
                                   if (response.message) {
-                                    setFlashProps({ message: response.message, variant: 'success' });
+                                    setFlashProps({ message: getFormattedMessage(response.message), variant: 'success' });
                                   }
                                   else {
-                                    setFlashProps({ message: 'Could not verify email was sent', variant: 'warning' });
+                                    setFlashProps({ message: getFormattedMessage('Could not verify email was sent'), variant: 'warning' });
                                   }
                                 })
                                 .catch(error => {
@@ -500,11 +500,11 @@ const Agent = (props) => {
                                 });
                               }}
                             >
-                              Resend Verification Email
+                              <FormattedMessage id='Resend Verification Email' />
                             </Button>
                           :
                             <div id='verification-status' style={{ color: 'red' }}>
-                              This is an unverified account
+                              <FormattedMessage id='This is an unverified account' />
                             </div>
                           }
                         </TableCell>
@@ -520,15 +520,21 @@ const Agent = (props) => {
               <>
                 <Grid id="rsvps-table" item className={classes.grid}>
                   <MaterialTable
-                    title='RSVPs'
+                    title={getFormattedMessage('RSVPs')}
                     isLoading={isWaiting}
                     columns={[
-                      { title: 'Name', field: 'data.name', editable: 'never' },
-                      { title: 'Type', field: 'type', editable: 'never' },
+                      { title: getFormattedMessage('Name'), field: 'data.name', editable: 'never' },
+                      { title: getFormattedMessage('Type'), field: 'type', editable: 'never' },
                     ]}
                     data={profileData.user_metadata ? profileData.user_metadata.rsvps : []}
                     options={{ search: false, paging: false }}
-                    localization={{ body: { editRow: { deleteText: 'Are you sure you want to ignore this invitation?' } } }}
+                    localization={{
+                      body: {
+                        editRow: {
+                          deleteText: getFormattedMessage('Are you sure you want to ignore this invitation?')
+                        }
+                      }
+                    }}
                     editable={profileData.email_verified ? {
                       onRowDelete: (oldData) => new Promise((resolve, reject) => {
                         respondToTeamInvitation(oldData.uuid, 'reject').then(results => {
@@ -536,7 +542,7 @@ const Agent = (props) => {
                             setFlashProps({ message: results.message, variant: 'error' });
                             return reject(results);
                           }
-                          setFlashProps({ message: 'Invitation ignored', variant: 'warning' });
+                          setFlashProps({ message: getFormattedMessage('Invitation ignored'), variant: 'warning' });
                           setProfileData(results);
                           resolve();
                         }).catch(err => {
@@ -547,7 +553,7 @@ const Agent = (props) => {
                     actions={profileData.email_verified ? [
                       {
                         icon: 'check',
-                        tooltip: 'Accept invitation',
+                        tooltip: getFormattedMessage('Accept invitation'),
                         onClick: (event, rowData) =>
                           new Promise((resolve, reject) => {
                             setIsWaiting(true);
@@ -556,7 +562,7 @@ const Agent = (props) => {
                                 setFlashProps({ message: results.message, variant: 'error' });
                                 return reject(results);
                               }
-                              setFlashProps({ message: 'Welcome to the team', variant: 'success' });
+                              setFlashProps({ message: getFormattedMessage('Welcome to the team'), variant: 'success' });
                               setProfileData(results);
                               resolve();
                             }).catch(err => {
@@ -575,7 +581,7 @@ const Agent = (props) => {
             {profileData.roles && profileData.roles.find(r => r.name === 'organizer') ?
               <Grid id="organizations-table" item className={classes.grid}>
                 <MaterialTable
-                  title='Organizations'
+                  title={getFormattedMessage('Organizations')}
                   isLoading={isWaiting}
                   columns={[
                     {
@@ -588,7 +594,7 @@ const Agent = (props) => {
                             autoFocus={true}
                             type="text"
                             maxLength="128"
-                            placeholder="Name"
+                            placeholder={getFormattedMessage('Name')}
                             columnDef={props.columnDef}
                             value={props.value ? props.value : ''}
                             onChange={value => props.onChange(value) }
@@ -604,7 +610,7 @@ const Agent = (props) => {
                         );
                       }
                     },
-                    { title: 'Organizer', field: 'organizer', editable: 'never' }
+                    { title: getFormattedMessage('Organizer'), field: 'organizer', editable: 'never' }
                   ]}
                   data={profileData.user_metadata ? profileData.user_metadata.organizations : []}
                   options={{ search: false, paging: false }}
@@ -614,11 +620,11 @@ const Agent = (props) => {
             : '' }
             <Grid id="teams-table" item className={classes.grid}>
               <MaterialTable
-                title={messages['Teams'] || 'Teams'}
+                title={getFormattedMessage('Teams')}
                 isLoading={isWaiting}
                 columns={[
                   {
-                    title: messages['Name'] || 'Name',
+                    title: getFormattedMessage('Name'),
                     field: 'name',
                     render: rowData => {return profileData.email_verified ? <Link href={`#team/${rowData.id}`}>{rowData.name}</Link> : rowData.name},
                     editComponent: (props) => {
@@ -627,7 +633,7 @@ const Agent = (props) => {
                           autoFocus={true}
                           type="text"
                           maxLength="128"
-                          placeholder="Name"
+                          placeholder={getFormattedMessage('Name')}
                           columnDef={props.columnDef}
                           value={props.value ? props.value : ''}
                           onChange={value => props.onChange(value) }
@@ -643,19 +649,18 @@ const Agent = (props) => {
                       );
                     }
                   },
-                  { title: messages['Leader'] || 'Leader', field: 'leader', editable: 'never' }
+                  { title: getFormattedMessage('Leader'), field: 'leader', editable: 'never' }
                 ]}
                 data={profileData.user_metadata ? profileData.user_metadata.teams : []}
                 options={{ search: false, paging: false }}
                 editable={ (profileData.email === agent.email && profileData.email_verified) ? { onRowAdd: createTeam }: undefined}
-                    //title: {messages['teams-table.header']},
                 localization={{
                   header: {
-                    name: messages['Name'] || 'Name',
-                    leader: messages['Leader'] || 'Leader'
+                    name: getFormattedMessage('Name'),
+                    leader: getFormattedMessage('Leader')
                   },
                   body: {
-                    emptyDataSourceMessage: messages['No records to display'] || 'No records to display',
+                    emptyDataSourceMessage: getFormattedMessage('No records to display'),
                   }
                 }}
               />
