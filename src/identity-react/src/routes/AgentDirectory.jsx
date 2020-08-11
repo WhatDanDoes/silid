@@ -58,16 +58,20 @@ const AgentDirectory = (props) => {
   }
 
   const service = useGetAgentDirectoryService(page);
+
+  // This squelches missing dependency warning in `useEffect` and prevents recursive depth exceeded error
+  const memoizedGetFormattedMessage = React.useCallback(getFormattedMessage, [service.payload]);
+
   useEffect(() => {
     if (service.status === 'loaded') {
       if (service.payload.message) {
-        setFlashProps({ message: getFormattedMessage(service.payload.message), variant: 'error' });
+        setFlashProps({ message: memoizedGetFormattedMessage(service.payload.message), variant: 'error' });
       }
       else {
         setAgentList(service.payload);
       }
     }
-  }, [service, getFormattedMessage]);
+  }, [service, memoizedGetFormattedMessage]);
 
   function ListItemLink(props) {
     return <ListItem className='list-item' button component="a" {...props} />;
