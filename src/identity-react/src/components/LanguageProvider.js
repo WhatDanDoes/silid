@@ -64,9 +64,12 @@ export function useLanguageProviderState() {
 
   return {
     ...state,
-    getFormattedMessage: (id, obj) => {
-      if (obj) {
+    getFormattedMessage: (id, obj, def) => {
+      if (obj && state.messages[id]) {
         return state.formatMessage({ id: id }, obj);
+      }
+      else if (obj && def) {
+        return state.formatMessage({ id: def });
       }
       return state.messages[id] || id
     }
