@@ -54,14 +54,32 @@ if (process.env.NODE_ENV === 'e2e' || process.env.NODE_ENV === 'development') {
      * for that matter...
      */
     if (/\/languages\/.+\.json/.test(req.path) || /jpg/.test(req.path)) {
-      return res.sendFile(req.path, { root: staticPath });
+      try {
+        return res.sendFile(req.path, { root: staticPath });
+      }
+      catch (err) {
+        console.log('Could not get static file');
+        console.error(err);
+      }
     }
 
     if (req.session.passport) {
-      return clientProxy.web(req, res, { target: 'http://localhost:3000' });
+      try {
+        return clientProxy.web(req, res, { target: 'http://localhost:3000' });
+      }
+      catch (err) {
+        console.log('Something went wrong on the proxy');
+        console.error(err);
+      }
     }
 
-    res.sendFile(req.path, { root: staticPath });
+    try {
+      res.sendFile(req.path, { root: staticPath });
+    }
+    catch (err) {
+      console.log('Could not get static file');
+      console.error(err);
+    }
   });
 } else {
   router.get('/', function(req, res, next) {
