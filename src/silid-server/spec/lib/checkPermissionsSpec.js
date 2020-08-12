@@ -29,6 +29,7 @@ const _profile = require('../fixtures/sample-auth0-profile-response');
 const scope = require('../../config/permissions');
 const apiScope = require('../../config/apiPermissions');
 const roles = require('../../config/roles');
+const roleDescriptions = require('../fixtures/roles');
 
 describe('checkPermissions', function() {
 
@@ -79,20 +80,6 @@ describe('checkPermissions', function() {
         });
       }).catch(err => {
         done.fail(err);
-      });
-    });
-
-    it('attaches agent to request object', done => {
-      request = httpMocks.createRequest({
-        method: 'POST',
-        url: '/agent',
-        user: {..._profile},
-      });
-
-      checkPermissions([scope.read.agents])(request, response, err => {
-        if (err) return done.fail(err);
-        expect(request.agent.email).toEqual(agent.email);
-        done();
       });
     });
 
@@ -395,24 +382,6 @@ describe('checkPermissions', function() {
       });
     });
 
-    it('attaches agent to request object', done => {
-      request = httpMocks.createRequest({
-        method: 'POST',
-        url: '/agent',
-        user: {..._profile, scope: undefined}
-      });
-
-      checkPermissions([scope.read.agents])(request, response, err => {
-        if (err) return done.fail(err);
-        Agent.findOne({ where: { id: request.agent.id } }).then(a => {
-          expect(request.agent.dataValues).toEqual(a.dataValues);
-          done();
-        }).catch(err => {
-          done.fail(err);
-        });
-      });
-    });
-
     it('attaches roles to req.user', done => {
       request = httpMocks.createRequest({
         method: 'POST',
@@ -446,7 +415,7 @@ describe('checkPermissions', function() {
         checkPermissions([scope.read.agents])(request, response, err => {
           if (err) return done.fail(err);
           Agent.findOne({ where: { email: _identity.email } }).then(a => {
-            expect(request.agent.dataValues).toEqual(a.dataValues);
+            expect(request.user).toEqual({...a.dataValues.socialProfile, isSuper: false, isOrganizer: false, roles: [roleDescriptions[2]] });
             done();
           }).catch(err => {
             done.fail(err);
@@ -467,9 +436,9 @@ describe('checkPermissions', function() {
 
       checkPermissions([scope.read.agents])(request, response, err => {
         if (err) return done.fail(err);
-        expect(request.agent.socialProfile).toEqual(_profile);
-        Agent.findOne({ where: { email: request.agent.email } }).then(a => {
-          expect(request.agent.socialProfile).toEqual(a.socialProfile);
+        expect(request.user).toEqual({..._profile, isSuper: false, isOrganizer: false, roles: [roleDescriptions[2]] });
+        Agent.findOne({ where: { email: request.user.email } }).then(a => {
+          expect(request.user).toEqual({...a.socialProfile, isSuper: false, isOrganizer: false, roles: [roleDescriptions[2]] });
           done();
         }).catch(err => {
           done.fail(err);
