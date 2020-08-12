@@ -291,7 +291,7 @@ describe('agentSpec', () => {
                     .end(function(err, res) {
                       if (err) return done.fail(err);
 
-                      expect(userRolesReadOauthTokenScope.isDone()).toBe(true);
+                      expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
                       expect(userRolesReadScope.isDone()).toBe(true);
 
                       done();
@@ -433,7 +433,7 @@ describe('agentSpec', () => {
                     .end(function(err, res) {
                       if (err) return done.fail(err);
 
-                      expect(userRolesReadOauthTokenScope.isDone()).toBe(true);
+                      expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
                       expect(userRolesReadScope.isDone()).toBe(true);
 
                       done();
@@ -448,7 +448,7 @@ describe('agentSpec', () => {
                     .expect(201)
                     .end(function(err, res) {
                       if (err) return done.fail(err);
-                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
                       expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                       done();
                     });
@@ -608,7 +608,7 @@ describe('agentSpec', () => {
                     .end(function(err, res) {
                       if (err) return done.fail(err);
 
-                      expect(userRolesReadOauthTokenScope.isDone()).toBe(true);
+                      expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
                       expect(userRolesReadScope.isDone()).toBe(true);
 
                       done();
@@ -748,7 +748,7 @@ describe('agentSpec', () => {
                     .end(function(err, res) {
                       if (err) return done.fail(err);
 
-                      expect(userRolesReadOauthTokenScope.isDone()).toBe(true);
+                      expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
                       expect(userRolesReadScope.isDone()).toBe(true);
 
                       done();
@@ -763,7 +763,7 @@ describe('agentSpec', () => {
                     .expect(201)
                     .end(function(err, res) {
                       if (err) return done.fail(err);
-                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
                       expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                       done();
                     });

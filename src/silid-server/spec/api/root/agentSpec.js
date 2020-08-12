@@ -157,7 +157,7 @@ describe('root/agentSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(userRolesReadOauthTokenScope.isDone()).toBe(true);
+                expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
                 expect(userRolesReadScope.isDone()).toBe(true);
 
                 done();
@@ -340,7 +340,7 @@ describe('root/agentSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(userRolesReadOauthTokenScope.isDone()).toBe(true);
+                expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
                 expect(userRolesReadScope.isDone()).toBe(true);
 
                 done();
