@@ -425,7 +425,7 @@ describe('root/teamSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
                 expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                 done();
               });
@@ -837,7 +837,7 @@ describe('root/teamSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                  expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
                   expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                   done();
                 });
@@ -1706,7 +1706,7 @@ describe('root/teamSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
                 expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                 done();
               });
@@ -2218,7 +2218,7 @@ describe('root/teamSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
                 expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                 done();
               });
@@ -2284,7 +2284,7 @@ describe('root/teamSpec', () => {
         });
 
         describe('Auth0', () => {
-          it('calls /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
+          it('does not call /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
             rootSession
               .delete(`/team/${rootTeamId}`)
               .set('Accept', 'application/json')
@@ -2292,7 +2292,7 @@ describe('root/teamSpec', () => {
               .expect(201)
               .end(function(err, res) {
                 if (err) return done.fail(err);
-                expect(oauthTokenScope.isDone()).toBe(true);
+                expect(oauthTokenScope.isDone()).toBe(false);
                 done();
               });
           });
@@ -2321,7 +2321,7 @@ describe('root/teamSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
                 expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                 done();
               });
@@ -2432,7 +2432,7 @@ describe('root/teamSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
                 expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                 done();
               });
