@@ -249,7 +249,7 @@ const Agent = (props) => {
                       <TableCell align="left">
                         <Autocomplete
                           id="sil-local-dropdown"
-                          style={{ width: 300 }}
+                          style={{ width: '100%' }}
                           open={localeIsOpen}
                           onOpen={() => {
                             setLocaleIsOpen(true);
