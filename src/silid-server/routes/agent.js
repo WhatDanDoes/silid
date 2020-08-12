@@ -15,43 +15,17 @@ const getManagementClient = require('../lib/getManagementClient');
 
 /* GET agent listing. */
 router.get('/admin/:page?', checkPermissions(roles.organizer), function(req, res, next) {
-  let viewCached = false;
   let page = 0;
   if (req.params.page) {
-    if (req.params.page === 'cached') {
-      viewCached = true;
-    }
-    else {
-      page = parseInt(req.params.page);
-    }
+    page = parseInt(req.params.page);
   }
 
-  // Super agent gets entire listing
-  if (req.params.cached || viewCached) {
-    models.Agent.findAll({ attributes: ['socialProfile', 'id'],
-                           where: { socialProfile: { [models.Sequelize.Op.ne]: null} },
-                           order: [['name', 'ASC']],
-                           limit: 30,
-                           offset: page * 30 }).
-                        then(results => {
-      const profiles = results.map(p => { return {...p.socialProfile, id: p.id }; });
-      models.Agent.count({ where: { socialProfile: { [models.Sequelize.Op.ne]: null} } }).then(count => {
-        res.json({ users: profiles, start: page, limit: 30, length: profiles.length, total: count });
-      }).catch(err => {
-        res.status(500).json(err);
-      });
-    }).catch(err => {
-      res.status(500).json(err);
-    });
-  }
-  else {
-    const managementClient = getManagementClient(apiScope.read.users);
-    managementClient.getUsers({ page: page, per_page: 30, include_totals: true }).then(agents => {
-      res.status(200).json(agents);
-    }).catch(err => {
-      res.status(err.statusCode).json(err.message.error_description);
-    });
-  }
+  const managementClient = getManagementClient(apiScope.read.users);
+  managementClient.getUsers({ page: page, per_page: 30, include_totals: true }).then(agents => {
+    res.status(200).json(agents);
+  }).catch(err => {
+    res.status(err.statusCode).json(err.message.error_description);
+  });
 });
 
 /**
@@ -207,6 +181,5 @@ router.post('/verify', checkPermissions([scope.update.agents]), function(req, re
     res.status(err.statusCode).json(err.message.error_description);
   });
 });
-
 
 module.exports = router;
