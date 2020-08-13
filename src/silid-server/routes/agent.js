@@ -72,13 +72,11 @@ router.get('/', checkPermissions([scope.read.agents]), function(req, res, next) 
   managementClient.getUser({id: req.user.user_id}).then(agent => {
 
     // Read agent's assigned roles
-//    managementClient = getManagementClient([apiScope.read.users, apiScope.read.roles].join(' '));
     managementClient.getUserRoles({id: agent.user_id}).then(roles => {
       roles.sort((a, b) => a.name < b.name ? -1 : 1);
 
       const nullsFound = checkForNulls(agent);
       if (nullsFound) {
-//        managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
         managementClient.updateUser({id: agent.user_id}, { user_metadata: agent.user_metadata }).then(agent => {
           const refreshedAgent = {...req.user, roles: roles, ...{...agent, user_metadata: {...req.user.user_metadata, ...agent.user_metadata} } };
           res.status(201).json(refreshedAgent);
@@ -103,13 +101,11 @@ router.get('/:id', checkPermissions([scope.read.agents]), function(req, res, nex
   managementClient.getUser({id: req.params.id}).then(agent => {
 
     // Read agent's assigned roles
-//    managementClient = getManagementClient([apiScope.read.users, apiScope.read.roles].join(' '));
     managementClient.getUserRoles({id: agent.user_id}).then(roles => {
       roles.sort((a, b) => a.name < b.name ? -1 : 1);
 
       const nullsFound = checkForNulls(agent);
       if (nullsFound) {
-//        managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
         managementClient.updateUser({id: req.params.id}, { user_metadata: agent.user_metadata }).then(result => {
           res.status(201).json({ ...result, roles: roles });
         }).catch(err => {
