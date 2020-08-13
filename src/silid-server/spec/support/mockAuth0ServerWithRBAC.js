@@ -4,9 +4,6 @@
  * Trick the client and server into thinking they're actually talking to Auth0
  *
  * RBAC: Role-Based Access Control
- *
- * Cf., mockAuth0Server uses an opaque access_code. This mock server
- * provides an agent's scope in its access token.
  */
 require('dotenv-flow').config();
 
