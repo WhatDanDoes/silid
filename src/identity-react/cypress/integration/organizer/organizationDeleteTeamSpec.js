@@ -22,6 +22,7 @@ context('organizer/Organization delete team', function() {
   afterEach(() => {
     cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
     cy.task('query', 'TRUNCATE TABLE "Updates" CASCADE;');
+    cy.wait(200);
   });
 
   let _profile, organizerAgent, teamLeaderAgent;

@@ -151,7 +151,7 @@ describe('teamSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                  expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
                   expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                   done();
                 });
@@ -834,7 +834,7 @@ describe('teamSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                  expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
                   expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                   done();
                 });
@@ -1291,7 +1291,7 @@ describe('teamSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                  expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
                   expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                   done();
                 });
@@ -1638,7 +1638,7 @@ describe('teamSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                  expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
                   expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                   done();
                 });

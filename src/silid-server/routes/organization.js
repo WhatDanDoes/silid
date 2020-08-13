@@ -126,7 +126,7 @@ router.post('/', checkPermissions([scope.create.organizations]), function(req, r
     return res.status(400).json({ errors: [{ message: 'Organization name is too long' }] });
   }
 
-  let managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
+  const managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
   managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.organizations.name:"${orgName}"` }).then(organizers => {
 
     if (organizers.length) {
@@ -193,7 +193,7 @@ router.put('/:id', checkPermissions([scope.update.organizations]), function(req,
     return res.status(400).json({ errors: [{ message: 'Organization name is too long' }] });
   }
 
-  let managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
+  const managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
   managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.organizations.name:"${orgName}"` }).then(organizers => {
 
     if (organizers.length) {
@@ -245,7 +245,7 @@ router.put('/:id', checkPermissions([scope.update.organizations]), function(req,
 });
 
 router.delete('/:id', checkPermissions([scope.delete.organizations]), function(req, res, next) {
-  let managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
+  const managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
 
   // Check for member teams
   managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.organizationId:"${req.params.id}"` }).then(teams => {
@@ -305,7 +305,7 @@ router.put('/:id/team', checkPermissions([scope.add.organizationMembers]), funct
     return res.status(404).json({ message: 'No such organization' });
   }
 
-  let managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
+  const managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
   managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.body.teamId}"` }).then(agents => {
 
     if (!agents.length) {
@@ -377,7 +377,7 @@ router.put('/:id/team', checkPermissions([scope.add.organizationMembers]), funct
  * @returns undefined
  */
 function deleteTeamMembership(req, res) {
-  let managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
+  const managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
   managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.id:"${req.params.teamId}"` }).then(agents => {
 
     if (!agents.length) {
@@ -448,7 +448,7 @@ router.delete('/:id/team/:teamId/:admin?', checkPermissions([scope.delete.organi
     deleteTeamMembership(req, res);
   }
   else if (req.user.isSuper) {
-    let managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
+    const managementClient = getManagementClient([apiScope.read.usersAppMetadata].join(' '));
     managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.organizations.id:"${req.params.id}"` }).then(agents => {
       if (!agents.length) {
         return res.status(404).json({ message: 'No such organization' });

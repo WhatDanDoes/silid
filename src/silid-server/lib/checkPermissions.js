@@ -22,7 +22,6 @@ function updateDbAndVerify(permissions, req, res, next) {
     req.user.roles = roles;
 
     models.Agent.findOne({ where: { email: socialProfile.email } }).then(agent => {
-      req.agent = agent;
 
       // Is this a super agent?
       req.user.isSuper = !!req.user.roles.find(r => r.name === 'sudo');
@@ -32,21 +31,21 @@ function updateDbAndVerify(permissions, req, res, next) {
 
       // Fill in any blank agent columns with social profile data
       const updates = {};
-      if (req.agent) {
+      if (agent) {
         for (let key in socialProfile) {
           if (agent[key] === null) {
             updates[key] = socialProfile[key];
           }
         }
-        if (req.agent.isSuper) {
+        if (agent.isSuper) {
           req.user.isSuper = true;
         }
       }
 
       let profileChanged = true;
-      if (req.agent && req.agent.socialProfile) {
+      if (agent && agent.socialProfile) {
         try {
-          assert.deepEqual(req.agent.socialProfile, socialProfile);
+          assert.deepEqual(agent.socialProfile, socialProfile);
           profileChanged = false;
 
         } catch (error) {
@@ -54,7 +53,7 @@ function updateDbAndVerify(permissions, req, res, next) {
         }
       }
 
-      if (!req.agent || profileChanged) {
+      if (!agent || profileChanged) {
         managementClient = getManagementClient(apiScope.read.users);
         managementClient.getUser({id: socialProfile.user_id}).then(results => {
 
@@ -71,9 +70,9 @@ function updateDbAndVerify(permissions, req, res, next) {
             }
 
             if (updatedAgent) {
-              req.agent = updatedAgent;
+              agent = updatedAgent;
 
-              if (req.agent.isSuper) {
+              if (agent.isSuper) {
                 req.user.isSuper = true;
               }
 
@@ -91,7 +90,6 @@ function updateDbAndVerify(permissions, req, res, next) {
             }
             else {
               models.Agent.create({ name: socialProfile.name, email: socialProfile.email, socialProfile: socialProfile }).then(agent => {
-                req.agent = agent;
 
                 // Has this agent verified his email?
                 if (!req.user.email_verified &&
@@ -100,7 +98,7 @@ function updateDbAndVerify(permissions, req, res, next) {
                   return res.status(401).json({message: 'Check your email to verify your account'});
                 }
 
-                if (req.agent.isSuper) {
+                if (agent.isSuper) {
                   req.user.isSuper = true;
                 }
 
@@ -134,10 +132,10 @@ function updateDbAndVerify(permissions, req, res, next) {
             { returning: true, where: { email: socialProfile.email } }).then(function([rowsUpdate, [updatedAgent]]) {
 
             if (updatedAgent) {
-              req.agent = updatedAgent;
+              agent = updatedAgent;
             }
 
-            if (req.agent.isSuper) {
+            if (agent.isSuper) {
               req.user.isSuper = true;
             }
 
@@ -211,14 +209,13 @@ const checkPermissions = function(permissions) {
     }
     else {
       // Not a viewer? Assign role
-      let managementClient = getManagementClient([apiScope.read.roles].join(' '));
+      const managementClient = getManagementClient([apiScope.read.roles].join(' '));
       managementClient.getRoles().then(auth0Roles => {
 
         // Find viewer role ID
         const roleId = auth0Roles.find(role => role.name === 'viewer').id;
 
         // 2020-6-23 It is assumed that if an agent is not a viewer, then no other role has been assigned
-        managementClient = getManagementClient([apiScope.read.roles, apiScope.update.users].join(' '));
         managementClient.users.assignRoles({ id: req.user.user_id }, { roles: [roleId] }).then(results => {
 
           req.user.scope = [...new Set(req.user.scope.concat(roles.viewer))];
