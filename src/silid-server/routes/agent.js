@@ -179,8 +179,29 @@ router.post('/verify', checkPermissions([scope.update.agents]), function(req, re
 });
 
 router.patch('/:id', checkPermissions([scope.update.agents]), function(req, res, next) {
+  const filtered = {};
+
+  // 2020-8-19 As per: https://auth0.com/docs/users/user-profile-structure (some omitted)
+  ['blocked',
+   'email_verified',
+   'family_name',
+   'given_name',
+   'name',
+   'nickname',
+   'phone_number',
+   'phone_verified',
+   'picture'].forEach(claim => {
+    if (req.body[claim]) {
+      filtered[claim] = req.body[claim];
+    }
+  });
+
+  if (!Object.keys(filtered).length) {
+    return res.status(200).json({ message: 'No relevant data supplied' });
+  }
+
   const managementClient = getManagementClient(apiScope.update.users);
-  managementClient.updateUser({id: req.params.id}, req.body).then(agent => {
+  managementClient.updateUser({id: req.params.id}, filtered).then(agent => {
 
     res.status(201).json(agent);
   }).catch(err => {

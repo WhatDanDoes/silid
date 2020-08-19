@@ -14,15 +14,9 @@ const models = require('../../models');
 const request = require('supertest');
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
-//const stubAuth0ManagementEndpoint = require('../support/stubAuth0ManagementEndpoint');
 const stubUserUpdate = require('../support/auth0Endpoints/stubUserUpdate');
-const stubUserAppMetadataUpdate = require('../support/auth0Endpoints/stubUserAppMetadataUpdate');
 const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
-const stubUserRolesRead = require('../support/auth0Endpoints/stubUserRolesRead');
-const stubEmailVerification = require('../support/auth0Endpoints/stubEmailVerification');
 const scope = require('../../config/permissions');
-const apiScope = require('../../config/apiPermissions');
-const jwt = require('jsonwebtoken');
 
 const _profile = require('../fixtures/sample-auth0-profile-response');
 
@@ -85,7 +79,7 @@ describe('agentEditSpec', () => {
                 stubUserRead((err, apiScopes) => {
                   if (err) return done.fail();
 
-                  stubUserUpdate([apiScope.update.users], (err, apiScopes) => {
+                  stubUserUpdate((err, apiScopes) => {
                     if (err) return done.fail();
 
                     ({userUpdateScope, userUpdateOauthTokenScope} = apiScopes);
@@ -96,12 +90,155 @@ describe('agentEditSpec', () => {
             });
           });
 
+          it('updates a single claim', done => {
+            authenticatedSession
+              .patch(`/agent/${_identity.sub}`)
+              .send({ phone_number: '403-266-1234' })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(res.body).toEqual({ ..._profile, phone_number: '403-266-1234' });
+
+                done();
+              });
+          });
+
+
+          it('updates all non-dependent claims', done => {
+            const allClaims = {
+              email_verified: true,
+              family_name: 'Sanders',
+              given_name: 'Harland',
+              name: 'Harland Sanders',
+              nickname: 'Colonel Sanders',
+              phone_number: '403-266-1234',
+              picture: 'http://example.com/mypic.jpg',
+            }
+
+            expect(_profile).not.toEqual({..._profile, ...allClaims });
+
+            authenticatedSession
+              .patch(`/agent/${_identity.sub}`)
+              .send(allClaims)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(res.body).toEqual({..._profile, ...allClaims });
+
+                done();
+              });
+          });
+
+          describe('dependent claims', () => {
+
+            it('does not unblock when `blocked` is set to false (as per the docs)', done => {
+              authenticatedSession
+                .patch(`/agent/${_identity.sub}`)
+                .send({ blocked: false })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(res.body.blocked).toBeUndefined();
+
+                  done();
+                });
+            });
+
+            it('blocks when `blocked` is set to true (as per the docs)', done => {
+              authenticatedSession
+                .patch(`/agent/${_identity.sub}`)
+                .send({ blocked: true })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(res.body.blocked).toBe(true);
+
+                  done();
+                });
+            });
+          });
+
+          // 2020-8-19 According to: https://auth0.com/docs/users/user-profile-structure
+          it('ignores claims that cannot be modified (or have been omitted)', done => {
+            authenticatedSession
+              .patch(`/agent/${_identity.sub}`)
+              .send({
+                app_metadata: { some: 'metadata' },
+                created_at: 'some-fake-time',
+                identities: [],
+                last_ip: '127.0.0.1',
+                last_login: 'some-fake-date',
+                last_login: 'some-fake-date',
+                last_password_reset: 'some-fake-date',
+                logins_count: 333,
+                multifactor: [],
+                updated_at: 'some-fake-time',
+                user_id: 'some-fake-id',
+                user_metadata: { some: 'metadata' },
+                username: 'some_guy',
+                email: 'someweirdemail@example.com'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(res.body.message).toEqual('No relevant data supplied');
+
+                expect(_profile.app_metadata).toBeUndefined();
+                expect(_profile.created_at).not.toEqual('some-fake-time');
+                expect(_profile.identities.length).toEqual(1);
+                expect(_profile.last_ip).not.toEqual('127.0.0.1');
+                expect(_profile.last_login).not.toEqual('some-fake-date');
+                expect(_profile.last_password_reset).not.toEqual('some-fake-date');
+                expect(_profile.logins_count).not.toEqual(333);
+                expect(_profile.multifactor).not.toEqual([]);
+                expect(_profile.updated_at).not.toEqual('some-fake-time');
+                expect(_profile.user_id).not.toEqual('some-fake-id');
+                expect(_profile.user_metadata).not.toEqual({ some: 'metadata' });
+                expect(_profile.username).not.toEqual('some_guy');
+                expect(_profile.email).not.toEqual('someweirdemail@example.com');
+
+                done();
+              });
+          });
+
+          it('returns a friendly message if no relevant data supplied', done => {
+            authenticatedSession
+              .patch(`/agent/${_identity.sub}`)
+              .send({
+                favourite_fish: 'Cod'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(res.body.message).toEqual('No relevant data supplied');
+                done();
+              });
+          });
+
           describe('Auth0', () => {
-            it('calls Auth0 to update the agent', done => {
+            it('is called to update the agent', done => {
               authenticatedSession
                 .patch(`/agent/${_identity.sub}`)
                 .send({
-                  email: 'someotherguy@example.com'
+                  phone_number: '403-266-1234'
                 })
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
@@ -111,6 +248,39 @@ describe('agentEditSpec', () => {
 
                   expect(userUpdateOauthTokenScope.isDone()).toBe(true);
                   expect(userUpdateScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+
+            it('is not called if no data is supplied', done => {
+              authenticatedSession
+                .patch(`/agent/${_identity.sub}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(userUpdateOauthTokenScope.isDone()).toBe(false);
+                  expect(userUpdateScope.isDone()).toBe(false);
+                  done();
+                });
+            });
+
+            it('is not called if no relevant data is supplied', done => {
+              authenticatedSession
+                .patch(`/agent/${_identity.sub}`)
+                .send({
+                  favourite_fish: 'Cod'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(userUpdateOauthTokenScope.isDone()).toBe(false);
+                  expect(userUpdateScope.isDone()).toBe(false);
                   done();
                 });
             });
