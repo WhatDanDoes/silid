@@ -246,6 +246,20 @@ Two RDS databases are being used for silid and can be seen in the AWS console li
 
 In the event of a database outage or loss, the database can be restored by [restoring a snapshot of the database instance](https://console.aws.amazon.com/rds/home?region=us-east-1#database:id=ss1fejs6cgbasrw;is-cluster=false;tab=maintenance-and-backups) or recreated entirely [here](https://console.aws.amazon.com/rds/home?region=us-east-1#launch-dbinstance:gdb=false;s3-import=false).
 
+## Auth0 IdP Connection Sync
+
+From the documentation: https://auth0.com/docs/users/configure-connection-sync-with-auth0
+
+> To be able to edit the name, nickname, given_name, family_name, or picture root attributes on the normalized user profile, you must configure your connection sync with Auth0 so that user attributes will be updated from the identity provider only on user profile creation.
+
+### Turn off sync
+
+1. Go to Dashboard > Connections and select a connection type.
+
+2. Click the name of a connection to see its settings.
+
+2. Toggle Sync user profile attributes at each login to the _off_ position and click _Save_.
+
 ## AWS SES
 
 For the development_aws and production environments (silid-dev, silid), email is dependent on the [Amazon Simple Email Service](https://console.aws.amazon.com/ses/home?region=us-east-1#verified-sender-details:domain:languagetechnology.org) (SES). A config file named `aws.json` is required in the `config` directory of `silid-server` with SES credentials. This is currently being created by a step in the build process handled by TeamCity (see Add AWS aws.json file).
