@@ -178,4 +178,14 @@ router.post('/verify', checkPermissions([scope.update.agents]), function(req, re
   });
 });
 
+router.patch('/:id', checkPermissions([scope.update.agents]), function(req, res, next) {
+  const managementClient = getManagementClient(apiScope.update.users);
+  managementClient.updateUser({id: req.params.id}, req.body).then(agent => {
+
+    res.status(201).json(agent);
+  }).catch(err => {
+    res.status(err.statusCode).json(err.message.error_description);
+  });
+});
+
 module.exports = router;
