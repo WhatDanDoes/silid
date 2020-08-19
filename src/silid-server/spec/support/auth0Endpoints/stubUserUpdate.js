@@ -48,12 +48,9 @@ module.exports = function(profile, done, options) {
           if (profile) {
             profile = {...profile, ...requestBody};
           }
-          else {
-            _profile = {..._profile, ...requestBody};
-          }
 
           // Be very careful here... this is manipulating a value in a wide scope
-          return profile || _profile;
+          return profile || {..._profile, ...requestBody};
         });
 
 
