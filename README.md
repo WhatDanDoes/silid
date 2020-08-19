@@ -12,7 +12,7 @@ The following describes how to deploy the application to your local development 
 - Docker version 19.03.8, build afacb8b7f0
 - Git version 2.17.1
 
-These are not required versions, but rather the most up-to-date available for the moment. 
+These are not required versions, but rather the most up-to-date available for the moment.
 
 # Setup
 
@@ -123,7 +123,7 @@ Sometimes the database doesn't start on time during the first build. If `stdout`
 
 End-to-end tests may be executed in your preferred browser, or _headlessly_, as may be appropriate in a staging or CI environment.
 
-These tests depend on `cypress`. Open a third shell and navigate to the `src/identity-react` project directory. 
+These tests depend on `cypress`. Open a third shell and navigate to the `src/identity-react` project directory.
 
 #### In-browser tests:
 
