@@ -470,9 +470,8 @@ const Agent = (props) => {
                         </TableCell>
                       </TableRow>
                     : undefined}
-                    <TableRow>
                       { Object.keys(prevAgentInputState).length ?
-                        <>
+                        <TableRow>
                           <TableCell align="right">
                             <Button id="cancel-agent-changes" variant="contained" color="secondary"
                               onClick={e => {
@@ -524,9 +523,8 @@ const Agent = (props) => {
                               <FormattedMessage id='Save' />
                             </Button>
                           </TableCell>
-                        </>
+                        </TableRow>
                       : ''}
-                    </TableRow>
 
                   </TableBody>
                 </Table>
