@@ -69,6 +69,150 @@ context('viewer/Agent edit', function() {
           cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
           cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
         });
+
+        describe('#agent-name-field', () => {
+          it('reveals Save and Cancel buttons on change', () => {
+            cy.get('button#save-agent').should('not.exist');
+            cy.get('button#cancel-agent-changes').should('not.exist');
+
+            cy.get('#agent-name-field').type('!!!');
+            cy.get('#agent-name-field').should('have.value', 'Some Guy!!!');
+
+            cy.get('button#save-agent').should('exist');
+            cy.get('button#cancel-agent-changes').should('exist');
+          });
+
+          describe('#cancel-agent-changes button', () => {
+            beforeEach(() => {
+              cy.get('#agent-name-field').clear();
+              cy.get('#agent-name-field').type('Some Groovy Cat');
+            });
+
+            it('resets the changes to the editable fields', () => {
+              cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
+              cy.get('button#cancel-agent-changes').click();
+              cy.get('#agent-name-field').should('have.value', 'Some Guy');
+            });
+
+            it('hides the Cancel and Save buttons', () => {
+              cy.get('button#save-agent').should('exist');
+              cy.get('button#cancel-agent-changes').should('exist');
+
+              cy.get('button#cancel-agent-changes').click();
+
+              cy.get('button#save-agent').should('not.exist');
+              cy.get('button#cancel-agent-changes').should('not.exist');
+            });
+
+            it('does not change the agent\'s record', () => {
+              cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
+                expect(results.length).to.eq(1);
+                expect(results[0].socialProfile.name).to.eq('Some Guy');
+                cy.get('button#cancel-agent-changes').click();
+                cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
+                  expect(results[0].socialProfile.name).to.eq('Some Guy');
+                });
+              });
+            });
+          });
+
+          describe('#save-agent button', () => {
+
+            describe('is unsuccessful in making changes', () => {
+
+              describe('with invalid field', () => {
+                it('empty name field', () => {
+                  cy.get('#agent-name-field').clear();
+                  cy.get('#agent-name-field').should('have.value', '');
+                  cy.get('button#save-agent').click();
+                  cy.wait(300);
+                  cy.get('#flash-message').contains('Agent name can\'t be blank');
+                });
+
+                it('blank name field', () => {
+                  cy.get('#agent-name-field').clear();
+                  cy.get('#agent-name-field').type('     ');
+                  cy.get('#agent-name-field').should('have.value', '     ');
+                  cy.get('button#save-agent').click();
+                  cy.wait(300);
+                  cy.get('#flash-message').contains('Agent name can\'t be blank');
+                });
+
+                it('does not change the agent\'s record', () => {
+                  cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
+                    expect(results.length).to.eq(1);
+                    expect(results[0].socialProfile.name).to.eq('Some Guy');
+
+                    cy.get('#agent-name-field').clear();
+                    cy.get('button#save-agent').click();
+
+                    cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
+                      expect(results[0].socialProfile.name).to.eq('Some Guy');
+                    });
+                  });
+                });
+              });
+            });
+
+            describe('successfully makes changes', () => {
+              beforeEach(() => {
+                cy.get('#agent-name-field').clear();
+                cy.get('#agent-name-field').type('Some Groovy Cat');
+              });
+
+              it('lands in the proper place', () => {
+                cy.get('button#save-agent').click();
+                cy.wait(300);
+                cy.url().should('contain', `/#/agent/${agent.socialProfile.user_id}`);
+              });
+
+              it('persists the changes to the editable fields', () => {
+                cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
+                cy.get('button#save-agent').click();
+                cy.wait(300);
+                cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
+              });
+
+              it('hides the Cancel and Save buttons', () => {
+                cy.get('button#save-agent').should('exist');
+                cy.get('button#cancel-agent-changes').should('exist');
+
+                cy.get('button#save-agent').click();
+
+                cy.get('button#save-agent').should('not.exist');
+                cy.get('button#cancel-agent-changes').should('not.exist');
+              });
+
+              it('changes the agent\'s record', () => {
+                cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
+                  expect(results.length).to.eq(1);
+                  expect(results[0].socialProfile.name).to.eq('Some Guy');
+                  cy.get('button#save-agent').click();
+                  cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
+                    expect(results[0].socialProfile.name).to.eq('Some Groovy Cat');
+                  });
+                });
+              });
+
+              it('displays a friendly message', () => {
+                cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
+                cy.get('button#save-agent').click();
+                cy.wait(300);
+                cy.get('#flash-message').contains('Agent updated');
+              });
+
+              it('persists updated team data between browser refreshes', () => {
+                cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
+                cy.get('button#save-agent').click();
+                cy.wait(300);
+                cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
+                cy.reload();
+                cy.wait(300);
+                cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
+              });
+            });
+          });
+        });
       });
 
       describe('email not verified', () => {
