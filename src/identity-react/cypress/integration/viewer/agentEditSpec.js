@@ -126,7 +126,7 @@ context('viewer/Agent edit', function() {
                   cy.get('#agent-name-field').should('have.value', '');
                   cy.get('button#save-agent').click();
                   cy.wait(300);
-                  cy.get('#flash-message').contains('Agent name can\'t be blank');
+                  cy.get('#flash-message').contains('Missing profile data');
                 });
 
                 it('blank name field', () => {
@@ -135,7 +135,7 @@ context('viewer/Agent edit', function() {
                   cy.get('#agent-name-field').should('have.value', '     ');
                   cy.get('button#save-agent').click();
                   cy.wait(300);
-                  cy.get('#flash-message').contains('Agent name can\'t be blank');
+                  cy.get('#flash-message').contains('Missing profile data');
                 });
 
                 it('does not change the agent\'s record', () => {
