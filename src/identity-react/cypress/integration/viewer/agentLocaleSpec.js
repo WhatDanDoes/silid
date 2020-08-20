@@ -32,15 +32,20 @@ context('viewer/Agent locale', function() {
         it('displays agent\'s info', () => {
           cy.get('h3').contains('Profile');
           cy.get('#profile-table table tbody tr th').contains('Name:');
-          cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.name);
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
+
           cy.get('#profile-table table tbody tr th').contains('Email:');
           cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.email);
+
           cy.get('#profile-table table tbody tr th').contains('Provider Locale:');
           cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.locale);
+
           cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
           cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
           cy.get('#profile-table table tbody tr td label[for="sil-local-dropdown"]').contains('Set SIL language preference');
           cy.get('#profile-table table tbody tr td input#sil-local-dropdown').should('have.attr', 'value').and('equal', 'English');
+
           cy.get('#profile-table table tbody tr:last-of-type th').contains('Roles:');
           cy.get('#profile-table table tbody tr:last-of-type div').its('length').should('eq', 1);
           cy.get('#profile-table table tbody tr:last-of-type div').contains('viewer');
@@ -85,7 +90,9 @@ context('viewer/Agent locale', function() {
 
               // Name
               cy.get('#profile-table table tbody tr th').contains('Pong:');
-              cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.name);
+              cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
+              cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
+
               // Email
               cy.get('#profile-table table tbody tr th').contains('De\'wI\' QIn:');
               cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.email);
@@ -150,13 +157,18 @@ context('viewer/Agent locale', function() {
             it('displays agent\'s info', () => {
               cy.get('h3').contains('Profile');
               cy.get('#profile-table table tbody tr th').contains('Name:');
-              cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.name);
+              cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
+              cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
+
               cy.get('#profile-table table tbody tr th').contains('Email:');
               cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.email);
+
               cy.get('#profile-table table tbody tr th').contains('Provider Locale:');
               cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.locale);
+
               cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
               cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
+
               cy.get('#profile-table table tbody tr td label[for="sil-local-dropdown"]').contains('Set SIL language preference');
               cy.get('#profile-table table tbody tr td input#sil-local-dropdown').should('have.attr', 'value').and('equal', 'English');
               cy.get('#profile-table table tbody tr:last-of-type th').contains('Roles:');
@@ -186,13 +198,18 @@ context('viewer/Agent locale', function() {
             it('displays agent\'s info', () => {
               cy.get('h3').contains('Profile');
               cy.get('#profile-table table tbody tr th').contains('Name:');
-              cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.name);
+              cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
+              cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
+
               cy.get('#profile-table table tbody tr th').contains('Email:');
               cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.email);
+
               cy.get('#profile-table table tbody tr th').contains('Provider Locale:');
               cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.locale);
+
               cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
               cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
+
               cy.get('#profile-table table tbody tr td label[for="sil-local-dropdown"]').contains('Set SIL language preference');
               cy.get('#profile-table table tbody tr td input#sil-local-dropdown').should('have.attr', 'value').and('equal', 'Chinook jargon');
               cy.get('#profile-table table tbody tr:last-of-type th').contains('Roles:');
