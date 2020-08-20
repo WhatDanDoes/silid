@@ -1,4 +1,4 @@
-context('viewer/Agent show', function() {
+context('viewer/Agent show', () => {
 
   let memberAgent;
   before(function() {
@@ -42,7 +42,7 @@ context('viewer/Agent show', function() {
     let memberAgent;
 
     describe('email verified', () => {
-      beforeEach(function() {
+      beforeEach(() => {
         // A convenient way to create a new agent
         cy.login('someotherguy@example.com', _profile);
         cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
@@ -51,7 +51,7 @@ context('viewer/Agent show', function() {
       });
 
       describe('viewing member agent\'s profile', () => {
-        beforeEach(function() {
+        beforeEach(() => {
           cy.login('someguy@example.com', _profile);
           cy.visit(`/#/agent/${memberAgent.socialProfile.user_id}`);
           cy.wait(300);
@@ -61,20 +61,28 @@ context('viewer/Agent show', function() {
           cy.url().should('contain', `/#/agent/${memberAgent.socialProfile.user_id}`);
         });
 
-        it('displays agent\'s info', function() {
+        it('displays agent\'s info', () => {
           cy.get('h3').contains('Profile');
           cy.get('#profile-table table tbody tr th').contains('Name:');
-          cy.get('#profile-table table tbody tr td').contains(memberAgent.socialProfile.name);
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', memberAgent.socialProfile.name);
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
+
           cy.get('#profile-table table tbody tr th').contains('Email:');
           cy.get('#profile-table table tbody tr td').contains(memberAgent.socialProfile.email);
+
           cy.get('#profile-table table tbody tr th').contains('Provider Locale:');
           cy.get('#profile-table table tbody tr td').contains(memberAgent.socialProfile.locale);
+
           cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
           cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('be.disabled');
+
           cy.get('#profile-table table tbody tr:last-of-type th').contains('Roles:');
           cy.get('#profile-table table tbody tr:last-of-type div').its('length').should('eq', 1);
           cy.get('#profile-table table tbody tr:last-of-type div').contains('viewer');
           cy.get('#profile-table table tbody tr:last-of-type div#assign-role').should('not.exist');
+
+          cy.get('button#save-agent').should('not.exist');
+          cy.get('button#cancel-agent-changes').should('not.exist');
         });
 
         it('does not display the assign-role chip', () => {
@@ -82,12 +90,12 @@ context('viewer/Agent show', function() {
         });
 
         describe('teams', () => {
-          it('does not display add-team button', function() {
+          it('does not display add-team button', () => {
             cy.get('#teams-table button').should('not.exist');
           });
 
           describe('none created', () => {
-            it('displays teams table', function() {
+            it('displays teams table', () => {
               cy.get('#teams-table h6').contains('Teams');
               cy.get('#teams-table table tbody tr td').contains('No records to display');
             });
@@ -95,7 +103,7 @@ context('viewer/Agent show', function() {
 
           describe('some created', () => {
             let agent;
-            beforeEach(function() {
+            beforeEach(() => {
               cy.login('someotherguy@example.com', {..._profile, user_metadata: {
                                                        teams: [
                                                          {
@@ -114,7 +122,7 @@ context('viewer/Agent show', function() {
               });
             });
 
-            it('displays teams in a table', function() {
+            it('displays teams in a table', () => {
               cy.get('#teams-table h6').contains('Teams');
               cy.get('#teams-table table tbody tr td').contains('No records to display').should('not.exist');
               cy.get('#teams-table button span span').should('not.exist');
@@ -158,7 +166,7 @@ context('viewer/Agent show', function() {
       describe('viewing your own profile', () => {
 
         let agent;
-        beforeEach(function() {
+        beforeEach(() => {
           cy.login('someguy@example.com', _profile);
           cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
             agent = results[0];
@@ -171,29 +179,37 @@ context('viewer/Agent show', function() {
           cy.url().should('contain', `/#/agent/${agent.socialProfile.user_id}`);
         });
 
-        it('displays agent\'s info', function() {
+        it('displays agent\'s info', () => {
           cy.get('h3').contains('Profile');
           cy.get('#profile-table table tbody tr th').contains('Name:');
-          cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.name);
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
+
           cy.get('#profile-table table tbody tr th').contains('Email:');
           cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.email);
+
           cy.get('#profile-table table tbody tr th').contains('Provider Locale:');
           cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.locale);
+
           cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
           cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
+
           cy.get('#profile-table table tbody tr:last-of-type th').contains('Roles:');
           cy.get('#profile-table table tbody tr:last-of-type div').its('length').should('eq', 1);
           cy.get('#profile-table table tbody tr:last-of-type div').contains('viewer');
           cy.get('#profile-table table tbody tr:last-of-type div#assign-role').should('not.exist');
+
+          cy.get('button#save-agent').should('not.exist');
+          cy.get('button#cancel-agent-changes').should('not.exist');
         });
 
         describe('teams', () => {
-          it('displays add-team button', function() {
+          it('displays add-team button', () => {
             cy.get('#teams-table button span span').contains('add_box');
           });
 
           describe('none created', () => {
-            it('displays teams table', function() {
+            it('displays teams table', () => {
               cy.get('#teams-table h6').contains('Teams');
               cy.get('#teams-table table tbody tr td').contains('No records to display');
             });
@@ -201,7 +217,7 @@ context('viewer/Agent show', function() {
 
           describe('some created', () => {
             let agent;
-            beforeEach(function() {
+            beforeEach(() => {
               cy.login('someguy@example.com', {..._profile, user_metadata: {
                                                        teams: [
                                                          {
@@ -219,7 +235,7 @@ context('viewer/Agent show', function() {
               });
             });
 
-            it('displays teams in a table', function() {
+            it('displays teams in a table', () => {
               cy.get('#teams-table h6').contains('Teams');
               cy.get('#teams-table table tbody tr td').contains('No records to display').should('not.exist');
               cy.get('#teams-table button span span').contains('add_box');
@@ -262,7 +278,7 @@ context('viewer/Agent show', function() {
     });
 
     describe('email not verified', () => {
-      beforeEach(function() {
+      beforeEach(() => {
         // A convenient way to create a new agent
         cy.login('someotherguy@example.com', _profile);
         cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
@@ -271,7 +287,7 @@ context('viewer/Agent show', function() {
       });
 
       describe('viewing member agent\'s profile', () => {
-        beforeEach(function() {
+        beforeEach(() => {
           cy.login('someguy@example.com', {..._profile, email_verified: false });
           cy.visit(`/#/agent/${memberAgent.socialProfile.user_id}`);
           cy.wait(300);
@@ -288,7 +304,7 @@ context('viewer/Agent show', function() {
 
       describe('viewing your own profile', () => {
         let agent;
-        beforeEach(function() {
+        beforeEach(() => {
           cy.login('someguy@example.com', {..._profile, email_verified: false });
           cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
             agent = results[0];
@@ -301,29 +317,37 @@ context('viewer/Agent show', function() {
           cy.url().should('contain', `/#/agent/${agent.socialProfile.user_id}`);
         });
 
-        it('displays agent\'s info', function() {
+        it('displays agent\'s info', () => {
           cy.get('h3').contains('Profile');
           cy.get('#profile-table table tbody tr th').contains('Name:');
-          cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.name);
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
+
           cy.get('#profile-table table tbody tr th').contains('Email:');
           cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.email);
+
           cy.get('#profile-table table tbody tr th').contains('Provider Locale:');
           cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.locale);
+
           cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
           cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
+
           cy.get('#profile-table table tbody tr:last-of-type th').contains('Roles:');
           cy.get('#profile-table table tbody tr:last-of-type div').its('length').should('eq', 1);
           cy.get('#profile-table table tbody tr:last-of-type div').contains('viewer');
           cy.get('#profile-table table tbody tr:last-of-type div#assign-role').should('not.exist');
+
+          cy.get('button#save-agent').should('not.exist');
+          cy.get('button#cancel-agent-changes').should('not.exist');
         });
 
         describe('teams', () => {
-          it('does not display add-team button', function() {
+          it('does not display add-team button', () => {
             cy.get('#teams-table button').should('not.exist');
           });
 
           describe('none created', () => {
-            it('displays teams table', function() {
+            it('displays teams table', () => {
               cy.get('#teams-table h6').contains('Teams');
               cy.get('#teams-table table tbody tr td').contains('No records to display');
             });
@@ -331,7 +355,7 @@ context('viewer/Agent show', function() {
 
           describe('some created', () => {
             let agent;
-            beforeEach(function() {
+            beforeEach(() => {
               cy.login('someguy@example.com', {..._profile,
                                                 email_verified: false,
                                                 user_metadata: {
@@ -351,7 +375,7 @@ context('viewer/Agent show', function() {
               });
             });
 
-            it('displays teams in a table without links', function() {
+            it('displays teams in a table without links', () => {
               cy.get('#teams-table h6').contains('Teams');
               cy.get('#teams-table table tbody tr td').contains('No records to display').should('not.exist');
               // Add box

@@ -234,7 +234,16 @@ const Agent = (props) => {
                   <TableBody>
                     <TableRow>
                       <TableCell align="right" component="th" scope="row"><FormattedMessage id='Name' />:</TableCell>
-                      <TableCell align="left">{profileData.name}</TableCell>
+                      <TableCell align="left">
+                        <input id="agent-name-field" value={profileData.name || ''} disabled={!profileData.email_verified || agent.email !== profileData.email && !admin.isEnabled}
+                          onChange={e => {
+                              if (!prevInputState.name) {
+                                setPrevInputState({ name: profileData.name });
+                              }
+                              //setAgentInfo({ name: e.target.value });
+                            }
+                          } />
+                      </TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell align="right" component="th" scope="row"><FormattedMessage id='Email' />:</TableCell>

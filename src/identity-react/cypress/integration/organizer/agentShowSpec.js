@@ -9,7 +9,7 @@
  * For now, this is testing an organizer viewing himself and the profiles of
  * other organizers.
  */
-context('organizer/Agent show', function() {
+context('organizer/Agent show', () => {
 
   let organizerAgent;
   before(function() {
@@ -72,18 +72,26 @@ context('organizer/Agent show', function() {
       it('displays agent\'s info', () => {
         cy.get('h3').contains('Profile');
         cy.get('#profile-table table tbody tr th').contains('Name:');
-        cy.get('#profile-table table tbody tr td').contains(organizerAgent.socialProfile.name);
+        cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', organizerAgent.socialProfile.name);
+        cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
+
         cy.get('#profile-table table tbody tr th').contains('Email:');
         cy.get('#profile-table table tbody tr td').contains(organizerAgent.socialProfile.email);
+
         cy.get('#profile-table table tbody tr th').contains('Provider Locale:');
         cy.get('#profile-table table tbody tr td').contains(organizerAgent.socialProfile.locale);
+
         cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
         cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('be.disabled');
+
         cy.get('#profile-table table tbody tr:last-of-type th').contains('Roles:');
         cy.get('#profile-table table tbody tr:last-of-type div').its('length').should('eq', 2);
         cy.get('#profile-table table tbody tr:last-of-type div:first-of-type').contains('organizer');
         cy.get('#profile-table table tbody tr:last-of-type div:last-of-type').contains('viewer');
         cy.get('#profile-table table tbody tr:last-of-type div#assign-role').should('not.exist');
+
+        cy.get('button#save-agent').should('not.exist');
+        cy.get('button#cancel-agent-changes').should('not.exist');
       });
 
       it('does not display the assign-role chip', () => {
@@ -234,18 +242,26 @@ context('organizer/Agent show', function() {
       it('displays agent\'s info', () => {
         cy.get('h3').contains('Profile');
         cy.get('#profile-table table tbody tr th').contains('Name:');
-        cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.name);
+        cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
+        cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
+
         cy.get('#profile-table table tbody tr th').contains('Email:');
         cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.email);
+
         cy.get('#profile-table table tbody tr th').contains('Provider Locale:');
         cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.locale);
+
         cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
         cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
+
         cy.get('#profile-table table tbody tr:last-of-type th').contains('Roles:');
         cy.get('#profile-table table tbody tr:last-of-type div').its('length').should('eq', 2);
         cy.get('#profile-table table tbody tr:last-of-type div:first-of-type').contains('organizer');
         cy.get('#profile-table table tbody tr:last-of-type div:last-of-type').contains('viewer');
         cy.get('#profile-table table tbody tr:last-of-type div#assign-role').should('not.exist');
+
+        cy.get('button#save-agent').should('not.exist');
+        cy.get('button#cancel-agent-changes').should('not.exist');
       });
 
       describe('organizations', () => {
