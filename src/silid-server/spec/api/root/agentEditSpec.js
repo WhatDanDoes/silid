@@ -375,7 +375,7 @@ describe('root/agentEditSpec', () => {
                 picture: 'http://example.com/mypic.jpg',
               }
 
-              expect(_profile).not.toEqual({..._profile, ...allClaims });
+              expect(_profile).not.toEqual({...anotherAgent, ...allClaims });
 
               rootSession
                 .patch(`/agent/${anotherAgent.user_id}`)
@@ -386,7 +386,7 @@ describe('root/agentEditSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  expect(res.body).toEqual({..._profile, ...allClaims });
+                  expect(res.body).toEqual({...anotherAgent, ...allClaims });
 
                   done();
                 });
@@ -599,7 +599,7 @@ describe('root/agentEditSpec', () => {
                 picture: 'http://example.com/mypic.jpg',
               }
 
-              expect(_profile).not.toEqual({..._profile, ...allClaims });
+              expect(_profile).not.toEqual({...anotherAgent, ...allClaims });
 
               rootSession
                 .patch(`/agent/${anotherAgent.user_id}`)
@@ -610,7 +610,7 @@ describe('root/agentEditSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  expect(res.body).toEqual({..._profile, ...allClaims });
+                  expect(res.body).toEqual({...anotherAgent, ...allClaims });
 
                   done();
                 });

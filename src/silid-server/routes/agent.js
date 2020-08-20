@@ -180,7 +180,7 @@ router.post('/verify', checkPermissions([scope.update.agents]), function(req, re
 
 router.patch('/:id', checkPermissions([scope.update.agents]), function(req, res, next) {
 
-  if (req.params.id !== req.user.user_id) {
+  if (req.params.id !== req.user.user_id && !req.user.isSuper) {
     return res.status(403).json({ message: 'Forbidden' });
   }
 
