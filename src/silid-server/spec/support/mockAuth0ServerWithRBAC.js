@@ -595,11 +595,16 @@ require('../support/setupKeystore').then(keyStuff => {
                                                               }
                                                      });
 
-          results.socialProfile.user_metadata = request.payload.user_metadata;
+          if (request.payload.user_metadata) {
+            results.socialProfile.user_metadata = request.payload.user_metadata;
+            results.changed('socialProfile', true);
+          }
+          else {
+            results.socialProfile = {...results.socialProfile, ...request.payload};
+          }
 
           // 2020-4-28 https://github.com/sequelize/sequelize/issues/4387#issuecomment-135804557
           // Without this, the nested JSON won't actually save
-          results.changed('socialProfile', true);
           await results.save();
 
           return h.response({...results.socialProfile, user_id: results.socialProfile._json.sub });
