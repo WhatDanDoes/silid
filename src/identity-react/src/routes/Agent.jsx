@@ -308,7 +308,7 @@ const Agent = (props) => {
                           getOptionLabel={(option) => `${option.name}`}
                           options={localeOptions}
                           loading={loadingLocale}
-                          disabled={profileData.email !== agent.email}
+                          disabled={profileData.email !== agent.email && !agent.isAdmin}
                           value={profileData.user_metadata && profileData.user_metadata.silLocale ? profileData.user_metadata.silLocale : { name: 'English', iso6393: 'eng' }}
                           autoHighlight
                           renderInput={(params) => (

@@ -23,342 +23,242 @@ context('root/Agent edit', function() {
 
     describe('viewing another agent\'s profile', () => {
 
-      describe('agent\'s email verified', () => {
+      describe('admin mode', () => {
 
-        beforeEach(() => {
-          // A convenient way to create a new agent
-          cy.login('someotherguy@example.com', {..._profile, name: 'Some Other Guy' });
-          cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
-            agent = results[0];
+        context('switched off', () => {
+          beforeEach(() => {
+            // A convenient way to create a new agent
+            cy.login('someotherguy@example.com', _profile);
+            cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
+              agent = results[0];
 
-            cy.login(_profile.email, _profile);
-            cy.visit(`/#/agent/${agent.socialProfile.user_id}`);
-            cy.wait(300);
-          });
-        });
+              cy.login(_profile.email, _profile);
 
-        it('displays agents\'s info', () => {
-          cy.get('h3').contains('Profile');
-          cy.get('#profile-table table tbody tr th').contains('Name:');
-          cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
-          cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
+              cy.get('#app-menu-button').click();
+              cy.wait(200);
+              cy.get('#admin-switch').uncheck();
 
-          // Not really relevant for root-level root-agent profile edits, but included here anyway
-          cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
-          cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
-        });
-
-        describe('#agent-name-field', () => {
-          it('reveals Save and Cancel buttons on change', () => {
-            cy.get('button#save-agent').should('not.exist');
-            cy.get('button#cancel-agent-changes').should('not.exist');
-
-            cy.get('#agent-name-field').type('!!!');
-            cy.get('#agent-name-field').should('have.value', 'Some Other Guy!!!');
-
-            cy.get('button#save-agent').should('exist');
-            cy.get('button#cancel-agent-changes').should('exist');
+              cy.visit(`/#/agent/${agent.socialProfile.user_id}`);
+              cy.wait(300);
+            });
           });
 
-          describe('#cancel-agent-changes button', () => {
+          it('does not allow editing agent\'s info', () => {
+            cy.get('h3').contains('Profile');
+            cy.get('#profile-table table tbody tr th').contains('Name:');
+            cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
+            cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
+
+            // Not really relevant for root-level agent profile edits, but included here anyway
+            cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
+            cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('be.disabled');
+          });
+
+        });
+
+        context('switched on', () => {
+
+          describe('agent\'s email verified', () => {
+
             beforeEach(() => {
-              cy.get('#agent-name-field').clear();
-              cy.get('#agent-name-field').type('Some Groovy Cat');
-            });
-
-            it('resets the changes to the editable fields', () => {
-              cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
-              cy.get('button#cancel-agent-changes').click();
-              cy.get('#agent-name-field').should('have.value', 'Some Other Guy');
-            });
-
-            it('hides the Cancel and Save buttons', () => {
-              cy.get('button#save-agent').should('exist');
-              cy.get('button#cancel-agent-changes').should('exist');
-
-              cy.get('button#cancel-agent-changes').click();
-
-              cy.get('button#save-agent').should('not.exist');
-              cy.get('button#cancel-agent-changes').should('not.exist');
-            });
-
-            it('does not change the agent\'s record', () => {
+              // A convenient way to create a new agent
+              cy.login('someotherguy@example.com', {..._profile, name: 'Some Other Guy' });
               cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
-                expect(results.length).to.eq(1);
-                expect(results[0].socialProfile.name).to.eq('Some Other Guy');
-                cy.get('button#cancel-agent-changes').click();
-                cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
-                  expect(results[0].socialProfile.name).to.eq('Some Other Guy');
-                });
+                agent = results[0];
+
+                cy.login(_profile.email, _profile);
+
+                cy.get('#app-menu-button').click();
+                cy.get('#admin-switch').check();
+                cy.contains('Agent Directory').click();
+                cy.wait(200);
+                cy.contains(agent.name).click();
+                cy.wait(300);
               });
             });
-          });
 
-          describe('#save-agent button', () => {
+            it('displays agents\'s info', () => {
+              cy.get('h3').contains('Profile');
+              cy.get('#profile-table table tbody tr th').contains('Name:');
+              cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
+              cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
 
-            describe('is unsuccessful in making changes', () => {
+              // Not really relevant for root-level root-agent profile edits, but included here anyway
+              cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
+              cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('be.disabled');
+            });
 
-              describe('with invalid field', () => {
-                it('rejects empty name field', () => {
+            describe('#agent-name-field', () => {
+              it('reveals Save and Cancel buttons on change', () => {
+                cy.get('button#save-agent').should('not.exist');
+                cy.get('button#cancel-agent-changes').should('not.exist');
+
+                cy.get('#agent-name-field').type('!!!');
+                cy.get('#agent-name-field').should('have.value', 'Some Other Guy!!!');
+
+                cy.get('button#save-agent').should('exist');
+                cy.get('button#cancel-agent-changes').should('exist');
+              });
+
+              describe('#cancel-agent-changes button', () => {
+                beforeEach(() => {
                   cy.get('#agent-name-field').clear();
-                  cy.get('#agent-name-field').should('have.value', '');
-                  cy.get('button#save-agent').click();
-                  cy.wait(300);
-                  cy.get('#flash-message').contains('Missing profile data');
+                  cy.get('#agent-name-field').type('Some Groovy Cat');
                 });
 
-                it('rejects blank name field', () => {
-                  cy.get('#agent-name-field').clear();
-                  cy.get('#agent-name-field').type('     ');
-                  cy.get('#agent-name-field').should('have.value', '     ');
-                  cy.get('button#save-agent').click();
-                  cy.wait(300);
-                  cy.get('#flash-message').contains('Missing profile data');
+                it('resets the changes to the editable fields', () => {
+                  cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
+                  cy.get('button#cancel-agent-changes').click();
+                  cy.get('#agent-name-field').should('have.value', 'Some Other Guy');
+                });
+
+                it('hides the Cancel and Save buttons', () => {
+                  cy.get('button#save-agent').should('exist');
+                  cy.get('button#cancel-agent-changes').should('exist');
+
+                  cy.get('button#cancel-agent-changes').click();
+
+                  cy.get('button#save-agent').should('not.exist');
+                  cy.get('button#cancel-agent-changes').should('not.exist');
                 });
 
                 it('does not change the agent\'s record', () => {
                   cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
                     expect(results.length).to.eq(1);
-                    expect(results[0].socialProfile.name).to.eq('Some Other GUy');
-
-                    cy.get('#agent-name-field').clear();
-                    cy.get('button#save-agent').click();
-
-                    cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
+                    expect(results[0].socialProfile.name).to.eq('Some Other Guy');
+                    cy.get('button#cancel-agent-changes').click();
+                    cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
                       expect(results[0].socialProfile.name).to.eq('Some Other Guy');
                     });
                   });
                 });
               });
-            });
 
-            describe('successfully makes changes', () => {
-              beforeEach(() => {
-                cy.get('#agent-name-field').clear();
-                cy.get('#agent-name-field').type('Some Groovy Cat');
-              });
+              describe('#save-agent button', () => {
 
-              it('lands in the proper place', () => {
-                cy.get('button#save-agent').click();
-                cy.wait(300);
-                cy.url().should('contain', `/#/agent/${agent.socialProfile.user_id}`);
-              });
+                describe('is unsuccessful in making changes', () => {
 
-              it('persists the changes to the editable fields', () => {
-                cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
-                cy.get('button#save-agent').click();
-                cy.wait(300);
-                cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
-              });
+                  describe('with invalid field', () => {
+                    it('rejects empty name field', () => {
+                      cy.get('#agent-name-field').clear();
+                      cy.get('#agent-name-field').should('have.value', '');
+                      cy.get('button#save-agent').click();
+                      cy.wait(300);
+                      cy.get('#flash-message').contains('Missing profile data');
+                    });
 
-              it('hides the Cancel and Save buttons', () => {
-                cy.get('button#save-agent').should('exist');
-                cy.get('button#cancel-agent-changes').should('exist');
+                    it('rejects blank name field', () => {
+                      cy.get('#agent-name-field').clear();
+                      cy.get('#agent-name-field').type('     ');
+                      cy.get('#agent-name-field').should('have.value', '     ');
+                      cy.get('button#save-agent').click();
+                      cy.wait(300);
+                      cy.get('#flash-message').contains('Missing profile data');
+                    });
 
-                cy.get('button#save-agent').click();
+                    it('does not change the agent\'s record', () => {
+                      cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
+                        expect(results.length).to.eq(1);
+                        expect(results[0].socialProfile.name).to.eq('Some Other Guy');
 
-                cy.get('button#save-agent').should('not.exist');
-                cy.get('button#cancel-agent-changes').should('not.exist');
-              });
+                        cy.get('#agent-name-field').clear();
+                        cy.get('button#save-agent').click();
 
-              it('changes the agent\'s record', () => {
-                cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
-                  expect(results.length).to.eq(1);
-                  expect(results[0].socialProfile.name).to.eq('Some Other Guy');
-                  cy.get('button#save-agent').click();
-                  cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
-                    expect(results[0].socialProfile.name).to.eq('Some Groovy Cat');
+                        cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
+                          expect(results[0].socialProfile.name).to.eq('Some Other Guy');
+                        });
+                      });
+                    });
+                  });
+                });
+
+                describe('successfully makes changes', () => {
+                  beforeEach(() => {
+                    cy.get('#agent-name-field').clear();
+                    cy.get('#agent-name-field').type('Some Groovy Cat');
+                  });
+
+                  it('lands in the proper place', () => {
+                    cy.get('button#save-agent').click();
+                    cy.wait(300);
+                    cy.url().should('contain', `/#/agent/${agent.socialProfile.user_id}`);
+                  });
+
+                  it('persists the changes to the editable fields', () => {
+                    cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
+                    cy.get('button#save-agent').click();
+                    cy.wait(300);
+                    cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
+                  });
+
+                  it('hides the Cancel and Save buttons', () => {
+                    cy.get('button#save-agent').should('exist');
+                    cy.get('button#cancel-agent-changes').should('exist');
+
+                    cy.get('button#save-agent').click();
+
+                    cy.get('button#save-agent').should('not.exist');
+                    cy.get('button#cancel-agent-changes').should('not.exist');
+                  });
+
+                  it('changes the agent\'s record', () => {
+                    cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
+                      expect(results.length).to.eq(1);
+                      expect(results[0].socialProfile.name).to.eq('Some Other Guy');
+                      cy.get('button#save-agent').click();
+                      cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
+                        expect(results[0].socialProfile.name).to.eq('Some Groovy Cat');
+                      });
+                    });
+                  });
+
+                  it('displays a friendly message', () => {
+                    cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
+                    cy.get('button#save-agent').click();
+                    cy.wait(300);
+                    cy.get('#flash-message').contains('Agent updated');
+                  });
+
+                  it('persists updated root data between browser refreshes', () => {
+                    cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
+                    cy.get('button#save-agent').click();
+                    cy.wait(300);
+                    cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
+                    cy.reload();
+                    cy.wait(300);
+                    cy.visit(`/#/agent/${agent.socialProfile.user_id}`);
+                    cy.wait(300);
+                    cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
                   });
                 });
               });
-
-              it('displays a friendly message', () => {
-                cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
-                cy.get('button#save-agent').click();
-                cy.wait(300);
-                cy.get('#flash-message').contains('Agent updated');
-              });
-
-              it('persists updated root data between browser refreshes', () => {
-                cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
-                cy.get('button#save-agent').click();
-                cy.wait(300);
-                cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
-                cy.reload();
-                cy.wait(300);
-                cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
-              });
             });
           });
-        });
-      });
 
-      describe('agent\'s email not verified', () => {
+          describe('agent\'s email not verified', () => {
 
-        beforeEach(() => {
-          // A convenient way to create a new agent
-          cy.login('someotherguy@example.com', {..._profile, name: 'Some Other Guy', email_verified: false });
-          cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
-            agent = results[0];
-
-            cy.login(_profile.email, _profile);
-            cy.visit(`/#/agent/${agent.socialProfile.user_id}`);
-            cy.wait(300);
-          });
-        });
-
-        it('displays agents\'s info', () => {
-          cy.get('h3').contains('Profile');
-          cy.get('#profile-table table tbody tr th').contains('Name:');
-          cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
-          cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
-
-          // Not really relevant for root-level root-agent profile edits, but included here anyway
-          cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
-          cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
-        });
-
-
-        describe('#agent-name-field', () => {
-          it('reveals Save and Cancel buttons on change', () => {
-            cy.get('button#save-agent').should('not.exist');
-            cy.get('button#cancel-agent-changes').should('not.exist');
-
-            cy.get('#agent-name-field').type('!!!');
-            cy.get('#agent-name-field').should('have.value', 'Some Other Guy!!!');
-
-            cy.get('button#save-agent').should('exist');
-            cy.get('button#cancel-agent-changes').should('exist');
-          });
-
-          describe('#cancel-agent-changes button', () => {
             beforeEach(() => {
-              cy.get('#agent-name-field').clear();
-              cy.get('#agent-name-field').type('Some Groovy Cat');
-            });
-
-            it('resets the changes to the editable fields', () => {
-              cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
-              cy.get('button#cancel-agent-changes').click();
-              cy.get('#agent-name-field').should('have.value', 'Some Other Guy');
-            });
-
-            it('hides the Cancel and Save buttons', () => {
-              cy.get('button#save-agent').should('exist');
-              cy.get('button#cancel-agent-changes').should('exist');
-
-              cy.get('button#cancel-agent-changes').click();
-
-              cy.get('button#save-agent').should('not.exist');
-              cy.get('button#cancel-agent-changes').should('not.exist');
-            });
-
-            it('does not change the agent\'s record', () => {
+              // A convenient way to create a new agent
+              cy.login('someotherguy@example.com', {..._profile, name: 'Some Other Guy', email_verified: false });
               cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
-                expect(results.length).to.eq(1);
-                expect(results[0].socialProfile.name).to.eq('Some Other Guy');
-                cy.get('button#cancel-agent-changes').click();
-                cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
-                  expect(results[0].socialProfile.name).to.eq('Some Other Guy');
-                });
-              });
-            });
-          });
+                agent = results[0];
 
-          describe('#save-agent button', () => {
+                cy.login(_profile.email, _profile);
 
-            describe('is unsuccessful in making changes', () => {
-
-              describe('with invalid field', () => {
-                it('rejects empty name field', () => {
-                  cy.get('#agent-name-field').clear();
-                  cy.get('#agent-name-field').should('have.value', '');
-                  cy.get('button#save-agent').click();
-                  cy.wait(300);
-                  cy.get('#flash-message').contains('Missing profile data');
-                });
-
-                it('rejects blank name field', () => {
-                  cy.get('#agent-name-field').clear();
-                  cy.get('#agent-name-field').type('     ');
-                  cy.get('#agent-name-field').should('have.value', '     ');
-                  cy.get('button#save-agent').click();
-                  cy.wait(300);
-                  cy.get('#flash-message').contains('Missing profile data');
-                });
-
-                it('does not change the agent\'s record', () => {
-                  cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someotherguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
-                    expect(results.length).to.eq(1);
-                    expect(results[0].socialProfile.name).to.eq('Some Other GUy');
-
-                    cy.get('#agent-name-field').clear();
-                    cy.get('button#save-agent').click();
-
-                    cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
-                      expect(results[0].socialProfile.name).to.eq('Some Other Guy');
-                    });
-                  });
-                });
+                cy.get('#app-menu-button').click();
+                cy.get('#admin-switch').check();
+                cy.contains('Agent Directory').click();
+                cy.wait(200);
+                cy.contains(agent.name).click();
+                cy.wait(300);
               });
             });
 
-            describe('successfully makes changes', () => {
-              beforeEach(() => {
-                cy.get('#agent-name-field').clear();
-                cy.get('#agent-name-field').type('Some Groovy Cat');
-              });
-
-              it('lands in the proper place', () => {
-                cy.get('button#save-agent').click();
-                cy.wait(300);
-                cy.url().should('contain', `/#/agent/${agent.socialProfile.user_id}`);
-              });
-
-              it('persists the changes to the editable fields', () => {
-                cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
-                cy.get('button#save-agent').click();
-                cy.wait(300);
-                cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
-              });
-
-              it('hides the Cancel and Save buttons', () => {
-                cy.get('button#save-agent').should('exist');
-                cy.get('button#cancel-agent-changes').should('exist');
-
-                cy.get('button#save-agent').click();
-
-                cy.get('button#save-agent').should('not.exist');
-                cy.get('button#cancel-agent-changes').should('not.exist');
-              });
-
-              it('changes the agent\'s record', () => {
-                cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
-                  expect(results.length).to.eq(1);
-                  expect(results[0].socialProfile.name).to.eq('Some Other Guy');
-                  cy.get('button#save-agent').click();
-                  cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
-                    expect(results[0].socialProfile.name).to.eq('Some Groovy Cat');
-                  });
-                });
-              });
-
-              it('displays a friendly message', () => {
-                cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
-                cy.get('button#save-agent').click();
-                cy.wait(300);
-                cy.get('#flash-message').contains('Agent updated');
-              });
-
-              it('persists updated root data between browser refreshes', () => {
-                cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
-                cy.get('button#save-agent').click();
-                cy.wait(300);
-                cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
-                cy.reload();
-                cy.wait(300);
-                cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
-              });
+            it('displays agents\'s info', () => {
+              cy.get('h3').contains('Profile');
+              cy.get('#profile-table table tbody tr th').contains('Name:');
+              cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
+              cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
             });
           });
         });
@@ -369,166 +269,175 @@ context('root/Agent edit', function() {
 
       let root;
 
-      describe('email verified', () => {
+      context('admin mode', () => {
+        context('switched on', () => {
+          describe('email verified', () => {
 
-        beforeEach(() => {
-          cy.login(_profile.email, _profile);
-          cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
-            root = results[0];
-            cy.get('#flash-message #close-flash').click();
-          });
-        });
-
-        it('displays root\'s info', () => {
-          cy.get('h3').contains('Profile');
-          cy.get('#profile-table table tbody tr th').contains('Name:');
-          cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', root.socialProfile.name);
-          cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
-
-          // Not really relevant for root-level root-agent profile edits, but included here anyway
-          cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
-          cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
-        });
-
-        describe('#agent-name-field', () => {
-          it('reveals Save and Cancel buttons on change', () => {
-            cy.get('button#save-agent').should('not.exist');
-            cy.get('button#cancel-agent-changes').should('not.exist');
-
-            cy.get('#agent-name-field').type('!!!');
-            cy.get('#agent-name-field').should('have.value', 'Professor Fresh!!!');
-
-            cy.get('button#save-agent').should('exist');
-            cy.get('button#cancel-agent-changes').should('exist');
-          });
-
-          describe('#cancel-agent-changes button', () => {
             beforeEach(() => {
-              cy.get('#agent-name-field').clear();
-              cy.get('#agent-name-field').type('Tucks McChucks');
-            });
+              cy.login(_profile.email, _profile);
+              cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
+                root = results[0];
+                cy.get('#flash-message #close-flash').click();
 
-            it('resets the changes to the editable fields', () => {
-              cy.get('#agent-name-field').should('have.value', 'Tucks McChucks');
-              cy.get('button#cancel-agent-changes').click();
-              cy.get('#agent-name-field').should('have.value', 'Professor Fresh');
-            });
-
-            it('hides the Cancel and Save buttons', () => {
-              cy.get('button#save-agent').should('exist');
-              cy.get('button#cancel-agent-changes').should('exist');
-
-              cy.get('button#cancel-agent-changes').click();
-
-              cy.get('button#save-agent').should('not.exist');
-              cy.get('button#cancel-agent-changes').should('not.exist');
-            });
-
-            it('does not change the agent\'s record', () => {
-              cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
-                expect(results.length).to.eq(1);
-                expect(results[0].socialProfile.name).to.eq('Professor Fresh');
-                cy.get('button#cancel-agent-changes').click();
-                cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
-                  expect(results[0].socialProfile.name).to.eq('Professor Fresh');
-                });
+                cy.get('#app-menu-button').click();
+                cy.get('#admin-switch').check();
+                cy.get('#app-menu').contains('Profile').click();
+                cy.wait(200);
               });
             });
-          });
 
-          describe('#save-agent button', () => {
+            it('displays root\'s info', () => {
+              cy.get('h3').contains('Profile');
+              cy.get('#profile-table table tbody tr th').contains('Name:');
+              cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', root.socialProfile.name);
+              cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
 
-            describe('is unsuccessful in making changes', () => {
+              // Not really relevant for root-level root-agent profile edits, but included here anyway
+              cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
+              cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
+            });
 
-              describe('with invalid field', () => {
-                it('rejects empty name field', () => {
+            describe('#agent-name-field', () => {
+              it('reveals Save and Cancel buttons on change', () => {
+                cy.get('button#save-agent').should('not.exist');
+                cy.get('button#cancel-agent-changes').should('not.exist');
+
+                cy.get('#agent-name-field').type('!!!');
+                cy.get('#agent-name-field').should('have.value', 'Professor Fresh!!!');
+
+                cy.get('button#save-agent').should('exist');
+                cy.get('button#cancel-agent-changes').should('exist');
+              });
+
+              describe('#cancel-agent-changes button', () => {
+                beforeEach(() => {
                   cy.get('#agent-name-field').clear();
-                  cy.get('#agent-name-field').should('have.value', '');
-                  cy.get('button#save-agent').click();
-                  cy.wait(300);
-                  cy.get('#flash-message').contains('Missing profile data');
+                  cy.get('#agent-name-field').type('Tucks McChucks');
                 });
 
-                it('rejects blank name field', () => {
-                  cy.get('#agent-name-field').clear();
-                  cy.get('#agent-name-field').type('     ');
-                  cy.get('#agent-name-field').should('have.value', '     ');
-                  cy.get('button#save-agent').click();
-                  cy.wait(300);
-                  cy.get('#flash-message').contains('Missing profile data');
+                it('resets the changes to the editable fields', () => {
+                  cy.get('#agent-name-field').should('have.value', 'Tucks McChucks');
+                  cy.get('button#cancel-agent-changes').click();
+                  cy.get('#agent-name-field').should('have.value', 'Professor Fresh');
+                });
+
+                it('hides the Cancel and Save buttons', () => {
+                  cy.get('button#save-agent').should('exist');
+                  cy.get('button#cancel-agent-changes').should('exist');
+
+                  cy.get('button#cancel-agent-changes').click();
+
+                  cy.get('button#save-agent').should('not.exist');
+                  cy.get('button#cancel-agent-changes').should('not.exist');
                 });
 
                 it('does not change the agent\'s record', () => {
                   cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
                     expect(results.length).to.eq(1);
                     expect(results[0].socialProfile.name).to.eq('Professor Fresh');
-
-                    cy.get('#agent-name-field').clear();
-                    cy.get('button#save-agent').click();
-
+                    cy.get('button#cancel-agent-changes').click();
                     cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
                       expect(results[0].socialProfile.name).to.eq('Professor Fresh');
                     });
                   });
                 });
               });
-            });
 
-            describe('successfully makes changes', () => {
-              beforeEach(() => {
-                cy.get('#agent-name-field').clear();
-                cy.get('#agent-name-field').type('Tucks McChucks');
-              });
+              describe('#save-agent button', () => {
 
-              it('lands in the proper place', () => {
-                cy.get('button#save-agent').click();
-                cy.wait(300);
-                cy.url().should('contain', '/#/agent');
-              });
+                describe('is unsuccessful in making changes', () => {
 
-              it('persists the changes to the editable fields', () => {
-                cy.get('#agent-name-field').should('have.value', 'Tucks McChucks');
-                cy.get('button#save-agent').click();
-                cy.wait(300);
-                cy.get('#agent-name-field').should('have.value', 'Tucks McChucks');
-              });
+                  describe('with invalid field', () => {
+                    it('rejects empty name field', () => {
+                      cy.get('#agent-name-field').clear();
+                      cy.get('#agent-name-field').should('have.value', '');
+                      cy.get('button#save-agent').click();
+                      cy.wait(300);
+                      cy.get('#flash-message').contains('Missing profile data');
+                    });
 
-              it('hides the Cancel and Save buttons', () => {
-                cy.get('button#save-agent').should('exist');
-                cy.get('button#cancel-agent-changes').should('exist');
+                    it('rejects blank name field', () => {
+                      cy.get('#agent-name-field').clear();
+                      cy.get('#agent-name-field').type('     ');
+                      cy.get('#agent-name-field').should('have.value', '     ');
+                      cy.get('button#save-agent').click();
+                      cy.wait(300);
+                      cy.get('#flash-message').contains('Missing profile data');
+                    });
 
-                cy.get('button#save-agent').click();
+                    it('does not change the agent\'s record', () => {
+                      cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
+                        expect(results.length).to.eq(1);
+                        expect(results[0].socialProfile.name).to.eq('Professor Fresh');
 
-                cy.get('button#save-agent').should('not.exist');
-                cy.get('button#cancel-agent-changes').should('not.exist');
-              });
+                        cy.get('#agent-name-field').clear();
+                        cy.get('button#save-agent').click();
 
-              it('changes the agent\'s record', () => {
-                cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
-                  expect(results.length).to.eq(1);
-                  expect(results[0].socialProfile.name).to.eq('Professor Fresh');
-                  cy.get('button#save-agent').click();
-                  cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
-                    expect(results[0].socialProfile.name).to.eq('Tucks McChucks');
+                        cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
+                          expect(results[0].socialProfile.name).to.eq('Professor Fresh');
+                        });
+                      });
+                    });
                   });
                 });
-              });
 
-              it('displays a friendly message', () => {
-                cy.get('#agent-name-field').should('have.value', 'Tucks McChucks');
-                cy.get('button#save-agent').click();
-                cy.wait(300);
-                cy.get('#flash-message').contains('Agent updated');
-              });
+                describe('successfully makes changes', () => {
+                  beforeEach(() => {
+                    cy.get('#agent-name-field').clear();
+                    cy.get('#agent-name-field').type('Tucks McChucks');
+                  });
 
-              it('persists updated root data between browser refreshes', () => {
-                cy.get('#agent-name-field').should('have.value', 'Tucks McChucks');
-                cy.get('button#save-agent').click();
-                cy.wait(300);
-                cy.get('#agent-name-field').should('have.value', 'Tucks McChucks');
-                cy.reload();
-                cy.wait(300);
-                cy.get('#agent-name-field').should('have.value', 'Tucks McChucks');
+                  it('lands in the proper place', () => {
+                    cy.get('button#save-agent').click();
+                    cy.wait(300);
+                    cy.url().should('contain', '/#/agent');
+                  });
+
+                  it('persists the changes to the editable fields', () => {
+                    cy.get('#agent-name-field').should('have.value', 'Tucks McChucks');
+                    cy.get('button#save-agent').click();
+                    cy.wait(300);
+                    cy.get('#agent-name-field').should('have.value', 'Tucks McChucks');
+                  });
+
+                  it('hides the Cancel and Save buttons', () => {
+                    cy.get('button#save-agent').should('exist');
+                    cy.get('button#cancel-agent-changes').should('exist');
+
+                    cy.get('button#save-agent').click();
+
+                    cy.get('button#save-agent').should('not.exist');
+                    cy.get('button#cancel-agent-changes').should('not.exist');
+                  });
+
+                  it('changes the agent\'s record', () => {
+                    cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
+                      expect(results.length).to.eq(1);
+                      expect(results[0].socialProfile.name).to.eq('Professor Fresh');
+                      cy.get('button#save-agent').click();
+                      cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
+                        expect(results[0].socialProfile.name).to.eq('Tucks McChucks');
+                      });
+                    });
+                  });
+
+                  it('displays a friendly message', () => {
+                    cy.get('#agent-name-field').should('have.value', 'Tucks McChucks');
+                    cy.get('button#save-agent').click();
+                    cy.wait(300);
+                    cy.get('#flash-message').contains('Agent updated');
+                  });
+
+                  it('persists updated root data between browser refreshes', () => {
+                    cy.get('#agent-name-field').should('have.value', 'Tucks McChucks');
+                    cy.get('button#save-agent').click();
+                    cy.wait(300);
+                    cy.get('#agent-name-field').should('have.value', 'Tucks McChucks');
+                    cy.reload();
+                    cy.wait(300);
+                    cy.get('#agent-name-field').should('have.value', 'Tucks McChucks');
+                  });
+                });
               });
             });
           });
