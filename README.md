@@ -12,7 +12,7 @@ The following describes how to deploy the application to your local development 
 - Docker version 19.03.8, build afacb8b7f0
 - Git version 2.17.1
 
-These are not required versions, but rather the most up-to-date available for the moment. 
+These are not required versions, but rather the most up-to-date available for the moment.
 
 # Setup
 
@@ -123,7 +123,7 @@ Sometimes the database doesn't start on time during the first build. If `stdout`
 
 End-to-end tests may be executed in your preferred browser, or _headlessly_, as may be appropriate in a staging or CI environment.
 
-These tests depend on `cypress`. Open a third shell and navigate to the `src/identity-react` project directory. 
+These tests depend on `cypress`. Open a third shell and navigate to the `src/identity-react` project directory.
 
 #### In-browser tests:
 
@@ -245,6 +245,20 @@ The UI for RDS can be found at the [Amazon dashboard](https://928745222303.signi
 Two RDS databases are being used for silid and can be seen in the AWS console listed as `ss1e8pfmqwgebvu` for silid-dev.languagetechnology.org and `ss1fejs6cgbasrw` for silid.languagetechnology.org. These databases were created manually through the AWS dashboard and set to `db.t3.micro` instance type. Daily backups are being taken and handled throughout the RDS service.
 
 In the event of a database outage or loss, the database can be restored by [restoring a snapshot of the database instance](https://console.aws.amazon.com/rds/home?region=us-east-1#database:id=ss1fejs6cgbasrw;is-cluster=false;tab=maintenance-and-backups) or recreated entirely [here](https://console.aws.amazon.com/rds/home?region=us-east-1#launch-dbinstance:gdb=false;s3-import=false).
+
+## Auth0 IdP Connection Sync
+
+From the documentation: https://auth0.com/docs/users/configure-connection-sync-with-auth0
+
+> To be able to edit the name, nickname, given_name, family_name, or picture root attributes on the normalized user profile, you must configure your connection sync with Auth0 so that user attributes will be updated from the identity provider only on user profile creation.
+
+### Turn off sync
+
+1. Go to Dashboard > Connections and select a connection type.
+
+2. Click the name of a connection to see its settings.
+
+2. Toggle Sync user profile attributes at each login to the _off_ position and click _Save_.
 
 ## AWS SES
 

@@ -1,4 +1,4 @@
-context('viewer/Agent Index', function() {
+context('viewer/Agent Index', () => {
 
   before(function() {
     cy.fixture('google-profile-response.json').as('profile');
@@ -39,7 +39,7 @@ context('viewer/Agent Index', function() {
   describe('authenticated', () => {
 
     context('first visit', () => {
-      beforeEach(function() {
+      beforeEach(() => {
         cy.login(_profile.email, _profile);
       });
 
@@ -51,17 +51,24 @@ context('viewer/Agent Index', function() {
         it('displays fields in a table', function() {
           cy.get('h3').contains('Profile');
           cy.get('#profile-table table tbody tr th').contains('Name:');
-          cy.get('#profile-table table tbody tr td').contains(this.profile.name);
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', this.profile.name);
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
+
           cy.get('#profile-table table tbody tr th').contains('Email:');
           cy.get('#profile-table table tbody tr td').contains(this.profile.email);
+
           cy.get('#profile-table table tbody tr th').contains('Provider Locale:');
           cy.get('#profile-table table tbody tr td').contains(this.profile.locale);
+
           cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
           cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
           cy.get('#profile-table table tbody tr:last-of-type th').contains('Roles:');
           cy.get('#profile-table table tbody tr:last-of-type div').its('length').should('eq', 1);
           cy.get('#profile-table table tbody tr:last-of-type div:last-of-type').contains('viewer');
           cy.get('#profile-table table tbody tr:last-of-type div#assign-role').should('not.exist');
+
+          cy.get('button#save-agent').should('not.exist');
+          cy.get('button#cancel-agent-changes').should('not.exist');
         });
       });
 

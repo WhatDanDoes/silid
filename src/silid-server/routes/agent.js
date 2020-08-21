@@ -140,7 +140,7 @@ router.delete('/', checkPermissions([scope.delete.agents]), function(req, res, n
     }
 
     if (!req.user.isSuper && req.user.email !== agent.email) {
-      return res.status(401).json( { message: 'Unauthorized' });
+      return res.status(401).json({ message: 'Unauthorized' });
     }
 
     agent.destroy().then(results => {
@@ -174,6 +174,42 @@ router.post('/verify', checkPermissions([scope.update.agents]), function(req, re
     res.status(201).json({ message: 'Verification sent. Check your email' });
   })
   .catch(err => {
+    res.status(err.statusCode).json(err.message.error_description);
+  });
+});
+
+router.patch('/:id', checkPermissions([scope.update.agents]), function(req, res, next) {
+
+  if (req.params.id !== req.user.user_id && !req.user.isSuper) {
+    return res.status(403).json({ message: 'Forbidden' });
+  }
+
+  const filtered = {};
+
+  // 2020-8-19 As per: https://auth0.com/docs/users/user-profile-structure (some omitted)
+  ['blocked',
+   'email_verified',
+   'family_name',
+   'given_name',
+   'name',
+   'nickname',
+   'phone_number',
+   'phone_verified',
+   'picture'].forEach(claim => {
+    if (req.body[claim]) {
+      filtered[claim] = req.body[claim];
+    }
+  });
+
+  if (!Object.keys(filtered).length) {
+    return res.status(200).json({ message: 'No relevant data supplied' });
+  }
+
+  const managementClient = getManagementClient(apiScope.update.users);
+  managementClient.updateUser({id: req.params.id}, filtered).then(agent => {
+
+    res.status(201).json(agent);
+  }).catch(err => {
     res.status(err.statusCode).json(err.message.error_description);
   });
 });

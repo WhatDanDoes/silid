@@ -106,6 +106,7 @@ const Agent = (props) => {
   const { publishOrganization } = usePostOrganizationService();
   const { respondToTeamInvitation } = useGetTeamInviteActionService();
 
+  const [prevAgentInputState, setPrevAgentInputState] = useState({});
 
   useEffect(() => {
     if (service.status === 'loaded') {
@@ -234,7 +235,16 @@ const Agent = (props) => {
                   <TableBody>
                     <TableRow>
                       <TableCell align="right" component="th" scope="row"><FormattedMessage id='Name' />:</TableCell>
-                      <TableCell align="left">{profileData.name}</TableCell>
+                      <TableCell align="left">
+                        <input id="agent-name-field" value={profileData.name || ''} disabled={!profileData.email_verified || (agent.email !== profileData.email && !admin.isEnabled)}
+                          onChange={e => {
+                              if (!prevAgentInputState.name) {
+                                setPrevAgentInputState({ name: profileData.name });
+                              }
+                              setProfileData({ ...profileData, name: e.target.value });
+                            }
+                          } />
+                      </TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell align="right" component="th" scope="row"><FormattedMessage id='Email' />:</TableCell>
@@ -298,7 +308,7 @@ const Agent = (props) => {
                           getOptionLabel={(option) => `${option.name}`}
                           options={localeOptions}
                           loading={loadingLocale}
-                          disabled={profileData.email !== agent.email}
+                          disabled={profileData.email !== agent.email && !agent.isAdmin}
                           value={profileData.user_metadata && profileData.user_metadata.silLocale ? profileData.user_metadata.silLocale : { name: 'English', iso6393: 'eng' }}
                           autoHighlight
                           renderInput={(params) => (
@@ -460,6 +470,62 @@ const Agent = (props) => {
                         </TableCell>
                       </TableRow>
                     : undefined}
+                      { Object.keys(prevAgentInputState).length ?
+                        <TableRow>
+                          <TableCell align="right">
+                            <Button id="cancel-agent-changes" variant="contained" color="secondary"
+                              onClick={e => {
+                                setProfileData({ ...profileData, ...prevAgentInputState });
+                                setPrevAgentInputState({});
+                              }
+                            }>
+                              <FormattedMessage id='Cancel' />
+                            </Button>
+                          </TableCell>
+                          <TableCell align="left">
+                            <Button id="save-agent" variant="contained" color="primary"
+                              onClick={() => {
+                                const changes = {};
+                                for (let p in prevAgentInputState) {
+                                  changes[p] = profileData[p].trim();
+                                  if (!changes[p].length) {
+                                    setFlashProps({ message: getFormattedMessage('Missing profile data'), variant: 'error' });
+                                  }
+                                  else {
+                                    const headers = new Headers();
+                                    headers.append('Content-Type', 'application/json; charset=utf-8');
+                                    fetch(`/agent/${profileData.user_id}`,
+                                      {
+                                        method: 'PATCH',
+                                        body: JSON.stringify(changes),
+                                        headers,
+                                      }
+                                    )
+                                    .then(response => response.json())
+                                    .then(response => {
+                                      if (response.message) {
+                                        setFlashProps({ message: getFormattedMessage(response.message), variant: 'warnging' });
+                                      }
+                                      else {
+                                        setProfileData(response);
+                                        setPrevAgentInputState({});
+                                        setFlashProps({ message: getFormattedMessage('Agent updated'), variant: 'success' });
+                                      }
+                                    })
+                                    .catch(error => {
+                                      setFlashProps({ message: getFormattedMessage(error.message), variant: 'error' });
+                                    });
+
+                                  }
+                                }
+                              }
+                            }>
+                              <FormattedMessage id='Save' />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      : ''}
+
                   </TableBody>
                 </Table>
               </TableContainer>
