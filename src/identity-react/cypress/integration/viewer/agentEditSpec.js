@@ -201,7 +201,7 @@ context('viewer/Agent edit', function() {
                 cy.get('#flash-message').contains('Agent updated');
               });
 
-              it('persists updated team data between browser refreshes', () => {
+              it('persists updated root data between browser refreshes', () => {
                 cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
                 cy.get('button#save-agent').click();
                 cy.wait(300);
