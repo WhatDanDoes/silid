@@ -210,6 +210,27 @@ context('viewer/Agent edit', function() {
                 cy.wait(300);
                 cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
               });
+
+              it('displays progress spinner', () => {
+                cy.get('div[role="progressbar"] svg circle').should('not.exist');
+
+                cy.get('button#save-agent').click();
+                cy.get('button#save-agent').should('be.disabled');
+                cy.get('button#cancel-agent-changes').should('be.disabled');
+
+                // 2020-5-26
+                // Cypress goes too fast for this. Cypress also cannot intercept
+                // native `fetch` calls to allow stubbing and delaying the route.
+                // Shamefully, this is currently manually tested, though I suspect
+                // I will use this opportunity to learn Jest
+                // Despite its name, this test really ensures the spinner disappears
+                // after all is said and done
+                //cy.get('div[role="progressbar"] svg circle').should('exist');
+                cy.wait(100);
+                cy.get('div[role="progressbar"] svg circle').should('not.exist');
+                cy.get('button#save-agent').should('not.exist');
+                cy.get('button#cancel-agent-changes').should('not.exist');
+              });
             });
           });
         });

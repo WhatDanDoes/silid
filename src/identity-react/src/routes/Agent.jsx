@@ -24,6 +24,7 @@ import TableContainer from '@material-ui/core/TableContainer';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 import MaterialTable, { MTableEditField } from 'material-table';
+import Box from '@material-ui/core/Box';
 
 import useGetAgentService from '../services/useGetAgentService';
 import usePostTeamService from '../services/usePostTeamService';
@@ -472,18 +473,18 @@ const Agent = (props) => {
                     : undefined}
                       { Object.keys(prevAgentInputState).length ?
                         <TableRow>
-                          <TableCell align="right">
-                            <Button id="cancel-agent-changes" variant="contained" color="secondary"
-                              onClick={e => {
-                                setProfileData({ ...profileData, ...prevAgentInputState });
-                                setPrevAgentInputState({});
-                              }
-                            }>
-                              <FormattedMessage id='Cancel' />
-                            </Button>
-                          </TableCell>
-                          <TableCell align="left">
-                            <Button id="save-agent" variant="contained" color="primary"
+                          <TableCell align="center" colSpan={2}>
+                            <Box mr={2} display="inline">
+                              <Button id="cancel-agent-changes" variant="contained" color="secondary" disabled={isWaiting}
+                                onClick={e => {
+                                  setProfileData({ ...profileData, ...prevAgentInputState });
+                                  setPrevAgentInputState({});
+                                }
+                              }>
+                                <FormattedMessage id='Cancel' />
+                              </Button>
+                            </Box>
+                            <Button id="save-agent" variant="contained" color="primary" disabled={isWaiting}
                               onClick={() => {
                                 const changes = {};
                                 for (let p in prevAgentInputState) {
@@ -492,6 +493,7 @@ const Agent = (props) => {
                                     setFlashProps({ message: getFormattedMessage('Missing profile data'), variant: 'error' });
                                   }
                                   else {
+                                    setIsWaiting(true);
                                     const headers = new Headers();
                                     headers.append('Content-Type', 'application/json; charset=utf-8');
                                     fetch(`/agent/${profileData.user_id}`,
@@ -514,8 +516,10 @@ const Agent = (props) => {
                                     })
                                     .catch(error => {
                                       setFlashProps({ message: getFormattedMessage(error.message), variant: 'error' });
+                                    })
+                                    .finally(() => {
+                                      setIsWaiting(false);
                                     });
-
                                   }
                                 }
                               }
