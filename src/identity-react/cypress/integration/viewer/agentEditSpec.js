@@ -40,8 +40,8 @@ context('viewer/Agent edit', function() {
         cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
 
         cy.get('#profile-table table tbody tr th').contains('Timezone:');
-        cy.get('#profile-table table tbody tr td input#timezone-dropdown').should('have.value', 'Set your timezone');
-        cy.get('#profile-table table tbody tr td input#timezone-dropdown').should('be.disabled');
+        cy.get('#profile-table table tbody tr td label[for="timezone-dropdown"]').contains('Set your timezone');
+        cy.get('#profile-table table tbody tr td #timezone-dropdown').should('be.disabled');
 
         // Not really relevant for root-level agent profile edits, but included here anyway
         cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
@@ -72,8 +72,8 @@ context('viewer/Agent edit', function() {
           cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
 
           cy.get('#profile-table table tbody tr th').contains('Timezone:');
-          cy.get('#profile-table table tbody tr td input#timezone-dropdown').should('have.value', 'Set your timezone');
-          cy.get('#profile-table table tbody tr td input#timezone-dropdown').should('not.be.disabled');
+          cy.get('#profile-table table tbody tr td label[for="timezone-dropdown"]').contains('Set your timezone');
+          cy.get('#profile-table table tbody tr td #timezone-dropdown').should('not.be.disabled');
 
           // Not really relevant for root-level agent profile edits, but included here anyway
           cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
@@ -265,7 +265,7 @@ context('viewer/Agent edit', function() {
           });
 
           it('persists the change', () => {
-            cy.get('#profile-table table tbody tr td input#timezone-dropdown').should('have.attr', 'value').and('equal', 'Set your timezone');
+            cy.get('#profile-table table tbody tr td label[for="timezone-dropdown"]').contains('Set your timezone');
             cy.get('#profile-table table tbody tr td #timezone-dropdown').type('america/ed{downarrow}{enter}');
             cy.wait(300);
             cy.get('#profile-table table tbody tr td input#timezone-dropdown').should('have.attr', 'value').and('equal', 'America/Edmonton');
@@ -294,7 +294,7 @@ context('viewer/Agent edit', function() {
           cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
 
           cy.get('#profile-table table tbody tr th').contains('Timezone:');
-          cy.get('#profile-table table tbody tr td input#timezone-dropdown').should('have.value', 'Set your timezone');
+          cy.get('#profile-table table tbody tr td label[for="timezone-dropdown"]').contains('Set your timezone');
           cy.get('#profile-table table tbody tr td input#timezone-dropdown').should('not.be.disabled');
 
           // Not really relevant for root-level agent profile edits, but included here anyway

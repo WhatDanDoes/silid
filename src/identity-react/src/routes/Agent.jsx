@@ -131,6 +131,14 @@ const Agent = (props) => {
   const loadingLocale = localeIsOpen && localeOptions.length === 0;
   const { setLangCode, getFormattedMessage } = useLanguageProviderState();
 
+  /**
+   * Timezone stuff
+   */
+  const [timezoneIsOpen, setTimezoneIsOpen] = React.useState(false);
+  const [timezoneOptions, setTimezoneOptions] = React.useState([]);
+  const [isSettingTimezone, setIsSettingTimezone] = React.useState(false);
+  const loadingTimezone = timezoneIsOpen && timezoneOptions.length === 0;
+ 
   React.useEffect(() => {
     let active = true;
 
@@ -250,6 +258,82 @@ const Agent = (props) => {
                     <TableRow>
                       <TableCell align="right" component="th" scope="row"><FormattedMessage id='Email' />:</TableCell>
                       <TableCell align="left">{profileData.email}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell align="right" component="th" scope="row"><FormattedMessage id='Timezone' />:</TableCell>
+                      <TableCell align="left">
+                        <Autocomplete
+                          id="timezone-dropdown"
+                          style={{ width: '100%' }}
+//                          open={localeIsOpen}
+//                          onOpen={() => {
+//                            setLocaleIsOpen(true);
+//                          }}
+//                          onClose={async(event, value) => {
+//                            setLocaleIsOpen(false);
+//                          }}
+//                          onChange={async (event, value) => {
+//
+//                            if (value && value.iso6393) {
+//                              return new Promise((resolve, reject) => {
+//                                setIsSettingLocale(true);
+//                                const headers = new Headers();
+//                                headers.append('Access-Control-Allow-Credentials', 'true');
+//                                headers.append('Content-Type', 'application/json; charset=utf-8');
+//                                fetch(`/locale/${value.iso6393}`,
+//                                  {
+//                                    method: 'PUT',
+//                                    headers,
+//                                  }
+//                                )
+//                                .then(response => response.json())
+//                                .then(async(response) => {
+//                                  if (response.message) {
+//                                    setFlashProps({ message: response.message, variant: 'error' });
+//                                  }
+//                                  else {
+//                                    setProfileData(response);
+//                                    setFlashProps({ message: getFormattedMessage('Preferred SIL language updated'), variant: 'success' });
+//                                    setLocaleOptions(localeOptions);
+//                                    setLangCode(response.user_metadata.silLocale.iso6393);
+//                                  }
+//
+//                                  resolve();
+//                                })
+//                                .catch(error => {
+//                                  setFlashProps({ message: error.message, variant: 'error' });
+//                                  reject(error);
+//                                }).finally(() => {
+//                                  setIsSettingLocale(false);
+//                                });
+//                              });
+//                            }
+//                          }}
+//                          getOptionSelected={(option, value) => option.name === value.name}
+//                          getOptionLabel={(option) => `${option.name}`}
+//                          options={localeOptions}
+//                          loading={loadingLocale}
+                          disabled={profileData.email !== agent.email && !agent.isAdmin}
+//                          value={profileData.user_metadata && profileData.user_metadata.silLocale ? profileData.user_metadata.silLocale : { name: 'English', iso6393: 'eng' }}
+//                          autoHighlight
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label={getFormattedMessage('Set your timezone')}
+                              variant="outlined"
+                              InputProps={{
+                                ...params.InputProps,
+                                endAdornment: (
+                                  <React.Fragment>
+                                    {loadingTimezone || isSettingTimezone ? <CircularProgress id="timezone-spinner" color="inherit" size={20} /> : null}
+                                    {params.InputProps.endAdornment}
+                                  </React.Fragment>
+                                ),
+                              }}
+                            />
+                          )}
+                        />
+                      </TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell align="right" component="th" scope="row"><FormattedMessage id='Provider Locale' />:</TableCell>
