@@ -34,9 +34,14 @@ context('viewer/Agent edit', function() {
 
       it('does not allow editing agent\'s info', () => {
         cy.get('h3').contains('Profile');
+
         cy.get('#profile-table table tbody tr th').contains('Name:');
         cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', memberAgent.socialProfile.name);
         cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
+
+        cy.get('#profile-table table tbody tr th').contains('Timezone:');
+        cy.get('#profile-table table tbody tr td input#timezone-dropdown').should('have.value', 'Set your timezone');
+        cy.get('#profile-table table tbody tr td input#timezone-dropdown').should('be.disabled');
 
         // Not really relevant for root-level agent profile edits, but included here anyway
         cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
@@ -61,9 +66,14 @@ context('viewer/Agent edit', function() {
 
         it('displays agent\'s info', () => {
           cy.get('h3').contains('Profile');
+
           cy.get('#profile-table table tbody tr th').contains('Name:');
           cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
           cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
+
+          cy.get('#profile-table table tbody tr th').contains('Timezone:');
+          cy.get('#profile-table table tbody tr td input#timezone-dropdown').should('have.value', 'Set your timezone');
+          cy.get('#profile-table table tbody tr td input#timezone-dropdown').should('not.be.disabled');
 
           // Not really relevant for root-level agent profile edits, but included here anyway
           cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
@@ -234,6 +244,36 @@ context('viewer/Agent edit', function() {
             });
           });
         });
+
+        describe('#timezone-dropdown', () => {
+          it('populates the dropdown with all the timezones in the world', () => {
+            cy.get('div[role="presentation"] ul li').should('not.exist');
+            cy.get('#profile-table table tbody tr td #timezone-dropdown + div button:last-of-type').click();
+            cy.wait(300);
+            cy.get('div[role="presentation"] ul li').its('length').should('eq', 37);
+          });
+
+          it('displays a spinner when a new timezone is set', () => {
+            cy.get('#profile-table table tbody tr td #timezone-dropdown + div button:last-of-type').click();
+            cy.wait(300);
+            cy.get('#set-timezone-spinner').should('not.exist');
+            cy.get('#profile-table table tbody tr td #timezone-dropdown').type('america/ed{downarrow}{enter}');
+            // Cypress goes too fast for the spinner. This ensures it disappears when done
+            //cy.get('#set-timezone-spinner').should('exist');
+            cy.wait(300);
+            cy.get('#set-timezone-spinner').should('not.exist');
+          });
+
+          it('persists the change', () => {
+            cy.get('#profile-table table tbody tr td input#timezone-dropdown').should('have.attr', 'value').and('equal', 'Set your timezone');
+            cy.get('#profile-table table tbody tr td #timezone-dropdown').type('america/ed{downarrow}{enter}');
+            cy.wait(300);
+            cy.get('#profile-table table tbody tr td input#timezone-dropdown').should('have.attr', 'value').and('equal', 'America/Edmonton');
+            cy.reload();
+            cy.wait(300);
+            cy.get('#profile-table table tbody tr td input#timezone-dropdown').should('have.attr', 'value').and('equal', 'Klingon');
+          });
+        });
       });
 
       describe('email not verified', () => {
@@ -248,9 +288,14 @@ context('viewer/Agent edit', function() {
 
         it('displays agent\'s info', () => {
           cy.get('h3').contains('Profile');
+
           cy.get('#profile-table table tbody tr th').contains('Name:');
           cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
           cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
+
+          cy.get('#profile-table table tbody tr th').contains('Timezone:');
+          cy.get('#profile-table table tbody tr td input#timezone-dropdown').should('have.value', 'Set your timezone');
+          cy.get('#profile-table table tbody tr td input#timezone-dropdown').should('not.be.disabled');
 
           // Not really relevant for root-level agent profile edits, but included here anyway
           cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
