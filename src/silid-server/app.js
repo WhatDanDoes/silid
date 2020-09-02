@@ -22,6 +22,7 @@ const organizationRouter = require('./routes/organization');
 const teamRouter = require('./routes/team');
 const roleRouter = require('./routes/role');
 const localeRouter = require('./routes/locale');
+const timezoneRouter = require('./routes/timezone');
 
 const app = express();
 
@@ -141,6 +142,7 @@ app.use('/organization', organizationRouter);
 app.use('/team', teamRouter);
 app.use('/role', roleRouter);
 app.use('/locale', localeRouter);
+app.use('/timezone', timezoneRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
