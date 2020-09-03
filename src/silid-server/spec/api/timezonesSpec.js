@@ -3,6 +3,7 @@ const app = require('../../app');
 const fixtures = require('sequelize-fixtures');
 const models = require('../../models');
 const request = require('supertest');
+const nock = require('nock');
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
 const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
@@ -264,7 +265,7 @@ describe('timezoneSpec', () => {
                   });
               });
 
-              it('is not called if the language is already assigned to the agent', done => {
+              it('is still called even if the language is already assigned to the agent', done => {
                 expect(_profile.zoneinfo).toEqual('America/Edmonton');
                 authenticatedSession
                   .put(`/timezone/${_identity.sub}`)
@@ -273,18 +274,55 @@ describe('timezoneSpec', () => {
                   })
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
-                  .expect(200)
+                  .expect(201)
                   .end(function(err, res) {
                     if (err) return done.fail(err);
 
-                    expect(userUpdateOauthTokenScope.isDone()).toBe(false);
-                    expect(userUpdateScope.isDone()).toBe(false);
+                    expect(userUpdateOauthTokenScope.isDone()).toBe(true);
+                    expect(userUpdateScope.isDone()).toBe(true);
                     done();
                   });
               });
             });
           });
         });
+      });
+    });
+
+    describe('unauthorized', () => {
+      let unauthorizedSession;
+      beforeEach(done => {
+        stubAuth0ManagementApi((err, apiScopes) => {
+          if (err) return done.fail();
+
+          login(_identity, [scope.read.agents], (err, session) => {
+            if (err) return done.fail(err);
+            unauthorizedSession = session;
+
+            // Cached profile doesn't match "live" data, so agent needs to be updated
+            // with a call to Auth0
+            stubUserRead((err, apiScopes) => {
+              if (err) return done.fail();
+
+              done();
+            });
+          });
+        });
+      });
+
+      it('returns 403', done => {
+        unauthorizedSession
+          .put('/timezone/some-other-user-id')
+          .send({
+            timezone: 'America/Edmonton'
+          })
+          .set('Accept', 'application/json')
+          .expect(403)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(res.body.message).toEqual('Forbidden');
+            done();
+          });
       });
     });
   });

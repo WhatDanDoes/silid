@@ -37,8 +37,8 @@ router.get('/', checkPermissions([scope.read.agents]), function(req, res, next) 
  */
 router.put('/:id', checkPermissions([scope.update.agents]), function(req, res, next) {
 
-  if (req.user.zoneinfo && req.user.zoneinfo === req.body.timezone) {
-    return res.status(200).json(req.user);
+  if (req.params.id !== req.user.user_id && !req.user.isSuper) {
+    return res.status(403).json({ message: 'Forbidden' });
   }
 
   const timezone = _timezones.find(z => z.name === req.body.timezone);
