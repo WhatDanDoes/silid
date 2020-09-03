@@ -128,32 +128,12 @@ describe('timezoneSpec', () => {
                   stubUserRead((err, apiScopes) => {
                     if (err) return done.fail();
 
-//                    stubUserAppMetadataUpdate((err, apiScopes) => {
-//                      if (err) return done.fail();
-//                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-//
-//                      /**
-//                       * For redirect after timezone update
-//                       */
-//                      stubAuth0ManagementApi((err, apiScopes) => {
-//                        if (err) return done.fail();
-//
-//                        stubUserRead((err, apiScopes) => {
-//                          if (err) return done.fail();
-//
-//                          stubUserRolesRead((err, apiScopes) => {
-//                            if (err) return done.fail();
-//
-                            stubUserUpdate((err, apiScopes) => {
-                              if (err) return done.fail();
+                    stubUserUpdate((err, apiScopes) => {
+                      if (err) return done.fail();
 
-                              ({userUpdateScope, userUpdateOauthTokenScope} = apiScopes);
-                              done();
-                            });
-//                          });
-//                        });
-//                      });
-//                    });
+                      ({userUpdateScope, userUpdateOauthTokenScope} = apiScopes);
+                      done();
+                    });
                   });
                 });
               });
