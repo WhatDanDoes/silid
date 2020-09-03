@@ -225,9 +225,6 @@ context('viewer/Agent edit', function() {
                 cy.get('div[role="progressbar"] svg circle').should('not.exist');
 
                 cy.get('button#save-agent').click();
-                cy.get('button#save-agent').should('be.disabled');
-                cy.get('button#cancel-agent-changes').should('be.disabled');
-
                 // 2020-5-26
                 // Cypress goes too fast for this. Cypress also cannot intercept
                 // native `fetch` calls to allow stubbing and delaying the route.
@@ -235,6 +232,8 @@ context('viewer/Agent edit', function() {
                 // I will use this opportunity to learn Jest
                 // Despite its name, this test really ensures the spinner disappears
                 // after all is said and done
+                //cy.get('button#save-agent').should('be.disabled');
+                //cy.get('button#cancel-agent-changes').should('be.disabled');
                 //cy.get('div[role="progressbar"] svg circle').should('exist');
                 cy.wait(100);
                 cy.get('div[role="progressbar"] svg circle').should('not.exist');
@@ -250,7 +249,7 @@ context('viewer/Agent edit', function() {
             cy.get('div[role="presentation"] ul li').should('not.exist');
             cy.get('#profile-table table tbody tr td #timezone-dropdown + div button:last-of-type').click();
             cy.wait(300);
-            cy.get('div[role="presentation"] ul li').its('length').should('eq', 37);
+            cy.get('div[role="presentation"] ul li').its('length').should('eq', 544);
           });
 
           it('displays a spinner when a new timezone is set', () => {
@@ -271,7 +270,7 @@ context('viewer/Agent edit', function() {
             cy.get('#profile-table table tbody tr td input#timezone-dropdown').should('have.attr', 'value').and('equal', 'America/Edmonton');
             cy.reload();
             cy.wait(300);
-            cy.get('#profile-table table tbody tr td input#timezone-dropdown').should('have.attr', 'value').and('equal', 'Klingon');
+            cy.get('#profile-table table tbody tr td input#timezone-dropdown').should('have.attr', 'value').and('equal', 'America/Edmonton');
           });
         });
       });
@@ -295,7 +294,7 @@ context('viewer/Agent edit', function() {
 
           cy.get('#profile-table table tbody tr th').contains('Timezone:');
           cy.get('#profile-table table tbody tr td label[for="timezone-dropdown"]').contains('Set your timezone');
-          cy.get('#profile-table table tbody tr td input#timezone-dropdown').should('not.be.disabled');
+          cy.get('#profile-table table tbody tr td input#timezone-dropdown').should('be.disabled');
 
           // Not really relevant for root-level agent profile edits, but included here anyway
           cy.get('#profile-table table tbody tr th').contains('SIL Locale:');

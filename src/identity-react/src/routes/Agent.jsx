@@ -131,14 +131,6 @@ const Agent = (props) => {
   const loadingLocale = localeIsOpen && localeOptions.length === 0;
   const { setLangCode, getFormattedMessage } = useLanguageProviderState();
 
-  /**
-   * Timezone stuff
-   */
-  const [timezoneIsOpen, setTimezoneIsOpen] = React.useState(false);
-  const [timezoneOptions, setTimezoneOptions] = React.useState([]);
-  const [isSettingTimezone, setIsSettingTimezone] = React.useState(false);
-  const loadingTimezone = timezoneIsOpen && timezoneOptions.length === 0;
- 
   React.useEffect(() => {
     let active = true;
 
@@ -159,6 +151,36 @@ const Agent = (props) => {
       active = false;
     };
   }, [loadingLocale]);
+
+
+  /**
+   * Timezone stuff
+   */
+  const [timezoneIsOpen, setTimezoneIsOpen] = React.useState(false);
+  const [timezoneOptions, setTimezoneOptions] = React.useState([]);
+  const [isSettingTimezone, setIsSettingTimezone] = React.useState(false);
+  const loadingTimezone = timezoneIsOpen && timezoneOptions.length === 0;
+ 
+  React.useEffect(() => {
+    let active = true;
+
+    if (!loadingTimezone) {
+      return undefined;
+    }
+
+    (async () => {
+      const response = await fetch('/timezone');
+      const timezones = await response.json();
+
+      if (active) {
+        setTimezoneOptions(timezones);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [loadingTimezone]);
 
   /**
    * Create a new team
@@ -265,57 +287,55 @@ const Agent = (props) => {
                         <Autocomplete
                           id="timezone-dropdown"
                           style={{ width: '100%' }}
-//                          open={localeIsOpen}
-//                          onOpen={() => {
-//                            setLocaleIsOpen(true);
-//                          }}
-//                          onClose={async(event, value) => {
-//                            setLocaleIsOpen(false);
-//                          }}
-//                          onChange={async (event, value) => {
-//
-//                            if (value && value.iso6393) {
-//                              return new Promise((resolve, reject) => {
-//                                setIsSettingLocale(true);
-//                                const headers = new Headers();
-//                                headers.append('Access-Control-Allow-Credentials', 'true');
-//                                headers.append('Content-Type', 'application/json; charset=utf-8');
-//                                fetch(`/locale/${value.iso6393}`,
-//                                  {
-//                                    method: 'PUT',
-//                                    headers,
-//                                  }
-//                                )
-//                                .then(response => response.json())
-//                                .then(async(response) => {
-//                                  if (response.message) {
-//                                    setFlashProps({ message: response.message, variant: 'error' });
-//                                  }
-//                                  else {
-//                                    setProfileData(response);
-//                                    setFlashProps({ message: getFormattedMessage('Preferred SIL language updated'), variant: 'success' });
-//                                    setLocaleOptions(localeOptions);
-//                                    setLangCode(response.user_metadata.silLocale.iso6393);
-//                                  }
-//
-//                                  resolve();
-//                                })
-//                                .catch(error => {
-//                                  setFlashProps({ message: error.message, variant: 'error' });
-//                                  reject(error);
-//                                }).finally(() => {
-//                                  setIsSettingLocale(false);
-//                                });
-//                              });
-//                            }
-//                          }}
-//                          getOptionSelected={(option, value) => option.name === value.name}
-//                          getOptionLabel={(option) => `${option.name}`}
-//                          options={localeOptions}
-//                          loading={loadingLocale}
-                          disabled={profileData.email !== agent.email && !agent.isAdmin}
-//                          value={profileData.user_metadata && profileData.user_metadata.silLocale ? profileData.user_metadata.silLocale : { name: 'English', iso6393: 'eng' }}
-//                          autoHighlight
+                          open={timezoneIsOpen}
+                          onOpen={() => {
+                            setTimezoneIsOpen(true);
+                          }}
+                          onClose={async(event, value) => {
+                            setTimezoneIsOpen(false);
+                          }}
+                          onChange={async (event, value) => {
+                            if (value) {
+                              return new Promise((resolve, reject) => {
+                                setIsSettingTimezone(true);
+                                const headers = new Headers();
+                                headers.append('Access-Control-Allow-Credentials', 'true');
+                                headers.append('Content-Type', 'application/json; charset=utf-8');
+                                fetch(`/timezone/${profileData.user_id}`,
+                                  {
+                                    method: 'PUT',
+                                    headers,
+                                    body: JSON.stringify({timezone: value.name})
+                                  }
+                                )
+                                .then(response => response.json())
+                                .then(async(response) => {
+                                  if (response.message) {
+                                    setFlashProps({ message: response.message, variant: 'error' });
+                                  }
+                                  else {
+                                    setProfileData(response);
+                                    setFlashProps({ message: getFormattedMessage('Timezone updated'), variant: 'success' });
+                                  }
+
+                                  resolve();
+                                })
+                                .catch(error => {
+                                  setFlashProps({ message: error.message, variant: 'error' });
+                                  reject(error);
+                                }).finally(() => {
+                                  setIsSettingTimezone(false);
+                                });
+                              });
+                            }
+                          }}
+                          getOptionSelected={(option, value) => option.name === value.name}
+                          getOptionLabel={(option) => `${option.name}`}
+                          options={timezoneOptions}
+                          loading={loadingTimezone}
+                          disabled={!profileData.email_verified || (profileData.email !== agent.email && !agent.isAdmin)}
+                          value={profileData.zoneinfo ? { name: profileData.zoneinfo } : { name: '' }}
+                          autoHighlight
                           renderInput={(params) => (
                             <TextField
                               {...params}
