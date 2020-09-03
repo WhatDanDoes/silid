@@ -334,7 +334,7 @@ const Agent = (props) => {
                           options={timezoneOptions}
                           loading={loadingTimezone}
                           disabled={!profileData.email_verified || (profileData.email !== agent.email && !admin.isEnabled)}
-                          value={profileData.zoneinfo ? { name: profileData.zoneinfo } : { name: '' }}
+                          value={profileData.user_metadata && profileData.user_metadata.zoneinfo ? profileData.user_metadata.zoneinfo : { name: '' }}
                           autoHighlight
                           renderInput={(params) => (
                             <TextField
