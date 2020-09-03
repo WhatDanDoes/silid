@@ -333,7 +333,7 @@ const Agent = (props) => {
                           getOptionLabel={(option) => `${option.name}`}
                           options={timezoneOptions}
                           loading={loadingTimezone}
-                          disabled={!profileData.email_verified || (profileData.email !== agent.email && !agent.isAdmin)}
+                          disabled={!profileData.email_verified || (profileData.email !== agent.email && !admin.isEnabled)}
                           value={profileData.zoneinfo ? { name: profileData.zoneinfo } : { name: '' }}
                           autoHighlight
                           renderInput={(params) => (
