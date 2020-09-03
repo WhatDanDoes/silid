@@ -42,6 +42,7 @@ describe('root/timezoneSpec', () => {
     // Through the magic of node I am able to adjust the profile data returned.
     // This resets the default values
     _profile.email = originalProfile.email;
+    delete _profile.user_metadata;
     nock.cleanAll();
   });
 
@@ -138,10 +139,9 @@ describe('root/timezoneSpec', () => {
                     stubUserRead((err, apiScopes) => {
                       if (err) return done.fail();
 
-                      stubUserUpdate((err, apiScopes) => {
+                      stubUserAppMetadataUpdate((err, apiScopes) => {
                         if (err) return done.fail();
-
-                        ({userUpdateScope, userUpdateOauthTokenScope} = apiScopes);
+                        ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
                         done();
                       });
                     });
@@ -164,7 +164,7 @@ describe('root/timezoneSpec', () => {
 
                     expect(res.body.name).toEqual(_profile.name);
                     expect(res.body.email).toEqual(_profile.email);
-                    expect(res.body.zoneinfo).toEqual(ct.getTimezone('America/Edmonton').name);
+                    expect(res.body.user_metadata.zoneinfo).toEqual(ct.getTimezone('America/Edmonton'));
                     done();
                   });
               });
@@ -198,8 +198,8 @@ describe('root/timezoneSpec', () => {
                     .end(function(err, res) {
                       if (err) return done.fail(err);
 
-                      expect(userUpdateOauthTokenScope.isDone()).toBe(true);
-                      expect(userUpdateScope.isDone()).toBe(true);
+                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                      expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                       done();
                     });
                 });
@@ -209,7 +209,7 @@ describe('root/timezoneSpec', () => {
             describe('timezone set', () => {
 
               beforeEach(done => {
-                _profile.zoneinfo = 'America/Edmonton';
+                _profile.user_metadata = { zoneinfo: ct.getTimezone('America/Edmonton') };
 
                 stubAuth0ManagementApi((err, apiScopes) => {
                   if (err) return done.fail();
@@ -223,10 +223,9 @@ describe('root/timezoneSpec', () => {
                     stubUserRead((err, apiScopes) => {
                       if (err) return done.fail();
 
-                      stubUserUpdate((err, apiScopes) => {
+                      stubUserAppMetadataUpdate((err, apiScopes) => {
                         if (err) return done.fail();
-
-                        ({userUpdateScope, userUpdateOauthTokenScope} = apiScopes);
+                        ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
                         done();
                       });
                     });
@@ -249,7 +248,7 @@ describe('root/timezoneSpec', () => {
 
                     expect(res.body.name).toEqual(_profile.name);
                     expect(res.body.email).toEqual(_profile.email);
-                    expect(res.body.zoneinfo).toEqual(ct.getTimezone('Europe/Paris').name);
+                    expect(res.body.user_metadata.zoneinfo).toEqual(ct.getTimezone('Europe/Paris'));
                     done();
                   });
               });
@@ -267,14 +266,14 @@ describe('root/timezoneSpec', () => {
                     .end(function(err, res) {
                       if (err) return done.fail(err);
 
-                      expect(userUpdateOauthTokenScope.isDone()).toBe(true);
-                      expect(userUpdateScope.isDone()).toBe(true);
+                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                      expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                       done();
                     });
                 });
 
                 it('is still called even if the language is already assigned to the agent', done => {
-                  expect(_profile.zoneinfo).toEqual('America/Edmonton');
+                  expect(_profile.user_metadata.zoneinfo).toEqual(ct.getTimezone('America/Edmonton'));
                   rootSession
                     .put(`/timezone/${_identity.sub}`)
                     .send({
@@ -286,8 +285,8 @@ describe('root/timezoneSpec', () => {
                     .end(function(err, res) {
                       if (err) return done.fail(err);
 
-                      expect(userUpdateOauthTokenScope.isDone()).toBe(true);
-                      expect(userUpdateScope.isDone()).toBe(true);
+                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                      expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                       done();
                     });
                 });
@@ -318,10 +317,9 @@ describe('root/timezoneSpec', () => {
                     stubUserRead((err, apiScopes) => {
                       if (err) return done.fail();
 
-                      stubUserUpdate(anotherAgent, (err, apiScopes) => {
+                      stubUserAppMetadataUpdate(anotherAgent, (err, apiScopes) => {
                         if (err) return done.fail();
-
-                        ({userUpdateScope, userUpdateOauthTokenScope} = apiScopes);
+                        ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
                         done();
                       });
                     });
@@ -344,7 +342,7 @@ describe('root/timezoneSpec', () => {
 
                     expect(res.body.name).toEqual(anotherAgent.name);
                     expect(res.body.email).toEqual(anotherAgent.email);
-                    expect(res.body.zoneinfo).toEqual(ct.getTimezone('America/Edmonton').name);
+                    expect(res.body.user_metadata.zoneinfo).toEqual(ct.getTimezone('America/Edmonton'));
                     done();
                   });
               });
@@ -378,8 +376,9 @@ describe('root/timezoneSpec', () => {
                     .end(function(err, res) {
                       if (err) return done.fail(err);
 
-                      expect(userUpdateOauthTokenScope.isDone()).toBe(true);
-                      expect(userUpdateScope.isDone()).toBe(true);
+                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                      expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+
                       done();
                     });
                 });
@@ -388,10 +387,18 @@ describe('root/timezoneSpec', () => {
 
             describe('timezone set', () => {
 
-              const anotherAgent = {..._profile, email: 'someotherguy@example.com', name: 'Some Other Guy', zoneinfo: 'America/Edmonton', user_id: _profile.user_id + 1};
+              const anotherAgent = {
+                ..._profile,
+                email: 'someotherguy@example.com',
+                name: 'Some Other Guy',
+                user_metadata: {
+                  ..._profile.user_metadata, zoneinfo: 'America/Edmonton'
+                },
+                user_id: _profile.user_id + 1
+              };
 
               beforeEach(done => {
-                _profile.zoneinfo = 'America/Edmonton';
+                _profile.user_metadata = { zoneinfo: ct.getTimezone('America/Edmonton') };
 
                 stubAuth0ManagementApi((err, apiScopes) => {
                   if (err) return done.fail();
@@ -405,10 +412,9 @@ describe('root/timezoneSpec', () => {
                     stubUserRead((err, apiScopes) => {
                       if (err) return done.fail();
 
-                      stubUserUpdate(anotherAgent, (err, apiScopes) => {
+                      stubUserAppMetadataUpdate(anotherAgent, (err, apiScopes) => {
                         if (err) return done.fail();
-
-                        ({userUpdateScope, userUpdateOauthTokenScope} = apiScopes);
+                        ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
                         done();
                       });
                     });
@@ -431,7 +437,7 @@ describe('root/timezoneSpec', () => {
 
                     expect(res.body.name).toEqual(anotherAgent.name);
                     expect(res.body.email).toEqual(anotherAgent.email);
-                    expect(res.body.zoneinfo).toEqual(ct.getTimezone('Europe/Paris').name);
+                    expect(res.body.user_metadata.zoneinfo).toEqual(ct.getTimezone('Europe/Paris'));
                     done();
                   });
               });
@@ -449,14 +455,14 @@ describe('root/timezoneSpec', () => {
                     .end(function(err, res) {
                       if (err) return done.fail(err);
 
-                      expect(userUpdateOauthTokenScope.isDone()).toBe(true);
-                      expect(userUpdateScope.isDone()).toBe(true);
+                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                      expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                       done();
                     });
                 });
 
                 it('is still called even if the language is already assigned to the agent', done => {
-                  expect(_profile.zoneinfo).toEqual('America/Edmonton');
+                  expect(_profile.user_metadata.zoneinfo).toEqual(ct.getTimezone('America/Edmonton'));
                   rootSession
                     .put(`/timezone/${anotherAgent.user_id}`)
                     .send({
@@ -468,8 +474,8 @@ describe('root/timezoneSpec', () => {
                     .end(function(err, res) {
                       if (err) return done.fail(err);
 
-                      expect(userUpdateOauthTokenScope.isDone()).toBe(true);
-                      expect(userUpdateScope.isDone()).toBe(true);
+                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                      expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                       done();
                     });
                 });

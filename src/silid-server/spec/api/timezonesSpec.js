@@ -7,9 +7,7 @@ const nock = require('nock');
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
 const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
-const stubUserRolesRead = require('../support/auth0Endpoints/stubUserRolesRead');
 const stubUserAppMetadataUpdate = require('../support/auth0Endpoints/stubUserAppMetadataUpdate');
-const stubUserUpdate = require('../support/auth0Endpoints/stubUserUpdate');
 const scope = require('../../config/permissions');
 const apiScope = require('../../config/apiPermissions');
 const ct = require('countries-and-timezones')
@@ -42,6 +40,8 @@ describe('timezoneSpec', () => {
     delete _profile.user_metadata;
     _profile.email = originalProfile.email;
     _profile.name = originalProfile.name;
+
+    nock.cleanAll();
   });
 
   let agent;
@@ -110,7 +110,7 @@ describe('timezoneSpec', () => {
 
         describe('PUT /timezone/:id', () => {
 
-          let userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope;
+          let userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope
           describe('timezone not set', () => {
 
             beforeEach(done => {
@@ -129,10 +129,33 @@ describe('timezoneSpec', () => {
                   stubUserRead((err, apiScopes) => {
                     if (err) return done.fail();
 
-                    stubUserUpdate((err, apiScopes) => {
-                      if (err) return done.fail();
+                    /**
+                     * 2020-9-3
+                     *
+                     * This suggests `zoneinfo` is part of the OpenID standard:
+                     *
+                     * https://openid.net/specs/openid-connect-basic-1_0.html
+                     *
+                     * This error says this is not true of Auth0 (we are using
+                     * OpenID, aren't we?)
+                     *
+                     * `Bad Request: Payload validation error:
+                     *  'Additional properties not allowed:
+                     *  zoneinfo (consider storing them in app_metadata
+                     *  or user_metadata. See "Users Metadata"
+                     *  in https://auth0.com/docs/api/v2/changes for more details`
+                     *
+                     * Link is broken, btw.
+                     */
+                    //stubUserUpdate((err, apiScopes) => {
+                    //  if (err) return done.fail();
+                    //  ({userUpdateScope, userUpdateOauthTokenScope} = apiScopes);
+                    //  done();
+                    //});
 
-                      ({userUpdateScope, userUpdateOauthTokenScope} = apiScopes);
+                    stubUserAppMetadataUpdate((err, apiScopes) => {
+                      if (err) return done.fail();
+                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
                       done();
                     });
                   });
@@ -155,7 +178,8 @@ describe('timezoneSpec', () => {
 
                   expect(res.body.name).toEqual(_profile.name);
                   expect(res.body.email).toEqual(_profile.email);
-                  expect(res.body.zoneinfo).toEqual(ct.getTimezone('America/Edmonton').name);
+                  //expect(res.body.zoneinfo).toEqual(ct.getTimezone('America/Edmonton').name);
+                  expect(res.body.user_metadata.zoneinfo).toEqual(ct.getTimezone('America/Edmonton'));
                   done();
                 });
             });
@@ -189,8 +213,9 @@ describe('timezoneSpec', () => {
                   .end(function(err, res) {
                     if (err) return done.fail(err);
 
-                    expect(userUpdateOauthTokenScope.isDone()).toBe(true);
-                    expect(userUpdateScope.isDone()).toBe(true);
+                    expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                    expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+
                     done();
                   });
               });
@@ -215,10 +240,19 @@ describe('timezoneSpec', () => {
                   stubUserRead((err, apiScopes) => {
                     if (err) return done.fail();
 
-                    stubUserUpdate((err, apiScopes) => {
-                      if (err) return done.fail();
+                    /**
+                     * 2020-9-3 See above...
+                     */
+                    //stubUserUpdate((err, apiScopes) => {
+                    //  if (err) return done.fail();
 
-                      ({userUpdateScope, userUpdateOauthTokenScope} = apiScopes);
+                    //  ({userUpdateScope, userUpdateOauthTokenScope} = apiScopes);
+                    //  done();
+                    //});
+
+                    stubUserAppMetadataUpdate((err, apiScopes) => {
+                      if (err) return done.fail();
+                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
                       done();
                     });
                   });
@@ -241,7 +275,8 @@ describe('timezoneSpec', () => {
 
                   expect(res.body.name).toEqual(_profile.name);
                   expect(res.body.email).toEqual(_profile.email);
-                  expect(res.body.zoneinfo).toEqual(ct.getTimezone('Europe/Paris').name);
+                  //expect(res.body.zoneinfo).toEqual(ct.getTimezone('Europe/Paris').name);
+                  expect(res.body.user_metadata.zoneinfo).toEqual(ct.getTimezone('Europe/Paris'));
                   done();
                 });
             });
@@ -259,8 +294,9 @@ describe('timezoneSpec', () => {
                   .end(function(err, res) {
                     if (err) return done.fail(err);
 
-                    expect(userUpdateOauthTokenScope.isDone()).toBe(true);
-                    expect(userUpdateScope.isDone()).toBe(true);
+                    expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                    expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+
                     done();
                   });
               });
@@ -278,8 +314,9 @@ describe('timezoneSpec', () => {
                   .end(function(err, res) {
                     if (err) return done.fail(err);
 
-                    expect(userUpdateOauthTokenScope.isDone()).toBe(true);
-                    expect(userUpdateScope.isDone()).toBe(true);
+                    expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                    expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+
                     done();
                   });
               });
