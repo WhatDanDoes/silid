@@ -184,6 +184,27 @@ describe('timezoneSpec', () => {
                 });
             });
 
+            it('returns profile data with roles', done => {
+              authenticatedSession
+                .put(`/timezone/${_identity.sub}`)
+                .send({
+                  timezone: 'America/Edmonton'
+                })
+                .set('Accept', 'application/json')
+                .redirects(1)
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(res.body.name).toEqual(_profile.name);
+                  expect(res.body.email).toEqual(_profile.email);
+                  expect(res.body.roles.length).toEqual(1);
+                  expect(res.body.roles[0].name).toEqual('viewer');
+                  done();
+                });
+            });
+
             it('returns a friendly message if an invalid timezone is provided', done => {
               authenticatedSession
                 .put(`/timezone/${_identity.sub}`)
@@ -277,6 +298,27 @@ describe('timezoneSpec', () => {
                   expect(res.body.email).toEqual(_profile.email);
                   //expect(res.body.zoneinfo).toEqual(ct.getTimezone('Europe/Paris').name);
                   expect(res.body.user_metadata.zoneinfo).toEqual(ct.getTimezone('Europe/Paris'));
+                  done();
+                });
+            });
+
+            it('returns profile data with roles', done => {
+              authenticatedSession
+                .put(`/timezone/${_identity.sub}`)
+                .send({
+                  timezone: 'America/Edmonton'
+                })
+                .set('Accept', 'application/json')
+                .redirects(1)
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(res.body.name).toEqual(_profile.name);
+                  expect(res.body.email).toEqual(_profile.email);
+                  expect(res.body.roles.length).toEqual(1);
+                  expect(res.body.roles[0].name).toEqual('viewer');
                   done();
                 });
             });

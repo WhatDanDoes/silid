@@ -185,6 +185,28 @@ describe('root/timezoneSpec', () => {
                   });
               });
 
+              it('returns profile data with roles', done => {
+                rootSession
+                  .put(`/timezone/${_identity.sub}`)
+                  .send({
+                    timezone: 'America/Edmonton'
+                  })
+                  .set('Accept', 'application/json')
+                  .redirects(1)
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    expect(res.body.name).toEqual(_profile.name);
+                    expect(res.body.email).toEqual(_profile.email);
+                    expect(res.body.roles.length).toEqual(2);
+                    expect(res.body.roles[0].name).toEqual('viewer');
+                    expect(res.body.roles[1].name).toEqual('sudo');
+                    done();
+                  });
+              });
+
               describe('Auth0', () => {
                 it('is called to update the agent', done => {
                   rootSession
@@ -249,6 +271,28 @@ describe('root/timezoneSpec', () => {
                     expect(res.body.name).toEqual(_profile.name);
                     expect(res.body.email).toEqual(_profile.email);
                     expect(res.body.user_metadata.zoneinfo).toEqual(ct.getTimezone('Europe/Paris'));
+                    done();
+                  });
+              });
+
+              it('returns profile data with roles', done => {
+                rootSession
+                  .put(`/timezone/${_identity.sub}`)
+                  .send({
+                    timezone: 'Europe/Paris'
+                  })
+                  .set('Accept', 'application/json')
+                  .redirects(1)
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    expect(res.body.name).toEqual(_profile.name);
+                    expect(res.body.email).toEqual(_profile.email);
+                    expect(res.body.roles.length).toEqual(2);
+                    expect(res.body.roles[0].name).toEqual('viewer');
+                    expect(res.body.roles[1].name).toEqual('sudo');
                     done();
                   });
               });
@@ -363,6 +407,28 @@ describe('root/timezoneSpec', () => {
                   });
               });
 
+              it('returns profile data with roles', done => {
+                rootSession
+                  .put(`/timezone/${anotherAgent.user_id}`)
+                  .send({
+                    timezone: 'America/Edmonton'
+                  })
+                  .set('Accept', 'application/json')
+                  .redirects(1)
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    expect(res.body.name).toEqual(anotherAgent.name);
+                    expect(res.body.email).toEqual(anotherAgent.email);
+                    expect(res.body.roles.length).toEqual(1);
+                    expect(res.body.roles[0].name).toEqual('viewer');
+                    done();
+                  });
+              });
+
+
               describe('Auth0', () => {
                 it('is called to update the agent', done => {
                   rootSession
@@ -438,6 +504,27 @@ describe('root/timezoneSpec', () => {
                     expect(res.body.name).toEqual(anotherAgent.name);
                     expect(res.body.email).toEqual(anotherAgent.email);
                     expect(res.body.user_metadata.zoneinfo).toEqual(ct.getTimezone('Europe/Paris'));
+                    done();
+                  });
+              });
+
+              it('returns profile data with roles', done => {
+                rootSession
+                  .put(`/timezone/${anotherAgent.user_id}`)
+                  .send({
+                    timezone: 'Europe/Paris'
+                  })
+                  .set('Accept', 'application/json')
+                  .redirects(1)
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    expect(res.body.name).toEqual(anotherAgent.name);
+                    expect(res.body.email).toEqual(anotherAgent.email);
+                    expect(res.body.roles.length).toEqual(1);
+                    expect(res.body.roles[0].name).toEqual('viewer');
                     done();
                   });
               });
