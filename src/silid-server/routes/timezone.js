@@ -78,7 +78,7 @@ router.put('/:id', checkPermissions([scope.update.agents]), function(req, res, n
 
     // Is this a sudo agent updating another?
     if (req.params.id !== req.user.user_id) {
-      managementClient.getUserRoles({id: req.params.agentId}).then(assignedRoles => {
+      managementClient.getUserRoles({id: req.params.id}).then(assignedRoles => {
         result.roles = assignedRoles;
         res.status(201).json(result);
       }).catch(err => {
