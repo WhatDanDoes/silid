@@ -22,6 +22,7 @@ const ct = require('countries-and-timezones')
  */
 const _identity = require('../../fixtures/sample-auth0-identity-token');
 const _profile = require('../../fixtures/sample-auth0-profile-response');
+const _roles = require('../../fixtures/roles');
 
 describe('root/timezoneSpec', () => {
   let originalProfile;
@@ -121,7 +122,8 @@ describe('root/timezoneSpec', () => {
 
           describe('root\'s own profile', () => {
 
-            let userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope;
+            let userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope,
+                userRolesReadScope, userRolesReadOauthTokenScope;
             describe('timezone not set', () => {
 
               beforeEach(done => {
@@ -142,7 +144,13 @@ describe('root/timezoneSpec', () => {
                       stubUserAppMetadataUpdate((err, apiScopes) => {
                         if (err) return done.fail();
                         ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                        done();
+
+                        stubUserRolesRead((err, apiScopes) => {
+                          if (err) return done.fail(err);
+                          ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+                          done();
+                        });
                       });
                     });
                   });
@@ -200,9 +208,9 @@ describe('root/timezoneSpec', () => {
 
                     expect(res.body.name).toEqual(_profile.name);
                     expect(res.body.email).toEqual(_profile.email);
-                    expect(res.body.roles.length).toEqual(2);
+                    // This is a configured root agent, not assigned. Only one role...
+                    expect(res.body.roles.length).toEqual(1);
                     expect(res.body.roles[0].name).toEqual('viewer');
-                    expect(res.body.roles[1].name).toEqual('sudo');
                     done();
                   });
               });
@@ -222,6 +230,24 @@ describe('root/timezoneSpec', () => {
 
                       expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
                       expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
+
+                it('is not called to retrieve agent\'s roles', done => {
+                  rootSession
+                    .put(`/timezone/${_identity.sub}`)
+                    .send({
+                      timezone: 'America/Edmonton'
+                    })
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(201)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+
+                      expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
+                      expect(userRolesReadScope.isDone()).toBe(false);
                       done();
                     });
                 });
@@ -248,7 +274,13 @@ describe('root/timezoneSpec', () => {
                       stubUserAppMetadataUpdate((err, apiScopes) => {
                         if (err) return done.fail();
                         ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                        done();
+
+                        stubUserRolesRead((err, apiScopes) => {
+                          if (err) return done.fail(err);
+                          ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+                          done();
+                        });
                       });
                     });
                   });
@@ -290,9 +322,9 @@ describe('root/timezoneSpec', () => {
 
                     expect(res.body.name).toEqual(_profile.name);
                     expect(res.body.email).toEqual(_profile.email);
-                    expect(res.body.roles.length).toEqual(2);
+                    // This is a configured root agent, not assigned. Only one role...
+                    expect(res.body.roles.length).toEqual(1);
                     expect(res.body.roles[0].name).toEqual('viewer');
-                    expect(res.body.roles[1].name).toEqual('sudo');
                     done();
                   });
               });
@@ -334,11 +366,38 @@ describe('root/timezoneSpec', () => {
                       done();
                     });
                 });
+
+                it('is not called to retrieve agent\'s roles', done => {
+                  rootSession
+                    .put(`/timezone/${_identity.sub}`)
+                    .send({
+                      timezone: 'America/Edmonton'
+                    })
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(201)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+
+                      expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
+                      expect(userRolesReadScope.isDone()).toBe(false);
+                      done();
+                    });
+                });
               });
             });
           });
 
           describe('another agent\'s profile', () => {
+
+            const assignedRoles = [];
+            beforeEach(() => {
+              assignedRoles.push(_roles[2], _roles[0]);
+            });
+    
+            afterEach(() => {
+              assignedRoles.length = 0;
+            });
 
             let userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope;
 
@@ -364,7 +423,13 @@ describe('root/timezoneSpec', () => {
                       stubUserAppMetadataUpdate(anotherAgent, (err, apiScopes) => {
                         if (err) return done.fail();
                         ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                        done();
+
+                        stubUserRolesRead(assignedRoles, (err, apiScopes) => {
+                          if (err) return done.fail(err);
+                          ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+                          done();
+                        });
                       });
                     });
                   });
@@ -422,8 +487,9 @@ describe('root/timezoneSpec', () => {
 
                     expect(res.body.name).toEqual(anotherAgent.name);
                     expect(res.body.email).toEqual(anotherAgent.email);
-                    expect(res.body.roles.length).toEqual(1);
+                    expect(res.body.roles.length).toEqual(2);
                     expect(res.body.roles[0].name).toEqual('viewer');
+                    expect(res.body.roles[1].name).toEqual('organizer');
                     done();
                   });
               });
@@ -445,6 +511,24 @@ describe('root/timezoneSpec', () => {
                       expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
                       expect(userAppMetadataUpdateScope.isDone()).toBe(true);
 
+                      done();
+                    });
+                });
+
+                it('is called to retrieve agent\'s roles', done => {
+                  rootSession
+                    .put(`/timezone/${_identity.sub}`)
+                    .send({
+                      timezone: 'America/Edmonton'
+                    })
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(201)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+
+                      expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
+                      expect(userRolesReadScope.isDone()).toBe(true);
                       done();
                     });
                 });
@@ -481,7 +565,13 @@ describe('root/timezoneSpec', () => {
                       stubUserAppMetadataUpdate(anotherAgent, (err, apiScopes) => {
                         if (err) return done.fail();
                         ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                        done();
+
+                        stubUserRolesRead(assignedRoles, (err, apiScopes) => {
+                          if (err) return done.fail(err);
+                          ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+                          done();
+                        });
                       });
                     });
                   });
@@ -523,8 +613,9 @@ describe('root/timezoneSpec', () => {
 
                     expect(res.body.name).toEqual(anotherAgent.name);
                     expect(res.body.email).toEqual(anotherAgent.email);
-                    expect(res.body.roles.length).toEqual(1);
+                    expect(res.body.roles.length).toEqual(2);
                     expect(res.body.roles[0].name).toEqual('viewer');
+                    expect(res.body.roles[1].name).toEqual('organizer');
                     done();
                   });
               });
@@ -563,6 +654,24 @@ describe('root/timezoneSpec', () => {
 
                       expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
                       expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
+
+                it('is called to retrieve agent\'s roles', done => {
+                  rootSession
+                    .put(`/timezone/${_identity.sub}`)
+                    .send({
+                      timezone: 'America/Edmonton'
+                    })
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(201)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+
+                      expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
+                      expect(userRolesReadScope.isDone()).toBe(true);
                       done();
                     });
                 });
