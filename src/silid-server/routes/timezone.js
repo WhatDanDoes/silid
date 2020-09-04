@@ -76,7 +76,7 @@ router.put('/:id', checkPermissions([scope.update.agents]), function(req, res, n
   const managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
   managementClient.updateUser({id: req.params.id}, { user_metadata: { zoneinfo: timezone} }).then(result => {
 
-    res.status(201).json(result);
+    res.status(201).json({...req.user, ...result});
   }).catch(err => {
     res.status(err.statusCode).json(err.message.error_description);
   });
