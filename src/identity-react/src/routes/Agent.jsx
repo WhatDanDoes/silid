@@ -24,6 +24,7 @@ import TableContainer from '@material-ui/core/TableContainer';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 import MaterialTable, { MTableEditField } from 'material-table';
+import Box from '@material-ui/core/Box';
 
 import useGetAgentService from '../services/useGetAgentService';
 import usePostTeamService from '../services/usePostTeamService';
@@ -151,6 +152,36 @@ const Agent = (props) => {
     };
   }, [loadingLocale]);
 
+
+  /**
+   * Timezone stuff
+   */
+  const [timezoneIsOpen, setTimezoneIsOpen] = React.useState(false);
+  const [timezoneOptions, setTimezoneOptions] = React.useState([]);
+  const [isSettingTimezone, setIsSettingTimezone] = React.useState(false);
+  const loadingTimezone = timezoneIsOpen && timezoneOptions.length === 0;
+ 
+  React.useEffect(() => {
+    let active = true;
+
+    if (!loadingTimezone) {
+      return undefined;
+    }
+
+    (async () => {
+      const response = await fetch('/timezone');
+      const timezones = await response.json();
+
+      if (active) {
+        setTimezoneOptions(timezones);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [loadingTimezone]);
+
   /**
    * Create a new team
    */
@@ -249,6 +280,80 @@ const Agent = (props) => {
                     <TableRow>
                       <TableCell align="right" component="th" scope="row"><FormattedMessage id='Email' />:</TableCell>
                       <TableCell align="left">{profileData.email}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell align="right" component="th" scope="row"><FormattedMessage id='Timezone' />:</TableCell>
+                      <TableCell align="left">
+                        <Autocomplete
+                          id="timezone-dropdown"
+                          style={{ width: '100%' }}
+                          open={timezoneIsOpen}
+                          onOpen={() => {
+                            setTimezoneIsOpen(true);
+                          }}
+                          onClose={async(event, value) => {
+                            setTimezoneIsOpen(false);
+                          }}
+                          onChange={async (event, value) => {
+                            if (value) {
+                              return new Promise((resolve, reject) => {
+                                setIsSettingTimezone(true);
+                                const headers = new Headers();
+                                headers.append('Access-Control-Allow-Credentials', 'true');
+                                headers.append('Content-Type', 'application/json; charset=utf-8');
+                                fetch(`/timezone/${profileData.user_id}`,
+                                  {
+                                    method: 'PUT',
+                                    headers,
+                                    body: JSON.stringify({timezone: value.name})
+                                  }
+                                )
+                                .then(response => response.json())
+                                .then(async(response) => {
+                                  if (response.message) {
+                                    setFlashProps({ message: response.message, variant: 'error' });
+                                  }
+                                  else {
+                                    setProfileData(response);
+                                    setFlashProps({ message: getFormattedMessage('Timezone updated'), variant: 'success' });
+                                  }
+
+                                  resolve();
+                                })
+                                .catch(error => {
+                                  setFlashProps({ message: error.message, variant: 'error' });
+                                  reject(error);
+                                }).finally(() => {
+                                  setIsSettingTimezone(false);
+                                });
+                              });
+                            }
+                          }}
+                          getOptionSelected={(option, value) => option.name === value.name}
+                          getOptionLabel={(option) => `${option.name}`}
+                          options={timezoneOptions}
+                          loading={loadingTimezone}
+                          disabled={!profileData.email_verified || (profileData.email !== agent.email && !admin.isEnabled)}
+                          value={profileData.user_metadata && profileData.user_metadata.zoneinfo ? profileData.user_metadata.zoneinfo : { name: '' }}
+                          autoHighlight
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label={getFormattedMessage('Set your timezone')}
+                              variant="outlined"
+                              InputProps={{
+                                ...params.InputProps,
+                                endAdornment: (
+                                  <React.Fragment>
+                                    {loadingTimezone || isSettingTimezone ? <CircularProgress id="timezone-spinner" color="inherit" size={20} /> : null}
+                                    {params.InputProps.endAdornment}
+                                  </React.Fragment>
+                                ),
+                              }}
+                            />
+                          )}
+                        />
+                      </TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell align="right" component="th" scope="row"><FormattedMessage id='Provider Locale' />:</TableCell>
@@ -472,18 +577,18 @@ const Agent = (props) => {
                     : undefined}
                       { Object.keys(prevAgentInputState).length ?
                         <TableRow>
-                          <TableCell align="right">
-                            <Button id="cancel-agent-changes" variant="contained" color="secondary"
-                              onClick={e => {
-                                setProfileData({ ...profileData, ...prevAgentInputState });
-                                setPrevAgentInputState({});
-                              }
-                            }>
-                              <FormattedMessage id='Cancel' />
-                            </Button>
-                          </TableCell>
-                          <TableCell align="left">
-                            <Button id="save-agent" variant="contained" color="primary"
+                          <TableCell align="center" colSpan={2}>
+                            <Box mr={2} display="inline">
+                              <Button id="cancel-agent-changes" variant="contained" color="secondary" disabled={isWaiting}
+                                onClick={e => {
+                                  setProfileData({ ...profileData, ...prevAgentInputState });
+                                  setPrevAgentInputState({});
+                                }
+                              }>
+                                <FormattedMessage id='Cancel' />
+                              </Button>
+                            </Box>
+                            <Button id="save-agent" variant="contained" color="primary" disabled={isWaiting}
                               onClick={() => {
                                 const changes = {};
                                 for (let p in prevAgentInputState) {
@@ -492,6 +597,7 @@ const Agent = (props) => {
                                     setFlashProps({ message: getFormattedMessage('Missing profile data'), variant: 'error' });
                                   }
                                   else {
+                                    setIsWaiting(true);
                                     const headers = new Headers();
                                     headers.append('Content-Type', 'application/json; charset=utf-8');
                                     fetch(`/agent/${profileData.user_id}`,
@@ -514,8 +620,10 @@ const Agent = (props) => {
                                     })
                                     .catch(error => {
                                       setFlashProps({ message: getFormattedMessage(error.message), variant: 'error' });
+                                    })
+                                    .finally(() => {
+                                      setIsWaiting(false);
                                     });
-
                                   }
                                 }
                               }
