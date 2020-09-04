@@ -394,7 +394,7 @@ describe('root/timezoneSpec', () => {
             beforeEach(() => {
               assignedRoles.push(_roles[2], _roles[0]);
             });
-    
+
             afterEach(() => {
               assignedRoles.length = 0;
             });
@@ -517,7 +517,7 @@ describe('root/timezoneSpec', () => {
 
                 it('is called to retrieve agent\'s roles', done => {
                   rootSession
-                    .put(`/timezone/${_identity.sub}`)
+                    .put(`/timezone/${anotherAgent.user_id}`)
                     .send({
                       timezone: 'America/Edmonton'
                     })
@@ -660,7 +660,7 @@ describe('root/timezoneSpec', () => {
 
                 it('is called to retrieve agent\'s roles', done => {
                   rootSession
-                    .put(`/timezone/${_identity.sub}`)
+                    .put(`/timezone/${anotherAgent.user_id}`)
                     .send({
                       timezone: 'America/Edmonton'
                     })

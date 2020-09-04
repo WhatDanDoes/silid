@@ -76,7 +76,18 @@ router.put('/:id', checkPermissions([scope.update.agents]), function(req, res, n
   const managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
   managementClient.updateUser({id: req.params.id}, { user_metadata: { zoneinfo: timezone} }).then(result => {
 
-    res.status(201).json({...req.user, ...result});
+    // Is this a sudo agent updating another?
+    if (req.params.id !== req.user.user_id) {
+      managementClient.getUserRoles({id: req.params.agentId}).then(assignedRoles => {
+        result.roles = assignedRoles;
+        res.status(201).json(result);
+      }).catch(err => {
+        res.status(err.statusCode).json(err.message.error_description);
+      });
+    }
+    else {
+      res.status(201).json({...req.user, ...result});
+    }
   }).catch(err => {
     res.status(err.statusCode).json(err.message.error_description);
   });
