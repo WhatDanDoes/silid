@@ -25,6 +25,7 @@ import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 import MaterialTable, { MTableEditField } from 'material-table';
 import Box from '@material-ui/core/Box';
+import MuiPhoneInput from 'material-ui-phone-number';
 
 import useGetAgentService from '../services/useGetAgentService';
 import usePostTeamService from '../services/usePostTeamService';
@@ -160,7 +161,7 @@ const Agent = (props) => {
   const [timezoneOptions, setTimezoneOptions] = React.useState([]);
   const [isSettingTimezone, setIsSettingTimezone] = React.useState(false);
   const loadingTimezone = timezoneIsOpen && timezoneOptions.length === 0;
- 
+
   React.useEffect(() => {
     let active = true;
 
@@ -280,6 +281,13 @@ const Agent = (props) => {
                     <TableRow>
                       <TableCell align="right" component="th" scope="row"><FormattedMessage id='Email' />:</TableCell>
                       <TableCell align="left">{profileData.email}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell align="right" component="th" scope="row"><FormattedMessage id='Phone' />:</TableCell>
+                      <TableCell align="left">
+                        <MuiPhoneInput id="phone-number-field" placeholder="Set your phone number" defaultCountry={'us'} onChange={() => console.log('hello')}/>
+                      </TableCell>
+
                     </TableRow>
                     <TableRow>
                       <TableCell align="right" component="th" scope="row"><FormattedMessage id='Timezone' />:</TableCell>
