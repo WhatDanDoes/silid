@@ -205,10 +205,21 @@ router.patch('/:id', checkPermissions([scope.update.agents]), function(req, res,
     return res.status(200).json({ message: 'No relevant data supplied' });
   }
 
-  const managementClient = getManagementClient(apiScope.update.users);
+  const managementClient = getManagementClient([apiScope.update.users].join());
   managementClient.updateUser({id: req.params.id}, filtered).then(agent => {
 
-    res.status(201).json(agent);
+    // Is this a sudo agent updating another?
+    if (req.params.id !== req.user.user_id) {
+      managementClient.getUserRoles({id: req.params.id}).then(assignedRoles => {
+        agent.roles = assignedRoles;
+        res.status(201).json(agent);
+      }).catch(err => {
+        res.status(err.statusCode).json(err.message.error_description);
+      });
+    }
+    else {
+      res.status(201).json({...req.user, ...agent});
+    }
   }).catch(err => {
     res.status(err.statusCode).json(err.message.error_description);
   });
