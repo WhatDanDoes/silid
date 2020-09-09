@@ -26,6 +26,7 @@ import Paper from '@material-ui/core/Paper';
 import MaterialTable, { MTableEditField } from 'material-table';
 import Box from '@material-ui/core/Box';
 import MuiPhoneInput from 'material-ui-phone-number';
+import isMobilePhone from 'validator/lib/isMobilePhone';
 
 import useGetAgentService from '../services/useGetAgentService';
 import usePostTeamService from '../services/usePostTeamService';
@@ -271,7 +272,7 @@ const Agent = (props) => {
                         <input id="agent-name-field" value={profileData.name || ''} disabled={!profileData.email_verified || (agent.email !== profileData.email && !admin.isEnabled)}
                           onChange={e => {
                               if (!prevAgentInputState.name) {
-                                setPrevAgentInputState({ name: profileData.name });
+                                setPrevAgentInputState({ ...prevAgentInputState, name: profileData.name });
                               }
                               setProfileData({ ...profileData, name: e.target.value });
                             }
@@ -285,7 +286,19 @@ const Agent = (props) => {
                     <TableRow>
                       <TableCell align="right" component="th" scope="row"><FormattedMessage id='Phone' />:</TableCell>
                       <TableCell align="left">
-                        <MuiPhoneInput id="phone-number-field" placeholder="Set your phone number" defaultCountry={'us'} onChange={() => console.log('hello')}/>
+                        <MuiPhoneInput
+                          id="phone-number-field"
+                          placeholder={'Set your phone number'}
+                          defaultCountry={'us'}
+                          disabled={!profileData.email_verified || (profileData.email !== agent.email && !admin.isEnabled)}
+                          value={profileData.phone_number}
+                          onChange={value => {
+                            if (!prevAgentInputState.phone_number) {
+                              setPrevAgentInputState({ ...prevAgentInputState, phone_number: profileData.phone_number });
+                            }
+                            setProfileData({ ...profileData, phone_number: value });
+                          }
+                        }/>
                       </TableCell>
 
                     </TableRow>
@@ -601,39 +614,39 @@ const Agent = (props) => {
                                 const changes = {};
                                 for (let p in prevAgentInputState) {
                                   changes[p] = profileData[p].trim();
-                                  if (!changes[p].length) {
+                                  if (!changes[p].length || (p === 'phone_number' && !isMobilePhone(changes[p]))) {
                                     setFlashProps({ message: getFormattedMessage('Missing profile data'), variant: 'error' });
-                                  }
-                                  else {
-                                    setIsWaiting(true);
-                                    const headers = new Headers();
-                                    headers.append('Content-Type', 'application/json; charset=utf-8');
-                                    fetch(`/agent/${profileData.user_id}`,
-                                      {
-                                        method: 'PATCH',
-                                        body: JSON.stringify(changes),
-                                        headers,
-                                      }
-                                    )
-                                    .then(response => response.json())
-                                    .then(response => {
-                                      if (response.message) {
-                                        setFlashProps({ message: getFormattedMessage(response.message), variant: 'warnging' });
-                                      }
-                                      else {
-                                        setProfileData(response);
-                                        setPrevAgentInputState({});
-                                        setFlashProps({ message: getFormattedMessage('Agent updated'), variant: 'success' });
-                                      }
-                                    })
-                                    .catch(error => {
-                                      setFlashProps({ message: getFormattedMessage(error.message), variant: 'error' });
-                                    })
-                                    .finally(() => {
-                                      setIsWaiting(false);
-                                    });
+                                    return;
                                   }
                                 }
+
+                                setIsWaiting(true);
+                                const headers = new Headers();
+                                headers.append('Content-Type', 'application/json; charset=utf-8');
+                                fetch(`/agent/${profileData.user_id}`,
+                                  {
+                                    method: 'PATCH',
+                                    body: JSON.stringify(changes),
+                                    headers,
+                                  }
+                                )
+                                .then(response => response.json())
+                                .then(response => {
+                                  if (response.message) {
+                                    setFlashProps({ message: getFormattedMessage(response.message), variant: 'warning' });
+                                  }
+                                  else {
+                                    setProfileData(response);
+                                    setPrevAgentInputState({});
+                                    setFlashProps({ message: getFormattedMessage('Agent updated'), variant: 'success' });
+                                  }
+                                })
+                                .catch(error => {
+                                  setFlashProps({ message: getFormattedMessage(error.message), variant: 'error' });
+                                })
+                                .finally(() => {
+                                  setIsWaiting(false);
+                                });
                               }
                             }>
                               <FormattedMessage id='Save' />

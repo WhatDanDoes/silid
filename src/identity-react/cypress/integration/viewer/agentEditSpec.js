@@ -257,8 +257,8 @@ context('viewer/Agent edit', function() {
             cy.get('button#save-agent').should('not.exist');
             cy.get('button#cancel-agent-changes').should('not.exist');
 
-            cy.get('#phone-number-field').type('403-266-1234');
-            cy.get('#phone-number-field').should('have.value', '403-266-1234');
+            cy.get('#phone-number-field').type('4032661234');
+            cy.get('#phone-number-field').should('have.value', '+1 (403) 266-1234');
 
             cy.get('button#save-agent').should('exist');
             cy.get('button#cancel-agent-changes').should('exist');
@@ -267,22 +267,23 @@ context('viewer/Agent edit', function() {
           describe('#cancel-agent-changes button', () => {
             beforeEach(() => {
               cy.get('#phone-number-field').clear();
-              cy.get('#phone-number-field').type('403-266-1234');
+              cy.get('#phone-number-field').type('14032661234');
             });
 
             it('resets the changes to the editable fields', () => {
-              cy.get('#phone-number-field').should('have.value', '403-266-1234');
+              cy.get('#phone-number-field').should('have.value', '+1 (403) 266-1234');
               cy.get('button#cancel-agent-changes').click();
-              cy.get('#phone-number-field').should('have.value', 'Set your phone number');
+              cy.get('#phone-number-field').should('have.value', '+');
+              //cy.get('#profile-table table tbody tr td input#phone-number-field').should('have.attr', 'placeholder', 'Set your phone number');
             });
 
             it('does not change the agent\'s record', () => {
               cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
                 expect(results.length).to.eq(1);
-                expect(results[0].socialProfile.phone_number).to.be('undefined');
+                expect(results[0].socialProfile.phone_number).to.be.undefined;
                 cy.get('button#cancel-agent-changes').click();
                 cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
-                  expect(results[0].socialProfile.phone_number).to('be.undefined');
+                  expect(results[0].socialProfile.phone_number).to.be.undefined;
                 });
               });
             });
@@ -293,9 +294,9 @@ context('viewer/Agent edit', function() {
             describe('is unsuccessful in making changes', () => {
 
               describe('with invalid field', () => {
-                it('empty name field', () => {
+                it('empty phone_number field', () => {
                   cy.get('#phone-number-field').clear();
-                  cy.get('#phone-number-field').should('have.value', '');
+                  cy.get('#phone-number-field').should('have.value', '+');
                   cy.get('button#save-agent').click();
                   cy.wait(300);
                   cy.get('#flash-message').contains('Missing profile data');
@@ -304,7 +305,7 @@ context('viewer/Agent edit', function() {
                 it('blank name field', () => {
                   cy.get('#phone-number-field').clear();
                   cy.get('#phone-number-field').type('     ');
-                  cy.get('#phone-number-field').should('have.value', '     ');
+                  cy.get('#phone-number-field').should('have.value', '+');
                   cy.get('button#save-agent').click();
                   cy.wait(300);
                   cy.get('#flash-message').contains('Missing profile data');
@@ -313,13 +314,13 @@ context('viewer/Agent edit', function() {
                 it('does not change the agent\'s record', () => {
                   cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
                     expect(results.length).to.eq(1);
-                    expect(results[0].socialProfile.phone_number).to('be.undefined');
+                    expect(results[0].socialProfile.phone_number).to.be.undefined;
 
                     cy.get('#agent-name-field').clear();
                     cy.get('button#save-agent').click();
 
                     cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
-                      expect(results[0].socialProfile.phone_number).to('be.undefined');
+                      expect(results[0].socialProfile.phone_number).to.be.undefined;
                     });
                   });
                 });
@@ -329,7 +330,7 @@ context('viewer/Agent edit', function() {
             describe('successfully makes changes', () => {
               beforeEach(() => {
                 cy.get('#phone-number-field').clear();
-                cy.get('#phone-number-field').type('403-266-1234');
+                cy.get('#phone-number-field').type('14032661234');
               });
 
               it('lands in the proper place', () => {
@@ -339,38 +340,38 @@ context('viewer/Agent edit', function() {
               });
 
               it('persists the changes to the editable fields', () => {
-                cy.get('#phone-number-field').should('have.value', '403-266-1234');
+                cy.get('#phone-number-field').should('have.value', '+1 (403) 266-1234');
                 cy.get('button#save-agent').click();
                 cy.wait(300);
-                cy.get('#phone-number-field').should('have.value', '403-266-1234');
+                cy.get('#phone-number-field').should('have.value', '+1 (403) 266-1234');
               });
 
               it('changes the agent\'s record', () => {
                 cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
                   expect(results.length).to.eq(1);
-                  expect(results[0].socialProfile.phone_number).to('be.undefined');
+                  expect(results[0].socialProfile.phone_number).to.be.undefined;
                   cy.get('button#save-agent').click();
                   cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
-                    expect(results[0].socialProfile.phone_number).to.eq('403-266-1234');
+                    expect(results[0].socialProfile.phone_number).to.eq('+1 (403) 266-1234');
                   });
                 });
               });
 
               it('displays a friendly message', () => {
-                cy.get('#phone-number-field').should('have.value', '403-266-1234');
+                cy.get('#phone-number-field').should('have.value', '+1 (403) 266-1234');
                 cy.get('button#save-agent').click();
                 cy.wait(300);
                 cy.get('#flash-message').contains('Agent updated');
               });
 
               it('persists updated root data between browser refreshes', () => {
-                cy.get('#phone-number-field').should('have.value', '403-266-1234');
+                cy.get('#phone-number-field').should('have.value', '+1 (403) 266-1234');
                 cy.get('button#save-agent').click();
                 cy.wait(300);
-                cy.get('#phone-number-field').should('have.value', '403-266-1234');
+                cy.get('#phone-number-field').should('have.value', '+1 (403) 266-1234');
                 cy.reload();
                 cy.wait(300);
-                cy.get('#phone-number-field').should('have.value', '403-266-1234');
+                cy.get('#phone-number-field').should('have.value', '+1 (403) 266-1234');
               });
 
               it('displays progress spinner', () => {
@@ -392,6 +393,87 @@ context('viewer/Agent edit', function() {
                 cy.get('button#save-agent').should('not.exist');
                 cy.get('button#cancel-agent-changes').should('not.exist');
               });
+            });
+          });
+        });
+
+        describe('all field update', () => {
+          describe('successfully makes changes', () => {
+            beforeEach(() => {
+              cy.get('#agent-name-field').clear();
+              cy.get('#agent-name-field').type('Some Groovy Cat');
+
+              cy.get('#phone-number-field').clear();
+              cy.get('#phone-number-field').type('14032661234');
+            });
+
+            it('lands in the proper place', () => {
+              cy.get('button#save-agent').click();
+              cy.wait(300);
+              cy.url().should('contain', `/#/agent/${agent.socialProfile.user_id}`);
+            });
+
+            it('persists the changes to the editable fields', () => {
+              cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
+              cy.get('#phone-number-field').should('have.value', '+1 (403) 266-1234');
+              cy.get('button#save-agent').click();
+              cy.wait(300);
+              cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
+              cy.get('#phone-number-field').should('have.value', '+1 (403) 266-1234');
+            });
+
+            it('changes the agent\'s record', () => {
+              cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
+                expect(results.length).to.eq(1);
+                expect(results[0].socialProfile.name).to.eq('Some Guy');;
+                expect(results[0].socialProfile.phone_number).to.be.undefined;
+                cy.get('button#save-agent').click();
+                cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
+                  expect(results[0].socialProfile.name).to.eq('Some Groovy Cat');
+                  expect(results[0].socialProfile.phone_number).to.eq('+1 (403) 266-1234');
+                });
+              });
+            });
+
+            it('displays a friendly message', () => {
+              cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
+              cy.get('#phone-number-field').should('have.value', '+1 (403) 266-1234');
+              cy.get('button#save-agent').click();
+              cy.wait(300);
+              cy.get('#flash-message').contains('Agent updated');
+            });
+
+            it('persists updated root data between browser refreshes', () => {
+              cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
+              cy.get('#phone-number-field').should('have.value', '+1 (403) 266-1234');
+              cy.get('button#save-agent').click();
+              cy.wait(300);
+              cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
+              cy.get('#phone-number-field').should('have.value', '+1 (403) 266-1234');
+              cy.reload();
+              cy.wait(300);
+              cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
+              cy.get('#phone-number-field').should('have.value', '+1 (403) 266-1234');
+            });
+
+            it('displays progress spinner', () => {
+              cy.get('div[role="progressbar"] svg circle').should('not.exist');
+
+              cy.get('button#save-agent').click();
+              // 2020-5-26
+              // Cypress goes too fast for this. Cypress also cannot intercept
+              // native `fetch` calls to allow stubbing and delaying the route.
+              // Shamefully, this is currently manually tested, though I suspect
+              // I will use this opportunity to learn Jest
+              // Despite its name, this test really ensures the spinner disappears
+              // after all is said and done
+              //cy.get('button#save-agent').should('be.disabled');
+              //cy.get('button#cancel-agent-changes').should('be.disabled');
+              //cy.get('div[role="progressbar"] svg circle').should('exist');
+              cy.wait(100);
+              cy.get('div[role="progressbar"] svg circle').should('not.exist');
+              cy.get('button#save-agent').should('not.exist');
+              cy.get('button#cancel-agent-changes').should('not.exist');
             });
           });
         });
