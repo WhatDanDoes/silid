@@ -16,11 +16,13 @@ const stubAuth0Sessions = require('../../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../../support/stubAuth0ManagementApi');
 const stubUserUpdate = require('../../support/auth0Endpoints/stubUserUpdate');
 const stubUserRead = require('../../support/auth0Endpoints/stubUserRead');
+const stubUserRolesRead = require('../../support/auth0Endpoints/stubUserRolesRead');
 const scope = require('../../../config/permissions');
 
 const nock = require('nock');
 
 const _profile = require('../../fixtures/sample-auth0-profile-response');
+const _roles = require('../../fixtures/roles');
 
 describe('root/agentEditSpec', () => {
 
@@ -113,9 +115,14 @@ describe('root/agentEditSpec', () => {
 
                   stubUserUpdate((err, apiScopes) => {
                     if (err) return done.fail();
-
                     ({userUpdateScope, userUpdateOauthTokenScope} = apiScopes);
-                    done();
+
+                    stubUserRolesRead((err, apiScopes) => {
+                      if (err) return done.fail(err);
+                      ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+                      done();
+                    });
                   });
                 });
               });
@@ -132,7 +139,14 @@ describe('root/agentEditSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(res.body).toEqual({ ..._profile, phone_number: '403-266-1234' });
+                //expect(res.body).toEqual({ ..._profile, phone_number: '403-266-1234' });
+                expect(res.body.phone_number).toEqual('403-266-1234');
+                expect(res.body.email_verified).toEqual(_profile.email_verified);
+                expect(res.body.family_name).toEqual(_profile.family_name);
+                expect(res.body.given_name).toEqual(_profile.given_name);
+                expect(res.body.name).toEqual(_profile.name);
+                expect(res.body.nickname).toEqual(_profile.nickname);
+                expect(res.body.picture).toEqual(_profile.picture);
 
                 done();
               });
@@ -160,7 +174,14 @@ describe('root/agentEditSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(res.body).toEqual({..._profile, ...allClaims });
+                //expect(res.body).toEqual({..._profile, ...allClaims });
+                expect(res.body.phone_number).toEqual('403-266-1234');
+                expect(res.body.email_verified).toBe(true);
+                expect(res.body.family_name).toEqual('Sanders');
+                expect(res.body.given_name).toEqual('Harland');
+                expect(res.body.name).toEqual('Harland Sanders');
+                expect(res.body.nickname).toEqual('Colonel Sanders');
+                expect(res.body.picture).toEqual('http://example.com/mypic.jpg');
 
                 done();
               });
@@ -264,6 +285,28 @@ describe('root/agentEditSpec', () => {
               });
           });
 
+          it('returns profile data with roles', done => {
+            rootSession
+              .patch(`/agent/${_identity.sub}`)
+              .send({
+                phone_number: '403-266-1234'
+              })
+              .set('Accept', 'application/json')
+              .redirects(1)
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(res.body.name).toEqual(_profile.name);
+                expect(res.body.email).toEqual(_profile.email);
+                // This is a configured root agent, not assigned. Only one role...
+                expect(res.body.roles.length).toEqual(1);
+                expect(res.body.roles[0].name).toEqual('viewer');
+                done();
+              });
+          });
+
           describe('Auth0', () => {
             it('is called to update the agent', done => {
               rootSession
@@ -315,10 +358,37 @@ describe('root/agentEditSpec', () => {
                   done();
                 });
             });
+
+            it('is not called to retrieve agent\'s roles', done => {
+              rootSession
+                .patch(`/agent/${_identity.sub}`)
+                .send({
+                  phone_number: '403-266-1234'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
+                  expect(userRolesReadScope.isDone()).toBe(false);
+                  done();
+                });
+            });
           });
         });
 
         describe('another agent\'s profile', () => {
+
+          const assignedRoles = [];
+          beforeEach(() => {
+            assignedRoles.push(_roles[2], _roles[0]);
+          });
+
+          afterEach(() => {
+            assignedRoles.length = 0;
+          });
 
           describe('email verified', () => {
             const anotherAgent = {..._profile, email: 'someotherguy@example.com', name: 'Some Other Guy', user_id: _profile.user_id + 1};
@@ -340,13 +410,18 @@ describe('root/agentEditSpec', () => {
                       if (err) return done.fail();
 
                       ({userUpdateScope, userUpdateOauthTokenScope} = apiScopes);
-                      done();
+
+                      stubUserRolesRead(assignedRoles, (err, apiScopes) => {
+                        if (err) return done.fail(err);
+                        ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+                        done();
+                      });
                     });
                   });
                 });
               });
             });
-
 
             it('updates a single claim', done => {
               rootSession
@@ -358,7 +433,14 @@ describe('root/agentEditSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  expect(res.body).toEqual({ ...anotherAgent, phone_number: '403-266-1234' });
+                  //expect(res.body).toEqual({ ...anotherAgent, phone_number: '403-266-1234' });
+                  expect(res.body.phone_number).toEqual('403-266-1234');
+                  expect(res.body.email_verified).toEqual(anotherAgent.email_verified);
+                  expect(res.body.family_name).toEqual(anotherAgent.family_name);
+                  expect(res.body.given_name).toEqual(anotherAgent.given_name);
+                  expect(res.body.name).toEqual(anotherAgent.name);
+                  expect(res.body.nickname).toEqual(anotherAgent.nickname);
+                  expect(res.body.picture).toEqual(anotherAgent.picture);
 
                   done();
                 });
@@ -386,7 +468,14 @@ describe('root/agentEditSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  expect(res.body).toEqual({...anotherAgent, ...allClaims });
+                  //expect(res.body).toEqual({...anotherAgent, ...allClaims });
+                  expect(res.body.phone_number).toEqual('403-266-1234');
+                  expect(res.body.email_verified).toBe(true);
+                  expect(res.body.family_name).toEqual('Sanders');
+                  expect(res.body.given_name).toEqual('Harland');
+                  expect(res.body.name).toEqual('Harland Sanders');
+                  expect(res.body.nickname).toEqual('Colonel Sanders');
+                  expect(res.body.picture).toEqual('http://example.com/mypic.jpg');
 
                   done();
                 });
@@ -490,6 +579,26 @@ describe('root/agentEditSpec', () => {
                 });
             });
 
+            it('returns profile data with roles', done => {
+              rootSession
+                .patch(`/agent/${anotherAgent.user_id}`)
+                .send({ phone_number: '403-266-1234' })
+                .set('Accept', 'application/json')
+                .redirects(1)
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(res.body.name).toEqual(anotherAgent.name);
+                  expect(res.body.email).toEqual(anotherAgent.email);
+                  expect(res.body.roles.length).toEqual(2);
+                  expect(res.body.roles[0].name).toEqual('viewer');
+                  expect(res.body.roles[1].name).toEqual('organizer');
+                  done();
+                });
+            });
+
             describe('Auth0', () => {
               it('is called to update the agent', done => {
                 rootSession
@@ -538,6 +647,24 @@ describe('root/agentEditSpec', () => {
 
                     expect(userUpdateOauthTokenScope.isDone()).toBe(false);
                     expect(userUpdateScope.isDone()).toBe(false);
+                    done();
+                  });
+              });
+
+              it('is called to retrieve agent\'s roles', done => {
+                rootSession
+                  .patch(`/agent/${anotherAgent.user_id}`)
+                  .send({
+                    phone_number: '403-266-1234'
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
+                    expect(userRolesReadScope.isDone()).toBe(true);
                     done();
                   });
               });
@@ -562,15 +689,19 @@ describe('root/agentEditSpec', () => {
 
                     stubUserUpdate(anotherAgent, (err, apiScopes) => {
                       if (err) return done.fail();
-
                       ({userUpdateScope, userUpdateOauthTokenScope} = apiScopes);
-                      done();
+
+                      stubUserRolesRead((err, apiScopes) => {
+                        if (err) return done.fail(err);
+                        ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+                        done();
+                      });
                     });
                   });
                 });
               });
             });
-
 
             it('updates a single claim', done => {
               rootSession
@@ -582,7 +713,14 @@ describe('root/agentEditSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  expect(res.body).toEqual({ ...anotherAgent, phone_number: '403-266-1234' });
+                  //expect(res.body).toEqual({ ...anotherAgent, phone_number: '403-266-1234' });
+                  expect(res.body.phone_number).toEqual('403-266-1234');
+                  expect(res.body.email_verified).toEqual(anotherAgent.email_verified);
+                  expect(res.body.family_name).toEqual(anotherAgent.family_name);
+                  expect(res.body.given_name).toEqual(anotherAgent.given_name);
+                  expect(res.body.name).toEqual(anotherAgent.name);
+                  expect(res.body.nickname).toEqual(anotherAgent.nickname);
+                  expect(res.body.picture).toEqual(anotherAgent.picture);
 
                   done();
                 });
@@ -610,7 +748,14 @@ describe('root/agentEditSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  expect(res.body).toEqual({...anotherAgent, ...allClaims });
+                  //expect(res.body).toEqual({...anotherAgent, ...allClaims });
+                  expect(res.body.phone_number).toEqual('403-266-1234');
+                  expect(res.body.email_verified).toBe(true);
+                  expect(res.body.family_name).toEqual('Sanders');
+                  expect(res.body.given_name).toEqual('Harland');
+                  expect(res.body.name).toEqual('Harland Sanders');
+                  expect(res.body.nickname).toEqual('Colonel Sanders');
+                  expect(res.body.picture).toEqual('http://example.com/mypic.jpg');
 
                   done();
                 });
@@ -762,6 +907,24 @@ describe('root/agentEditSpec', () => {
 
                     expect(userUpdateOauthTokenScope.isDone()).toBe(false);
                     expect(userUpdateScope.isDone()).toBe(false);
+                    done();
+                  });
+              });
+
+              it('is called to retrieve agent\'s roles', done => {
+                rootSession
+                  .patch(`/agent/${anotherAgent.user_id}`)
+                  .send({
+                    phone_number: '403-266-1234'
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
+                    expect(userRolesReadScope.isDone()).toBe(true);
                     done();
                   });
               });

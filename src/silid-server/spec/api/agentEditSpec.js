@@ -100,12 +100,18 @@ describe('agentEditSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(res.body).toEqual({ ..._profile, phone_number: '403-266-1234' });
+                //expect(res.body.phone_number).toEqual({ ..._profile, phone_number: '403-266-1234' });
+                expect(res.body.phone_number).toEqual('403-266-1234');
+                expect(res.body.email_verified).toEqual(_profile.email_verified);
+                expect(res.body.family_name).toEqual(_profile.family_name);
+                expect(res.body.given_name).toEqual(_profile.given_name);
+                expect(res.body.name).toEqual(_profile.name);
+                expect(res.body.nickname).toEqual(_profile.nickname);
+                expect(res.body.picture).toEqual(_profile.picture);
 
                 done();
               });
           });
-
 
           it('updates all non-dependent claims', done => {
             const allClaims = {
@@ -129,7 +135,14 @@ describe('agentEditSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(res.body).toEqual({..._profile, ...allClaims });
+                //expect(res.body).toEqual({..._profile, ...allClaims });
+                expect(res.body.phone_number).toEqual('403-266-1234');
+                expect(res.body.email_verified).toBe(true);
+                expect(res.body.family_name).toEqual('Sanders');
+                expect(res.body.given_name).toEqual('Harland');
+                expect(res.body.name).toEqual('Harland Sanders');
+                expect(res.body.nickname).toEqual('Colonel Sanders');
+                expect(res.body.picture).toEqual('http://example.com/mypic.jpg');
 
                 done();
               });
@@ -229,6 +242,27 @@ describe('agentEditSpec', () => {
                 if (err) return done.fail(err);
 
                 expect(res.body.message).toEqual('No relevant data supplied');
+                done();
+              });
+          });
+
+          it('returns profile data with roles', done => {
+            authenticatedSession
+              .patch(`/agent/${_identity.sub}`)
+              .send({
+                phone_number: '403-266-1234'
+              })
+              .set('Accept', 'application/json')
+              .redirects(1)
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(res.body.name).toEqual(_profile.name);
+                expect(res.body.email).toEqual(_profile.email);
+                expect(res.body.roles.length).toEqual(1);
+                expect(res.body.roles[0].name).toEqual('viewer');
                 done();
               });
           });
