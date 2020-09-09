@@ -288,7 +288,7 @@ const Agent = (props) => {
                       <TableCell align="left">
                         <MuiPhoneInput
                           id="phone-number-field"
-                          placeholder={'Set your phone number'}
+                          placeholder={getFormattedMessage('Set your phone number')}
                           defaultCountry={'us'}
                           disabled={!profileData.email_verified || (profileData.email !== agent.email && !admin.isEnabled)}
                           value={profileData.phone_number}
