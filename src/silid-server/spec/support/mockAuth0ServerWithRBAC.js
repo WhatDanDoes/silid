@@ -599,9 +599,15 @@ require('../support/setupKeystore').then(keyStuff => {
             results.socialProfile.user_metadata = request.payload.user_metadata;
             results.changed('socialProfile', true);
           }
-          else {
+          //
+          // 2020-9-10
+          //
+          // Keep an eye on this... the Auth0 api allows updating user_metadata, though
+          // a seperate method exists as well.
+          //
+          // else {
             results.socialProfile = {...results.socialProfile, ...request.payload};
-          }
+          //}
 
           // 2020-4-28 https://github.com/sequelize/sequelize/issues/4387#issuecomment-135804557
           // Without this, the nested JSON won't actually save
