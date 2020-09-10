@@ -16,7 +16,6 @@ const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
 const stubUserUpdate = require('../support/auth0Endpoints/stubUserUpdate');
 const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
-const stubUserAppMetadataUpdate = require('../support/auth0Endpoints/stubUserAppMetadataUpdate');
 const scope = require('../../config/permissions');
 
 const _profile = require('../fixtures/sample-auth0-profile-response');
@@ -62,8 +61,7 @@ describe('agentEditSpec', () => {
   describe('authenticated', () => {
 
     let authenticatedSession, oauthTokenScope, auth0ManagementScope,
-        userUpdateScope, userUpdateOauthTokenScope,
-        userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope;
+        userUpdateScope, userUpdateOauthTokenScope;
     describe('authorized', () => {
 
       describe('update', () => {
@@ -86,12 +84,7 @@ describe('agentEditSpec', () => {
                     if (err) return done.fail();
                     ({userUpdateScope, userUpdateOauthTokenScope} = apiScopes);
 
-                    stubUserAppMetadataUpdate((err, apiScopes) => {
-                      if (err) return done.fail();
-                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-
-                      done();
-                    });
+                    done();
                   });
                 });
               });
@@ -109,7 +102,7 @@ describe('agentEditSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  expect(res.body.phone_number).toBeUndefined();
+                  expect(res.body.user_metadata.phone_number).toBeUndefined();
                   expect(res.body.email_verified).toEqual(_profile.email_verified);
                   expect(res.body.family_name).toEqual(_profile.family_name);
                   expect(res.body.given_name).toEqual(_profile.given_name);
@@ -291,24 +284,6 @@ describe('agentEditSpec', () => {
                     done();
                   });
               });
-
-              it('is not called to update the agent\'s pseudo root claims', done => {
-                authenticatedSession
-                  .patch(`/agent/${_identity.sub}`)
-                  .send({
-                    nickname: 'That Guy Over There'
-                  })
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(201)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-
-                    expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
-                    expect(userAppMetadataUpdateScope.isDone()).toBe(false);
-                    done();
-                  });
-              });
             });
           });
 
@@ -319,6 +294,30 @@ describe('agentEditSpec', () => {
            * call to Auth0.
            */
           describe('pseudo root-level claims', () => {
+
+            it('is called to update the agent\'s pseudo root claims', done => {
+              authenticatedSession
+                .patch(`/agent/${_identity.sub}`)
+                .send({
+                  phone_number: '403-266-1234'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(res.body.user_metadata.phone_number).toEqual('403-266-1234');
+                  expect(res.body.email_verified).toEqual(_profile.email_verified);
+                  expect(res.body.family_name).toEqual(_profile.family_name);
+                  expect(res.body.given_name).toEqual(_profile.given_name);
+                  expect(res.body.name).toEqual(_profile.name);
+                  expect(res.body.nickname).toEqual(_profile.nickname);
+                  expect(res.body.picture).toEqual(_profile.picture);
+
+                  done();
+                });
+            });
 
             describe('Auth0', () => {
               it('is called to update the agent\'s root claims', done => {
@@ -338,29 +337,11 @@ describe('agentEditSpec', () => {
                     done();
                   });
               });
-
-              it('is called to update the agent\'s pseudo root claims', done => {
-                authenticatedSession
-                  .patch(`/agent/${_identity.sub}`)
-                  .send({
-                    phone_number: '403-266-1234'
-                  })
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(201)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-
-                    expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
-                    expect(userAppMetadataUpdateScope.isDone()).toBe(true);
-                    done();
-                  });
-              });
             });
           });
 
 
-          describe('pseudo and root-level claims together at last', () => {
+          describe('pseudo and root-level claims', () => {
 
             const allClaims = {
               email_verified: true,
@@ -384,8 +365,7 @@ describe('agentEditSpec', () => {
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  //expect(res.body).toEqual({..._profile, ...allClaims });
-                  expect(res.body.phone_number).toEqual('403-266-1234');
+                  expect(res.body.user_metadata.phone_number).toEqual('403-266-1234');
                   expect(res.body.email_verified).toBe(true);
                   expect(res.body.family_name).toEqual('Sanders');
                   expect(res.body.given_name).toEqual('Harland');
@@ -410,22 +390,6 @@ describe('agentEditSpec', () => {
 
                     expect(userUpdateOauthTokenScope.isDone()).toBe(true);
                     expect(userUpdateScope.isDone()).toBe(true);
-                    done();
-                  });
-              });
-
-              it('is called to update the agent\'s pseudo root claims', done => {
-                authenticatedSession
-                  .patch(`/agent/${_identity.sub}`)
-                  .send(allClaims)
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(201)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-
-                    expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
-                    expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                     done();
                   });
               });
