@@ -219,7 +219,7 @@ router.patch('/:id', checkPermissions([scope.update.agents]), function(req, res,
   }
 
   const managementClient = getManagementClient([apiScope.update.users].join());
-  managementClient.updateUser({id: req.params.id}, {...filteredRootClaims, user_metadata: filteredPseudoRootClaims}).then(agent => {
+  managementClient.updateUser({id: req.params.id}, {...filteredRootClaims, user_metadata: Object.keys(filteredPseudoRootClaims).length ? filteredPseudoRootClaims : undefined}).then(agent => {
 
     // Is this a sudo agent updating another?
     if (req.params.id !== req.user.user_id) {
