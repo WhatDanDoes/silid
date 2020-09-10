@@ -510,7 +510,7 @@ describe('root/agentEditSpec', () => {
                     if (err) return done.fail(err);
 
                     //expect(res.body).toEqual({ ...anotherAgent, phone_number: '403-266-1234' });
-                    expect(res.body.user_metadata.phone_number).toBeUndefined();
+                    expect(res.body.user_metadata).toBeUndefined();
                     expect(res.body.email_verified).toEqual(anotherAgent.email_verified);
                     expect(res.body.family_name).toEqual(anotherAgent.family_name);
                     expect(res.body.given_name).toEqual(anotherAgent.given_name);
@@ -869,7 +869,7 @@ describe('root/agentEditSpec', () => {
                   .end(function(err, res) {
                     if (err) return done.fail(err);
 
-                    expect(res.body.user_metadata.phone_number).toBeUndefined();
+                    expect(res.body.user_metadata).toBeUndefined();
                     expect(res.body.email_verified).toEqual(anotherAgent.email_verified);
                     expect(res.body.family_name).toEqual(anotherAgent.family_name);
                     expect(res.body.given_name).toEqual(anotherAgent.given_name);
