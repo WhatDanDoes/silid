@@ -184,29 +184,42 @@ router.patch('/:id', checkPermissions([scope.update.agents]), function(req, res,
     return res.status(403).json({ message: 'Forbidden' });
   }
 
-  const filtered = {};
 
-  // 2020-8-19 As per: https://auth0.com/docs/users/user-profile-structure (some omitted)
+  /**
+   * 2020-8-19 As per: https://auth0.com/docs/users/user-profile-structure (some omitted)
+   *
+   * It has become necessary to distinguish root-level claims from what I call
+   * _pseudo_ root-level claims. The `phone_number` claim motivates this
+   * effort. Though `phone_number` is an OIDC standard claim, it only applies
+   * to SMS users at Auth0. As such, it is being slotted into `user_metadata`.
+   */
+  const filteredRootClaims = {};
   ['blocked',
    'email_verified',
    'family_name',
    'given_name',
    'name',
    'nickname',
-   'phone_number',
-   'phone_verified',
    'picture'].forEach(claim => {
     if (req.body[claim]) {
-      filtered[claim] = req.body[claim];
+      filteredRootClaims[claim] = req.body[claim];
     }
   });
 
-  if (!Object.keys(filtered).length) {
+  const filteredPseudoRootClaims = {};
+  ['phone_number'].forEach(claim => {
+    if (req.body[claim]) {
+      filteredPseudoRootClaims[claim] = req.body[claim];
+    }
+  });
+
+
+  if (!Object.keys(filteredRootClaims).length && !Object.keys(filteredPseudoRootClaims).length) {
     return res.status(200).json({ message: 'No relevant data supplied' });
   }
 
   const managementClient = getManagementClient([apiScope.update.users].join());
-  managementClient.updateUser({id: req.params.id}, filtered).then(agent => {
+  managementClient.updateUser({id: req.params.id}, {...filteredRootClaims, user_metadata: filteredPseudoRootClaims}).then(agent => {
 
     // Is this a sudo agent updating another?
     if (req.params.id !== req.user.user_id) {
