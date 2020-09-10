@@ -291,12 +291,12 @@ const Agent = (props) => {
                           placeholder={getFormattedMessage('Set your phone number')}
                           defaultCountry={'us'}
                           disabled={!profileData.email_verified || (profileData.email !== agent.email && !admin.isEnabled)}
-                          value={profileData.phone_number}
+                          value={profileData.user_metadata && profileData.user_metadata.phone_number ? profileData.user_metadata.phone_number : undefined}
                           onChange={value => {
-                            if (!prevAgentInputState.phone_number) {
-                              setPrevAgentInputState({ ...prevAgentInputState, phone_number: profileData.phone_number });
+                            if (!prevAgentInputState.user_metadata || !prevAgentInputState.user_metadata.phone_number) {
+                              setPrevAgentInputState({ ...prevAgentInputState, user_metadata: {phone_number: value} });
                             }
-                            setProfileData({ ...profileData, phone_number: value });
+                            setProfileData({ ...profileData, user_metadata: {...profileData.user_metadata, phone_number: value} });
                           }
                         }/>
                       </TableCell>
@@ -613,10 +613,24 @@ const Agent = (props) => {
                               onClick={() => {
                                 const changes = {};
                                 for (let p in prevAgentInputState) {
-                                  changes[p] = profileData[p].trim();
-                                  if (!changes[p].length || (p === 'phone_number' && !isMobilePhone(changes[p]))) {
-                                    setFlashProps({ message: getFormattedMessage('Missing profile data'), variant: 'error' });
-                                    return;
+                                  if (p === 'user_metadata') {
+                                    for (let u in profileData.user_metadata) {
+                                      if (['phone_number'].indexOf(u) > -1) {
+                                        changes[u] = profileData.user_metadata[u].trim();
+                                        if (!changes[u].length || (u === 'phone_number' && !isMobilePhone(changes[u]))) {
+                                          setFlashProps({ message: getFormattedMessage('Missing profile data'), variant: 'error' });
+                                          return;
+                                        }
+                                      }
+                                    }
+                                  }
+                                  else {
+                                    changes[p] = profileData[p].trim();
+
+                                    if (!changes[p].length) {
+                                      setFlashProps({ message: getFormattedMessage('Missing profile data'), variant: 'error' });
+                                      return;
+                                    }
                                   }
                                 }
 

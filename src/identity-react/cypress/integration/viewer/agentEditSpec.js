@@ -349,10 +349,10 @@ context('viewer/Agent edit', function() {
               it('changes the agent\'s record', () => {
                 cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
                   expect(results.length).to.eq(1);
-                  expect(results[0].socialProfile.phone_number).to.be.undefined;
+                  expect(results[0].socialProfile.user_metadata.phone_number).to.be.undefined;
                   cy.get('button#save-agent').click();
                   cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
-                    expect(results[0].socialProfile.phone_number).to.eq('+1 (403) 266-1234');
+                    expect(results[0].socialProfile.user_metadata.phone_number).to.eq('+1 (403) 266-1234');
                   });
                 });
               });
@@ -426,11 +426,11 @@ context('viewer/Agent edit', function() {
               cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
                 expect(results.length).to.eq(1);
                 expect(results[0].socialProfile.name).to.eq('Some Guy');;
-                expect(results[0].socialProfile.phone_number).to.be.undefined;
+                expect(results[0].socialProfile.user_metadata.phone_number).to.be.undefined;
                 cy.get('button#save-agent').click();
                 cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
                   expect(results[0].socialProfile.name).to.eq('Some Groovy Cat');
-                  expect(results[0].socialProfile.phone_number).to.eq('+1 (403) 266-1234');
+                  expect(results[0].socialProfile.user_metadata.phone_number).to.eq('+1 (403) 266-1234');
                 });
               });
             });
