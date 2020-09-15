@@ -362,6 +362,7 @@ const Agent = (props) => {
                           id="phone-number-field"
                           placeholder={getFormattedMessage('Set your phone number')}
                           defaultCountry={'us'}
+                          onlyCountries={['us', 'ca']}
                           disabled={!profileData.email_verified || (profileData.email !== agent.email && !admin.isEnabled)}
                           value={profileData.user_metadata && profileData.user_metadata.phone_number ? profileData.user_metadata.phone_number : undefined}
                           onChange={value => {
