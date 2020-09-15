@@ -346,7 +346,6 @@ context('viewer/Agent edit', function() {
               cy.get('#phone-number-field').should('have.value', '+1 (403) 266-1234');
               cy.get('button#cancel-agent-changes').click();
               cy.get('#phone-number-field').should('have.value', '+');
-              //cy.get('#profile-table table tbody tr td input#phone-number-field').should('have.attr', 'placeholder', 'Set your phone number');
             });
 
             it('does not change the agent\'s record', () => {
