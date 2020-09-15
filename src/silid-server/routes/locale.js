@@ -46,6 +46,8 @@ const languageDirectory = path.resolve(__dirname, '../public/languages');
 if (!_supportedLanguages.length) {
   fs.readdir(languageDirectory, (err, files) => {
     if (err) return console.error('Could not retrieve supported languages');
+    // Gets rid of _hidden_ files and the like
+    files = files.filter(item => !(/(^|\/)\.[^\/\.]/g).test(item));
 
     for (let file of files) {
       for (let lang of iso6393) {

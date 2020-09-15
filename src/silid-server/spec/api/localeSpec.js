@@ -127,7 +127,8 @@ describe('localeSpec', () => {
                   const languageDirectory = path.resolve(__dirname, '../../public/languages');
                   fs.readdir(languageDirectory, (err, files) => {
                     if (err) return done.fail();
-                    supportedLanguages = files;
+                    // Gets rid of _hidden_ files and the like
+                    supportedLanguages = files.filter(item => !(/(^|\/)\.[^\/\.]/g).test(item));
                     done();
                   });
                 });
