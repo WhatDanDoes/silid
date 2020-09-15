@@ -281,7 +281,7 @@ const Agent = (props) => {
                 <Table className={classes.table} aria-label={getFormattedMessage('Agent profile info')}>
                   <TableBody>
                     <TableRow>
-                      <TableCell align="right" component="th" scope="row" style={{ verticalAlign: 'top' }}>
+                      <TableCell align="right" component="th" scope="row" style={{ verticalAlign: 'top', paddingTop: '2em' }}>
                         <FormattedMessage id='Name' />:
                       </TableCell>
                       <TableCell align="left">
