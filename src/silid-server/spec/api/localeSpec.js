@@ -1,8 +1,12 @@
 const PORT = process.env.NODE_ENV === 'production' ? 3000 : 3001;
+
+const request = require('supertest');
+const path = require('path');
+const fs = require('fs');
+
 const app = require('../../app');
 const fixtures = require('sequelize-fixtures');
 const models = require('../../models');
-const request = require('supertest');
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
 const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
@@ -98,6 +102,49 @@ describe('localeSpec', () => {
                 if (err) return done.fail(err);
                 // 7027 living languages + 22 constructed
                 expect(res.body.length).toEqual(7027 + 22);
+                done();
+              });
+          });
+        });
+
+        describe('GET /locale/supported', () => {
+
+          let supportedLanguages;
+
+          beforeEach(done => {
+            stubAuth0ManagementApi((err, apiScopes) => {
+              if (err) return done.fail();
+
+              login(_identity, [scope.read.agents], (err, session) => {
+                if (err) return done.fail(err);
+                authenticatedSession = session;
+
+                // Cached profile doesn't match "live" data, so agent needs to be updated
+                // with a call to Auth0
+                stubUserRead((err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  const languageDirectory = path.resolve(__dirname, '../../public/languages');
+                  fs.readdir(languageDirectory, (err, files) => {
+                    if (err) return done.fail();
+                    supportedLanguages = files;
+                    done();
+                  });
+                });
+              });
+            });
+          });
+
+          it('retrieves all the languages for which copy exists in /public/languages', done => {
+            expect(supportedLanguages.length).toEqual(2);
+            authenticatedSession
+              .get('/locale/supported')
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end((err, res) => {
+                if (err) return done.fail(err);
+                expect(res.body.length).toEqual(supportedLanguages.length);
                 done();
               });
           });

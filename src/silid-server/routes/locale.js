@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const iso6393 = require('iso-639-3')
+const path = require('path')
+const fs = require('fs')
 
 /**
  * Configs must match those defined for RBAC at Auth0
@@ -29,6 +31,35 @@ if (!_languages.length) {
 
 router.get('/', checkPermissions([scope.read.agents]), function(req, res, next) {
   res.status(200).json(_languages);
+});
+
+
+/**
+ * GET /locale/supported
+ *
+ * This retrieves only the supported languages
+ */
+const _supportedLanguages = [];
+const languageDirectory = path.resolve(__dirname, '../public/languages');
+
+// This will only be called once per server execution
+if (!_supportedLanguages.length) {
+  fs.readdir(languageDirectory, (err, files) => {
+    if (err) return console.error('Could not retrieve supported languages');
+
+    for (let file of files) {
+      for (let lang of iso6393) {
+        if (lang.iso6393 === file.split('.')[0]) {
+          _supportedLanguages.push(lang);
+        }
+      }
+    }
+  });
+  _supportedLanguages.sort((a, b) => a.name < b.name ? -1 : 1);
+}
+
+router.get('/supported', checkPermissions([scope.read.agents]), function(req, res, next) {
+  res.status(200).json(_supportedLanguages);
 });
 
 /**
