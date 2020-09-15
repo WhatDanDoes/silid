@@ -644,6 +644,42 @@ context('viewer/Agent edit', function() {
           cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
           cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
         });
+
+        it('does not allow editing agent\'s constituent name components', () => {
+          cy.get('h3').contains('Profile');
+
+          // Displayed on the accordion summary
+          cy.get('#profile-table table tbody tr th').contains('Name:');
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
+
+          // Not displayed until expand button clicked
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
+          cy.get('#profile-table table tbody tr td input#agent-given-name-field').should('not.be.visible');
+          cy.get('#profile-table table tbody tr td input#agent-family-name-field').should('not.be.visible');
+          cy.get('#profile-table table tbody tr td input#agent-username-field').should('not.be.visible');
+          cy.get('#profile-table table tbody tr td input#agent-nickname-field').should('not.be.visible');
+
+          // Toggle accordion
+          cy.get('#name-components-accordion #expand-name-components').click();
+          cy.wait(222); // Actual default transition duration
+
+          cy.get('#profile-table table tbody tr th').contains('Name:');
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
+
+          cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details label').contains('Family name');
+          cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input#agent-family-name-field').should('have.value', agent.socialProfile.family_name);
+          cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input#agent-family-name-field').should('be.disabled');
+
+          cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details label').contains('Given name');
+          cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input#agent-given-name-field').should('have.value', agent.socialProfile.given_name);
+          cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input#agent-given-name-field').should('be.disabled');
+
+          cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details label').contains('Nickname');
+          cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input#agent-nickname-field').should('have.value', agent.socialProfile.nickname);
+          cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input#agent-nickname-field').should('be.disabled');
+        });
       });
     });
   });
