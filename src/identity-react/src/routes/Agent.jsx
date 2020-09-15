@@ -155,7 +155,7 @@ const Agent = (props) => {
     }
 
     (async () => {
-      const response = await fetch('/locale');
+      const response = await fetch('/locale/supported');
       const languages = await response.json();
 
       if (active) {
