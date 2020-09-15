@@ -308,7 +308,7 @@ const Agent = (props) => {
                           <AccordionDetails id='agent-name-details'>
                             <Typography color='textSecondary'>
                               <FormControl>
-                                <InputLabel htmlFor='component-simple'>Family name</InputLabel>
+                                <InputLabel htmlFor='component-simple'><FormattedMessage id='Family name' /></InputLabel>
                                 <Input id='agent-family-name-field'
                                   disabled={!profileData.email_verified || (agent.email !== profileData.email && !admin.isEnabled)}
                                   value={profileData.family_name}
@@ -321,7 +321,7 @@ const Agent = (props) => {
                                   } />
                               </FormControl>
                               <FormControl>
-                                <InputLabel htmlFor='component-simple'>Given name</InputLabel>
+                                <InputLabel htmlFor='component-simple'><FormattedMessage id='Given name' /></InputLabel>
                                 <Input id='agent-given-name-field'
                                   disabled={!profileData.email_verified || (agent.email !== profileData.email && !admin.isEnabled)}
                                   value={profileData.given_name}
@@ -334,7 +334,7 @@ const Agent = (props) => {
                                   } />
                               </FormControl>
                               <FormControl>
-                                <InputLabel htmlFor='component-simple'>Nickname</InputLabel>
+                                <InputLabel htmlFor='component-simple'><FormattedMessage id='Nickname' /></InputLabel>
                                 <Input id='agent-nickname-field'
                                   disabled={!profileData.email_verified || (agent.email !== profileData.email && !admin.isEnabled)}
                                   value={profileData.nickname}
@@ -867,7 +867,7 @@ const Agent = (props) => {
                   isLoading={isWaiting}
                   columns={[
                     {
-                      title: 'Name',
+                      title: getFormattedMessage('Name'),
                       field: 'name',
                       render: rowData => <Link href={`#organization/${rowData.id}`}>{rowData.name}</Link>,
                       editComponent: (props) => {
