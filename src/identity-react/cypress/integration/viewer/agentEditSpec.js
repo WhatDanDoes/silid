@@ -51,6 +51,42 @@ context('viewer/Agent edit', function() {
         cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
         cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('be.disabled');
       });
+
+      it('does not allow editing agent\'s constituent name components', () => {
+        cy.get('h3').contains('Profile');
+
+        // Displayed on the accordion summary
+        cy.get('#profile-table table tbody tr th').contains('Name:');
+        cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', memberAgent.socialProfile.name);
+        cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
+
+        // Not displayed until expand button clicked
+        cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
+        cy.get('#profile-table table tbody tr td input#agent-given-name-field').should('not.be.visible');
+        cy.get('#profile-table table tbody tr td input#agent-family-name-field').should('not.be.visible');
+        cy.get('#profile-table table tbody tr td input#agent-username-field').should('not.be.visible');
+        cy.get('#profile-table table tbody tr td input#agent-nickname-field').should('not.be.visible');
+
+        // Toggle accordion
+        cy.get('#name-components-accordion #expand-name-components').click();
+        cy.wait(222); // Actual default transition duration
+
+        cy.get('#profile-table table tbody tr th').contains('Name:');
+        cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', memberAgent.socialProfile.name);
+        cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
+
+        cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details label').contains('Family name');
+        cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input').should('have.value', memberAgent.socialProfile.family_name);
+        cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input').should('be.disabled');
+
+        cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details label').contains('Given name');
+        cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input').should('have.value', memberAgent.socialProfile.given_name);
+        cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input').should('be.disabled');
+
+        cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details label').contains('Nickname');
+        cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input').should('have.value', memberAgent.socialProfile.nickname);
+        cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input').should('be.disabled');
+      });
     });
 
     describe('viewing your own profile', () => {
@@ -86,6 +122,42 @@ context('viewer/Agent edit', function() {
           // Not really relevant for root-level agent profile edits, but included here anyway
           cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
           cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
+        });
+
+        it('displays agent\'s constituent name components', () => {
+          cy.get('h3').contains('Profile');
+
+          // Displayed on the accordion summary
+          cy.get('#profile-table table tbody tr th').contains('Name:');
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', memberAgent.socialProfile.name);
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
+
+          // Not displayed until expand button clicked
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
+          cy.get('#profile-table table tbody tr td input#agent-given-name-field').should('not.be.visible');
+          cy.get('#profile-table table tbody tr td input#agent-family-name-field').should('not.be.visible');
+          cy.get('#profile-table table tbody tr td input#agent-username-field').should('not.be.visible');
+          cy.get('#profile-table table tbody tr td input#agent-nickname-field').should('not.be.visible');
+
+          // Toggle accordion
+          cy.get('#name-components-accordion #expand-name-components').click();
+          cy.wait(222); // Actual default transition duration
+
+          cy.get('#profile-table table tbody tr th').contains('Name:');
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', memberAgent.socialProfile.name);
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
+
+          cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details label').contains('Family name');
+          cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input').should('have.value', memberAgent.socialProfile.family_name);
+          cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input').should('not.be.disabled');
+
+          cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details label').contains('Given name');
+          cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input').should('have.value', memberAgent.socialProfile.given_name);
+          cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input').should('not.be.disabled');
+
+          cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details label').contains('Nickname');
+          cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input').should('have.value', memberAgent.socialProfile.nickname);
+          cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input').should('not.be.disabled');
         });
 
         describe('#agent-name-field', () => {
@@ -400,6 +472,19 @@ context('viewer/Agent edit', function() {
         describe('all field update', () => {
           describe('successfully makes changes', () => {
             beforeEach(() => {
+              // Toggle accordion
+              cy.get('#name-components-accordion #expand-name-components').click();
+              cy.wait(222); // Actual default transition duration
+
+              cy.get('#agent-family-name-field').clear();
+              cy.get('#agent-family-name-field').type('Groovy Cat');
+
+              cy.get('#agent-given-name-field').clear();
+              cy.get('#agent-given-name-field').type('Some');
+
+              cy.get('#agent-nickname-field').clear();
+              cy.get('#agent-nickname-field').type('The Meow Meow');
+
               cy.get('#agent-name-field').clear();
               cy.get('#agent-name-field').type('Some Groovy Cat');
 
@@ -414,10 +499,16 @@ context('viewer/Agent edit', function() {
             });
 
             it('persists the changes to the editable fields', () => {
+              cy.get('#agent-family-name-field').should('have.value', 'Groovy Cat');
+              cy.get('#agent-given-name-field').should('have.value', 'Some');
+              cy.get('#agent-nickname-field').should('have.value', 'The Meow Meow');
               cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
               cy.get('#phone-number-field').should('have.value', '+1 (403) 266-1234');
               cy.get('button#save-agent').click();
               cy.wait(300);
+              cy.get('#agent-family-name-field').should('have.value', 'Groovy Cat');
+              cy.get('#agent-given-name-field').should('have.value', 'Some');
+              cy.get('#agent-nickname-field').should('have.value', 'The Meow Meow');
               cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
               cy.get('#phone-number-field').should('have.value', '+1 (403) 266-1234');
             });
@@ -429,6 +520,9 @@ context('viewer/Agent edit', function() {
                 expect(results[0].socialProfile.user_metadata.phone_number).to.be.undefined;
                 cy.get('button#save-agent').click();
                 cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
+                  expect(results[0].socialProfile.family_name).to.eq('Some Groovy Cat');
+                  expect(results[0].socialProfile.given_name).to.eq('Some Groovy Cat');
+                  expect(results[0].socialProfile.nickname).to.eq('Some Groovy Cat');
                   expect(results[0].socialProfile.name).to.eq('Some Groovy Cat');
                   expect(results[0].socialProfile.user_metadata.phone_number).to.eq('+1 (403) 266-1234');
                 });
@@ -436,6 +530,9 @@ context('viewer/Agent edit', function() {
             });
 
             it('displays a friendly message', () => {
+              cy.get('#agent-family-name-field').should('have.value', 'Groovy Cat');
+              cy.get('#agent-given-name-field').should('have.value', 'Some');
+              cy.get('#agent-nickname-field').should('have.value', 'The Meow Meow');
               cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
               cy.get('#phone-number-field').should('have.value', '+1 (403) 266-1234');
               cy.get('button#save-agent').click();
@@ -444,14 +541,27 @@ context('viewer/Agent edit', function() {
             });
 
             it('persists updated root data between browser refreshes', () => {
+              cy.get('#agent-family-name-field').should('have.value', 'Groovy Cat');
+              cy.get('#agent-given-name-field').should('have.value', 'Some');
+              cy.get('#agent-nickname-field').should('have.value', 'The Meow Meow');
               cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
               cy.get('#phone-number-field').should('have.value', '+1 (403) 266-1234');
               cy.get('button#save-agent').click();
+
               cy.wait(300);
+
+              cy.get('#agent-family-name-field').should('have.value', 'Groovy Cat');
+              cy.get('#agent-given-name-field').should('have.value', 'Some');
+              cy.get('#agent-nickname-field').should('have.value', 'The Meow Meow');
               cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
               cy.get('#phone-number-field').should('have.value', '+1 (403) 266-1234');
+
               cy.reload();
               cy.wait(300);
+
+              cy.get('#agent-family-name-field').should('have.value', 'Groovy Cat');
+              cy.get('#agent-given-name-field').should('have.value', 'Some');
+              cy.get('#agent-nickname-field').should('have.value', 'The Meow Meow');
               cy.get('#agent-name-field').should('have.value', 'Some Groovy Cat');
               cy.get('#phone-number-field').should('have.value', '+1 (403) 266-1234');
             });
