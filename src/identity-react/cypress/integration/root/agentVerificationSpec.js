@@ -5,11 +5,6 @@ context('root/Agent Index', function() {
     cy.fixture('permissions.js').as('scope');
   });
 
-//  let _profile;
-//  beforeEach(function() {
-//    _profile = {...this.profile};
-//  });
-
   let _profile;
   beforeEach(function() {
     // Root email set in `silid-server/.env`

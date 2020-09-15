@@ -22,6 +22,7 @@ context('root/Organization delete team', function() {
   afterEach(() => {
     cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
     cy.task('query', 'TRUNCATE TABLE "Updates" CASCADE;');
+    cy.task('query', 'TRUNCATE TABLE "Session" CASCADE;');
   });
 
   let _profile, root, teamLeaderAgent;
@@ -335,6 +336,7 @@ context('root/Organization delete team', function() {
                 cy.get('#team-profile-info #remove-team-from-organization').click();
               });
 
+              // This is flaking out in full e2e runs
               it('updates the interface', () => {
                 cy.on('window:confirm', str => true);
 
@@ -352,6 +354,7 @@ context('root/Organization delete team', function() {
                 cy.get('#team-profile-info button#cancel-team-changes').should('not.exist');
               });
 
+              // This also flaking out in full e2e runs
               it('lands in the proper place', () => {
                 cy.on('window:confirm', str => true);
 

@@ -54,11 +54,27 @@ context('viewer/Agent locale', function() {
 
         describe('#sil-local-dropdown', () => {
 
-          it('populates the dropdown with 7027 living languages and 22 constructed', () => {
+          /**
+           * 2020-9-15
+           *
+           * There once was a time when all living/constructed languages would be retreived from the
+           * server. This functionality still exists, but has been supplanted in favour of only
+           * retrieving languages that are currently supported.
+           *
+           */
+          //it('populates the dropdown with 7027 living languages and 22 constructed', () => {
+          //  cy.get('div[role="presentation"] ul li').should('not.exist');
+          //  cy.get('#profile-table table tbody tr td #sil-local-dropdown + div button:last-of-type').click();
+          //  cy.wait(300);
+          //  cy.get('div[role="presentation"] ul li').its('length').should('eq', 7027 + 22);
+          //});
+
+          // Cf. above...
+          it('populates the dropdown the languages for which copy has been translated (currently 2)', () => {
             cy.get('div[role="presentation"] ul li').should('not.exist');
             cy.get('#profile-table table tbody tr td #sil-local-dropdown + div button:last-of-type').click();
             cy.wait(300);
-            cy.get('div[role="presentation"] ul li').its('length').should('eq', 7027 + 22);
+            cy.get('div[role="presentation"] ul li').its('length').should('eq', 2);
           });
 
           it('displays a spinner when new language is set', () => {
@@ -187,46 +203,57 @@ context('viewer/Agent locale', function() {
             });
           });
 
-          context('language with no translated copy selected', () => {
-            beforeEach(() => {
-              cy.get('#profile-table table tbody tr td #sil-local-dropdown + div button:last-of-type').click();
-              cy.wait(300);
-              cy.get('#profile-table table tbody tr td #sil-local-dropdown').type('Chinook{downarrow}{enter}');
-              cy.wait(300);
-            });
+          /**
+           * 2020-9-15
+           *
+           * Cf. with dated note above....
+           *
+           * There once was a time when all living/constructed languages would be retreived from the
+           * server. This functionality still exists, but has been supplanted in favour of only
+           * retrieving languages that are currently supported.
+           *
+           * You cannot currently select a language without translated copy.
+           */
+          //context('language with no translated copy selected', () => {
+          //  beforeEach(() => {
+          //    cy.get('#profile-table table tbody tr td #sil-local-dropdown + div button:last-of-type').click();
+          //    cy.wait(300);
+          //    cy.get('#profile-table table tbody tr td #sil-local-dropdown').type('Chinook{downarrow}{enter}');
+          //    cy.wait(300);
+          //  });
 
-            it('displays agent\'s info', () => {
-              cy.get('h3').contains('Profile');
-              cy.get('#profile-table table tbody tr th').contains('Name:');
-              cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
-              cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
+          //  it('displays agent\'s info', () => {
+          //    cy.get('h3').contains('Profile');
+          //    cy.get('#profile-table table tbody tr th').contains('Name:');
+          //    cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
+          //    cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
 
-              cy.get('#profile-table table tbody tr th').contains('Email:');
-              cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.email);
+          //    cy.get('#profile-table table tbody tr th').contains('Email:');
+          //    cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.email);
 
-              cy.get('#profile-table table tbody tr th').contains('Provider Locale:');
-              cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.locale);
+          //    cy.get('#profile-table table tbody tr th').contains('Provider Locale:');
+          //    cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.locale);
 
-              cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
-              cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
+          //    cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
+          //    cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
 
-              cy.get('#profile-table table tbody tr td label[for="sil-local-dropdown"]').contains('Set SIL language preference');
-              cy.get('#profile-table table tbody tr td input#sil-local-dropdown').should('have.attr', 'value').and('equal', 'Chinook jargon');
-              cy.get('#profile-table table tbody tr:last-of-type th').contains('Roles:');
-              cy.get('#profile-table table tbody tr:last-of-type div').its('length').should('eq', 1);
-              cy.get('#profile-table table tbody tr:last-of-type div').contains('viewer');
-              cy.get('#profile-table table tbody tr:last-of-type div#assign-role').should('not.exist');
-            });
+          //    cy.get('#profile-table table tbody tr td label[for="sil-local-dropdown"]').contains('Set SIL language preference');
+          //    cy.get('#profile-table table tbody tr td input#sil-local-dropdown').should('have.attr', 'value').and('equal', 'Chinook jargon');
+          //    cy.get('#profile-table table tbody tr:last-of-type th').contains('Roles:');
+          //    cy.get('#profile-table table tbody tr:last-of-type div').its('length').should('eq', 1);
+          //    cy.get('#profile-table table tbody tr:last-of-type div').contains('viewer');
+          //    cy.get('#profile-table table tbody tr:last-of-type div#assign-role').should('not.exist');
+          //  });
 
-            it('persists in having not changed', () => {
-              cy.get('#profile-table table tbody tr td label[for="sil-local-dropdown"]').contains('Set SIL language preference');
-              cy.get('#profile-table table tbody tr td input#sil-local-dropdown').should('have.attr', 'value').and('equal', 'Chinook jargon');
-              cy.reload();
-              cy.wait(300);
-              cy.get('#profile-table table tbody tr td input#sil-local-dropdown').should('have.attr', 'value').and('equal', 'Chinook jargon');
-              cy.get('#profile-table table tbody tr td label[for="sil-local-dropdown"]').contains('Set SIL language preference');
-            });
-          });
+          //  it('persists in having not changed', () => {
+          //    cy.get('#profile-table table tbody tr td label[for="sil-local-dropdown"]').contains('Set SIL language preference');
+          //    cy.get('#profile-table table tbody tr td input#sil-local-dropdown').should('have.attr', 'value').and('equal', 'Chinook jargon');
+          //    cy.reload();
+          //    cy.wait(300);
+          //    cy.get('#profile-table table tbody tr td input#sil-local-dropdown').should('have.attr', 'value').and('equal', 'Chinook jargon');
+          //    cy.get('#profile-table table tbody tr td label[for="sil-local-dropdown"]').contains('Set SIL language preference');
+          //  });
+          //});
         });
       });
     });

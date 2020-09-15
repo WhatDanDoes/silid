@@ -43,6 +43,20 @@ import Autocomplete from '@material-ui/lab/Autocomplete';
 import CircularProgress from '@material-ui/core/CircularProgress'
 import { useLanguageProviderState, LPFormattedMessage as FormattedMessage} from '../components/LanguageProvider';
 
+/**
+ * Names and their constituent components
+ */
+import Accordion from '@material-ui/core/Accordion';
+import AccordionSummary from '@material-ui/core/AccordionSummary';
+import AccordionDetails from '@material-ui/core/AccordionDetails';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import Input from '@material-ui/core/Input';
+import FormControl from '@material-ui/core/FormControl';
+import InputLabel from '@material-ui/core/InputLabel';
+
+/**
+ * Styles
+ */
 const useStyles = makeStyles(theme =>
   createStyles({
     root: {
@@ -141,7 +155,7 @@ const Agent = (props) => {
     }
 
     (async () => {
-      const response = await fetch('/locale');
+      const response = await fetch('/locale/supported');
       const languages = await response.json();
 
       if (active) {
@@ -267,16 +281,74 @@ const Agent = (props) => {
                 <Table className={classes.table} aria-label={getFormattedMessage('Agent profile info')}>
                   <TableBody>
                     <TableRow>
-                      <TableCell align="right" component="th" scope="row"><FormattedMessage id='Name' />:</TableCell>
+                      <TableCell align="right" component="th" scope="row" style={{ verticalAlign: 'top', paddingTop: '2em' }}>
+                        <FormattedMessage id='Name' />:
+                      </TableCell>
                       <TableCell align="left">
-                        <input id="agent-name-field" value={profileData.name || ''} disabled={!profileData.email_verified || (agent.email !== profileData.email && !admin.isEnabled)}
-                          onChange={e => {
-                              if (!prevAgentInputState.name) {
-                                setPrevAgentInputState({ ...prevAgentInputState, name: profileData.name });
-                              }
-                              setProfileData({ ...profileData, name: e.target.value });
-                            }
-                          } />
+                        <Accordion id='name-components-accordion'>
+                          <AccordionSummary
+                            expandIcon={<ExpandMoreIcon id='expand-name-components' />}
+                            aria-label='Expand name details'
+                            aria-controls='expand-name-details'
+                            id='expand-name-details'
+                          >
+                            <input id='agent-name-field'
+                              value={profileData.name || ''}
+                              disabled={!profileData.email_verified || (agent.email !== profileData.email && !admin.isEnabled)}
+                              onClick={(event) => event.stopPropagation()}
+                              onFocus={(event) => event.stopPropagation()}
+                              onChange={e => {
+                                  if (!prevAgentInputState.name) {
+                                    setPrevAgentInputState({ ...prevAgentInputState, name: profileData.name });
+                                  }
+                                  setProfileData({ ...profileData, name: e.target.value });
+                                }
+                              } />
+                          </AccordionSummary>
+                          <AccordionDetails id='agent-name-details'>
+                            <Typography color='textSecondary'>
+                              <FormControl>
+                                <InputLabel htmlFor='component-simple'>Family name</InputLabel>
+                                <Input id='agent-family-name-field'
+                                  disabled={!profileData.email_verified || (agent.email !== profileData.email && !admin.isEnabled)}
+                                  value={profileData.family_name}
+                                  onChange={e => {
+                                      if (!prevAgentInputState.family_name) {
+                                        setPrevAgentInputState({ ...prevAgentInputState, family_name: profileData.family_name });
+                                      }
+                                      setProfileData({ ...profileData, family_name: e.target.value });
+                                    }
+                                  } />
+                              </FormControl>
+                              <FormControl>
+                                <InputLabel htmlFor='component-simple'>Given name</InputLabel>
+                                <Input id='agent-given-name-field'
+                                  disabled={!profileData.email_verified || (agent.email !== profileData.email && !admin.isEnabled)}
+                                  value={profileData.given_name}
+                                  onChange={e => {
+                                      if (!prevAgentInputState.given_name) {
+                                        setPrevAgentInputState({ ...prevAgentInputState, given_name: profileData.given_name });
+                                      }
+                                      setProfileData({ ...profileData, given_name: e.target.value });
+                                    }
+                                  } />
+                              </FormControl>
+                              <FormControl>
+                                <InputLabel htmlFor='component-simple'>Nickname</InputLabel>
+                                <Input id='agent-nickname-field'
+                                  disabled={!profileData.email_verified || (agent.email !== profileData.email && !admin.isEnabled)}
+                                  value={profileData.nickname}
+                                  onChange={e => {
+                                      if (!prevAgentInputState.nickname) {
+                                        setPrevAgentInputState({ ...prevAgentInputState, nickname: profileData.nickname });
+                                      }
+                                      setProfileData({ ...profileData, nickname: e.target.value });
+                                    }
+                                  } />
+                              </FormControl>
+                            </Typography>
+                          </AccordionDetails>
+                        </Accordion>
                       </TableCell>
                     </TableRow>
                     <TableRow>
@@ -290,6 +362,7 @@ const Agent = (props) => {
                           id="phone-number-field"
                           placeholder={getFormattedMessage('Set your phone number')}
                           defaultCountry={'us'}
+                          onlyCountries={['us', 'ca']}
                           disabled={!profileData.email_verified || (profileData.email !== agent.email && !admin.isEnabled)}
                           value={profileData.user_metadata && profileData.user_metadata.phone_number ? profileData.user_metadata.phone_number : undefined}
                           onChange={value => {
