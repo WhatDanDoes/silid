@@ -15,7 +15,7 @@ export function LanguageProvider({children}) {
 
   const [intl, setIntl] = React.useState(createIntl({
                             locale: langCode,
-                            defaultLocale: agent.providerLocale,
+                            defaultLocale: agent.providerLocale || 'eng',
                           }, cache));
 
   React.useEffect(() => {
@@ -69,7 +69,7 @@ export function useLanguageProviderState() {
         return state.formatMessage({ id: id }, obj);
       }
       else if (obj && def) {
-        return state.formatMessage({ id: def });
+        return state.formatMessage({ id: def, defaultMessage: def }, obj);
       }
       return state.messages[id] || id
     }

@@ -104,7 +104,7 @@ context('root/Organization delete team', function() {
               it('displays a popup warning', function(done) {
                 cy.on('window:confirm', (str) => {
                   expect(str).to.eq('Remove team from organization?');
-                  done();
+                  return done();
                 });
                 // Delete member team
                 cy.get('#team-profile-info #remove-team-from-organization').click();
@@ -186,7 +186,7 @@ context('root/Organization delete team', function() {
               it('displays a popup warning', function(done) {
                 cy.on('window:confirm', (str) => {
                   expect(str).to.eq('Remove team from organization?');
-                  done();
+                  return done();
                 });
                 // Delete member team
                 cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
@@ -330,7 +330,7 @@ context('root/Organization delete team', function() {
               it('displays a popup warning', function(done) {
                 cy.on('window:confirm', (str) => {
                   expect(str).to.eq('Remove team from organization?');
-                  done();
+                  return done();
                 });
                 // Delete member team
                 cy.get('#team-profile-info #remove-team-from-organization').click();
@@ -416,7 +416,7 @@ context('root/Organization delete team', function() {
               it('displays a popup warning', function(done) {
                 cy.on('window:confirm', (str) => {
                   expect(str).to.eq('Remove team from organization?');
-                  done();
+                  return done();
                 });
                 // Delete member team
                 cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
@@ -556,7 +556,7 @@ context('root/Organization delete team', function() {
               it('displays a popup warning', function(done) {
                 cy.on('window:confirm', (str) => {
                   expect(str).to.eq('Remove team from organization?');
-                  done();
+                  return done();
                 });
                 // Delete member team
                 cy.get('#team-profile-info #remove-team-from-organization').click();
@@ -641,7 +641,7 @@ context('root/Organization delete team', function() {
               it('displays a popup warning', function(done) {
                 cy.on('window:confirm', (str) => {
                   expect(str).to.eq('Remove team from organization?');
-                  done();
+                  return done();
                 });
                 // Delete member team
                 cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
@@ -774,7 +774,7 @@ context('root/Organization delete team', function() {
               it('displays a popup warning', function(done) {
                 cy.on('window:confirm', (str) => {
                   expect(str).to.eq('Remove team from organization?');
-                  done();
+                  return done();
                 });
                 // Delete member team
                 cy.get('#team-profile-info #remove-team-from-organization').click();
@@ -842,6 +842,7 @@ context('root/Organization delete team', function() {
               cy.wait(300);
               cy.contains(teamLeaderAgent.socialProfile.user_metadata.teams[0].name).click();
               cy.wait(300);
+              // Potential crash point: this is the last action before the intermittent crash
               cy.contains(anotherOrganizerAgent.socialProfile.user_metadata.organizations[0].name).click();
               cy.wait(300);
             });
@@ -861,7 +862,7 @@ context('root/Organization delete team', function() {
               it('displays a popup warning', function(done) {
                 cy.on('window:confirm', (str) => {
                   expect(str).to.eq('Remove team from organization?');
-                  done();
+                  return done();
                 });
                 // Delete member team
                 cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();

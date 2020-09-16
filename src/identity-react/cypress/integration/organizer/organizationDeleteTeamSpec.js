@@ -96,7 +96,7 @@ context('organizer/Organization delete team', function() {
           it('displays a popup warning', function(done) {
             cy.on('window:confirm', (str) => {
               expect(str).to.eq('Remove team from organization?');
-              done();
+              return done();
             });
             // Delete member team
             cy.get('#team-profile-info #remove-team-from-organization').click();
@@ -175,7 +175,7 @@ context('organizer/Organization delete team', function() {
             it('displays a popup warning', function(done) {
               cy.on('window:confirm', (str) => {
                 expect(str).to.eq('Teq ghom vo\' dIvI\'\'a\'?');
-                done();
+                return done();
               });
               // Delete member team
               cy.get('#team-profile-info #remove-team-from-organization').click();
@@ -215,7 +215,7 @@ context('organizer/Organization delete team', function() {
           it('displays a popup warning', function(done) {
             cy.on('window:confirm', (str) => {
               expect(str).to.eq('Remove team from organization?');
-              done();
+              return done();
             });
             // Delete member team
             cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
@@ -327,7 +327,7 @@ context('organizer/Organization delete team', function() {
           it('displays a popup warning', function(done) {
             cy.on('window:confirm', (str) => {
               expect(str).to.eq('Remove team from organization?');
-              done();
+              return done();
             });
             // Delete member team
             cy.get('#team-profile-info #remove-team-from-organization').click();
@@ -409,7 +409,7 @@ context('organizer/Organization delete team', function() {
           it('displays a popup warning', function(done) {
             cy.on('window:confirm', (str) => {
               expect(str).to.eq('Remove team from organization?');
-              done();
+              return done();
             });
             // Delete member team
             cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
@@ -504,7 +504,7 @@ context('organizer/Organization delete team', function() {
           it('displays a popup warning', function(done) {
             cy.on('window:confirm', (str) => {
               expect(str).to.eq('Remove team from organization?');
-              done();
+              return done();
             });
             // Delete member team
             cy.get('#team-profile-info #remove-team-from-organization').click();
@@ -586,7 +586,7 @@ context('organizer/Organization delete team', function() {
           it('displays a popup warning', function(done) {
             cy.on('window:confirm', (str) => {
               expect(str).to.eq('Remove team from organization?');
-              done();
+              return done();
             });
             // Delete member team
             cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
