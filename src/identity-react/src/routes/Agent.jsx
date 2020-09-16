@@ -306,12 +306,12 @@ const Agent = (props) => {
                               } />
                           </AccordionSummary>
                           <AccordionDetails id='agent-name-details'>
-                            <Typography color='textSecondary'>
+                            <Typography color='textSecondary' component='div'>
                               <FormControl>
                                 <InputLabel htmlFor='component-simple'><FormattedMessage id='Family name' /></InputLabel>
                                 <Input id='agent-family-name-field'
                                   disabled={!profileData.email_verified || (agent.email !== profileData.email && !admin.isEnabled)}
-                                  value={profileData.family_name}
+                                  value={profileData.family_name || ''}
                                   onChange={e => {
                                       if (!prevAgentInputState.family_name) {
                                         setPrevAgentInputState({ ...prevAgentInputState, family_name: profileData.family_name });
@@ -324,7 +324,7 @@ const Agent = (props) => {
                                 <InputLabel htmlFor='component-simple'><FormattedMessage id='Given name' /></InputLabel>
                                 <Input id='agent-given-name-field'
                                   disabled={!profileData.email_verified || (agent.email !== profileData.email && !admin.isEnabled)}
-                                  value={profileData.given_name}
+                                  value={profileData.given_name || ''}
                                   onChange={e => {
                                       if (!prevAgentInputState.given_name) {
                                         setPrevAgentInputState({ ...prevAgentInputState, given_name: profileData.given_name });
@@ -337,7 +337,7 @@ const Agent = (props) => {
                                 <InputLabel htmlFor='component-simple'><FormattedMessage id='Nickname' /></InputLabel>
                                 <Input id='agent-nickname-field'
                                   disabled={!profileData.email_verified || (agent.email !== profileData.email && !admin.isEnabled)}
-                                  value={profileData.nickname}
+                                  value={profileData.nickname || ''}
                                   onChange={e => {
                                       if (!prevAgentInputState.nickname) {
                                         setPrevAgentInputState({ ...prevAgentInputState, nickname: profileData.nickname });
@@ -373,7 +373,6 @@ const Agent = (props) => {
                           }
                         }/>
                       </TableCell>
-
                     </TableRow>
                     <TableRow>
                       <TableCell align="right" component="th" scope="row"><FormattedMessage id='Timezone' />:</TableCell>
@@ -467,7 +466,6 @@ const Agent = (props) => {
                             setLocaleIsOpen(false);
                           }}
                           onChange={async (event, value) => {
-
                             if (value && value.iso6393) {
                               return new Promise((resolve, reject) => {
                                 setIsSettingLocale(true);
@@ -491,7 +489,6 @@ const Agent = (props) => {
                                     setLocaleOptions(localeOptions);
                                     setLangCode(response.user_metadata.silLocale.iso6393);
                                   }
-
                                   resolve();
                                 })
                                 .catch(error => {
@@ -740,8 +737,7 @@ const Agent = (props) => {
                             </Button>
                           </TableCell>
                         </TableRow>
-                      : ''}
-
+                      : undefined}
                   </TableBody>
                 </Table>
               </TableContainer>
