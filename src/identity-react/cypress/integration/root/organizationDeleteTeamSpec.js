@@ -101,13 +101,19 @@ context('root/Organization delete team', function() {
             });
 
             describe('#remove-team-from-organization', () => {
-              it('displays a popup warning', function(done) {
+
+              // 2020-9-17 See note with same date
+              it('displays a popup warning', () => {
                 cy.on('window:confirm', (str) => {
                   expect(str).to.eq('Remove team from organization?');
-                  return done();
+                  return str === 'Remove team from organization?';
                 });
+
                 // Delete member team
                 cy.get('#team-profile-info #remove-team-from-organization').click();
+                cy.wait(300);
+
+                cy.get('#team-profile-info #remove-team-from-organization').should('not.exist');
               });
 
               it('updates the interface', () => {
@@ -183,13 +189,20 @@ context('root/Organization delete team', function() {
             });
 
             describe('record delete button', () => {
-              it('displays a popup warning', function(done) {
+
+              // 2020-9-17 See note with same date
+              it('displays a popup warning', () => {
                 cy.on('window:confirm', (str) => {
                   expect(str).to.eq('Remove team from organization?');
-                  return done();
+                  return str === 'Remove team from organization?';
                 });
+
                 // Delete member team
                 cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
+                cy.wait(300);
+
+                cy.get('#member-teams-table tbody').find('tr').its('length').should('eq', 1);
+                cy.get('#member-teams-table table tbody tr td').contains('No records to display').should('exist');
               });
 
               it('updates the interface', () => {
@@ -327,13 +340,19 @@ context('root/Organization delete team', function() {
             });
 
             describe('#remove-team-from-organization', () => {
-              it('displays a popup warning', function(done) {
+
+              // 2020-9-17 See note with same date
+              it('displays a popup warning', () => {
                 cy.on('window:confirm', (str) => {
                   expect(str).to.eq('Remove team from organization?');
-                  return done();
+                  return str === 'Remove team from organization?';
                 });
+
                 // Delete member team
                 cy.get('#team-profile-info #remove-team-from-organization').click();
+                cy.wait(300);
+
+                cy.get('#team-profile-info #remove-team-from-organization').should('not.exist');
               });
 
               // This is flaking out in full e2e runs
@@ -413,15 +432,37 @@ context('root/Organization delete team', function() {
             });
 
             describe('record delete button', () => {
-              it('displays a popup warning', function(done) {
+              /**
+               * 2020-9-17
+               *
+               * These confirmation dialogue tests have been causing intermittent
+               * problems for some time now.
+               *
+               * They once depended on a `done()` callback, which would (sometimes) set up the
+               * subsequent tests for an unresolved promise error, which would then
+               * cause the `silid-server` to crash for some reason.
+               *
+               * I'm still a little shakey on the best approach to testing such
+               * dialogues, so much of that expressed below is probably reduntant.
+               *
+               * E.g., `return str === 'Remove team from organization?';` by itself
+               * is probably sufficient, though this does require testing the updated
+               * interface, which makes the following test reduntant.
+               */
+              it('displays a popup warning', () => {
                 cy.on('window:confirm', (str) => {
                   expect(str).to.eq('Remove team from organization?');
-                  return done();
+                  return str === 'Remove team from organization?';
                 });
                 // Delete member team
                 cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
+                cy.wait(300);
+
+                cy.get('#member-teams-table tbody').find('tr').its('length').should('eq', 1);
+                cy.get('#member-teams-table table tbody tr td').contains('No records to display').should('exist');
               });
 
+              // 2020-9-17 latest crash point
               it('updates the interface', () => {
                 cy.on('window:confirm', str => true);
 
@@ -553,13 +594,21 @@ context('root/Organization delete team', function() {
             });
 
             describe('#remove-team-from-organization', () => {
-              it('displays a popup warning', function(done) {
+
+              // 2020-9-17 See note with same date
+              it('displays a popup warning', () => {
                 cy.on('window:confirm', (str) => {
                   expect(str).to.eq('Remove team from organization?');
-                  return done();
+                  return str === 'Remove team from organization?';
                 });
+
+                cy.get('#team-profile-info #remove-team-from-organization').should('exist');
+
                 // Delete member team
                 cy.get('#team-profile-info #remove-team-from-organization').click();
+                cy.wait(300);
+
+                cy.get('#team-profile-info #remove-team-from-organization').should('not.exist');
               });
 
               it('updates the interface', () => {
@@ -638,13 +687,26 @@ context('root/Organization delete team', function() {
             });
 
             describe('record delete button', () => {
-              it('displays a popup warning', function(done) {
+
+              // 2020-9-17 See note with same date
+              it('displays a popup warning', () => {
                 cy.on('window:confirm', (str) => {
                   expect(str).to.eq('Remove team from organization?');
-                  return done();
+                  return str === 'Remove team from organization?';
                 });
+
+                //cy.get('#team-profile-info #remove-team-from-organization').should('exist');
+                cy.get('#member-teams-table table tbody tr:nth-of-type(1) td a')
+                  .should('contain', root.socialProfile.user_metadata.teams[0].name)
+                  .and('have.attr', 'href')
+                  .and('equal', `#team/${root.socialProfile.user_metadata.teams[0].id}`);
+
                 // Delete member team
                 cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
+                cy.wait(300);
+
+                cy.get('#member-teams-table tbody').find('tr').its('length').should('eq', 1);
+                cy.get('#member-teams-table table tbody tr td').contains('No records to display').should('exist');
               });
 
               it('updates the interface', () => {
@@ -771,13 +833,21 @@ context('root/Organization delete team', function() {
             });
 
             describe('#remove-team-from-organization', () => {
-              it('displays a popup warning', function(done) {
+
+              // 2020-9-17 See note with same date
+              it('displays a popup warning', () => {
                 cy.on('window:confirm', (str) => {
                   expect(str).to.eq('Remove team from organization?');
-                  return done();
+                  return str === 'Remove team from organization?';
                 });
+
+                cy.get('#team-profile-info #remove-team-from-organization').should('exist');
+
                 // Delete member team
                 cy.get('#team-profile-info #remove-team-from-organization').click();
+                cy.wait(300);
+
+                cy.get('#team-profile-info #remove-team-from-organization').should('not.exist');
               });
 
               it('updates the interface', () => {
@@ -859,13 +929,20 @@ context('root/Organization delete team', function() {
             });
 
             describe('record delete button', () => {
-              it('displays a popup warning', function(done) {
+
+              // 2020-9-17 See note with same date
+              it('displays a popup warning', () => {
                 cy.on('window:confirm', (str) => {
                   expect(str).to.eq('Remove team from organization?');
-                  return done();
+                  return str === 'Remove team from organization?';
                 });
+
                 // Delete member team
                 cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Delete]').click();
+                cy.wait(300);
+
+                cy.get('#member-teams-table tbody').find('tr').its('length').should('eq', 1);
+                cy.get('#member-teams-table table tbody tr td').contains('No records to display').should('exist');
               });
 
               it('updates the interface', () => {
