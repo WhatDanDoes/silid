@@ -15,43 +15,17 @@ const getManagementClient = require('../lib/getManagementClient');
 
 /* GET agent listing. */
 router.get('/admin/:page?', checkPermissions(roles.organizer), function(req, res, next) {
-  let viewCached = false;
   let page = 0;
   if (req.params.page) {
-    if (req.params.page === 'cached') {
-      viewCached = true;
-    }
-    else {
-      page = parseInt(req.params.page);
-    }
+    page = parseInt(req.params.page);
   }
 
-  // Super agent gets entire listing
-  if (req.params.cached || viewCached) {
-    models.Agent.findAll({ attributes: ['socialProfile', 'id'],
-                           where: { socialProfile: { [models.Sequelize.Op.ne]: null} },
-                           order: [['name', 'ASC']],
-                           limit: 30,
-                           offset: page * 30 }).
-                        then(results => {
-      const profiles = results.map(p => { return {...p.socialProfile, id: p.id }; });
-      models.Agent.count({ where: { socialProfile: { [models.Sequelize.Op.ne]: null} } }).then(count => {
-        res.json({ users: profiles, start: page, limit: 30, length: profiles.length, total: count });
-      }).catch(err => {
-        res.status(500).json(err);
-      });
-    }).catch(err => {
-      res.status(500).json(err);
-    });
-  }
-  else {
-    const managementClient = getManagementClient(apiScope.read.users);
-    managementClient.getUsers({ page: page, per_page: 30, include_totals: true }).then(agents => {
-      res.status(200).json(agents);
-    }).catch(err => {
-      res.status(err.statusCode).json(err.message.error_description);
-    });
-  }
+  const managementClient = getManagementClient(apiScope.read.users);
+  managementClient.getUsers({ page: page, per_page: 30, include_totals: true }).then(agents => {
+    res.status(200).json(agents);
+  }).catch(err => {
+    res.status(err.statusCode).json(err.message.error_description);
+  });
 });
 
 /**
@@ -94,17 +68,15 @@ function checkForNulls(agent) {
 };
 
 router.get('/', checkPermissions([scope.read.agents]), function(req, res, next) {
-  let managementClient = getManagementClient(apiScope.read.users);
+  const managementClient = getManagementClient(apiScope.read.users);
   managementClient.getUser({id: req.user.user_id}).then(agent => {
 
     // Read agent's assigned roles
-    managementClient = getManagementClient([apiScope.read.users, apiScope.read.roles].join(' '));
     managementClient.getUserRoles({id: agent.user_id}).then(roles => {
       roles.sort((a, b) => a.name < b.name ? -1 : 1);
 
       const nullsFound = checkForNulls(agent);
       if (nullsFound) {
-        managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
         managementClient.updateUser({id: agent.user_id}, { user_metadata: agent.user_metadata }).then(agent => {
           const refreshedAgent = {...req.user, roles: roles, ...{...agent, user_metadata: {...req.user.user_metadata, ...agent.user_metadata} } };
           res.status(201).json(refreshedAgent);
@@ -125,16 +97,15 @@ router.get('/', checkPermissions([scope.read.agents]), function(req, res, next) 
 });
 
 router.get('/:id', checkPermissions([scope.read.agents]), function(req, res, next) {
-  let managementClient = getManagementClient(apiScope.read.users);
+  const managementClient = getManagementClient(apiScope.read.users);
   managementClient.getUser({id: req.params.id}).then(agent => {
 
     // Read agent's assigned roles
-    managementClient = getManagementClient([apiScope.read.users, apiScope.read.roles].join(' '));
     managementClient.getUserRoles({id: agent.user_id}).then(roles => {
+      roles.sort((a, b) => a.name < b.name ? -1 : 1);
 
       const nullsFound = checkForNulls(agent);
       if (nullsFound) {
-        managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
         managementClient.updateUser({id: req.params.id}, { user_metadata: agent.user_metadata }).then(result => {
           res.status(201).json({ ...result, roles: roles });
         }).catch(err => {
@@ -169,7 +140,7 @@ router.delete('/', checkPermissions([scope.delete.agents]), function(req, res, n
     }
 
     if (!req.user.isSuper && req.user.email !== agent.email) {
-      return res.status(401).json( { message: 'Unauthorized' });
+      return res.status(401).json({ message: 'Unauthorized' });
     }
 
     agent.destroy().then(results => {
@@ -191,6 +162,79 @@ router.delete('/', checkPermissions([scope.delete.agents]), function(req, res, n
     });
   }).catch(err => {
     res.status(500).json(err);
+  });
+});
+
+router.post('/verify', checkPermissions([scope.update.agents]), function(req, res, next) {
+  if (req.user.email_verified) {
+    return res.status(200).json({ message: 'Email already verified' });
+  }
+  const managementClient = getManagementClient(apiScope.update.users);
+  managementClient.jobs.verifyEmail({ user_id: req.body.id }).then(result => {
+    res.status(201).json({ message: 'Verification sent. Check your email' });
+  })
+  .catch(err => {
+    res.status(err.statusCode).json(err.message.error_description);
+  });
+});
+
+router.patch('/:id', checkPermissions([scope.update.agents]), function(req, res, next) {
+
+  if (req.params.id !== req.user.user_id && !req.user.isSuper) {
+    return res.status(403).json({ message: 'Forbidden' });
+  }
+
+
+  /**
+   * 2020-8-19 As per: https://auth0.com/docs/users/user-profile-structure (some omitted)
+   *
+   * It has become necessary to distinguish root-level claims from what I call
+   * _pseudo_ root-level claims. The `phone_number` claim motivates this
+   * effort. Though `phone_number` is an OIDC standard claim, it only applies
+   * to SMS users at Auth0. As such, it is being slotted into `user_metadata`.
+   */
+  const filteredRootClaims = {};
+  ['blocked',
+   'email_verified',
+   'family_name',
+   'given_name',
+   'name',
+   'nickname',
+   'picture'].forEach(claim => {
+    if (req.body[claim]) {
+      filteredRootClaims[claim] = req.body[claim];
+    }
+  });
+
+  const filteredPseudoRootClaims = {};
+  ['phone_number'].forEach(claim => {
+    if (req.body[claim]) {
+      filteredPseudoRootClaims[claim] = req.body[claim];
+    }
+  });
+
+
+  if (!Object.keys(filteredRootClaims).length && !Object.keys(filteredPseudoRootClaims).length) {
+    return res.status(200).json({ message: 'No relevant data supplied' });
+  }
+
+  const managementClient = getManagementClient([apiScope.update.users].join());
+  managementClient.updateUser({id: req.params.id}, {...filteredRootClaims, user_metadata: Object.keys(filteredPseudoRootClaims).length ? filteredPseudoRootClaims : undefined}).then(agent => {
+
+    // Is this a sudo agent updating another?
+    if (req.params.id !== req.user.user_id) {
+      managementClient.getUserRoles({id: req.params.id}).then(assignedRoles => {
+        agent.roles = assignedRoles;
+        res.status(201).json(agent);
+      }).catch(err => {
+        res.status(err.statusCode).json(err.message.error_description);
+      });
+    }
+    else {
+      res.status(201).json({...req.user, ...agent});
+    }
+  }).catch(err => {
+    res.status(err.statusCode).json(err.message.error_description);
   });
 });
 

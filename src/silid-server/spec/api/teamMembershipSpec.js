@@ -1201,8 +1201,8 @@ describe('teamMembershipSpec', () => {
                         .end(function(err, res) {
                           if (err) return done.fail(err);
 
+                          expect(invitedUserAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
                           expect(invitedUserAppMetadataUpdateScope.isDone()).toBe(true);
-                          expect(invitedUserAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
 
                           done();
                         });
@@ -1210,7 +1210,7 @@ describe('teamMembershipSpec', () => {
                   });
 
                   describe('team leader', () => {
-                    it('/oauth/token endpoint is called to retrieve a machine-to-machine access token', done => {
+                    it('/oauth/token endpoint is not called to retrieve a machine-to-machine access token', done => {
                       authenticatedSession
                         .put(`/team/${teamId}/agent`)
                         .send({ email: registeredAgent.email })
@@ -1219,7 +1219,7 @@ describe('teamMembershipSpec', () => {
                         .expect(201)
                         .end(function(err, res) {
                           if (err) return done.fail(err);
-                          expect(teamLeaderAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                          expect(teamLeaderAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
                           done();
                         });
                     });
@@ -2795,8 +2795,8 @@ describe('teamMembershipSpec', () => {
                         .end(function(err, res) {
                           if (err) return done.fail(err);
 
+                          expect(invitedUserAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
                           expect(invitedUserAppMetadataUpdateScope.isDone()).toBe(true);
-                          expect(invitedUserAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
 
                           done();
                         });
@@ -2804,7 +2804,7 @@ describe('teamMembershipSpec', () => {
                   });
 
                   describe('team leader', () => {
-                    it('/oauth/token endpoint is called to retrieve a machine-to-machine access token', done => {
+                    it('/oauth/token endpoint is not called to retrieve a machine-to-machine access token', done => {
                       authenticatedSession
                         .put(`/team/${teamId}/agent`)
                         .send({ email: registeredAgent.email })
@@ -2813,7 +2813,7 @@ describe('teamMembershipSpec', () => {
                         .expect(201)
                         .end(function(err, res) {
                           if (err) return done.fail(err);
-                          expect(teamLeaderAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                          expect(teamLeaderAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
                           done();
                         });
                     });
@@ -3691,8 +3691,8 @@ describe('teamMembershipSpec', () => {
               .expect(201)
               .end(function(err, res) {
                 if (err) return done.fail(err);
+                expect(formerMemberUserAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
                 expect(formerMemberUserAppMetadataUpdateScope.isDone()).toBe(true);
-                expect(formerMemberUserAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
                 done();
               });
           });

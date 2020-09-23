@@ -121,6 +121,52 @@ context('viewer/Team show', function() {
         cy.get('table tbody tr:nth-of-type(2) td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${anotherAgent.socialProfile.user_id}`);
         cy.get('table tbody tr:nth-of-type(2) td').contains(anotherAgent.socialProfile.email);
       });
+
+      describe('localization', () => {
+        beforeEach(() => {
+          cy.visit('/#/agent');
+          cy.wait(300);
+          cy.get('#profile-table table tbody tr td #sil-local-dropdown + div button:last-of-type').click();
+          cy.wait(300);
+          cy.get('#profile-table table tbody tr td #sil-local-dropdown').type('kling{downarrow}{enter}');
+          cy.wait(300);
+          cy.contains('The Calgary Roughnecks').click();
+          cy.wait(300);
+        });
+
+        it('displays appropriate Team interface elements', () => {
+          cy.get('h3').contains('Ghom');
+
+          cy.get('#team-profile-info tbody').find('tr').its('length').should('eq', 2);
+          cy.get('#team-profile-info tbody tr th:first-of-type').contains('Pong');
+          cy.get('#team-profile-info tbody tr td input#team-name-field').should('have.value', agent.socialProfile.user_metadata.teams[0].name);
+          cy.get('#team-profile-info tbody tr th:last-of-type').contains('De\'wI\' QIn');
+          cy.get('#team-profile-info tbody tr td').contains(_profile.email);
+          cy.get('button#delete-team').should('exist');
+          cy.get('button#save-team').should('not.exist');
+          cy.get('button#cancel-team-changes').should('not.exist');
+        });
+
+        it('displays team members in a table', () => {
+          // Members
+          cy.get('h6').contains('Qoch');
+          cy.get('table tbody tr td').contains('Pagh ta').should('not.exist');
+          cy.get('button span span').contains('add_box').should('exist');
+
+          // Name
+          cy.get('table thead tr th').contains('Pong');
+          // Email
+          cy.get('table thead tr th').contains('De\'wI\' QIn');
+          // Team leader cannot be deleted
+          cy.get('table tbody tr:nth-of-type(1) button[title=Teq]').should('not.exist');
+          cy.get('table tbody tr:nth-of-type(1) td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
+          cy.get('table tbody tr:nth-of-type(1) td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+          // Member agent can be deleted
+          cy.get('table tbody tr:nth-of-type(2) button[title=Teq]').should('exist');
+          cy.get('table tbody tr:nth-of-type(2) td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${anotherAgent.socialProfile.user_id}`);
+          cy.get('table tbody tr:nth-of-type(2) td').contains(anotherAgent.socialProfile.email);
+        });
+      });
     });
 
     context('verified team member agent visit', () => {
@@ -165,6 +211,51 @@ context('viewer/Team show', function() {
         cy.get('#members-table table tbody tr:nth-of-type(2) td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${anotherAgent.socialProfile.user_id}`);
         cy.get('#members-table table tbody tr:nth-of-type(2) td').contains(anotherAgent.socialProfile.email);
       });
+
+      describe('localization', () => {
+        beforeEach(() => {
+          cy.visit('/#/agent');
+          cy.wait(300);
+          cy.get('#profile-table table tbody tr td #sil-local-dropdown + div button:last-of-type').click();
+          cy.wait(300);
+          cy.get('#profile-table table tbody tr td #sil-local-dropdown').type('kling{downarrow}{enter}');
+          cy.wait(300);
+          cy.contains('The Calgary Roughnecks').click();
+          cy.wait(300);
+        });
+
+        it('displays appropriate Team interface elements', () => {
+          cy.get('h3').contains('Ghom');
+
+          cy.get('#team-profile-info tbody').find('tr').its('length').should('eq', 2);
+          cy.get('#team-profile-info tbody tr th:first-of-type').contains('Pong');
+          cy.get('#team-profile-info tbody tr td input#team-name-field').should('have.value', 'The Calgary Roughnecks');
+          cy.get('#team-profile-info tbody tr th:last-of-type').contains('De\'wI\' QIn');
+          cy.get('#team-profile-info tbody tr td').contains(_profile.email);
+          cy.get('button#delete-team').should('not.exist');
+          cy.get('button#save-team').should('not.exist');
+          cy.get('button#cancel-team-changes').should('not.exist');
+        });
+
+        it('displays team members in a table', () => {
+          // Members
+          cy.get('h6').contains('Qoch');
+          cy.get('table tbody tr td').contains('Pagh ta').should('not.exist');
+          cy.get('#members-table button span span').should('not.exist');
+
+          // Name
+          cy.get('table thead tr th').contains('Pong');
+          // Email
+          cy.get('table thead tr th').contains('De\'wI\' QIn');
+          // Team leader cannot be deleted
+          cy.get('table tbody tr:nth-of-type(1) button[title=Teq]').should('not.exist');
+          cy.get('table tbody tr:nth-of-type(1) td a').should('contain', agent.name).and('have.attr', 'href').and('equal', `#agent/${agent.socialProfile.user_id}`);
+          cy.get('table tbody tr:nth-of-type(1) td').contains(agent.socialProfile.user_metadata.teams[0].leader);
+          cy.get('table tbody tr:nth-of-type(2) button[title=Teq]').should('not.exist');
+          cy.get('table tbody tr:nth-of-type(2) td a').should('contain', anotherAgent.name).and('have.attr', 'href').and('equal', `#agent/${anotherAgent.socialProfile.user_id}`);
+          cy.get('table tbody tr:nth-of-type(2) td').contains(anotherAgent.socialProfile.email);
+        });
+      });
     });
 
     context('non-member agent visit', () => {
@@ -178,8 +269,27 @@ context('viewer/Team show', function() {
 
       it('displays a friendly message', () => {
         cy.visit(`/#/team/${teamId}`);
-        cy.wait(500);
+        cy.wait(300);
         cy.get('h3').contains('You are not a member of that team');
+      });
+
+      describe('localization', () => {
+        beforeEach(() => {
+          cy.visit('/#/agent');
+          cy.wait(300);
+          cy.get('#profile-table table tbody tr td #sil-local-dropdown + div button:last-of-type').click();
+          cy.wait(300);
+          cy.get('#profile-table table tbody tr td #sil-local-dropdown').type('kling{downarrow}{enter}');
+          cy.wait(300);
+          cy.visit(`/#/team/${teamId}`);
+          cy.wait(300);
+        });
+
+        it('displays a friendly message', () => {
+          cy.visit(`/#/team/${teamId}`);
+          cy.wait(300);
+          cy.get('h3').contains('Ghom qoch\'be\'');
+        });
       });
     });
   });

@@ -90,6 +90,20 @@ context('root/Agent roles', function() {
               cy.get('#profile-table #unassigned-roles div').contains('close');
             });
 
+            it('displays the progress spinner', () => {
+              cy.get('#assign-role').click();
+              // 2020-5-26
+              // Cypress goes too fast for this. Cypress also cannot intercept
+              // native `fetch` calls to allow stubbing and delaying the route.
+              // Shamefully, this is currently manually tested, though I suspect
+              // I will use this opportunity to learn Jest
+              // Despite its name, this test really ensures the spinner disappears
+              // after all is said and done
+              //cy.get('div[role="progressbar"] svg circle').should('exist');
+              cy.wait(100);
+              cy.get('div[role="progressbar"] svg circle').should('not.exist');
+            });
+
             describe('#close-unassigned-roles button', () => {
               beforeEach(() => {
                 cy.get('#assign-role').click();
@@ -154,6 +168,21 @@ context('root/Agent roles', function() {
             cy.get('#profile-table #assigned-roles div:last-of-type').contains('viewer');
           });
 
+          it('displays the progress spinner', () => {
+            // Assign organizer role
+            cy.get('#profile-table #unassigned-roles div').contains('organizer').click();
+            // 2020-5-26
+            // Cypress goes too fast for this. Cypress also cannot intercept
+            // native `fetch` calls to allow stubbing and delaying the route.
+            // Shamefully, this is currently manually tested, though I suspect
+            // I will use this opportunity to learn Jest
+            // Despite its name, this test really ensures the spinner disappears
+            // after all is said and done
+            //cy.get('div[role="progressbar"] svg circle').should('exist');
+            cy.wait(100);
+            cy.get('div[role="progressbar"] svg circle').should('not.exist');
+          });
+
           describe('divesting organizer role', () => {
             beforeEach(() => {
               cy.get('#profile-table #unassigned-roles div').contains('organizer').click();
@@ -197,6 +226,21 @@ context('root/Agent roles', function() {
               // No delete X on viewer
               cy.get('#profile-table #assigned-roles div:last-of-type svg').should('not.exist');
               cy.get('#profile-table #assigned-roles div:last-of-type').contains('viewer');
+            });
+
+            it('displays the progress spinner', () => {
+              // Divest organizer role
+              cy.get('#profile-table #assigned-roles div:first-child svg').click();
+              // 2020-5-26
+              // Cypress goes too fast for this. Cypress also cannot intercept
+              // native `fetch` calls to allow stubbing and delaying the route.
+              // Shamefully, this is currently manually tested, though I suspect
+              // I will use this opportunity to learn Jest
+              // Despite its name, this test really ensures the spinner disappears
+              // after all is said and done
+              //cy.get('div[role="progressbar"] svg circle').should('exist');
+              cy.wait(100);
+              cy.get('div[role="progressbar"] svg circle').should('not.exist');
             });
           });
         });

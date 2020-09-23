@@ -26,10 +26,9 @@ import { useAdminState } from '../auth/Admin';
 
 import useGetOrganizationInfoService from '../services/useGetOrganizationInfoService';
 import usePutOrganizationService from '../services/usePutOrganizationService';
-import usePutOrganizationMemberService from '../services/usePutOrganizationMemberService';
 import useDeleteOrganizationService from '../services/useDeleteOrganizationService';
-import useDeleteMemberAgentService from '../services/useDeleteMemberAgentService';
-import useDeleteTeamService from '../services/useDeleteTeamService';
+
+import { useLanguageProviderState, LPFormattedMessage as FormattedMessage } from '../components/LanguageProvider';
 
 const useStyles = makeStyles((theme) =>
   createStyles({
@@ -65,8 +64,6 @@ const OrganizationInfo = (props) => {
 
   const [prevInputState, setPrevInputState] = useState({});
 
-  const [agentFormVisible, setAgentFormVisible] = useState(false);
-  const [prevState, setPrevState] = useState({});
   const [toAgent, setToAgent] = useState(null);
   const [flashProps, setFlashProps] = useState({});
   const [isWaiting, setIsWaiting] = useState(false);
@@ -75,10 +72,9 @@ const OrganizationInfo = (props) => {
 
   const service = useGetOrganizationInfoService(props.match.params.id);
   let { publishOrganization } = usePutOrganizationService();
-  let { putOrganizationMember } = usePutOrganizationMemberService();
   let { deleteOrganization } = useDeleteOrganizationService();
-  let { deleteMemberAgent } = useDeleteMemberAgentService(props.match.params.id);
-  let { deleteTeam } = useDeleteTeamService();
+
+  const { getFormattedMessage } = useLanguageProviderState();
 
   useEffect(() => {
     if (service.status === 'loaded') {
@@ -90,12 +86,11 @@ const OrganizationInfo = (props) => {
    * Update this organization
    */
   const handleUpdate = (evt) => {
-    // Front-end validation (sufficient for now...)
+    // Front-end validation
     if (!orgInfo.name.trim()) {
       return setFlashProps({ message: 'Organization name can\'t be blank', variant: 'error' });
     }
 
-    //publishOrganization({...orgInfo, members: undefined, tableData: undefined}).then(results => {
     publishOrganization({...orgInfo}).then(results => {
       if (results.statusCode) {
         setFlashProps({ message: results.message, variant: 'error' });
@@ -149,7 +144,7 @@ const OrganizationInfo = (props) => {
           <>
             <Grid item>
               <Typography className={classes.header} variant="h5" component="h3">
-                Organization
+                <FormattedMessage id='Organization' />
               </Typography>
             </Grid>
             <Grid item className={classes.grid}>
@@ -157,7 +152,9 @@ const OrganizationInfo = (props) => {
                 <Table id="org-profile-info" className={classes.table} aria-label="Team profile info">
                   <TableBody>
                     <TableRow>
-                      <TableCell align="right" component="th" scope="row">Name:</TableCell>
+                      <TableCell align="right" component="th" scope="row">
+                        <FormattedMessage id='Name' />:
+                      </TableCell>
                       <TableCell align="left">
                         <input id="org-name-field" value={orgInfo.name || ''} disabled={agent.email !== orgInfo.organizer && !admin.isEnabled}
                           onChange={e => {
@@ -170,7 +167,9 @@ const OrganizationInfo = (props) => {
                       </TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell align="right" component="th" scope="row">Email:</TableCell>
+                      <TableCell align="right" component="th" scope="row">
+                        <FormattedMessage id='Email' />:
+                      </TableCell>
                       <TableCell align="left">{orgInfo.organizer}</TableCell>
                     </TableRow>
                   </TableBody>
@@ -204,7 +203,7 @@ const OrganizationInfo = (props) => {
                         :
                           <TableCell align="left">
                             <Button id="delete-org" variant="contained" color="secondary" onClick={handleDelete}>
-                              Delete
+                              <FormattedMessage id='Delete' />
                             </Button>
                           </TableCell>
                         }
@@ -217,11 +216,11 @@ const OrganizationInfo = (props) => {
 
             <Grid id="member-teams-table" item className={classes.grid}>
               <MaterialTable
-                title='Teams'
+                title={getFormattedMessage('Teams')}
                 isLoading={isWaiting}
                 columns={[
                   {
-                    title: 'Name',
+                    title: getFormattedMessage('Name'),
                     field: 'name',
                     editable: 'never',
                     render: (rowData) => {
@@ -229,7 +228,7 @@ const OrganizationInfo = (props) => {
                     }
                   },
                   {
-                    title: 'Leader',
+                    title: getFormattedMessage('Leader'),
                     field: 'leader',
                     editable: 'never',
                   }
@@ -241,11 +240,11 @@ const OrganizationInfo = (props) => {
                     rowData => ({
                       icon: 'delete_outline',
                       isFreeAction: false,
-                      tooltip: 'Delete',
+                      tooltip: getFormattedMessage('Delete'),
                       hidden: orgInfo.organizer !== agent.email && !admin.isEnabled,
                       onClick:() => {
                         new Promise((resolve, reject) => {
-                          if (window.confirm('Remove team from organization?')) {
+                          if (window.confirm(getFormattedMessage('Remove team from organization?'))) {
                             setIsWaiting(true);
 
                             const headers = new Headers();
@@ -266,7 +265,7 @@ const OrganizationInfo = (props) => {
                                 resolve();
                               }
                               else {
-                                setFlashProps({ message: 'Deletion cannot be confirmed', variant: 'warning' });
+                                setFlashProps({ message: getFormattedMessage('Deletion cannot be confirmed'), variant: 'warning' });
                                 reject(response);
                               }
                             }).catch(error => {
@@ -295,8 +294,8 @@ const OrganizationInfo = (props) => {
         )}
       </Grid>
 
-      { flashProps.message ? <Flash message={flashProps.message} onClose={() => setFlashProps({})} variant={flashProps.variant} /> : '' }
-      { flashProps.errors ? flashProps.errors.map(error => <Flash message={error.message}
+      { flashProps.message ? <Flash message={getFormattedMessage(flashProps.message)} onClose={() => setFlashProps({})} variant={flashProps.variant} /> : '' }
+      { flashProps.errors ? flashProps.errors.map(error => <Flash message={getFormattedMessage(error.message)}
                                                                   onClose={() => setFlashProps({})}
                                                                   variant={flashProps.variant}
                                                                   key={`error-${error.message}`} />) : '' }

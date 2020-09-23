@@ -49,7 +49,7 @@ context('viewer/Organization show', function() {
                                           ]
                                         }
                                       });
-  
+
         cy.task('query', `SELECT * FROM "Agents" WHERE "email"='coach@example.com' LIMIT 1;`).then(([results, metadata]) => {
           leader = results[0];
         });
@@ -99,6 +99,56 @@ context('viewer/Organization show', function() {
           .and('have.attr', 'href')
           .and('equal', `#team/${leader.socialProfile.user_metadata.teams[0].id}`);
         cy.get('#member-teams-table table tbody tr:nth-of-type(1) td').contains(leader.email);
+      });
+
+      describe('locale', () => {
+        beforeEach(() => {
+          cy.contains('Identity').click();
+          cy.wait(300);
+          cy.get('#profile-table table tbody tr td #sil-local-dropdown + div button:last-of-type').click();
+          cy.wait(300);
+          cy.get('#profile-table table tbody tr td #sil-local-dropdown').type('kling{downarrow}{enter}');
+          cy.wait(300);
+          cy.contains('The Calgary Roughnecks').click();
+          cy.wait(300);
+          cy.get('#team-profile-info tbody tr td').contains('The National Lacrosse League').click();
+          cy.wait(300);
+        });
+
+        it('displays appropriate Organization interface elements', () => {
+          cy.get('h3').contains('DIvI\'');
+
+          // Name
+          cy.get('#org-profile-info tbody tr th').contains('Pong:');
+          cy.get('#org-profile-info tbody tr td input#org-name-field').should('have.value', organizer.socialProfile.user_metadata.organizations[0].name);
+
+          // Email
+          cy.get('#org-profile-info tbody tr th').contains('De\'wI\' QIn:');
+          cy.get('#org-profile-info tbody tr td').contains(organizer.email);
+
+          cy.get('button#delete-team').should('not.exist');
+          cy.get('button#save-team').should('not.exist');
+          cy.get('button#cancel-team-changes').should('not.exist');
+        });
+
+        it('displays member teams in a table', () => {
+          cy.get('#member-teams-table h6').contains('Ghom');
+          cy.get('#member-teams-table table tbody tr td').contains('Pagh ta').should('not.exist');
+          // No add-team button
+          cy.get('#member-teams-table button span span').should('not.exist');
+
+          // Name
+          cy.get('#member-teams-table table thead tr th').contains('Pong');
+          // Leader
+          cy.get('#member-teams-table table thead tr th').contains('DevwI\'');
+
+          cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Teq]').should('not.exist');
+          cy.get('#member-teams-table table tbody tr:nth-of-type(1) td a')
+            .should('contain', leader.socialProfile.user_metadata.teams[0].name)
+            .and('have.attr', 'href')
+            .and('equal', `#team/${leader.socialProfile.user_metadata.teams[0].id}`);
+          cy.get('#member-teams-table table tbody tr:nth-of-type(1) td').contains(leader.email);
+        });
       });
     });
 
@@ -153,6 +203,56 @@ context('viewer/Organization show', function() {
           .and('have.attr', 'href')
           .and('equal', `#team/${leader.socialProfile.user_metadata.teams[0].id}`);
         cy.get('#member-teams-table table tbody tr:nth-of-type(1) td').contains(leader.email);
+      });
+
+      describe('locale', () => {
+        beforeEach(() => {
+          cy.contains('Identity').click();
+          cy.wait(300);
+          cy.get('#profile-table table tbody tr td #sil-local-dropdown + div button:last-of-type').click();
+          cy.wait(300);
+          cy.get('#profile-table table tbody tr td #sil-local-dropdown').type('kling{downarrow}{enter}');
+          cy.wait(300);
+          cy.contains('The Calgary Roughnecks').click();
+          cy.wait(300);
+          cy.get('#team-profile-info tbody tr td').contains('The National Lacrosse League').click();
+          cy.wait(300);
+        });
+
+        it('displays appropriate Organization interface elements', () => {
+          cy.get('h3').contains('DIvI\'');
+
+          // Name
+          cy.get('#org-profile-info tbody tr th').contains('Pong:');
+          cy.get('#org-profile-info tbody tr td input#org-name-field').should('have.value', organizer.socialProfile.user_metadata.organizations[0].name);
+
+          // Email
+          cy.get('#org-profile-info tbody tr th').contains('De\'wI\' QIn:');
+          cy.get('#org-profile-info tbody tr td').contains(organizer.email);
+
+          cy.get('button#delete-team').should('not.exist');
+          cy.get('button#save-team').should('not.exist');
+          cy.get('button#cancel-team-changes').should('not.exist');
+        });
+
+        it('displays member teams in a table', () => {
+          cy.get('#member-teams-table h6').contains('Ghom');
+          cy.get('#member-teams-table table tbody tr td').contains('Pagh ta').should('not.exist');
+          // No add-team button
+          cy.get('#member-teams-table button span span').should('not.exist');
+
+          // Name
+          cy.get('#member-teams-table table thead tr th').contains('Pong');
+          // Leader
+          cy.get('#member-teams-table table thead tr th').contains('DevwI\'');
+
+          cy.get('#member-teams-table table tbody tr:nth-of-type(1) button[title=Teq]').should('not.exist');
+          cy.get('#member-teams-table table tbody tr:nth-of-type(1) td a')
+            .should('contain', leader.socialProfile.user_metadata.teams[0].name)
+            .and('have.attr', 'href')
+            .and('equal', `#team/${leader.socialProfile.user_metadata.teams[0].id}`);
+          cy.get('#member-teams-table table tbody tr:nth-of-type(1) td').contains(leader.email);
+        });
       });
     });
   });

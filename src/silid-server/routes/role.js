@@ -17,7 +17,7 @@ router.get('/', checkPermissions(roles.sudo), (req, res, next) => {
     return res.status(403).json({ message: 'Forbidden' });
   }
 
-  let managementClient = getManagementClient([apiScope.read.roles].join(' '));
+  const managementClient = getManagementClient([apiScope.read.roles].join(' '));
   managementClient.getRoles().then(auth0Roles => {
     res.status(200).json(auth0Roles);
   }).catch(err => {
@@ -26,7 +26,7 @@ router.get('/', checkPermissions(roles.sudo), (req, res, next) => {
 });
 
 router.put('/:id/agent/:agentId', checkPermissions(roles.sudo), (req, res, next) => {
-  let managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
+  const managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
   managementClient.getUser({id: req.params.agentId}).then(agent => {
     if (!agent) {
       return res.status(404).json({ message: 'No such agent' });
@@ -70,7 +70,7 @@ router.put('/:id/agent/:agentId', checkPermissions(roles.sudo), (req, res, next)
 });
 
 router.delete('/:id/agent/:agentId', checkPermissions(roles.sudo), (req, res, next) => {
-  let managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
+  const managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata].join(' '));
   managementClient.getUser({id: req.params.agentId}).then(agent => {
     if (!agent) {
       return res.status(404).json({ message: 'No such agent' });
