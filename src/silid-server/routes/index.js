@@ -48,11 +48,38 @@ if (process.env.NODE_ENV === 'e2e' || process.env.NODE_ENV === 'development') {
     res,
     next
   ) {
-    if (req.session.passport) {
-      return clientProxy.web(req, res, { target: 'http://localhost:3000' });
+
+    /**
+     * Language data is not proxied. Neither is any static asset,
+     * for that matter...
+     */
+    if (/\/languages\/.+\.json/.test(req.path) || /jpg/.test(req.path)) {
+      try {
+        return res.sendFile(req.path, { root: staticPath });
+      }
+      catch (err) {
+        console.log('Could not get static file');
+        console.error(err);
+      }
     }
 
-    res.sendFile(req.path, { root: staticPath });
+    if (req.session.passport) {
+      try {
+        return clientProxy.web(req, res, { target: 'http://localhost:3000' });
+      }
+      catch (err) {
+        console.log('Something went wrong on the proxy');
+        console.error(err);
+      }
+    }
+
+    try {
+      res.sendFile(req.path, { root: staticPath });
+    }
+    catch (err) {
+      console.log('Could not get static file');
+      console.error(err);
+    }
   });
 } else {
   router.get('/', function(req, res, next) {

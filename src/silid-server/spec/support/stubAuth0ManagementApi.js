@@ -13,7 +13,7 @@ const stubUserRolesRead = require('../support/auth0Endpoints/stubUserRolesRead')
  * Stuff that happens on every logon
  *
  * @params object
- * @params function 
+ * @params function
  */
 module.exports = function(options, done) {
 
@@ -28,7 +28,7 @@ module.exports = function(options, done) {
    * This layer stubs the endpoints required for the retrieving the agent's
    * OIDC profile data on login
    */
-  stubUserRead((err, apiScopes) => {
+  stubUserRead(options.userRead ? options.userRead : undefined, (err, apiScopes) => {
     if (err) return done(err);
     ({userReadScope} = apiScopes);
 

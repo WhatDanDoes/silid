@@ -9,6 +9,7 @@ const stubAuth0ManagementEndpoint = require('../support/stubAuth0ManagementEndpo
 const stubUserAppMetadataUpdate = require('../support/auth0Endpoints/stubUserAppMetadataUpdate');
 const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
 const stubUserRolesRead = require('../support/auth0Endpoints/stubUserRolesRead');
+const stubEmailVerification = require('../support/auth0Endpoints/stubEmailVerification');
 const scope = require('../../config/permissions');
 const apiScope = require('../../config/apiPermissions');
 const jwt = require('jsonwebtoken');
@@ -60,55 +61,102 @@ describe('agentSpec', () => {
 
       describe('create', () => {
 
-        let auth0UserCreateScope;
-        beforeEach(done => {
-          stubAuth0ManagementApi((err, apiScopes) => {
-            if (err) return done.fail(err);
-
-            login(_identity, [scope.create.agents], (err, session) => {
+        describe('email verified', () => {
+          let auth0UserCreateScope;
+          beforeEach(done => {
+            stubAuth0ManagementApi((err, apiScopes) => {
               if (err) return done.fail(err);
-              authenticatedSession = session;
 
-              // Cached profile doesn't match "live" data, so agent needs to be updated
-              // with a call to Auth0
-              stubUserRead((err, apiScopes) => {
-                if (err) return done.fail();
+              login(_identity, [scope.create.agents], (err, session) => {
+                if (err) return done.fail(err);
+                authenticatedSession = session;
 
-                stubAuth0ManagementEndpoint([apiScope.create.users], (err, apiScopes) => {
+                // Cached profile doesn't match "live" data, so agent needs to be updated
+                // with a call to Auth0
+                stubUserRead((err, apiScopes) => {
                   if (err) return done.fail();
 
-                  ({userCreateScope, oauthTokenScope} = apiScopes);
-                  done();
+                  stubAuth0ManagementEndpoint([apiScope.create.users], (err, apiScopes) => {
+                    if (err) return done.fail();
+
+                    ({userCreateScope, oauthTokenScope} = apiScopes);
+                    done();
+                  });
                 });
               });
             });
           });
+
+          describe('Auth0', () => {
+            it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
+              authenticatedSession
+                .post('/agent')
+                .send({
+                  email: 'someotherguy@example.com'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+                  expect(oauthTokenScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+
+            /**
+             * Auth0 requires a connection. It is called `Initial-Connection`
+             * here. This setting can be configured at:
+             *
+             * https://manage.auth0.com/dashboard/us/silid/connections
+             */
+            it('calls Auth0 to create the agent at the Auth0-defined connection', done => {
+              authenticatedSession
+                .post('/agent')
+                .send({
+                  email: 'someotherguy@example.com'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(userCreateScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+          });
         });
 
-        describe('Auth0', () => {
-          it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
-            authenticatedSession
-              .post('/agent')
-              .send({
-                email: 'someotherguy@example.com'
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(201)
-              .end(function(err, res) {
+        describe('email not verified', () => {
+          let auth0UserCreateScope;
+          beforeEach(done => {
+
+            stubAuth0ManagementApi({userRead: {..._profile, email_verified: false}}, (err, apiScopes) => {
+              if (err) return done.fail(err);
+
+              login(_identity, [scope.create.agents], (err, session) => {
                 if (err) return done.fail(err);
-                expect(oauthTokenScope.isDone()).toBe(true);
-                done();
+                authenticatedSession = session;
+
+                // Cached profile doesn't match "live" data, so agent needs to be updated
+                // with a call to Auth0
+                stubUserRead((err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  stubAuth0ManagementEndpoint([apiScope.create.users], (err, apiScopes) => {
+                    if (err) return done.fail();
+
+                    ({userCreateScope, oauthTokenScope} = apiScopes);
+                    done();
+                  });
+                });
               });
+            });
           });
 
-          /**
-           * Auth0 requires a connection. It is called `Initial-Connection`
-           * here. This setting can be configured at:
-           *
-           * https://manage.auth0.com/dashboard/us/silid/connections
-           */
-          it('calls Auth0 to create the agent at the Auth0-defined connection', done => {
+          it('returns 401 unauthenticated', done => {
             authenticatedSession
               .post('/agent')
               .send({
@@ -116,11 +164,11 @@ describe('agentSpec', () => {
               })
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
-              .expect(201)
+              .expect(401)
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(userCreateScope.isDone()).toBe(true);
+                expect(res.body.message).toEqual('Check your email to verify your account');
                 done();
               });
           });
@@ -135,9 +183,283 @@ describe('agentSpec', () => {
 
         describe('/agent', () => {
 
-          describe('well-formed user_metadata', () => {
-           beforeEach(done => {
-              stubAuth0ManagementApi((err, apiScopes) => {
+          describe('email verified', () => {
+            describe('well-formed user_metadata', () => {
+              beforeEach(done => {
+                stubAuth0ManagementApi((err, apiScopes) => {
+                  if (err) return done.fail(err);
+                  ({userReadScope, oauthTokenScope} = apiScopes);
+
+                  login(_identity, [scope.read.agents], (err, session) => {
+                    if (err) return done.fail(err);
+                    authenticatedSession = session;
+
+                    // Cached profile doesn't match "live" data, so agent needs to be updated
+                    // with a call to Auth0
+                    stubUserRead((err, apiScopes) => {
+                      if (err) return done.fail();
+
+                      stubUserRead((err, apiScopes) => {
+                        if (err) return done.fail(err);
+                        ({userReadScope, oauthTokenScope} = apiScopes);
+
+                        // Retrieve the roles to which this agent is assigned
+                        stubUserRolesRead((err, apiScopes) => {
+                          if (err) return done.fail(err);
+                          ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+                          // Update agent if null values are found
+                          stubUserAppMetadataUpdate((err, apiScopes) => {
+                            if (err) return done.fail();
+                            ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                            done();
+                          });
+                        });
+                      });
+                    });
+                  });
+                });
+              });
+
+              it('returns the info attached to the req.user object', done => {
+                authenticatedSession
+                  .get('/agent')
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(200)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    expect(res.body.email).toEqual(_identity.email);
+                    expect(res.body.name).toEqual(_identity.name);
+                    expect(res.body.user_id).toEqual(_identity.sub);
+                    expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
+                    done();
+                  });
+              });
+
+              it('has the agent metadata set', done => {
+                authenticatedSession
+                  .get('/agent')
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(200)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+                    expect(res.body.user_metadata).toBeDefined();
+                    done();
+                  });
+              });
+
+              it('sets isSuper status to false for a regular agent', done => {
+                authenticatedSession
+                  .get('/agent')
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(200)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    expect(res.body.isSuper).toBe(false);
+                    done();
+                  });
+              });
+
+              describe('Auth0', () => {
+                it('is called to retrieve the agent\'s user_metadata', done => {
+                  authenticatedSession
+                    .get('/agent')
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+
+                      expect(oauthTokenScope.isDone()).toBe(true);
+                      expect(userReadScope.isDone()).toBe(true);
+
+                      done();
+                    });
+                });
+
+                it('is called to retrieve the roles to which the agent is assigned', done => {
+                  authenticatedSession
+                    .get('/agent')
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+
+                      expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
+                      expect(userRolesReadScope.isDone()).toBe(true);
+
+                      done();
+                    });
+                });
+
+                it('is not called to update the agent profile', done => {
+                  authenticatedSession
+                    .get('/agent')
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                      expect(userAppMetadataUpdateScope.isDone()).toBe(false);
+                      done();
+                    });
+                });
+              });
+            });
+
+            describe('missing user_metadata tolerance and correction', () => {
+              let userReadScope, mangledProfile;
+              beforeEach(done => {
+                mangledProfile = {
+                  ..._profile,
+                  user_metadata: {
+                    teams: [null, null, null],
+                    rsvps: [null, null, null],
+                    pendingInvitations: [null, null, null],
+                  }
+                };
+                stubAuth0ManagementApi((err, apiScopes) => {
+                  if (err) return done.fail(err);
+
+                  login(_identity, [scope.read.agents], (err, session) => {
+                    if (err) return done.fail(err);
+                    authenticatedSession = session;
+
+                    // Cached profile doesn't match "live" data, so agent needs to be updated
+                    // with a call to Auth0
+                    stubUserRead((err, apiScopes) => {
+                      if (err) return done.fail();
+
+                      // This stub is for the tests defined in this block
+                      stubUserRead(mangledProfile, (err, apiScopes) => {
+                        if (err) return done.fail(err);
+                        ({userReadScope, oauthTokenScope} = apiScopes);
+
+                        // Retrieve the roles to which this agent is assigned
+                        stubUserRolesRead((err, apiScopes) => {
+                          if (err) return done.fail(err);
+                          ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+                          // Update agent if null values are found
+                          stubUserAppMetadataUpdate(mangledProfile, (err, apiScopes) => {
+                            if (err) return done.fail();
+                            ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                            done();
+                          });
+                        });
+                      });
+                    });
+                  });
+                });
+              });
+
+              it('returns the info attached to the req.user object', done => {
+                authenticatedSession
+                  .get('/agent')
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    expect(res.body.email).toEqual(_identity.email);
+                    expect(res.body.name).toEqual(_identity.name);
+                    expect(res.body.user_id).toEqual(_identity.sub);
+                    expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
+                    done();
+                  });
+              });
+
+              it('removes all null values from teams/rsvps/pendingInvitations lists', done => {
+                authenticatedSession
+                  .get('/agent')
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    expect(res.body.user_metadata.teams.length).toEqual(0);
+                    expect(res.body.user_metadata.rsvps.length).toEqual(0);
+                    expect(res.body.user_metadata.pendingInvitations.length).toEqual(0);
+                    done();
+                  });
+              });
+
+              it('sets isSuper status to false for a regular agent', done => {
+                authenticatedSession
+                  .get('/agent')
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end(function(err, res) {
+                    if (err) return done.fail(err);
+
+                    expect(res.body.isSuper).toBe(false);
+                    done();
+                  });
+              });
+
+              describe('Auth0', () => {
+                it('is called to retrieve a the agent\'s user_metadata', done => {
+                  authenticatedSession
+                    .get('/agent')
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(201)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+
+                      expect(oauthTokenScope.isDone()).toBe(true);
+                      expect(userReadScope.isDone()).toBe(true);
+
+                      done();
+                    });
+                });
+
+                it('is called to retrieve the roles to which the agent is assigned', done => {
+                  authenticatedSession
+                    .get('/agent')
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(201)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+
+                      expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
+                      expect(userRolesReadScope.isDone()).toBe(true);
+
+                      done();
+                    });
+                });
+
+                it('is called to update the agent profile', done => {
+                  authenticatedSession
+                    .get('/agent')
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(201)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                      expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
+              });
+            });
+          });
+
+          describe('email not verified', () => {
+            beforeEach(done => {
+              stubAuth0ManagementApi({ userRead: {..._profile, email_verified: false} }, (err, apiScopes) => {
                 if (err) return done.fail(err);
                 ({userReadScope, oauthTokenScope} = apiScopes);
 
@@ -188,232 +510,272 @@ describe('agentSpec', () => {
                   done();
                 });
             });
-
-            it('has the agent metadata set', done => {
-              authenticatedSession
-                .get('/agent')
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(200)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-                  expect(res.body.user_metadata).toBeDefined();
-                  done();
-                });
-            });
-
-            it('sets isSuper status to false for a regular agent', done => {
-              authenticatedSession
-                .get('/agent')
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(200)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-
-                  expect(res.body.isSuper).toBe(false);
-                  done();
-                });
-            });
-
-            describe('Auth0', () => {
-              it('is called to retrieve the agent\'s user_metadata', done => {
-                authenticatedSession
-                  .get('/agent')
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(200)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-
-                    expect(oauthTokenScope.isDone()).toBe(true);
-                    expect(userReadScope.isDone()).toBe(true);
-
-                    done();
-                  });
-              });
-
-              it('is called to retrieve the roles to which the agent is assigned', done => {
-                authenticatedSession
-                  .get('/agent')
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(200)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-
-                    expect(userRolesReadOauthTokenScope.isDone()).toBe(true);
-                    expect(userRolesReadScope.isDone()).toBe(true);
-
-                    done();
-                  });
-              });
-
-              it('is not called to update the agent profile', done => {
-                authenticatedSession
-                  .get('/agent')
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(200)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-                    expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
-                    expect(userAppMetadataUpdateScope.isDone()).toBe(false);
-                    done();
-                  });
-              });
-            });
           });
+        });
 
-          describe('missing user_metadata tolerance and correction', () => {
-            let userReadScope, mangledProfile;
-            beforeEach(done => {
-              mangledProfile = {
-                ..._profile,
-                user_metadata: {
-                  teams: [null, null, null],
-                  rsvps: [null, null, null],
-                  pendingInvitations: [null, null, null],
-                }
-              };
-              stubAuth0ManagementApi((err, apiScopes) => {
-                if (err) return done.fail(err);
+        describe('/agent/:id', () => {
 
-                login(_identity, [scope.read.agents], (err, session) => {
+          describe('email verified', () => {
+            describe('well-formed user_metadata', () => {
+              let userReadScope;
+              beforeEach(done => {
+                stubAuth0ManagementApi((err, apiScopes) => {
                   if (err) return done.fail(err);
-                  authenticatedSession = session;
 
-                  // Cached profile doesn't match "live" data, so agent needs to be updated
-                  // with a call to Auth0
-                  stubUserRead((err, apiScopes) => {
-                    if (err) return done.fail();
+                  login(_identity, [scope.read.agents], (err, session) => {
+                    if (err) return done.fail(err);
+                    authenticatedSession = session;
 
-                    // This stub is for the tests defined in this block
-                    stubUserRead(mangledProfile, (err, apiScopes) => {
-                      if (err) return done.fail(err);
-                      ({userReadScope, oauthTokenScope} = apiScopes);
+                    // Cached profile doesn't match "live" data, so agent needs to be updated
+                    // with a call to Auth0
+                    stubUserRead((err, apiScopes) => {
+                      if (err) return done.fail();
 
-                      // Retrieve the roles to which this agent is assigned
-                      stubUserRolesRead((err, apiScopes) => {
+                      // This stub is for the tests defined in this block
+                      stubUserRead((err, apiScopes) => {
                         if (err) return done.fail(err);
-                        ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+                        ({userReadScope, oauthTokenScope} = apiScopes);
 
-                        // Update agent if null values are found
-                        stubUserAppMetadataUpdate(mangledProfile, (err, apiScopes) => {
-                          if (err) return done.fail();
-                          ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                          done();
+                        // Retrieve the roles to which this agent is assigned
+                        stubUserRolesRead((err, apiScopes) => {
+                          if (err) return done.fail(err);
+                          ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+                          // Update agent if null values are found
+                          stubUserAppMetadataUpdate((err, apiScopes) => {
+                            if (err) return done.fail();
+                            ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                            done();
+                          });
                         });
                       });
                     });
                   });
                 });
               });
-            });
 
-            it('returns the info attached to the req.user object', done => {
-              authenticatedSession
-                .get('/agent')
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(201)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-
-                  expect(res.body.email).toEqual(_identity.email);
-                  expect(res.body.name).toEqual(_identity.name);
-                  expect(res.body.user_id).toEqual(_identity.sub);
-                  expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
-                  done();
-                });
-            });
-
-            it('removes all null values from teams/rsvps/pendingInvitations lists', done => {
-              authenticatedSession
-                .get('/agent')
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(201)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-
-                  expect(res.body.user_metadata.teams.length).toEqual(0);
-                  expect(res.body.user_metadata.rsvps.length).toEqual(0);
-                  expect(res.body.user_metadata.pendingInvitations.length).toEqual(0);
-                  done();
-                });
-            });
-
-            it('sets isSuper status to false for a regular agent', done => {
-              authenticatedSession
-                .get('/agent')
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(201)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-
-                  expect(res.body.isSuper).toBe(false);
-                  done();
-                });
-            });
-
-            describe('Auth0', () => {
-              it('is called to retrieve a the agent\'s user_metadata', done => {
+              it('returns the info attached to the req.user object', done => {
                 authenticatedSession
-                  .get('/agent')
+                  .get(`/agent/${_identity.sub}`)
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
-                  .expect(201)
+                  .expect(200)
                   .end(function(err, res) {
                     if (err) return done.fail(err);
 
-                    expect(oauthTokenScope.isDone()).toBe(true);
-                    expect(userReadScope.isDone()).toBe(true);
-
+                    expect(res.body.email).toEqual(_identity.email);
+                    expect(res.body.name).toEqual(_identity.name);
+                    expect(res.body.user_id).toEqual(_identity.sub);
+                    expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
                     done();
                   });
               });
 
-              it('is called to retrieve the roles to which the agent is assigned', done => {
+              describe('Auth0', () => {
+                it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
+                  authenticatedSession
+                    .get(`/agent/${_identity.sub}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(oauthTokenScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
+
+                it('calls Auth0 to read the agent at the Auth0-defined connection', done => {
+                  authenticatedSession
+                    .get(`/agent/${_identity.sub}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+
+                      expect(userReadScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
+
+                it('is called to retrieve the roles to which the agent is assigned', done => {
+                  authenticatedSession
+                    .get(`/agent/${_identity.sub}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+
+                      expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
+                      expect(userRolesReadScope.isDone()).toBe(true);
+
+                      done();
+                    });
+                });
+
+                it('is not called to update the agent profile', done => {
+                  authenticatedSession
+                    .get(`/agent/${_identity.sub}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                      expect(userAppMetadataUpdateScope.isDone()).toBe(false);
+                      done();
+                    });
+                });
+
+                it('retrieves a record from Auth0', done => {
+                  authenticatedSession
+                    .get(`/agent/${_identity.sub}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+
+                      expect(res.body.email).toBeDefined();
+                      done();
+                    });
+                });
+              });
+            });
+
+            describe('missing user_metadata tolerance and correction', () => {
+              let userReadScope, mangledProfile;
+              beforeEach(done => {
+                mangledProfile = {
+                  ..._profile,
+                  user_metadata: {
+                    teams: [null, null, null],
+                    rsvps: [null, null, null],
+                    pendingInvitations: [null, null, null],
+                  }
+                };
+                stubAuth0ManagementApi((err, apiScopes) => {
+                  if (err) return done.fail(err);
+
+                  login(_identity, [scope.read.agents], (err, session) => {
+                    if (err) return done.fail(err);
+                    authenticatedSession = session;
+
+                    // Cached profile doesn't match "live" data, so agent needs to be updated
+                    // with a call to Auth0
+                    stubUserRead((err, apiScopes) => {
+                      if (err) return done.fail();
+
+                      // This stub is for the tests defined in this block
+                      stubUserRead(mangledProfile, (err, apiScopes) => {
+                        if (err) return done.fail(err);
+                        ({userReadScope, oauthTokenScope} = apiScopes);
+
+                        // Retrieve the roles to which this agent is assigned
+                        stubUserRolesRead((err, apiScopes) => {
+                          if (err) return done.fail(err);
+                          ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+                          // Update agent if null values are found
+                          stubUserAppMetadataUpdate(mangledProfile, (err, apiScopes) => {
+                            if (err) return done.fail();
+                            ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                            done();
+                          });
+                        });
+                      });
+                    });
+                  });
+                });
+              });
+
+              it('returns the info attached to the req.user object', done => {
                 authenticatedSession
-                  .get('/agent')
+                  .get(`/agent/${_identity.sub}`)
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(201)
                   .end(function(err, res) {
                     if (err) return done.fail(err);
 
-                    expect(userRolesReadOauthTokenScope.isDone()).toBe(true);
-                    expect(userRolesReadScope.isDone()).toBe(true);
-
+                    expect(res.body.email).toEqual(_identity.email);
+                    expect(res.body.name).toEqual(_identity.name);
+                    expect(res.body.user_id).toEqual(_identity.sub);
+                    expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
                     done();
                   });
               });
 
-              it('is called to update the agent profile', done => {
+              it('removes all null values from teams/rsvps/pendingInvitations lists', done => {
                 authenticatedSession
-                  .get('/agent')
+                  .get(`/agent/${_identity.sub}`)
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(201)
                   .end(function(err, res) {
                     if (err) return done.fail(err);
-                    expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
-                    expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+
+                    expect(res.body.user_metadata.teams.length).toEqual(0);
+                    expect(res.body.user_metadata.rsvps.length).toEqual(0);
+                    expect(res.body.user_metadata.pendingInvitations.length).toEqual(0);
                     done();
                   });
+              });
+
+              describe('Auth0', () => {
+                it('is called to retrieve the agent profile', done => {
+                  authenticatedSession
+                    .get(`/agent/${_identity.sub}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(201)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(oauthTokenScope.isDone()).toBe(true);
+                      expect(userReadScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
+
+                it('is called to retrieve the roles to which the agent is assigned', done => {
+                  authenticatedSession
+                    .get(`/agent/${_identity.sub}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(201)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+
+                      expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
+                      expect(userRolesReadScope.isDone()).toBe(true);
+
+                      done();
+                    });
+                });
+
+                it('is called to update the agent profile', done => {
+                  authenticatedSession
+                    .get(`/agent/${_identity.sub}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(201)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                      expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
               });
             });
           });
-        });
 
-        describe('/agent/:id', () => {
-
-          describe('well-formed user_metadata', () => {
+          describe('email not verified', () => {
             let userReadScope;
             beforeEach(done => {
-              stubAuth0ManagementApi((err, apiScopes) => {
+              stubAuth0ManagementApi({ userRead: {..._profile, email_verified: false} }, (err, apiScopes) => {
                 if (err) return done.fail(err);
 
                 login(_identity, [scope.read.agents], (err, session) => {
@@ -448,220 +810,18 @@ describe('agentSpec', () => {
               });
             });
 
-            it('returns the info attached to the req.user object', done => {
+            it('returns 401 unauthenticated', done => {
               authenticatedSession
                 .get(`/agent/${_identity.sub}`)
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
-                .expect(200)
+                .expect(401)
                 .end(function(err, res) {
                   if (err) return done.fail(err);
 
-                  expect(res.body.email).toEqual(_identity.email);
-                  expect(res.body.name).toEqual(_identity.name);
-                  expect(res.body.user_id).toEqual(_identity.sub);
-                  expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
+                  expect(res.body.message).toEqual('Check your email to verify your account');
                   done();
                 });
-            });
-
-            describe('Auth0', () => {
-              it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
-                authenticatedSession
-                  .get(`/agent/${_identity.sub}`)
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(200)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-                    expect(oauthTokenScope.isDone()).toBe(true);
-                    done();
-                  });
-              });
-
-              it('calls Auth0 to read the agent at the Auth0-defined connection', done => {
-                authenticatedSession
-                  .get(`/agent/${_identity.sub}`)
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(200)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-
-                    expect(userReadScope.isDone()).toBe(true);
-                    done();
-                  });
-              });
-
-              it('is called to retrieve the roles to which the agent is assigned', done => {
-                authenticatedSession
-                  .get(`/agent/${_identity.sub}`)
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(200)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-
-                    expect(userRolesReadOauthTokenScope.isDone()).toBe(true);
-                    expect(userRolesReadScope.isDone()).toBe(true);
-
-                    done();
-                  });
-              });
-
-              it('is not called to update the agent profile', done => {
-                authenticatedSession
-                  .get(`/agent/${_identity.sub}`)
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(200)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-                    expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
-                    expect(userAppMetadataUpdateScope.isDone()).toBe(false);
-                    done();
-                  });
-              });
-
-              it('retrieves a record from Auth0', done => {
-                authenticatedSession
-                  .get(`/agent/${_identity.sub}`)
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(200)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-
-                    expect(res.body.email).toBeDefined();
-                    done();
-                  });
-              });
-            });
-          });
-
-          describe('missing user_metadata tolerance and correction', () => {
-            let userReadScope, mangledProfile;
-            beforeEach(done => {
-              mangledProfile = {
-                ..._profile,
-                user_metadata: {
-                  teams: [null, null, null],
-                  rsvps: [null, null, null],
-                  pendingInvitations: [null, null, null],
-                }
-              };
-              stubAuth0ManagementApi((err, apiScopes) => {
-                if (err) return done.fail(err);
-
-                login(_identity, [scope.read.agents], (err, session) => {
-                  if (err) return done.fail(err);
-                  authenticatedSession = session;
-
-                  // Cached profile doesn't match "live" data, so agent needs to be updated
-                  // with a call to Auth0
-                  stubUserRead((err, apiScopes) => {
-                    if (err) return done.fail();
-
-                    // This stub is for the tests defined in this block
-                    stubUserRead(mangledProfile, (err, apiScopes) => {
-                      if (err) return done.fail(err);
-                      ({userReadScope, oauthTokenScope} = apiScopes);
-
-                      // Retrieve the roles to which this agent is assigned
-                      stubUserRolesRead((err, apiScopes) => {
-                        if (err) return done.fail(err);
-                        ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
-
-                        // Update agent if null values are found
-                        stubUserAppMetadataUpdate(mangledProfile, (err, apiScopes) => {
-                          if (err) return done.fail();
-                          ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                          done();
-                        });
-                      });
-                    });
-                  });
-                });
-              });
-            });
-
-            it('returns the info attached to the req.user object', done => {
-              authenticatedSession
-                .get(`/agent/${_identity.sub}`)
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(201)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-
-                  expect(res.body.email).toEqual(_identity.email);
-                  expect(res.body.name).toEqual(_identity.name);
-                  expect(res.body.user_id).toEqual(_identity.sub);
-                  expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
-                  done();
-                });
-            });
-
-            it('removes all null values from teams/rsvps/pendingInvitations lists', done => {
-              authenticatedSession
-                .get(`/agent/${_identity.sub}`)
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(201)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-
-                  expect(res.body.user_metadata.teams.length).toEqual(0);
-                  expect(res.body.user_metadata.rsvps.length).toEqual(0);
-                  expect(res.body.user_metadata.pendingInvitations.length).toEqual(0);
-                  done();
-                });
-            });
-
-            describe('Auth0', () => {
-              it('is called to retrieve the agent profile', done => {
-                authenticatedSession
-                  .get(`/agent/${_identity.sub}`)
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(201)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-                    expect(oauthTokenScope.isDone()).toBe(true);
-                    expect(userReadScope.isDone()).toBe(true);
-                    done();
-                  });
-              });
-
-              it('is called to retrieve the roles to which the agent is assigned', done => {
-                authenticatedSession
-                  .get(`/agent/${_identity.sub}`)
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(201)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-
-                    expect(userRolesReadOauthTokenScope.isDone()).toBe(true);
-                    expect(userRolesReadScope.isDone()).toBe(true);
-
-                    done();
-                  });
-              });
-
-              it('is called to update the agent profile', done => {
-                authenticatedSession
-                  .get(`/agent/${_identity.sub}`)
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(201)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-                    expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
-                    expect(userAppMetadataUpdateScope.isDone()).toBe(true);
-                    done();
-                  });
-              });
             });
           });
         });
@@ -670,82 +830,31 @@ describe('agentSpec', () => {
       describe('delete', () => {
 
         let userDeleteScope;
-        beforeEach(done => {
-          stubAuth0ManagementApi((err, apiScopes) => {
-            if (err) return done.fail(err);
-
-            login(_identity, [scope.delete.agents], (err, session) => {
+        describe('email verified', () => {
+          beforeEach(done => {
+            stubAuth0ManagementApi((err, apiScopes) => {
               if (err) return done.fail(err);
-              authenticatedSession = session;
 
-              // Cached profile doesn't match "live" data, so agent needs to be updated
-              // with a call to Auth0
-              stubUserRead((err, apiScopes) => {
-                if (err) return done.fail();
+              login(_identity, [scope.delete.agents], (err, session) => {
+                if (err) return done.fail(err);
+                authenticatedSession = session;
 
-                stubAuth0ManagementEndpoint([apiScope.delete.users], (err, apiScopes) => {
-                  if (err) return done.fail(err);
-                  ({userDeleteScope, oauthTokenScope} = apiScopes);
-                  done();
+                // Cached profile doesn't match "live" data, so agent needs to be updated
+                // with a call to Auth0
+                stubUserRead((err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  stubAuth0ManagementEndpoint([apiScope.delete.users], (err, apiScopes) => {
+                    if (err) return done.fail(err);
+                    ({userDeleteScope, oauthTokenScope} = apiScopes);
+                    done();
+                  });
                 });
               });
             });
           });
-        });
 
-        it('removes an existing record from the database', done => {
-          authenticatedSession
-            .delete('/agent')
-            .send({
-              id: agent.id,
-            })
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(201)
-            .end(function(err, res) {
-              if (err) return done.fail(err);
-
-              expect(res.body.message).toEqual('Agent deleted');
-              done();
-            });
-        });
-
-        it('doesn\'t barf if agent doesn\'t exist', done => {
-          authenticatedSession
-            .delete('/agent')
-            .send({
-              id: 111,
-            })
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(404)
-            .end(function(err, res) {
-              if (err) return done.fail(err);
-
-              expect(res.body.message).toEqual('No such agent');
-              done();
-            });
-        });
-
-        describe('Auth0', () => {
-          it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
-            authenticatedSession
-              .delete('/agent')
-              .send({
-                id: agent.id,
-                name: 'Some Cool Guy'
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(201)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-                expect(oauthTokenScope.isDone()).toBe(true);
-                done();
-              });
-          });
-
-          it('calls Auth0 to delete the agent at the Auth0-defined connection', done => {
+          it('removes an existing record from the database', done => {
             authenticatedSession
               .delete('/agent')
               .send({
@@ -757,27 +866,249 @@ describe('agentSpec', () => {
               .end(function(err, res) {
                 if (err) return done.fail(err);
 
-                expect(userDeleteScope.isDone()).toBe(true);
+                expect(res.body.message).toEqual('Agent deleted');
                 done();
               });
           });
 
-          it('does not call the Auth0 endpoints if record doesn\'t exist', done => {
+          it('doesn\'t barf if agent doesn\'t exist', done => {
             authenticatedSession
               .delete('/agent')
               .send({
-                id: 333,
+                id: 111,
               })
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(404)
               .end(function(err, res) {
-                if (err) done.fail(err);
+                if (err) return done.fail(err);
 
-                expect(oauthTokenScope.isDone()).toBe(false);
-                expect(userDeleteScope.isDone()).toBe(false);
+                expect(res.body.message).toEqual('No such agent');
                 done();
               });
+          });
+
+          describe('Auth0', () => {
+            it('calls the Auth0 /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
+              authenticatedSession
+                .delete('/agent')
+                .send({
+                  id: agent.id,
+                  name: 'Some Cool Guy'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+                  expect(oauthTokenScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+
+            it('calls Auth0 to delete the agent at the Auth0-defined connection', done => {
+              authenticatedSession
+                .delete('/agent')
+                .send({
+                  id: agent.id,
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(userDeleteScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+
+            it('does not call the Auth0 endpoints if record doesn\'t exist', done => {
+              authenticatedSession
+                .delete('/agent')
+                .send({
+                  id: 333,
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(404)
+                .end(function(err, res) {
+                  if (err) done.fail(err);
+
+                  expect(oauthTokenScope.isDone()).toBe(false);
+                  expect(userDeleteScope.isDone()).toBe(false);
+                  done();
+                });
+            });
+          });
+        });
+
+        describe('email not verified', () => {
+          beforeEach(done => {
+            stubAuth0ManagementApi({ userRead: {..._profile, email_verified: false} }, (err, apiScopes) => {
+              if (err) return done.fail(err);
+
+              login(_identity, [scope.delete.agents], (err, session) => {
+                if (err) return done.fail(err);
+                authenticatedSession = session;
+
+                // Cached profile doesn't match "live" data, so agent needs to be updated
+                // with a call to Auth0
+                stubUserRead((err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  stubAuth0ManagementEndpoint([apiScope.delete.users], (err, apiScopes) => {
+                    if (err) return done.fail(err);
+                    ({userDeleteScope, oauthTokenScope} = apiScopes);
+                    done();
+                  });
+                });
+              });
+            });
+          });
+
+          it('returns 401 unauthenticated', done => {
+            authenticatedSession
+              .delete('/agent')
+              .send({
+                id: agent.id,
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(401)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(res.body.message).toEqual('Check your email to verify your account');
+                done();
+              });
+          });
+        });
+      });
+
+      describe('/agent/verify - email verification', () => {
+
+        describe('email already verified', () => {
+          beforeEach(done => {
+            stubAuth0ManagementApi((err, apiScopes) => {
+              if (err) return done.fail(err);
+
+              login(_identity, (err, session) => {
+                if (err) return done.fail(err);
+                authenticatedSession = session;
+
+                // Cached profile doesn't match "live" data, so agent needs to be updated
+                // with a call to Auth0
+                stubUserRead((err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  stubEmailVerification((err, apiScopes) => {
+                    if (err) return done.fail(err);
+                    ({emailVerificationScope, emailVerificationOauthTokenScope} = apiScopes);
+                    done();
+                  });
+                });
+              });
+            });
+          });
+
+          it('returns a friendly message', done => {
+            authenticatedSession
+              .post('/agent/verify')
+              .send({
+                id: 'some-uuid-v4'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(res.body.message).toBe('Email already verified');
+                done();
+              });
+          });
+
+          describe('Auth0', () => {
+            it('is not called to re-send an email verification', done => {
+              authenticatedSession
+                .post('/agent/verify')
+                .send({
+                  id: 'some-uuid-v4'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(emailVerificationOauthTokenScope.isDone()).toBe(false);
+                  expect(emailVerificationScope.isDone()).toBe(false);
+                  done();
+                });
+            });
+          });
+        });
+
+        describe('email not yet verified', () => {
+          beforeEach(done => {
+            stubAuth0ManagementApi({ userRead: {..._profile, email_verified: false} }, (err, apiScopes) => {
+              if (err) return done.fail(err);
+
+              login(_identity, [scope.delete.agents], (err, session) => {
+                if (err) return done.fail(err);
+                authenticatedSession = session;
+
+                // Cached profile doesn't match "live" data, so agent needs to be updated
+                // with a call to Auth0
+                stubUserRead((err, apiScopes) => {
+                  if (err) return done.fail();
+
+                  stubEmailVerification((err, apiScopes) => {
+                    if (err) return done.fail(err);
+                    ({emailVerificationScope, emailVerificationOauthTokenScope} = apiScopes);
+                    done();
+                  });
+                });
+              });
+            });
+          });
+
+          it('returns a friendly message', done => {
+            authenticatedSession
+              .post('/agent/verify')
+              .send({
+                id: 'some-uuid-v4'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(res.body.message).toBe('Verification sent. Check your email');
+                done();
+              });
+          });
+
+          describe('Auth0', () => {
+            it('is called to re-send an email verification', done => {
+              authenticatedSession
+                .post('/agent/verify')
+                .send({
+                  id: 'some-uuid-v4'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end(function(err, res) {
+                  if (err) return done.fail(err);
+
+                  expect(emailVerificationOauthTokenScope.isDone()).toBe(true);
+                  expect(emailVerificationScope.isDone()).toBe(true);
+                  done();
+                });
+            });
           });
         });
       });

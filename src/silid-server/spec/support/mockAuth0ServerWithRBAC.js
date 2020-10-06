@@ -4,9 +4,6 @@
  * Trick the client and server into thinking they're actually talking to Auth0
  *
  * RBAC: Role-Based Access Control
- *
- * Cf., mockAuth0Server uses an opaque access_code. This mock server
- * provides an agent's scope in its access token.
  */
 require('dotenv-flow').config();
 
@@ -598,11 +595,22 @@ require('../support/setupKeystore').then(keyStuff => {
                                                               }
                                                      });
 
-          results.socialProfile.user_metadata = request.payload.user_metadata;
+          if (request.payload.user_metadata) {
+            results.socialProfile.user_metadata = request.payload.user_metadata;
+            results.changed('socialProfile', true);
+          }
+          //
+          // 2020-9-10
+          //
+          // Keep an eye on this... the Auth0 api allows updating user_metadata, though
+          // a seperate method exists as well.
+          //
+          // else {
+            results.socialProfile = {...results.socialProfile, ...request.payload};
+          //}
 
           // 2020-4-28 https://github.com/sequelize/sequelize/issues/4387#issuecomment-135804557
           // Without this, the nested JSON won't actually save
-          results.changed('socialProfile', true);
           await results.save();
 
           return h.response({...results.socialProfile, user_id: results.socialProfile._json.sub });
@@ -707,6 +715,33 @@ require('../support/setupKeystore').then(keyStuff => {
           return h.response(_roles);
         }
       });
+
+
+      /***************************************/
+      /**        EMAIL VERIFICATION         **/
+      /***************************************/
+      /**
+       * POST `/api/v2/jobs/email-verification`
+       *
+       * 2020-7-24
+       * Sample response taken from:
+       * https://auth0.com/docs/api/management/v2?_ga=2.91635738.1600097788.1595507023-63924015.1587573995#!/Jobs/post_verification_email
+       */
+      server.route({
+        method: 'POST',
+        path: '/api/v2/jobs/verification-email',
+        handler: (request, h) => {
+          console.log('POST /api/v2/jobs/email-verification');
+
+          return h.response({
+            "status": "completed",
+            "type": "verification_email",
+            "created_at": "",
+            "id": "job_0000000000000001"
+          });
+        }
+      });
+
 
       await server.start();
       console.log('Server running on %s', server.info.uri);
