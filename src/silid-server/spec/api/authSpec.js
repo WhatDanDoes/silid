@@ -467,7 +467,7 @@ describe('authSpec', () => {
             expect(loc.pathname).toMatch('/v2/logout');
             expect(loc.searchParams.get('client_id')).toMatch(process.env.AUTH0_CLIENT_ID);
             expect(loc.searchParams.get('returnTo')).toMatch(process.env.SERVER_DOMAIN);
-            expect(loc.searchParams.get('federated')).toBe(true);
+            expect(loc.searchParams.get('federated')).toEqual('true');
             done();
           });
       });
