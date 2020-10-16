@@ -5,6 +5,8 @@ const nock = require('nock');
 const querystring = require('querystring');
 const jwt = require('jsonwebtoken');
 const models = require('../../models');
+const url = require('url');
+
 
 describe('authSpec', () => {
 
@@ -634,7 +636,7 @@ describe('authSpec', () => {
       // This is not testing the client side app
       describe('Logout', () => {
 
-        let logoutScope;
+        let logoutScope, getClientsScope, clientLogoutScopes;
         beforeEach(done => {
           // Clear Auth0 SSO session cookies
           logoutScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
@@ -645,6 +647,34 @@ describe('authSpec', () => {
               returnTo: process.env.SERVER_DOMAIN,
             })
             .reply(302, {}, { 'Location': process.env.SERVER_DOMAIN });
+
+
+          const clientCallbacks = [{ 'callbacks': ['http://xyz.io/callback', 'https://abc.com/some-callback'] },
+                                   { 'callbacks': ['https://example.com/callback'] },
+                                   { 'callbacks': ['https://sub.example.com/callback', 'http://dev.example.com/dev'] }
+                                  ];
+          getClientsScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+            .log(console.log)
+            .get('/v2/clients')
+            .query({
+              fields: 'callbacks',
+              include_fields: true,
+            })
+            .reply(200, clientCallbacks);
+
+          clientLogoutScopes = [];
+          for (let client of clientCallbacks) {
+            for (let callback of client.callbacks) {
+              let urlObj = new url.URL(callback);
+              console.log(urlObj.origin);
+              clientLogoutScopes.push(nock(urlObj.origin)
+                                       .log(console.log)
+                                       .get('/logout')
+                                       .reply(302, {}, { 'Location': `https://${process.env.AUTH0_DOMAIN}/v2/logout` })
+                                     );
+            }
+          }
+
 
           browser.clickLink('Login', (err) => {
             if (err) return done.fail(err);
@@ -666,6 +696,25 @@ describe('authSpec', () => {
           browser.clickLink('Logout', (err) => {
             if (err) return done.fail(err);
             expect(logoutScope.isDone()).toBe(true);
+            done();
+          });
+        });
+
+        it('calls the Auth0 Get Clients endpoint', done => {
+          browser.clickLink('Logout', (err) => {
+            if (err) return done.fail(err);
+            expect(getClientsScope.isDone()).toBe(true);
+            done();
+          });
+        });
+
+        // This assumes that all SIL apps have a /logout endpoint
+        it('calls all the client apps logout endpoints', done => {
+          browser.clickLink('Logout', (err) => {
+            if (err) return done.fail(err);
+            for (let scope of clientLogoutScopes) {
+              expect(scope.isDone()).toBe(true);
+            }
             done();
           });
         });
