@@ -426,12 +426,12 @@ describe('authSpec', () => {
 
     describe('/logout', () => {
 
-      let ssoScope;
+      let logoutScope;
       beforeEach(done => {
         /**
          * Redirect client to Auth0 `/logout` after silid session is cleared
          */
-        ssoScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+        logoutScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
           .log(console.log)
           .get('/v2/logout')
           .query({
@@ -471,6 +471,17 @@ describe('authSpec', () => {
             done();
           });
       });
+
+      it('calls the Auth0 SSO /logout endpoint on redirect', done => {
+        session
+          .get('/logout')
+          .redirects(1)
+          .end((err, res) => {
+            if (err) return done.fail(err);
+            expect(logoutScope.isDone()).toBe(true);
+            done();
+          });
+      });
     });
   });
 
@@ -486,7 +497,6 @@ describe('authSpec', () => {
     // Setup and configure zombie browser
     const Browser = require('zombie');
     Browser.localhost('localhost', PORT);
-
 
     let browser;
     beforeEach(() => {
@@ -624,9 +634,11 @@ describe('authSpec', () => {
 
       // This is not testing the client side app
       describe('Logout', () => {
+
+        let logoutScope;
         beforeEach(done => {
           // Clear Auth0 SSO session cookies
-          nock(`https://${process.env.AUTH0_DOMAIN}`)
+          logoutScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
             .log(console.log)
             .get('/v2/logout')
             .query({
@@ -648,6 +660,14 @@ describe('authSpec', () => {
             if (err) return done.fail(err);
             browser.assert.elements('a[href="/login"]');
             browser.assert.elements('a[href="/logout"]', 0);
+            done();
+          });
+        });
+
+        it('calls the Auth0 logout endpoint', done => {
+          browser.clickLink('Logout', (err) => {
+            if (err) return done.fail(err);
+            expect(logoutScope.isDone()).toBe(true);
             done();
           });
         });
