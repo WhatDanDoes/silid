@@ -437,7 +437,6 @@ describe('authSpec', () => {
           .query({
             client_id: process.env.AUTH0_CLIENT_ID,
             returnTo: process.env.SERVER_DOMAIN,
-            federated: true
           })
           .reply(302, {}, { 'Location': process.env.SERVER_DOMAIN });
         done();
@@ -467,7 +466,7 @@ describe('authSpec', () => {
             expect(loc.pathname).toMatch('/v2/logout');
             expect(loc.searchParams.get('client_id')).toMatch(process.env.AUTH0_CLIENT_ID);
             expect(loc.searchParams.get('returnTo')).toMatch(process.env.SERVER_DOMAIN);
-            expect(loc.searchParams.get('federated')).toEqual('true');
+            expect(loc.searchParams.get('federated')).toBe(null);
             done();
           });
       });
@@ -644,7 +643,6 @@ describe('authSpec', () => {
             .query({
               client_id: process.env.AUTH0_CLIENT_ID,
               returnTo: process.env.SERVER_DOMAIN,
-              federated: true,
             })
             .reply(302, {}, { 'Location': process.env.SERVER_DOMAIN });
 

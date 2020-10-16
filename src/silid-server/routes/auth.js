@@ -91,7 +91,6 @@ router.get('/logout', (req, res) => {
   const searchString = querystring.stringify({
     client_id: process.env.AUTH0_CLIENT_ID,
     returnTo: process.env.SERVER_DOMAIN,
-    federated: true,
   });
   logoutURL.search = searchString;
 
