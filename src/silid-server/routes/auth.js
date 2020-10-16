@@ -7,6 +7,7 @@ const request = require('request');
 const util = require('util');
 const querystring = require('querystring');
 const url = require('url');
+const getManagementClient = require('../lib/getManagementClient');
 
 const apiScope = require('../config/apiPermissions');
 const roles = require('../config/roles');
@@ -97,6 +98,22 @@ router.get('/logout', (req, res) => {
   req.session.destroy(err => {
     res.redirect(logoutURL);
   });
+});
+
+router.get('/cheerio', (req, res) => {
+//
+// Note to self:
+// This can't happen here otherwise Identity will have to reauthenticate
+// Need a database table to track clients
+//
+//  const managementClient = getManagementClient([apiScope.read.clients].join(' '));
+//  managementClient.clients.getAll().then(clients => {
+////console.log(clients);
+    res.render('cheerio');
+//  }).catch(err => {
+//console.log(err);
+//    res.status(err.statusCode).json(err.message.error_description);
+//  });
 });
 
 module.exports = router;
