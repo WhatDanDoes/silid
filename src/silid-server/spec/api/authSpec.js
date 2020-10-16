@@ -646,7 +646,7 @@ describe('authSpec', () => {
               client_id: process.env.AUTH0_CLIENT_ID,
               returnTo: process.env.SERVER_DOMAIN,
             })
-            .reply(302, {}, { 'Location': process.env.SERVER_DOMAIN });
+            .reply(302, {}, { 'Location': `${process.env.SERVER_DOMAIN}/cheerio` });
 
 
           const clientCallbacks = [{ 'callbacks': ['http://xyz.io/callback', 'https://abc.com/some-callback'] },
@@ -675,7 +675,6 @@ describe('authSpec', () => {
             }
           }
 
-
           browser.clickLink('Login', (err) => {
             if (err) return done.fail(err);
             browser.assert.success();
@@ -688,6 +687,8 @@ describe('authSpec', () => {
             if (err) return done.fail(err);
             browser.assert.elements('a[href="/login"]');
             browser.assert.elements('a[href="/logout"]', 0);
+            browser.assert.text('main h2', 'You have been logged out of all your SIL applications');
+            browser.assert.text('main > h1', 'Cheerio!');
             done();
           });
         });
@@ -709,7 +710,7 @@ describe('authSpec', () => {
         });
 
         // This assumes that all SIL apps have a /logout endpoint
-        it('calls all the client apps logout endpoints', done => {
+        it('calls all the client apps\' logout endpoints', done => {
           browser.clickLink('Logout', (err) => {
             if (err) return done.fail(err);
             for (let scope of clientLogoutScopes) {
