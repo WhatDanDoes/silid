@@ -438,9 +438,9 @@ describe('authSpec', () => {
           .get('/v2/logout')
           .query({
             client_id: process.env.AUTH0_CLIENT_ID,
-            returnTo: process.env.SERVER_DOMAIN,
+            returnTo: process.env.SERVER_DOMAIN + '/cheerio',
           })
-          .reply(302, {}, { 'Location': process.env.SERVER_DOMAIN });
+          .reply(302, {}, { 'Location': process.env.SERVER_DOMAIN + '/cheerio' });
         done();
       });
 
@@ -665,7 +665,7 @@ describe('authSpec', () => {
             .get('/v2/logout')
             .query({
               client_id: process.env.AUTH0_CLIENT_ID,
-              returnTo: process.env.SERVER_DOMAIN,
+              returnTo: process.env.SERVER_DOMAIN + '/cheerio',
             })
             .reply(302, {}, { 'Location': `${process.env.SERVER_DOMAIN}/cheerio` });
 
