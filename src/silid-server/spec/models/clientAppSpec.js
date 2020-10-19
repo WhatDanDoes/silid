@@ -12,7 +12,7 @@ describe('ClientApp', () => {
   beforeEach(done => {
     db.sequelize.sync({force: true}).then(() => {
       _valid.clientId = 'someCli13nt1d';
- 
+
       clientApp = new ClientApp(_valid);
       done();
     }).catch(err => {
