@@ -25,6 +25,8 @@ const localeRouter = require('./routes/locale');
 const timezoneRouter = require('./routes/timezone');
 
 const app = express();
+// Cookies won't be set in production unless you trust the proxy behind which this software runs
+app.set('trust proxy', 1);
 
 /**
  * view engine setup
@@ -50,11 +52,11 @@ const store = new SequelizeStore({ db: db.sequelize });
 
 app.use(
   session({
+    name: 'silid-server',
     secret: process.env.AUTH0_CLIENT_SECRET, // This seemed convenient
     store: store,
     resave: false,
-    //cookie: { sameSite: 'none', secure: true},
-    cookie: { maxAge: 1000 * 60 * 60 },
+    cookie: { maxAge: 1000 * 60 * 60, sameSite: 'none', secure: true },
     saveUninitialized: true
   })
 );
