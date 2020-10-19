@@ -39,6 +39,9 @@
       </section>
       <h2>You have been logged out of all your SIL applications</h2>
       <h1>Cheerio!</h1>
+      <% for (let url of logoutUrls) { %>
+        <iframe src="<%= url %>" style="width:0;height:0;border:0; border:none;"></iframe>
+      <% } %>
     </main>
   </body>
 </html>

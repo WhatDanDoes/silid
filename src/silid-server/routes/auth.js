@@ -101,19 +101,30 @@ router.get('/logout', (req, res) => {
 });
 
 router.get('/cheerio', (req, res) => {
-//
-// Note to self:
-// This can't happen here otherwise Identity will have to reauthenticate
-// Need a database table to track clients
-//
-//  const managementClient = getManagementClient([apiScope.read.clients].join(' '));
-//  managementClient.clients.getAll().then(clients => {
-////console.log(clients);
-    res.render('cheerio');
-//  }).catch(err => {
-//console.log(err);
-//    res.status(err.statusCode).json(err.message.error_description);
-//  });
+  const managementClient = getManagementClient([apiScope.read.clients].join(' '));
+  managementClient.clients.getAll({
+    fields: 'client_id,name,callbacks',
+    include_fields: true,
+  }).then(clients => {
+
+    /**
+     * This assumes every registered client application has a `/logout` route
+     */
+    const logoutUrls = [];
+    for (let client of clients) {
+      for (callback of client.callbacks) {
+        const urlObj = new url.URL(callback);
+        const logoutUrl = urlObj.origin + '/logout';
+        if (logoutUrls.indexOf(logoutUrl) < 0) {
+          logoutUrls.push(logoutUrl);
+        }
+      };
+    };
+
+    res.render('cheerio', { logoutUrls: logoutUrls });
+  }).catch(err => {
+    res.status(err.statusCode).json(err.message.error_description);
+  });
 });
 
 module.exports = router;
