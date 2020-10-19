@@ -15,7 +15,7 @@ module.exports = {
         unique: true,
       },
       profile: {
-        type: Sequelize.JSONB
+        type: Sequelize.JSONB,
         defaultValue: {}
       },
       createdAt: {
