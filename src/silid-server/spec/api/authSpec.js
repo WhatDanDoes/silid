@@ -86,6 +86,30 @@ describe('authSpec', () => {
         .end(function(err, res) {
           if (err) return done.fail(err);
           expect(session.cookies.length).toEqual(1);
+          expect(session.cookies[0].name).toEqual('silid-server');
+          expect(session.cookies[0].value).toBeDefined();
+          expect(typeof session.cookies[0].expiration_date).toEqual('number');
+          expect(session.cookies[0].expiration_date).not.toEqual(Infinity);
+          expect(session.cookies[0].path).toEqual('/');
+          expect(session.cookies[0].explicit_path).toBe(true);
+          expect(session.cookies[0].domain).toBeUndefined();
+          expect(session.cookies[0].explicit_domain).toBe(false);
+          expect(session.cookies[0].noscript).toBe(true);
+
+          //
+          // 2020-10-19
+          //
+          // The bulk of the above are defaults. These require manual
+          // testing, because in order for such a cookie to be put into the
+          // cookie jar, it would have to be HTTPS
+          //
+          // expect(session.cookies[0].secure).toBe(true);
+          // expect(session.cookies[0].sameSite).toEqual('none');
+          //
+          // These are test expectations. Production expetations are commented above
+          expect(session.cookies[0].secure).toBe(false);
+          expect(session.cookies[0].sameSite).toBeUndefined();
+
           done();
         });
     });

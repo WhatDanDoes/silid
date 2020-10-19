@@ -56,7 +56,7 @@ app.use(
     secret: process.env.AUTH0_CLIENT_SECRET, // This seemed convenient
     store: store,
     resave: false,
-    cookie: { maxAge: 1000 * 60 * 60, sameSite: 'none', secure: true },
+    cookie: { maxAge: 1000 * 60 * 60, sameSite: 'none', secure: process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging' },
     saveUninitialized: true
   })
 );
