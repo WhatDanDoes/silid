@@ -636,7 +636,7 @@ describe('authSpec', () => {
       // This is not testing the client side app
       describe('Logout', () => {
 
-        let logoutScope, getClientsScope, clientLogoutScopes;
+        let logoutScope, getClientsScope, clientLogoutScopes, clientCallbacks;
         beforeEach(done => {
           // Clear Auth0 SSO session cookies
           logoutScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
@@ -649,10 +649,23 @@ describe('authSpec', () => {
             .reply(302, {}, { 'Location': `${process.env.SERVER_DOMAIN}/cheerio` });
 
 
-          const clientCallbacks = [{ 'callbacks': ['http://xyz.io/callback', 'https://abc.com/some-callback'] },
-                                   { 'callbacks': ['https://example.com/callback'] },
-                                   { 'callbacks': ['https://sub.example.com/callback', 'http://dev.example.com/dev'] }
-                                  ];
+          clientCallbacks = [
+            {
+              "client_id": "SILIdentitysoKnqjj8HJqRn4T5titww",
+              "name": "SIL Identity",
+              "callbacks": ['http://xyz.io/callback', 'https://abc.com/some-callback']
+            },
+            {
+              "client_id": "TranscribersoKnqjj8HJqRn4T5titww",
+              "name": "Transcriber",
+              "callbacks": [ "http://example.com/callback" ],
+            },
+            {
+              "client_id": "ScriptureForgenqjj8HJqRn4T5titww",
+              "name": "Scripture Forge",
+              "callbacks": ['https://sub.example.com/callback', 'http://dev.example.com/dev'],
+            }
+          ];
           getClientsScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
             .log(console.log)
             .get('/v2/clients')
@@ -706,6 +719,79 @@ describe('authSpec', () => {
             if (err) return done.fail(err);
             expect(getClientsScope.isDone()).toBe(true);
             done();
+          });
+        });
+
+        it('adds the client application profiles to the database', done => {
+          console.log(models);
+          models.ClientApp.findAll().then(apps => {
+            expect(apps.length).toEqual(0);
+            browser.clickLink('Logout', (err) => {
+              if (err) return done.fail(err);
+              models.ClientApp.findAll({}).then(apps => {
+                expect(apps.length).toEqual(clientCallbacks.length);
+                done();
+              }).catch(err => {
+                done.fail(err);
+              });
+            });
+          }).catch(err => {
+            done.fail(err);
+          });
+        });
+
+        it('adds new database records', done => {
+          models.ClientApp.create({ clientId: clientCallbacks[0].client_id, profile: clientCallbacks[0] }).then(result => {
+            models.ClientApp.findAll({}).then(apps => {
+            expect(apps.length).toEqual(1);
+              browser.clickLink('Logout', (err) => {
+                if (err) return done.fail(err);
+                models.ClientApp.findAll({}).then(apps => {
+                  expect(apps.length).toEqual(clientCallbacks.length);
+                  done();
+                }).catch(err => {
+                  done.fail(err);
+                });
+              });
+            }).catch(err => {
+              done.fail(err);
+            });
+          }).catch(err => {
+            done.fail(err);
+          });
+        });
+
+        it('removes old database records', done => {
+          const deprecatedProfile = {
+            clientId: "SomeDeprecatedAppj8HJqRn4T5titww",
+            profile: {
+              "client_id": "SomeDeprecatedAppj8HJqRn4T5titww",
+              "name": "Some Deprecated App",
+              "callbacks": ['http://someapp.org/callback']
+            }
+          };
+          models.ClientApp.create(deprecatedProfile).then(result => {
+            models.ClientApp.findAll({}).then(apps => {
+              expect(apps.length).toEqual(1);
+              browser.clickLink('Logout', (err) => {
+                if (err) return done.fail(err);
+                models.ClientApp.findAll({}).then(apps => {
+                  expect(apps.length).toEqual(clientCallbacks.length);
+                  for (let app of apps) {
+                    if (app.clientId === deprecatedProfile.clientId) {
+                      return done.fail('Deprecated profile not removed');
+                    }
+                  }
+                  done();
+                }).catch(err => {
+                  done.fail(err);
+                });
+              });
+            }).catch(err => {
+              done.fail(err);
+            });
+          }).catch(err => {
+            done.fail(err);
           });
         });
 
