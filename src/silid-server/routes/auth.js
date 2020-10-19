@@ -112,6 +112,7 @@ router.get('/cheerio', (req, res) => {
      */
     const logoutUrls = [];
     for (let client of clients) {
+      if (!client.callbacks) continue;
       for (callback of client.callbacks) {
         const urlObj = new url.URL(callback);
         const logoutUrl = urlObj.origin + '/logout';

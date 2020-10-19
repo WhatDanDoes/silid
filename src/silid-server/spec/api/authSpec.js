@@ -685,7 +685,12 @@ describe('authSpec', () => {
               "client_id": "ScriptureForgenqjj8HJqRn4T5titww",
               "name": "Scripture Forge",
               "callbacks": ['https://sub.example.com/callback', 'http://dev.example.com/dev'],
+            },
+            {
+              "client_id": "NoCallbacksrgenqjj8HJqRn4T5titww",
+              "name": "Misconfigured. No callbacks"
             }
+
           ];
           getClientsScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
             .log(console.log)
@@ -698,6 +703,7 @@ describe('authSpec', () => {
 
           clientLogoutScopes = [];
           for (let client of clientCallbacks) {
+            if (!client.callbacks) continue;
             for (let callback of client.callbacks) {
               let urlObj = new url.URL(callback);
               clientLogoutScopes.push(nock(urlObj.origin)
