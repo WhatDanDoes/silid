@@ -65,7 +65,7 @@ app.use(
     resave: false,
     cookie: {
       maxAge: 1000 * 60 * 60,
-      sameSite: 'none',
+      sameSite: process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging' ? 'none' : undefined,
       secure: process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging'
     },
     saveUninitialized: true
