@@ -245,6 +245,14 @@ From the `silid-server` API settings:
 - Enable RBAC
 - Add Permissions in the Access Token
 
+### Tenant-Level Logout
+
+Single-Sign-Out depends upon correctly configuring the tenant-level logout URL (cf., _Third-Party Integration_ below).
+
+https://auth0.com/docs/logout#set-the-allowed-logout-urls-at-the-tenant-level
+
+Include this application's `/cheerio` route in the list of _Allowed Logout URLs_.
+
 ### Third-Party Integration
 
 In order for Single-Sign-Out to work, all third-party applications require a `/logout` endpoint that clears the application session and calls Auth0's `/logout` endpoint with the application's `client_id` request parameter. The `returnTo` request parameter _must not_ be included so that the Auth0 server returns the agent to the first tenant-level _Allowed Logout URL_ set in the Dashboard.
