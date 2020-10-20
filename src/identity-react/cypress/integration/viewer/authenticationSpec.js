@@ -16,7 +16,8 @@ context('viewer/Authentication', function() {
       cy.visit('/');
 
       cy.getCookies().should('have.length', 1).then(cookies => {
-        expect(cookies[0]).to.have.property('name', 'connect.sid');
+        // This doesn't reflect production cookie expectations
+        expect(cookies[0]).to.have.property('name', 'silid-server');
         expect(cookies[0]).to.have.property('value');
         expect(cookies[0]).to.have.property('domain');
         expect(cookies[0]).to.have.property('httpOnly', true);
