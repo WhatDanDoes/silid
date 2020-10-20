@@ -220,7 +220,9 @@ docker-compose -f docker-compose.staging.yml exec app node config/seed.js
 
 # Development and Production Deployments
 
-## Auth0 Role/Permissions Configuration
+## Auth0
+
+### Role/Permissions Configuration
 
 At the moment, a `viewer` role with the permissions listed below must be configured for the `silid-sever` machine-to-machine application at Auth0:
 
@@ -235,6 +237,19 @@ At the moment, a `viewer` role with the permissions listed below must be configu
 - update:teams
 
 The role and the permissions defined therein are subject to change without notice. These may eventually be eliminated entirely.
+
+### API
+
+From the `silid-server` API settings:
+
+- Enable RBAC
+- Add Permissions in the Access Token
+
+### Third-Party Integration
+
+In order for Single-Sign-Out to work, all third-party applications require a `/logout` endpoint that clears the application session and calls Auth0's `/logout` endpoint with the application's `client_id` request parameter. The `returnTo` request parameter _must not_ be included so that the Auth0 server returns the agent to the first tenant-level _Allowed Logout URL_ set in the Dashboard.
+
+More information here: https://auth0.com/docs/api/authentication#logout
 
 # AWS Prod Topology
 
