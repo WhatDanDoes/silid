@@ -6,6 +6,7 @@ const querystring = require('querystring');
 const jwt = require('jsonwebtoken');
 const models = require('../../models');
 const url = require('url');
+const cheerio = require('cheerio');
 
 
 describe('authSpec', () => {
@@ -508,6 +509,99 @@ describe('authSpec', () => {
           });
       });
     });
+
+    describe('/cheerio', () => {
+
+      let getClientsScope, clientLogoutScopes, clientCallbacks, redirectScope;
+      beforeEach(done => {
+        const accessToken = jwt.sign({..._access, scope: [apiScope.read.clients]},
+                                      prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
+
+        const getClientsOauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+          .log(console.log)
+          .post(/oauth\/token/, {
+                                  'grant_type': 'client_credentials',
+                                  'client_id': process.env.AUTH0_CLIENT_ID,
+                                  'client_secret': process.env.AUTH0_CLIENT_SECRET,
+                                  'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                                  'scope': apiScope.read.clients
+                                })
+          .reply(200, {
+            'access_token': accessToken,
+            'token_type': 'Bearer',
+          });
+
+        redirectScope = nock('http://example.com')
+          .log(console.log)
+          .get('/')
+          .reply(200);
+
+        clientCallbacks = [
+          {
+            "client_id": "SILIdentitysoKnqjj8HJqRn4T5titww",
+            "name": "SIL Identity",
+            "callbacks": ['http://xyz.io/callback', 'https://abc.com/some-callback']
+          },
+          {
+            "client_id": "TranscribersoKnqjj8HJqRn4T5titww",
+            "name": "Transcriber",
+            "callbacks": [ "http://example.com/callback" ],
+          },
+          {
+            "client_id": "ScriptureForgenqjj8HJqRn4T5titww",
+            "name": "Scripture Forge",
+            "callbacks": ['https://sub.example.com/callback', 'http://dev.example.com/dev'],
+          },
+          {
+            "client_id": "NoCallbacksrgenqjj8HJqRn4T5titww",
+            "name": "Misconfigured. No callbacks"
+          }
+        ];
+        getClientsScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+          .log(console.log)
+          .get(/api\/v2\/clients/)
+          .query({
+            fields: 'client_id,name,callbacks',
+            include_fields: true,
+          })
+          .reply(200, clientCallbacks);
+
+        clientLogoutScopes = [];
+        for (let client of clientCallbacks) {
+          if (!client.callbacks) continue;
+          for (let callback of client.callbacks) {
+            let urlObj = new url.URL(callback);
+            clientLogoutScopes.push(nock(urlObj.origin)
+                                     .log(console.log)
+                                     .get('/logout')
+                                     .reply(302, {})
+                                   );
+          }
+        }
+
+        done();
+      });
+
+      it('displays the correct interface', done => {
+        session
+          .get('/cheerio')
+          .query({ returnTo: 'http://example.com' })
+          .expect(200)
+          .end((err, res) => {
+            if (err) return done.fail(err);
+            console.log(res.text);
+            const $ = cheerio.load(res.text);
+
+            console.log(`WOOOOOORD`);
+            console.log($('a').attr('href'));
+            expect($('a').attr('href')).toEqual('/login');
+            expect($('main h2').text()).toEqual('You are being logged out of all SIL applications');
+            expect($('main > h1').text()).toEqual('Cheerio!');
+
+            done();
+          });
+      });
+    });
   });
 
   describe('Browser', () => {
@@ -691,7 +785,7 @@ describe('authSpec', () => {
               client_id: process.env.AUTH0_CLIENT_ID,
               returnTo: process.env.SERVER_DOMAIN + '/cheerio',
             })
-            .reply(302, {}, { 'Location': `${process.env.SERVER_DOMAIN}/cheerio` });
+            .reply(302, {}, { 'Location': `${process.env.SERVER_DOMAIN}/cheerio?returnTo=${process.env.SERVER_DOMAIN}` });
 
 
           clientCallbacks = [
@@ -714,7 +808,6 @@ describe('authSpec', () => {
               "client_id": "NoCallbacksrgenqjj8HJqRn4T5titww",
               "name": "Misconfigured. No callbacks"
             }
-
           ];
           getClientsScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
             .log(console.log)
@@ -745,13 +838,10 @@ describe('authSpec', () => {
           });
         });
 
-        it('displays the correct interface', done => {
+        it('lands in the right place', done => {
           browser.clickLink('Logout', (err) => {
             if (err) return done.fail(err);
-            browser.assert.elements('a[href="/login"]');
-            browser.assert.elements('a[href="/logout"]', 0);
-            browser.assert.text('main h2', 'You have been logged out of all your SIL applications');
-            browser.assert.text('main > h1', 'Cheerio!');
+            browser.assert.url('/');
             done();
           });
         });
@@ -771,79 +861,6 @@ describe('authSpec', () => {
             done();
           });
         });
-
-//        it('adds the client application profiles to the database', done => {
-//          console.log(models);
-//          models.ClientApp.findAll().then(apps => {
-//            expect(apps.length).toEqual(0);
-//            browser.clickLink('Logout', (err) => {
-//              if (err) return done.fail(err);
-//              models.ClientApp.findAll({}).then(apps => {
-//                expect(apps.length).toEqual(clientCallbacks.length);
-//                done();
-//              }).catch(err => {
-//                done.fail(err);
-//              });
-//            });
-//          }).catch(err => {
-//            done.fail(err);
-//          });
-//        });
-//
-//        it('adds new database records', done => {
-//          models.ClientApp.create({ clientId: clientCallbacks[0].client_id, profile: clientCallbacks[0] }).then(result => {
-//            models.ClientApp.findAll({}).then(apps => {
-//            expect(apps.length).toEqual(1);
-//              browser.clickLink('Logout', (err) => {
-//                if (err) return done.fail(err);
-//                models.ClientApp.findAll({}).then(apps => {
-//                  expect(apps.length).toEqual(clientCallbacks.length);
-//                  done();
-//                }).catch(err => {
-//                  done.fail(err);
-//                });
-//              });
-//            }).catch(err => {
-//              done.fail(err);
-//            });
-//          }).catch(err => {
-//            done.fail(err);
-//          });
-//        });
-//
-//        it('removes old database records', done => {
-//          const deprecatedProfile = {
-//            clientId: "SomeDeprecatedAppj8HJqRn4T5titww",
-//            profile: {
-//              "client_id": "SomeDeprecatedAppj8HJqRn4T5titww",
-//              "name": "Some Deprecated App",
-//              "callbacks": ['http://someapp.org/callback']
-//            }
-//          };
-//          models.ClientApp.create(deprecatedProfile).then(result => {
-//            models.ClientApp.findAll({}).then(apps => {
-//              expect(apps.length).toEqual(1);
-//              browser.clickLink('Logout', (err) => {
-//                if (err) return done.fail(err);
-//                models.ClientApp.findAll({}).then(apps => {
-//                  expect(apps.length).toEqual(clientCallbacks.length);
-//                  for (let app of apps) {
-//                    if (app.clientId === deprecatedProfile.clientId) {
-//                      return done.fail('Deprecated profile not removed');
-//                    }
-//                  }
-//                  done();
-//                }).catch(err => {
-//                  done.fail(err);
-//                });
-//              });
-//            }).catch(err => {
-//              done.fail(err);
-//            });
-//          }).catch(err => {
-//            done.fail(err);
-//          });
-//        });
 
         // This assumes that all SIL apps have a /logout endpoint
         it('calls all the client apps\' logout endpoints', done => {
