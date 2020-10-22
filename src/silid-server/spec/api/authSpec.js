@@ -589,14 +589,11 @@ describe('authSpec', () => {
           .expect(200)
           .end((err, res) => {
             if (err) return done.fail(err);
-            console.log(res.text);
             const $ = cheerio.load(res.text);
 
-            console.log(`WOOOOOORD`);
-            console.log($('a').attr('href'));
-            expect($('a').attr('href')).toEqual('/login');
-            expect($('main h2').text()).toEqual('You are being logged out of all SIL applications');
-            expect($('main > h1').text()).toEqual('Cheerio!');
+            expect($('main h2').text()).toEqual('Logging out of all SIL applications...');
+            expect($('main section > h1 a').attr('href')).toEqual('/');
+            expect($('main section > h1 a').text()).toEqual('Cheerio!');
 
             done();
           });
