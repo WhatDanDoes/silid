@@ -5,6 +5,9 @@ const nock = require('nock');
 const querystring = require('querystring');
 const jwt = require('jsonwebtoken');
 const models = require('../../models');
+const url = require('url');
+const cheerio = require('cheerio');
+
 
 describe('authSpec', () => {
 
@@ -84,6 +87,30 @@ describe('authSpec', () => {
         .end(function(err, res) {
           if (err) return done.fail(err);
           expect(session.cookies.length).toEqual(1);
+          expect(session.cookies[0].name).toEqual('silid-server');
+          expect(session.cookies[0].value).toBeDefined();
+          expect(typeof session.cookies[0].expiration_date).toEqual('number');
+          expect(session.cookies[0].expiration_date).not.toEqual(Infinity);
+          expect(session.cookies[0].path).toEqual('/');
+          expect(session.cookies[0].explicit_path).toBe(true);
+          expect(session.cookies[0].domain).toBeUndefined();
+          expect(session.cookies[0].explicit_domain).toBe(false);
+          expect(session.cookies[0].noscript).toBe(true);
+
+          //
+          // 2020-10-19
+          //
+          // The bulk of the above are defaults. These require manual
+          // testing, because in order for such a cookie to be put into the
+          // cookie jar, it would have to be HTTPS
+          //
+          // expect(session.cookies[0].secure).toBe(true);
+          // expect(session.cookies[0].sameSite).toEqual('none');
+          //
+          // These are test expectations. Production expetations are commented above
+          expect(session.cookies[0].secure).toBe(false);
+          expect(session.cookies[0].sameSite).toBeUndefined();
+
           done();
         });
     });
@@ -436,9 +463,9 @@ describe('authSpec', () => {
           .get('/v2/logout')
           .query({
             client_id: process.env.AUTH0_CLIENT_ID,
-            returnTo: process.env.SERVER_DOMAIN
+            returnTo: process.env.SERVER_DOMAIN + '/cheerio',
           })
-          .reply(302, {}, { 'Location': process.env.SERVER_DOMAIN });
+          .reply(302, {}, { 'Location': process.env.SERVER_DOMAIN + '/cheerio' });
         done();
       });
 
@@ -466,6 +493,7 @@ describe('authSpec', () => {
             expect(loc.pathname).toMatch('/v2/logout');
             expect(loc.searchParams.get('client_id')).toMatch(process.env.AUTH0_CLIENT_ID);
             expect(loc.searchParams.get('returnTo')).toMatch(process.env.SERVER_DOMAIN);
+            expect(loc.searchParams.get('federated')).toBe(null);
             done();
           });
       });
@@ -477,6 +505,96 @@ describe('authSpec', () => {
           .end((err, res) => {
             if (err) return done.fail(err);
             expect(logoutScope.isDone()).toBe(true);
+            done();
+          });
+      });
+    });
+
+    describe('/cheerio', () => {
+
+      let getClientsScope, clientLogoutScopes, clientCallbacks, redirectScope;
+      beforeEach(done => {
+        const accessToken = jwt.sign({..._access, scope: [apiScope.read.clients]},
+                                      prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
+
+        const getClientsOauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+          .log(console.log)
+          .post(/oauth\/token/, {
+                                  'grant_type': 'client_credentials',
+                                  'client_id': process.env.AUTH0_CLIENT_ID,
+                                  'client_secret': process.env.AUTH0_CLIENT_SECRET,
+                                  'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                                  'scope': apiScope.read.clients
+                                })
+          .reply(200, {
+            'access_token': accessToken,
+            'token_type': 'Bearer',
+          });
+
+        redirectScope = nock('http://example.com')
+          .log(console.log)
+          .get('/')
+          .reply(200);
+
+        clientCallbacks = [
+          {
+            "client_id": "SILIdentitysoKnqjj8HJqRn4T5titww",
+            "name": "SIL Identity",
+            "callbacks": ['http://xyz.io/callback', 'https://abc.com/some-callback']
+          },
+          {
+            "client_id": "TranscribersoKnqjj8HJqRn4T5titww",
+            "name": "Transcriber",
+            "callbacks": [ "http://example.com/callback" ],
+          },
+          {
+            "client_id": "ScriptureForgenqjj8HJqRn4T5titww",
+            "name": "Scripture Forge",
+            "callbacks": ['https://sub.example.com/callback', 'http://dev.example.com/dev'],
+          },
+          {
+            "client_id": "NoCallbacksrgenqjj8HJqRn4T5titww",
+            "name": "Misconfigured. No callbacks"
+          }
+        ];
+        getClientsScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+          .log(console.log)
+          .get(/api\/v2\/clients/)
+          .query({
+            fields: 'client_id,name,callbacks',
+            include_fields: true,
+          })
+          .reply(200, clientCallbacks);
+
+        clientLogoutScopes = [];
+        for (let client of clientCallbacks) {
+          if (!client.callbacks) continue;
+          for (let callback of client.callbacks) {
+            let urlObj = new url.URL(callback);
+            clientLogoutScopes.push(nock(urlObj.origin)
+                                     .log(console.log)
+                                     .get('/logout')
+                                     .reply(302, {})
+                                   );
+          }
+        }
+
+        done();
+      });
+
+      it('displays the correct interface', done => {
+        session
+          .get('/cheerio')
+          .query({ returnTo: 'http://example.com' })
+          .expect(200)
+          .end((err, res) => {
+            if (err) return done.fail(err);
+            const $ = cheerio.load(res.text);
+
+            expect($('main h2').text()).toEqual('Logging out of all SIL applications...');
+            expect($('main section > h1 a').attr('href')).toEqual('/');
+            expect($('main section > h1 a').text()).toEqual('Cheerio!');
+
             done();
           });
       });
@@ -633,17 +751,82 @@ describe('authSpec', () => {
       // This is not testing the client side app
       describe('Logout', () => {
 
-        let logoutScope;
+        let logoutScope, getClientsScope, clientLogoutScopes, clientCallbacks;
         beforeEach(done => {
+          /**
+           * This is called when the agent has authenticated and silid
+           * needs to retreive the non-OIDC-compliant metadata, etc.
+           */
+          const accessToken = jwt.sign({..._access, scope: [apiScope.read.clients]},
+                                        prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
+          const anotherOauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+            .log(console.log)
+            .post(/oauth\/token/, {
+                                    'grant_type': 'client_credentials',
+                                    'client_id': process.env.AUTH0_CLIENT_ID,
+                                    'client_secret': process.env.AUTH0_CLIENT_SECRET,
+                                    'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                                    'scope': apiScope.read.clients
+                                  })
+            .reply(200, {
+              'access_token': accessToken,
+              'token_type': 'Bearer',
+            });
+
+
           // Clear Auth0 SSO session cookies
           logoutScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
             .log(console.log)
             .get('/v2/logout')
             .query({
               client_id: process.env.AUTH0_CLIENT_ID,
-              returnTo: process.env.SERVER_DOMAIN
+              returnTo: process.env.SERVER_DOMAIN + '/cheerio',
             })
-            .reply(302, {}, { 'Location': process.env.SERVER_DOMAIN });
+            .reply(302, {}, { 'Location': `${process.env.SERVER_DOMAIN}/cheerio?returnTo=${process.env.SERVER_DOMAIN}` });
+
+
+          clientCallbacks = [
+            {
+              "client_id": "SILIdentitysoKnqjj8HJqRn4T5titww",
+              "name": "SIL Identity",
+              "callbacks": ['http://xyz.io/callback', 'https://abc.com/some-callback']
+            },
+            {
+              "client_id": "TranscribersoKnqjj8HJqRn4T5titww",
+              "name": "Transcriber",
+              "callbacks": [ "http://example.com/callback" ],
+            },
+            {
+              "client_id": "ScriptureForgenqjj8HJqRn4T5titww",
+              "name": "Scripture Forge",
+              "callbacks": ['https://sub.example.com/callback', 'http://dev.example.com/dev'],
+            },
+            {
+              "client_id": "NoCallbacksrgenqjj8HJqRn4T5titww",
+              "name": "Misconfigured. No callbacks"
+            }
+          ];
+          getClientsScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+            .log(console.log)
+            .get(/api\/v2\/clients/)
+            .query({
+              fields: 'client_id,name,callbacks',
+              include_fields: true,
+            })
+            .reply(200, clientCallbacks);
+
+          clientLogoutScopes = [];
+          for (let client of clientCallbacks) {
+            if (!client.callbacks) continue;
+            for (let callback of client.callbacks) {
+              let urlObj = new url.URL(callback);
+              clientLogoutScopes.push(nock(urlObj.origin)
+                                       .log(console.log)
+                                       .get('/logout')
+                                       .reply(302, {})
+                                     );
+            }
+          }
 
           browser.clickLink('Login', (err) => {
             if (err) return done.fail(err);
@@ -652,11 +835,10 @@ describe('authSpec', () => {
           });
         });
 
-        it('displays the correct interface', done => {
+        it('lands in the right place', done => {
           browser.clickLink('Logout', (err) => {
             if (err) return done.fail(err);
-            browser.assert.elements('a[href="/login"]');
-            browser.assert.elements('a[href="/logout"]', 0);
+            browser.assert.url('/');
             done();
           });
         });
@@ -665,6 +847,25 @@ describe('authSpec', () => {
           browser.clickLink('Logout', (err) => {
             if (err) return done.fail(err);
             expect(logoutScope.isDone()).toBe(true);
+            done();
+          });
+        });
+
+        it('calls the Auth0 Get Clients endpoint', done => {
+          browser.clickLink('Logout', (err) => {
+            if (err) return done.fail(err);
+            expect(getClientsScope.isDone()).toBe(true);
+            done();
+          });
+        });
+
+        // This assumes that all SIL apps have a /logout endpoint
+        it('calls all the client apps\' logout endpoints', done => {
+          browser.clickLink('Logout', (err) => {
+            if (err) return done.fail(err);
+            for (let scope of clientLogoutScopes) {
+              expect(scope.isDone()).toBe(true);
+            }
             done();
           });
         });

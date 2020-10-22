@@ -25,6 +25,8 @@ const localeRouter = require('./routes/locale');
 const timezoneRouter = require('./routes/timezone');
 
 const app = express();
+// Cookies won't be set in production unless you trust the proxy behind which this software runs
+app.set('trust proxy', 1);
 
 /**
  * view engine setup
@@ -48,13 +50,24 @@ const session = require('express-session');
 const SequelizeStore = require('connect-session-sequelize')(session.Store);
 const store = new SequelizeStore({ db: db.sequelize });
 
+/**
+ * Note the cookie configuration...
+ *
+ * In order to logout of every Identity/Auth0-managed app, a logout request is
+ * sent to each application's `/logout` endpoint from an `iframe`. Cookies only
+ * accompany these requests if `SameSite=None; Secure`.
+ */
 app.use(
   session({
+    name: 'silid-server',
     secret: process.env.AUTH0_CLIENT_SECRET, // This seemed convenient
     store: store,
     resave: false,
-    //cookie: { sameSite: 'none', secure: true},
-    cookie: { maxAge: 1000 * 60 * 60 },
+    cookie: {
+      maxAge: 1000 * 60 * 60,
+      sameSite: process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging' ? 'none' : undefined,
+      secure: process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging'
+    },
     saveUninitialized: true
   })
 );

@@ -13,7 +13,7 @@
     "auth0": "^2.27.1",
     "aws-sdk": "^2.636.0",
     "connect-session-sequelize": "^6.1.1",
-    "cookie-parser": "~1.4.4",
+    "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",
     "countries-and-timezones": "^2.3.1",
     "debug": "~2.6.9",
@@ -42,6 +42,7 @@
   },
   "devDependencies": {
     "@hapi/hapi": "^18.4.1",
+    "cheerio": "^1.0.0-rc.3",
     "crypto-js": "^3.1.9-1",
     "hapi-cors": "^1.0.3",
     "hapi-require-https": "^4.0.0",

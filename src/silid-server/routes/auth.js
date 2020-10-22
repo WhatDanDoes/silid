@@ -7,6 +7,7 @@ const request = require('request');
 const util = require('util');
 const querystring = require('querystring');
 const url = require('url');
+const getManagementClient = require('../lib/getManagementClient');
 
 const apiScope = require('../config/apiPermissions');
 const roles = require('../config/roles');
@@ -90,12 +91,40 @@ router.get('/logout', (req, res) => {
 
   const searchString = querystring.stringify({
     client_id: process.env.AUTH0_CLIENT_ID,
-    returnTo: process.env.SERVER_DOMAIN
+    returnTo: process.env.SERVER_DOMAIN + '/cheerio',
   });
   logoutURL.search = searchString;
 
   req.session.destroy(err => {
     res.redirect(logoutURL);
+  });
+});
+
+router.get('/cheerio', (req, res) => {
+  const managementClient = getManagementClient([apiScope.read.clients].join(' '));
+  managementClient.clients.getAll({
+    fields: 'client_id,name,callbacks',
+    include_fields: true,
+  }).then(clients => {
+
+    /**
+     * This assumes every registered client application has a `/logout` route
+     */
+    const logoutUrls = [];
+    for (let client of clients) {
+      if (!client.callbacks) continue;
+      for (callback of client.callbacks) {
+        const urlObj = new url.URL(callback);
+        const logoutUrl = urlObj.origin + '/logout';
+        if (logoutUrls.indexOf(logoutUrl) < 0) {
+          logoutUrls.push(logoutUrl);
+        }
+      };
+    };
+
+    res.render('cheerio', { logoutUrls: logoutUrls });
+  }).catch(err => {
+    res.status(err.statusCode).json(err.message.error_description);
   });
 });
 
