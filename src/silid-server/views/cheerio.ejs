@@ -30,15 +30,14 @@
   </head>
   <body>
     <header>
-      <img src="images/sil-logo.svg">
+      <img class="loader" src="/images/sil-logo.svg">
       <h1>Identity</h1>
     </header>
     <main>
       <section class="copy">
-        <h1><a id="login-link" class="login-button" href="/login">Login</a></h1>
+        <h2>Logging out of all SIL applications...</h2>
+        <h1><a id="login-link" class="login-button" href="/">Cheerio!</a></h1>
       </section>
-      <h2>You are being logged out of all SIL applications</h2>
-      <h1>Cheerio!</h1>
       <% for (let url of logoutUrls) { %>
         <iframe
           src="<%= url %>"
@@ -53,8 +52,8 @@
     <script>
       var count = 0;
 
-      function loaded(i) {
-        i.src = 'about:blank';
+      function loaded(frame) {
+        frame.src = 'about:blank';
         count++;
         if (count === <%= logoutUrls.length %>) {
           var dest = location.search.replace(/^.*?\=/, '');
