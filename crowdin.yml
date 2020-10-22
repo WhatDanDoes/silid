@@ -1,0 +1,3 @@
+files:
+  - source: src/silid-server/public/languages/*.json
+    translation: '%language%'
