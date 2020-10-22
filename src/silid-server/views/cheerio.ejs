@@ -42,7 +42,8 @@
       <% for (let url of logoutUrls) { %>
         <iframe
           src="<%= url %>"
-          style="width:0;height:0;border:0; border:none;"
+          style="width:0;height:0;border:0;border:none;"
+          sandbox
           onload="loaded(this)"
         >
         </iframe>
@@ -50,11 +51,12 @@
     </main>
     <script>
       var count = 0;
-      var dest = location.search.replace(/^.*?\=/, '');
 
       function loaded(i) {
+        i.src = 'about:blank';
         count++;
         if (count === <%= logoutUrls.length %>) {
+          var dest = location.search.replace(/^.*?\=/, '');
           if (dest) {
             window.location.replace(dest);
           }
