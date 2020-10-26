@@ -1,5 +1,5 @@
 "project_id": "423866"
-"api_token": "c0af1228a152e002ec3db76d6d623762b03aab222058a538deae776f9a3202f23148f1c3fc7228d8"
+"api_token": "OBTAIN TOKEN FROM https://crowdin.com/settings#api-key"
 "base_path": "."
 "base_url": "https://api.crowdin.com" # https://{organization-name}.crowdin.com
 
