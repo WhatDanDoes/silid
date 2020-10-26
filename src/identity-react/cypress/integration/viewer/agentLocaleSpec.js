@@ -70,11 +70,11 @@ context('viewer/Agent locale', function() {
           //});
 
           // Cf. above...
-          it('populates the dropdown the languages for which copy has been translated (currently 2)', () => {
+          it('populates the dropdown the languages for which copy has been translated (currently 8)', () => {
             cy.get('div[role="presentation"] ul li').should('not.exist');
             cy.get('#profile-table table tbody tr td #sil-local-dropdown + div button:last-of-type').click();
             cy.wait(300);
-            cy.get('div[role="presentation"] ul li').its('length').should('eq', 2);
+            cy.get('div[role="presentation"] ul li').its('length').should('eq', 8);
           });
 
           it('displays a spinner when new language is set', () => {
