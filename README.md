@@ -220,6 +220,24 @@ docker-compose -f docker-compose.staging.yml exec app node config/seed.js
 
 # Development and Production Deployments
 
+## Crowdin
+
+For the moment, this is managed with the Crowdin [CLI](https://support.crowdin.com/cli-tool/), which was installed globally: `npm i -g @crowdin/cli`.
+
+The CLI requires a token, which can be obtained from: https://crowdin.com/settings#api-key and configured in `crowdin.yml`.
+
+Send files to be translated:
+
+```
+crowdin upload sources
+```
+
+Download translated files:
+
+```
+crowdin download
+```
+
 ## Auth0
 
 ### Role/Permissions Configuration
