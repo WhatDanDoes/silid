@@ -137,7 +137,7 @@ describe('localeSpec', () => {
           });
 
           it('retrieves all the languages for which copy exists in /public/languages', done => {
-            expect(supportedLanguages.length).toEqual(2);
+            expect(supportedLanguages.length).toEqual(8);
             authenticatedSession
               .get('/locale/supported')
               .set('Accept', 'application/json')
