@@ -226,6 +226,10 @@ For the moment, this is managed with the Crowdin [CLI](https://support.crowdin.c
 
 The CLI requires a token, which can be obtained from: https://crowdin.com/settings#api-key and configured in `crowdin.yml`.
 
+```
+cp crowdin.yml.example crowdin.yml
+```
+
 Send files to be translated:
 
 ```
