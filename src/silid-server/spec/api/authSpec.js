@@ -138,6 +138,29 @@ describe('authSpec', () => {
           done();
         });
     });
+
+    /**
+     * The `audience` param is required in order to get a JWT access token from
+     * Auth0. Without `audience`, you will receive an _opaque_ token, which
+     * contains no information.
+     *
+     * Think twice before thinking this unnecessary. So far the mocks have not
+     * caught this param as a _match_ requirement. Haven't found precisely
+     * where it is being released into the wild.
+     */
+    it('calls passport.authenticate with the correct options', done => {
+      expect(process.env.AUTH0_AUDIENCE).toBeDefined();
+      const passport = require('passport');
+      spyOn(passport, 'authenticate').and.callThrough();
+      request(app)
+        .get('/login')
+        .redirects()
+        .end(function(err, res) {
+          if (err) return done.fail(err);
+          expect(passport.authenticate).toHaveBeenCalledWith('auth0', { scope: 'openid email profile', audience: process.env.AUTH0_AUDIENCE });
+          done();
+        });
+    });
   });
 
   /**
