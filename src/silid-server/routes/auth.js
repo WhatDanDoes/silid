@@ -14,7 +14,8 @@ const roles = require('../config/roles');
 
 router.get('/login', (req, res, next) => {
   const authenticator = passport.authenticate('auth0', {
-    scope: 'openid email profile'
+    scope: 'openid email profile',
+    audience: process.env.AUTH0_AUDIENCE
    });
   return authenticator(req, res, next);
 });
