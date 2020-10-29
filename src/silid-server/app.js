@@ -25,8 +25,11 @@ const localeRouter = require('./routes/locale');
 const timezoneRouter = require('./routes/timezone');
 
 const app = express();
+
 // Cookies won't be set in production unless you trust the proxy behind which this software runs
-app.set('trust proxy', 1);
+if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
+  app.set('trust proxy', 1);
+}
 
 /**
  * view engine setup
@@ -65,12 +68,16 @@ app.use(
     resave: false,
     cookie: {
       maxAge: 1000 * 60 * 60,
-      sameSite: process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging' ? 'none' : undefined,
-      secure: process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging'
     },
     saveUninitialized: true
   })
 );
+
+if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
+  sessionConfig.cookie.httpOnly = false;
+  sessionConfig.cookie.sameSite = 'none';
+  sessionConfig.cookie.secure = true;
+}
 
 /**
  * SPA client route
