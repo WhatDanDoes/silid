@@ -153,7 +153,7 @@ require('../support/setupKeystore').then(keyStuff => {
           }
 
           _agentIdToken = {...request.payload.token,
-                             aud: process.env.AUTH0_AUDIENCE,
+                             aud: process.env.AUTH0_CLIENT_ID,
                              sub: agent.socialProfile.user_id,
                              iss: `https://${process.env.AUTH0_DOMAIN}/`,
                              iat: Math.floor(Date.now() / 1000) - (60 * 60)};
@@ -251,7 +251,7 @@ require('../support/setupKeystore').then(keyStuff => {
            */
           if (!signedIdToken && request.payload.grant_type !== 'client_credentials') {
             signedIdToken = jwt.sign({..._identity,
-                                         aud: process.env.AUTH0_AUDIENCE,
+                                         aud: process.env.AUTH0_CLIENT_ID,
                                          iat: Math.floor(Date.now() / 1000) - (60 * 60),
                                          iss: `https://${process.env.AUTH0_DOMAIN}/`,
                                          nonce: _identityDb[request.payload.code] ? _identityDb[request.payload.code].idToken.nonce : _nonce},
