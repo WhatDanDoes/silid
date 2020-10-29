@@ -39,7 +39,7 @@ if (process.env.NODE_ENV === 'e2e') {
 
   models.sequelize.drop().then(() => {
     console.log('Database dropped');
-    exec('npx sequelize-cli db:migrate', { stdio: 'inherit' });//, (err) => {
+    exec('npx sequelize-cli db:migrate', { stdio: 'inherit' });
     console.log('Database migrated');
   }).catch(err => {
     console.error(err);
