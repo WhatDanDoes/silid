@@ -60,24 +60,24 @@ const store = new SequelizeStore({ db: db.sequelize });
  * sent to each application's `/logout` endpoint from an `iframe`. Cookies only
  * accompany these requests if `SameSite=None; Secure`.
  */
-app.use(
-  session({
-    name: 'silid-server',
-    secret: process.env.AUTH0_CLIENT_SECRET, // This seemed convenient
-    store: store,
-    resave: false,
-    cookie: {
-      maxAge: 1000 * 60 * 60,
-    },
-    saveUninitialized: true
-  })
-);
+const sessionConfig = {
+  name: 'silid-server',
+  secret: process.env.AUTH0_CLIENT_SECRET, // This seemed convenient
+  store: store,
+  resave: false,
+  cookie: {
+    maxAge: 1000 * 60 * 60,
+  },
+  saveUninitialized: true
+};
 
 if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
   sessionConfig.cookie.httpOnly = false;
   sessionConfig.cookie.sameSite = 'none';
   sessionConfig.cookie.secure = true;
 }
+
+app.use(session(sessionConfig));
 
 /**
  * SPA client route
