@@ -143,6 +143,8 @@ npm run test:headless
 
 ## Deploy to Staging
 
+__(If starting from scratch, see Extras section below: "Staging Setup")__
+
 ### Client
 
 In `./src/identity-react/`, configure `.env`:
@@ -220,7 +222,9 @@ docker-compose -f docker-compose.staging.yml exec app node config/seed.js
 
 # Development and Production Deployments
 
-## Auth0 Role/Permissions Configuration
+## Auth0
+
+### Role/Permissions Configuration
 
 At the moment, a `viewer` role with the permissions listed below must be configured for the `silid-sever` machine-to-machine application at Auth0:
 
@@ -236,13 +240,83 @@ At the moment, a `viewer` role with the permissions listed below must be configu
 
 The role and the permissions defined therein are subject to change without notice. These may eventually be eliminated entirely.
 
-# AWS Prod Topology
+<<<<<<< Updated upstream
+### API
 
-## AWS RDS
+From the `silid-server` API settings:
+
+- Enable RBAC
+- Add Permissions in the Access Token
+
+### Tenant-Level Logout
+
+Single-Sign-Out depends upon correctly configuring the tenant-level logout URL (cf., _Third-Party Integration_ below).
+
+https://auth0.com/docs/logout#set-the-allowed-logout-urls-at-the-tenant-level
+
+Include this application's `/cheerio` route in the list of _Allowed Logout URLs_.
+
+### Third-Party Integration
+
+In order for Single-Sign-Out to work, all third-party applications require a `/logout` endpoint that clears the application session and calls Auth0's `/logout` endpoint with the application's `client_id` request parameter. The `returnTo` request parameter _must not_ be included so that the Auth0 server returns the agent to the first tenant-level _Allowed Logout URL_ set in the Dashboard.
+
+More information here: https://auth0.com/docs/api/authentication#logout
+
+# AWS Prod Topology
+=======
+# Extras
+
+## Staging Setup
+
+Staging assumes Nginx proxy containers and network setup with SSL.  One option
+is to follow these instructions:
+
+https://github.com/nginx-proxy/docker-letsencrypt-nginx-proxy-companion
+
+You will also need to create a proxy network:
+
+```
+$ docker network create ngix-proxy
+```
+
+Now edit the docker container run configurations from the link above to connect
+the containers to the proxy network.  Example:
+
+```
+# Step 1 - nginx-proxy
+$ docker run --detach \
+    --name nginx-proxy \
+    --publish 80:80 \
+    --publish 443:443 \
+    --volume /etc/nginx/certs \
+    --volume /etc/nginx/vhost.d \
+    --volume /usr/share/nginx/html \
+    --volume /var/run/docker.sock:/tmp/docker.sock:ro \
+    --network nginx-proxy \
+    jwilder/nginx-proxy
+
+# Step 2 - letsencrypt-nginx-proxy-companion
+$ docker run --detach \
+    --name nginx-proxy-letsencrypt \
+    --volumes-from nginx-proxy \
+    --volume /var/run/docker.sock:/var/run/docker.sock:ro \
+    --env "DEFAULT_EMAIL=mail@yourdomain.tld" \
+    --network nginx-proxy \
+    jrcs/letsencrypt-nginx-proxy-companion
+```
+
+__Note: In the above link, the "Step 3" docker container is an example container
+to see if things work, which is otherwise not needed for this setup.__
+
+## AWS Prod Topology
+>>>>>>> Stashed changes
+
+### AWS RDS
 
 The UI for RDS can be found at the [Amazon dashboard](https://928745222303.signin.aws.amazon.com/console) and directly at the [RDS service.](https://console.aws.amazon.com/rds/home?region=us-east-1#databases:)
 
-Two RDS databases are being used for silid and can be seen in the AWS console listed as `ss1e8pfmqwgebvu` for silid-dev.languagetechnology.org and `ss1fejs6cgbasrw` for silid.languagetechnology.org. These databases were created manually through the AWS dashboard and set to `db.t3.micro` instance type. Daily backups are being taken and handled throughout the RDS service.
+Two RDS databases are being used for silid are manually created and and can be
+seen in the AWS us-east-1 (Virginia region) console listed as silid-dev and silid-prod.
 
 In the event of a database outage or loss, the database can be restored by [restoring a snapshot of the database instance](https://console.aws.amazon.com/rds/home?region=us-east-1#database:id=ss1fejs6cgbasrw;is-cluster=false;tab=maintenance-and-backups) or recreated entirely [here](https://console.aws.amazon.com/rds/home?region=us-east-1#launch-dbinstance:gdb=false;s3-import=false).
 
@@ -252,7 +326,7 @@ From the documentation: https://auth0.com/docs/users/configure-connection-sync-w
 
 > To be able to edit the name, nickname, given_name, family_name, or picture root attributes on the normalized user profile, you must configure your connection sync with Auth0 so that user attributes will be updated from the identity provider only on user profile creation.
 
-### Turn off sync
+#### Turn off sync
 
 1. Go to Dashboard > Connections and select a connection type.
 
@@ -260,13 +334,13 @@ From the documentation: https://auth0.com/docs/users/configure-connection-sync-w
 
 2. Toggle Sync user profile attributes at each login to the _off_ position and click _Save_.
 
-## AWS SES
+### AWS SES
 
 For the development_aws and production environments (silid-dev, silid), email is dependent on the [Amazon Simple Email Service](https://console.aws.amazon.com/ses/home?region=us-east-1#verified-sender-details:domain:languagetechnology.org) (SES). A config file named `aws.json` is required in the `config` directory of `silid-server` with SES credentials. This is currently being created by a step in the build process handled by TeamCity (see Add AWS aws.json file).
 
 We are using [this](https://console.aws.amazon.com/iam/home?region=us-east-1#/users/ses-smtp-user.20200304-155331) smtp account for ses. It is providing the noreply@languagetechnology.org sending service for the verification process of silid.
 
-## Troubleshooting
+### AWS Troubleshooting
 
 Since silid is running across distributed services in AWS, there are a number of places to check in case of application errors or failures.
 
