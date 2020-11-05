@@ -143,7 +143,7 @@ npm run test:headless
 
 ## Deploy to Staging
 
-__(If starting from scratch, see Extras section below: "Staging Setup")__
+_(If starting from scratch, see Extras section below: "Staging Setup")_
 
 ### Client
 
@@ -240,7 +240,6 @@ At the moment, a `viewer` role with the permissions listed below must be configu
 
 The role and the permissions defined therein are subject to change without notice. These may eventually be eliminated entirely.
 
-<<<<<<< Updated upstream
 ### API
 
 From the `silid-server` API settings:
@@ -262,8 +261,6 @@ In order for Single-Sign-Out to work, all third-party applications require a `/l
 
 More information here: https://auth0.com/docs/api/authentication#logout
 
-# AWS Prod Topology
-=======
 # Extras
 
 ## Staging Setup
@@ -276,7 +273,7 @@ https://github.com/nginx-proxy/docker-letsencrypt-nginx-proxy-companion
 You will also need to create a proxy network:
 
 ```
-$ docker network create ngix-proxy
+$ docker network create nginx-proxy
 ```
 
 Now edit the docker container run configurations from the link above to connect
@@ -305,11 +302,10 @@ $ docker run --detach \
     jrcs/letsencrypt-nginx-proxy-companion
 ```
 
-__Note: In the above link, the "Step 3" docker container is an example container
-to see if things work, which is otherwise not needed for this setup.__
+_Note: In the above link, the "Step 3" docker container is an example container
+to see if things work, which is otherwise not needed for this setup._
 
 ## AWS Prod Topology
->>>>>>> Stashed changes
 
 ### AWS RDS
 
