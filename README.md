@@ -81,12 +81,6 @@ Navigate to the `src/identity-react` directory and execute:
 npm install
 ```
 
-As with the `silid-server`, the configurations in `.env.example` are sufficient for testing purposes:
-
-```
-cp .env.example .env
-```
-
 ### End-to-end tests
 
 As with any web application, this project is comprised of many moving parts. The most obvious include:
@@ -144,14 +138,6 @@ npm run test:headless
 ## Deploy to Staging
 
 ### Client
-
-In `./src/identity-react/`, configure `.env`:
-
-```
-REACT_APP_DOMAIN=silid.auth0.com
-REACT_APP_CLIENT_ID=tjrl8aOQEx9AtQhFffuWmvP6bcHM7nXB
-REACT_APP_CALLBACK_URL=https://example.com/callback
-```
 
 Install dependencies:
 
