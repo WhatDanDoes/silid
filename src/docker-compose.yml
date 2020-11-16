@@ -55,8 +55,6 @@ services:
     depends_on:
       - app
     build: ./identity-react
-    env_file:
-      - ./identity-react/.env
     network_mode: host
     # client app sends a premature exit status; PM2 watcher added for workaround this
     command: ["pm2-runtime", "start", "./node_modules/react-scripts/scripts/start.js"]

@@ -6,14 +6,12 @@ client_src = src/identity-react
 install:
 	cd $(app_src); npm install \
 		&& install -bm 0644 .env.example .env
-	cd $(client_src); npm install \
-		&& install -bm 0644 .env.example .env
+	cd $(client_src); npm install
 
 clean:
 	rm -rf $(app_src)/node_modules/*
 	rm -rf $(client_src)/node_modules/*
 	rm -f $(app_src)/.env
-	rm -f $(client_src)/.env
 
 
 # Manage only silid-server unit test containers
