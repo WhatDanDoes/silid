@@ -100,12 +100,45 @@ router.get('/logout', (req, res) => {
   });
 });
 
-router.get('/cheerio', (req, res) => {
-  const managementClient = getManagementClient([apiScope.read.clients].join(' '));
+/**
+ * Recursive function to retrieve all registered clients.
+ *
+ * The recursion is necessary because /client call returns a
+ * maximum of 50 results as of 2021-1-26
+ *
+ * @param function - callback
+ * @param integer - page
+ * @param integer - perPage
+ * @param array - clients
+ */
+const managementClient = getManagementClient([apiScope.read.clients].join(' '));
+function getAllClients(done, page = 0, perPage = 50, clients = []) {
   managementClient.clients.getAll({
     fields: 'client_id,name,callbacks',
     include_fields: true,
-  }).then(clients => {
+    page: page,
+    per_page: perPage
+  }).then(results => {
+
+    clients = clients.concat(results);
+
+    if (results.length < perPage) {
+      done(null, clients);
+    }
+    else {
+      getAllClients(done, ++page, perPage, clients);
+    }
+
+  }).catch(err => {
+    done(err);
+  });
+};
+
+router.get('/cheerio', (req, res) => {
+  getAllClients((err, clients) => {
+    if (err) {
+      return res.status(err.statusCode).json(err.message.error_description);
+    }
 
     /**
      * This assumes every registered client application has a `/logout` route
@@ -123,8 +156,6 @@ router.get('/cheerio', (req, res) => {
     };
 
     res.render('cheerio', { logoutUrls: logoutUrls });
-  }).catch(err => {
-    res.status(err.statusCode).json(err.message.error_description);
   });
 });
 
