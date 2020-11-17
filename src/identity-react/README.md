@@ -7,7 +7,6 @@ identity-react
 ## Setup
 
 ```
-cp .env.example .env
 npm install
 ```
 
@@ -23,12 +22,6 @@ Start `silid-server` in another shell or process:
 
 ```
 cd ../silid-server && PORT=3001 npm start
-```
-
-Since the API is running on port `3001`, the `identity-react` API port needs to be configured in `.env`:
-
-```
-REACT_APP_API_DOMAIN=localhost:3001
 ```
 
 As above, the dev server needs to be running in another shell or process. From the `identity-react` directory:
