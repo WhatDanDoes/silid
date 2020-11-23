@@ -25,8 +25,11 @@ const localeRouter = require('./routes/locale');
 const timezoneRouter = require('./routes/timezone');
 
 const app = express();
+
 // Cookies won't be set in production unless you trust the proxy behind which this software runs
-app.set('trust proxy', 1);
+if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
+  app.set('trust proxy', 1);
+}
 
 /**
  * view engine setup
@@ -57,20 +60,24 @@ const store = new SequelizeStore({ db: db.sequelize });
  * sent to each application's `/logout` endpoint from an `iframe`. Cookies only
  * accompany these requests if `SameSite=None; Secure`.
  */
-app.use(
-  session({
-    name: 'silid-server',
-    secret: process.env.AUTH0_CLIENT_SECRET, // This seemed convenient
-    store: store,
-    resave: false,
-    cookie: {
-      maxAge: 1000 * 60 * 60,
-      sameSite: process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging' ? 'none' : undefined,
-      secure: process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging'
-    },
-    saveUninitialized: true
-  })
-);
+const sessionConfig = {
+  name: 'silid-server',
+  secret: process.env.AUTH0_CLIENT_SECRET, // This seemed convenient
+  store: store,
+  resave: false,
+  cookie: {
+    maxAge: 1000 * 60 * 60,
+  },
+  saveUninitialized: true
+};
+
+if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
+  sessionConfig.cookie.httpOnly = false;
+  sessionConfig.cookie.sameSite = 'none';
+  sessionConfig.cookie.secure = true;
+}
+
+app.use(session(sessionConfig));
 
 /**
  * SPA client route

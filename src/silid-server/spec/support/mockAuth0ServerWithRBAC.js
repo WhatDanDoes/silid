@@ -39,7 +39,7 @@ if (process.env.NODE_ENV === 'e2e') {
 
   models.sequelize.drop().then(() => {
     console.log('Database dropped');
-    exec('npx sequelize-cli db:migrate', { stdio: 'inherit' });//, (err) => {
+    exec('npx sequelize-cli db:migrate', { stdio: 'inherit' });
     console.log('Database migrated');
   }).catch(err => {
     console.error(err);
@@ -123,7 +123,7 @@ require('../support/setupKeystore').then(keyStuff => {
            * Add agent to the _Auth0 database_
            */
 
-          // Has this agent already been registed?
+          // Has this agent already been registered?
           let agent = await models.Agent.findOne({ where: {email: request.payload.token.email}});
 
           let socialProfile = { ..._profile, ...request.payload.token, _json: { ..._profile, ...request.payload.token } };
