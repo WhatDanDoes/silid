@@ -81,7 +81,7 @@ function updateDbAndVerify(permissions, req, res, next) {
 
               jwtAuthz(permissions, { failWithError: true, checkAllScopes: true })(req, res, err => {
                 if (err) {
-                  return res.status(err.statusCode).json(err);
+                  return next(err);
                 }
 
                 next();
@@ -108,20 +108,20 @@ function updateDbAndVerify(permissions, req, res, next) {
 
                 jwtAuthz(permissions, { failWithError: true, checkAllScopes: true })(req, res, err => {
                   if (err) {
-                    return res.status(err.statusCode).json(err);
+                    return next(err);
                   }
 
                   next();
                 });
               }).catch(err => {
-                res.status(500).json(err);
+                return next(err);
               });
             }
           }).catch(err => {
-            res.status(500).json(err);
+            return next(err);
           });
         }).catch(err => {
-          res.status(500).json(err);
+          return next(err);
         });
       }
       else {
@@ -149,7 +149,7 @@ function updateDbAndVerify(permissions, req, res, next) {
               next();
             });
           }).catch(err => {
-            res.status(500).json(err);
+            return next(err);
           });
         }
         else {
@@ -159,7 +159,7 @@ function updateDbAndVerify(permissions, req, res, next) {
 
           jwtAuthz(permissions, { failWithError: true, checkAllScopes: true })(req, res, err => {
             if (err) {
-              return res.status(err.statusCode).json(err);
+              return next(err);
             }
 
             next();
@@ -167,10 +167,10 @@ function updateDbAndVerify(permissions, req, res, next) {
         }
       }
     }).catch(err => {
-      res.status(500).json(err);
+      next(err);
     });
   }).catch(err => {
-    res.status(err.statusCode).json(err.message.error_description);
+    next(err);
   });
 };
 
@@ -201,7 +201,7 @@ const checkPermissions = function(permissions) {
       // Functionality covered by client-side tests
       checkForUpdates(req, err => {
         if (err) {
-          return res.status(500).json(err);
+          return next(err);
         }
         updateDbAndVerify(permissions, req, res, next);
       });
@@ -221,15 +221,15 @@ const checkPermissions = function(permissions) {
 
           checkForUpdates(req, err => {
             if (err) {
-              return res.status(500).json(err);
+              return next(err);
             }
             updateDbAndVerify(permissions, req, res, next);
           });
         }).catch(err => {
-          res.status(err.statusCode).json(err.message.error_description);
+          return next(err);
         });
       }).catch(err => {
-        res.status(err.statusCode).json(err.message.error_description);
+        return next(err);
       });
     }
   };
