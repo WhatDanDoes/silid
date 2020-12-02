@@ -17,7 +17,7 @@ function updateDbAndVerify(permissions, req, res, next) {
   const socialProfile = {...req.user};
 
   // Read agent's assigned roles
-  let managementClient = getManagementClient([apiScope.read.users, apiScope.read.roles].join(' '));
+  const managementClient = getManagementClient([apiScope.read.users, apiScope.read.roles].join(' '));
   managementClient.getUserRoles({id: req.user.user_id}).then(roles => {
     req.user.roles = roles;
 
@@ -54,7 +54,6 @@ function updateDbAndVerify(permissions, req, res, next) {
       }
 
       if (!agent || profileChanged) {
-        managementClient = getManagementClient(apiScope.read.users);
         managementClient.getUser({id: socialProfile.user_id}).then(results => {
 
           models.Agent.update(
