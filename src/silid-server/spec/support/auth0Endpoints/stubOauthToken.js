@@ -31,6 +31,15 @@ module.exports = function(permissions, done) {
     /**
      * A new agent needs some basic permissions. This endpoint is called
      * when `silid-server` needs permission to set these permissions
+     *
+     * 2020-12-2 NOTE:
+     *
+     * Previously, the `iat` field in the signed `accessToken` was set by
+     * `jwt` in the signing process. This led to mismatched `nock` interceptors
+     * getting confused by differences of seconds (or possibly milliseconds)
+     *
+     * As of today, the `iat` field is permantely set to 1606929800
+     * (Wed Dec 02 2020 10:23:20 GMT-0700) in the `sample-auth0-access-token`
      */
     let accessToken = jwt.sign({..._access, scope: [apiScope.read.users]},
                                prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } });

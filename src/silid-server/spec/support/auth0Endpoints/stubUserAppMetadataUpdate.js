@@ -33,9 +33,7 @@ module.exports = function(profile, done, options) {
     stubOauthToken([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, oauthScopes) => {
       if (err) return done(err);
 
-      ({accessToken, oauthTokenScope} = oauthScopes);
-
-      const userAppMetadataUpdateOauthTokenScope = oauthTokenScope;
+      ({accessToken, oauthTokenScope: userAppMetadataUpdateOauthTokenScope} = oauthScopes);
 
       /**
        * General user_metadata update endpoint stub
