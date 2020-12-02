@@ -48,12 +48,19 @@ module.exports = function(options, done) {
         if (err) return done(err);
         ({userAssignRolesScope} = apiScopes);
 
-
         stubUserRolesRead(options.userRoles ? options.userRoles : undefined, (err, apiScopes) => {
           if (err) return done(err);
           ({userRolesReadScope} = apiScopes);
 
-          done(null, {userReadScope, rolesReadScope, userAssignRolesScope, userRolesReadScope});
+          /**
+           * This satisfies the call in `checkPermissions` that takes place in
+           * the case of an unknown agent or a profile change
+           */
+          stubUserRead(options.userRead ? options.userRead : undefined, (err, apiScopes) => {
+            if (err) return done(err);
+
+            done(null, {userReadScope, rolesReadScope, userAssignRolesScope, userRolesReadScope});
+          });
         });
       });
     });
