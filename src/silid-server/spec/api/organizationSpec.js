@@ -64,12 +64,6 @@ describe('organizationSpec', () => {
     _profile.name = originalProfile.name;
   });
 
-  let oauthTokenScope, authenticatedSession,
-      userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope,
-      userAppMetadataReadScope, userAppMetadataReadOauthTokenScope,
-      teamReadScope, teamReadOauthTokenScope,
-      organizationReadScope, organizationReadOauthTokenScope;
-
   describe('authenticated', () => {
 
     describe('authorized', () => {
@@ -85,26 +79,20 @@ describe('organizationSpec', () => {
                 if (err) return done.fail(err);
                 authenticatedSession = session;
 
-                // Cached profile doesn't match "live" data, so agent needs to be updated
-                // with a call to Auth0
-                stubUserRead((err, apiScopes) => {
+                // Search for existing organization name
+                stubOrganizationRead([], (err, apiScopes) => {
                   if (err) return done.fail();
+                  ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
 
-                  // Search for existing organization name
-                  stubOrganizationRead([], (err, apiScopes) => {
+                  // Retrieve agent profile
+                  stubUserAppMetadataRead((err, apiScopes) => {
                     if (err) return done.fail();
-                    ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
+                    ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
 
-                    // Retrieve agent profile
-                    stubUserAppMetadataRead((err, apiScopes) => {
+                    stubUserAppMetadataUpdate((err, apiScopes) => {
                       if (err) return done.fail();
-                      ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
-
-                      stubUserAppMetadataUpdate((err, apiScopes) => {
-                        if (err) return done.fail();
-                        ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                        done();
-                      });
+                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                      done();
                     });
                   });
                 });
@@ -121,7 +109,7 @@ describe('organizationSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(res.body.email).toEqual(_profile.email);
                 expect(res.body.user_metadata.organizations.length).toEqual(1);
@@ -139,7 +127,7 @@ describe('organizationSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(201)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
 
                   expect(organizationReadOauthTokenScope.isDone()).toBe(true);
@@ -157,7 +145,7 @@ describe('organizationSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(201)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
 
                   // 2020-6-17 Reuse token from above? This needs to be confirmed in production
@@ -176,7 +164,7 @@ describe('organizationSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(201)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
 
                   // 2020-6-17 Reuse token from above? This needs to be confirmed in production
@@ -196,30 +184,23 @@ describe('organizationSpec', () => {
               if (err) return done.fail();
 
               login(_identity, [scope.create.organizations], (err, session) => {
-
                 if (err) return done.fail(err);
                 authenticatedSession = session;
 
-                // Cached profile doesn't match "live" data, so agent needs to be updated
-                // with a call to Auth0
-                stubUserRead((err, apiScopes) => {
+                // Search for existing organization name
+                stubOrganizationRead((err, apiScopes) => {
                   if (err) return done.fail();
+                  ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
 
-                  // Search for existing organization name
-                  stubOrganizationRead((err, apiScopes) => {
+                  // This stubs calls subsequent to the inital login/permission checking step
+                  stubUserAppMetadataRead((err, apiScopes) => {
                     if (err) return done.fail();
-                    ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
+                    ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
 
-                    // This stubs calls subsequent to the inital login/permission checking step
-                    stubUserAppMetadataRead((err, apiScopes) => {
+                    stubUserAppMetadataUpdate((err, apiScopes) => {
                       if (err) return done.fail();
-                      ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
-
-                      stubUserAppMetadataUpdate((err, apiScopes) => {
-                        if (err) return done.fail();
-                        ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                        done();
-                      });
+                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                      done();
                     });
                   });
                 });
@@ -237,7 +218,7 @@ describe('organizationSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(400)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
                   expect(res.body.errors.length).toEqual(1);
                   expect(res.body.errors[0].message).toEqual('That organization is already registered');
@@ -255,7 +236,7 @@ describe('organizationSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(400)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
 
                     expect(organizationReadOauthTokenScope.isDone()).toBe(true);
@@ -273,7 +254,7 @@ describe('organizationSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(400)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
 
                     expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(false);
@@ -291,7 +272,7 @@ describe('organizationSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(400)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
 
                     expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
@@ -311,7 +292,7 @@ describe('organizationSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(400)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(res.body.errors.length).toEqual(1);
                 expect(res.body.errors[0].message).toEqual('Organization requires a name');
@@ -326,7 +307,7 @@ describe('organizationSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(400)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(res.body.errors.length).toEqual(1);
                 expect(res.body.errors[0].message).toEqual('Organization requires a name');
@@ -343,7 +324,7 @@ describe('organizationSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(400)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(res.body.errors.length).toEqual(1);
                 expect(res.body.errors[0].message).toEqual('Organization name is too long');
@@ -388,42 +369,36 @@ describe('organizationSpec', () => {
               if (err) return done.fail(err);
               authenticatedSession = session;
 
-              // Cached profile doesn't match "live" data, so agent needs to be updated
-              // with a call to Auth0
-              stubUserRead((err, apiScopes) => {
+              // See if organization name is already registered
+              stubOrganizationRead((err, apiScopes) => {
                 if (err) return done.fail();
+                ({organizationReadScope: organizationReadByNameScope, organizationReadOauthTokenScope: organizationReadByNameOauthTokenScope} = apiScopes);
 
-                // See if organization name is already registered
+                // Get organization by ID
                 stubOrganizationRead((err, apiScopes) => {
                   if (err) return done.fail();
-                  ({organizationReadScope: organizationReadByNameScope, organizationReadOauthTokenScope: organizationReadByNameOauthTokenScope} = apiScopes);
+                  ({organizationReadScope: organizationReadByIdScope, organizationReadOauthTokenScope: organizationReadByIdOauthTokenScope} = apiScopes);
 
-                  // Get organization by ID
-                  stubOrganizationRead((err, apiScopes) => {
+                  // Get member teams
+                  stubTeamRead([{..._profile },
+                                {..._profile,
+                                  name: 'A Aaronson',
+                                  email: 'aaaronson@example.com',
+                                  user_id: _profile.user_id + 1,
+                                  user_metadata: {
+                                    teams: [
+                                      { name: 'Asia Sensitive', leader: 'teamleader@example.com', id: team1Id, organizationId: organizationId },
+                                      { name: 'The A-Team', leader: 'babaracus@example.com', id: uuid.v4(), organizationId: uuid.v4() }
+                                    ]
+                                  }
+                                }], (err, apiScopes) => {
                     if (err) return done.fail();
-                    ({organizationReadScope: organizationReadByIdScope, organizationReadOauthTokenScope: organizationReadByIdOauthTokenScope} = apiScopes);
+                    ({teamReadScope: teamMembershipReadScope, teamReadOauthTokenScope: teamMembershipReadOauthTokenScope} = apiScopes);
 
-                    // Get member teams
-                    stubTeamRead([{..._profile },
-                                  {..._profile,
-                                    name: 'A Aaronson',
-                                    email: 'aaaronson@example.com',
-                                    user_id: _profile.user_id + 1,
-                                    user_metadata: {
-                                      teams: [
-                                        { name: 'Asia Sensitive', leader: 'teamleader@example.com', id: team1Id, organizationId: organizationId },
-                                        { name: 'The A-Team', leader: 'babaracus@example.com', id: uuid.v4(), organizationId: uuid.v4() }
-                                      ]
-                                    }
-                                  }], (err, apiScopes) => {
+                    stubUserAppMetadataUpdate((err, apiScopes) => {
                       if (err) return done.fail();
-                      ({teamReadScope: teamMembershipReadScope, teamReadOauthTokenScope: teamMembershipReadOauthTokenScope} = apiScopes);
-
-                      stubUserAppMetadataUpdate((err, apiScopes) => {
-                        if (err) return done.fail();
-                        ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                        done();
-                      });
+                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                      done();
                     });
                   });
                 });
@@ -447,7 +422,7 @@ describe('organizationSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
 
               expect(res.body.name).toEqual('Two Testaments Bolivia');
@@ -470,7 +445,7 @@ describe('organizationSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(400)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.errors.length).toEqual(1);
               expect(res.body.errors[0].message).toEqual('Organization requires a name');
@@ -487,7 +462,7 @@ describe('organizationSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(400)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.errors.length).toEqual(1);
               expect(res.body.errors[0].message).toEqual('That organization is already registered');
@@ -504,7 +479,7 @@ describe('organizationSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(404)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.message).toEqual('No such organization');
               done();
@@ -521,7 +496,7 @@ describe('organizationSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 expect(organizationReadByNameOauthTokenScope.isDone()).toBe(true);
@@ -539,7 +514,7 @@ describe('organizationSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 // Token re-used from first call
@@ -558,7 +533,7 @@ describe('organizationSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 // 2020-6-17 Reuse token from above? This needs to be confirmed in production
@@ -577,7 +552,7 @@ describe('organizationSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 // 2020-6-17 Reuse token from above? This needs to be confirmed in production
@@ -590,6 +565,7 @@ describe('organizationSpec', () => {
       });
 
       describe('delete', () => {
+
         let organizationId;
         beforeEach(() => {
           organizationId = uuid.v4();
@@ -607,31 +583,24 @@ describe('organizationSpec', () => {
                 if (err) return done.fail();
 
                 login(_identity, [scope.delete.organizations], (err, session) => {
-
                   if (err) return done.fail(err);
                   authenticatedSession = session;
 
-                  // Cached profile doesn't match "live" data, so agent needs to be updated
-                  // with a call to Auth0
-                  stubUserRead((err, apiScopes) => {
+                  // Make sure there are no member teams
+                  stubTeamRead([], (err, apiScopes) => {
                     if (err) return done.fail();
+                    ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
 
-                    // Make sure there are no member teams
-                    stubTeamRead([], (err, apiScopes) => {
+                    // Get organizer profile
+                    stubOrganizationRead((err, apiScopes) => {
                       if (err) return done.fail();
-                      ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
+                      ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
 
-                      // Get organizer profile
-                      stubOrganizationRead((err, apiScopes) => {
+                      // Update former organizer's record
+                      stubUserAppMetadataUpdate((err, apiScopes) => {
                         if (err) return done.fail();
-                        ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
-
-                        // Update former organizer's record
-                        stubUserAppMetadataUpdate((err, apiScopes) => {
-                          if (err) return done.fail();
-                          ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                          done();
-                        });
+                        ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                        done();
                       });
                     });
                   });
@@ -646,7 +615,7 @@ describe('organizationSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(201)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
                   expect(res.body.message).toEqual('Organization deleted');
                   expect(_profile.user_metadata.organizations.length).toEqual(0);
@@ -661,7 +630,7 @@ describe('organizationSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(201)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
 
                     expect(teamReadOauthTokenScope.isDone()).toBe(true);
@@ -676,7 +645,7 @@ describe('organizationSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(201)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
 
                     // 2020-6-18 Reuse token from above? This needs to be confirmed in production
@@ -692,7 +661,7 @@ describe('organizationSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(201)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
 
                     // 2020-6-18 Reuse token from above? This needs to be confirmed in production
@@ -720,43 +689,37 @@ describe('organizationSpec', () => {
                 if (err) return done.fail();
 
                 login(_identity, [scope.delete.organizations], (err, session) => {
-
                   if (err) return done.fail(err);
                   authenticatedSession = session;
 
-                  // Cached profile doesn't match "live" data, so agent needs to be updated
-                  // with a call to Auth0
-                  stubUserRead((err, apiScopes) => {
+                  // Check for member teams
+                  memberTeams.push({
+                    ..._profile,
+                    name: 'A Aaronson',
+                    email: 'aaaronson@example.com',
+                    user_id: _profile.user_id + 1,
+                    user_metadata: {
+                      teams: [
+                        { name: 'Asia Sensitive', leader: 'teamleader@example.com', id: uuid.v4(), organizationId: organizationId },
+                      ]
+                    }
+                  });
+
+                  stubTeamRead(memberTeams, (err, apiScopes) => {
+
                     if (err) return done.fail();
+                    ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
 
-                    // Check for member teams
-                    memberTeams.push({
-                      ..._profile,
-                      name: 'A Aaronson',
-                      email: 'aaaronson@example.com',
-                      user_id: _profile.user_id + 1,
-                      user_metadata: {
-                        teams: [
-                          { name: 'Asia Sensitive', leader: 'teamleader@example.com', id: uuid.v4(), organizationId: organizationId },
-                        ]
-                      }
-                    });
-                    stubTeamRead(memberTeams, (err, apiScopes) => {
-
+                    // Get organizer profile
+                    stubOrganizationRead((err, apiScopes) => {
                       if (err) return done.fail();
-                      ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
+                      ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
 
-                      // Get organizer profile
-                      stubOrganizationRead((err, apiScopes) => {
+                      // Update former organizer's record
+                      stubUserAppMetadataUpdate((err, apiScopes) => {
                         if (err) return done.fail();
-                        ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
-
-                        // Update former organizer's record
-                        stubUserAppMetadataUpdate((err, apiScopes) => {
-                          if (err) return done.fail();
-                          ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                          done();
-                        });
+                        ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                        done();
                       });
                     });
                   });
@@ -774,7 +737,7 @@ describe('organizationSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(404)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
                   expect(res.body.message).toEqual('No such organization');
                   done();
@@ -789,7 +752,7 @@ describe('organizationSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(400)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
 
                   expect(res.body.message).toEqual('Organization has invitations pending. Cannot delete');
@@ -803,7 +766,7 @@ describe('organizationSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(400)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
 
                   expect(res.body.message).toEqual('Organization has member teams. Cannot delete');
@@ -818,7 +781,7 @@ describe('organizationSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(400)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
 
                     expect(teamReadOauthTokenScope.isDone()).toBe(true);
@@ -833,7 +796,7 @@ describe('organizationSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(400)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
 
                     expect(organizationReadOauthTokenScope.isDone()).toBe(false);
@@ -848,7 +811,7 @@ describe('organizationSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(400)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
 
                     expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
@@ -895,27 +858,21 @@ describe('organizationSpec', () => {
                 if (err) return done.fail(err);
                 unverifiedSession = session;
 
-                // Cached profile doesn't match "live" data, so agent needs to be updated
-                // with a call to Auth0
-                stubUserRead((err, apiScopes) => {
+                // See if organization name is already registered
+                stubOrganizationRead([], (err, apiScopes) => {
                   if (err) return done.fail(err);
+                  ({organizationReadScope: organizationReadByNameScope, organizationReadOauthTokenScope: organizationReadByNameOauthTokenScope} = apiScopes);
 
-                  // See if organization name is already registered
-                  stubOrganizationRead([], (err, apiScopes) => {
+                  // Get organization by ID
+                  stubOrganizationRead([
+                                         {..._profile, email: 'someguy@example.com', name: 'Some Guy',
+                                            user_metadata: { organizations: [{ name: 'One Book Canada', organizer: _profile.email, id: organizationId }] }
+                                         }
+                                       ], (err, apiScopes) => {
                     if (err) return done.fail(err);
-                    ({organizationReadScope: organizationReadByNameScope, organizationReadOauthTokenScope: organizationReadByNameOauthTokenScope} = apiScopes);
+                    ({organizationReadScope: organizationReadByIdScope, organizationReadOauthTokenScope: organizationReadByIdOauthTokenScope} = apiScopes);
 
-                    // Get organization by ID
-                    stubOrganizationRead([
-                                           {..._profile, email: 'someguy@example.com', name: 'Some Guy',
-                                              user_metadata: { organizations: [{ name: 'One Book Canada', organizer: _profile.email, id: organizationId }] }
-                                           }
-                                         ], (err, apiScopes) => {
-                      if (err) return done.fail(err);
-                      ({organizationReadScope: organizationReadByIdScope, organizationReadOauthTokenScope: organizationReadByIdOauthTokenScope} = apiScopes);
-
-                      done();
-                    });
+                    done();
                   });
                 });
               });
@@ -931,7 +888,7 @@ describe('organizationSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(403)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) done.fail(err);
                 expect(res.body.message).toEqual('You are not an organizer');
                 done();
@@ -957,13 +914,7 @@ describe('organizationSpec', () => {
               if (err) return done.fail(err);
               unauthorizedSession = session;
 
-              // Cached profile doesn't match "live" data, so agent needs to be updated
-              // with a call to Auth0
-              stubUserRead((err, apiScopes) => {
-                if (err) return done.fail();
-
-                done();
-              });
+              done();
             });
           });
         }).catch(err => {
@@ -1009,7 +960,7 @@ describe('organizationSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(403)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) done.fail(err);
                 expect(res.body.message).toEqual('You are not an organizer');
                 done();
@@ -1057,7 +1008,7 @@ describe('organizationSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(403)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.message).toEqual('You are not the organizer');
               done();
@@ -1071,7 +1022,7 @@ describe('organizationSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(403)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 expect(teamReadOauthTokenScope.isDone()).toBe(true);
@@ -1086,7 +1037,7 @@ describe('organizationSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(403)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 expect(organizationReadOauthTokenScope.isDone()).toBe(false);
@@ -1101,7 +1052,7 @@ describe('organizationSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(403)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
@@ -1121,7 +1072,7 @@ describe('organizationSpec', () => {
         .send({ name: 'Some org' })
         .set('Accept', 'application/json')
         .expect(302)
-        .end(function(err, res) {
+        .end((err, res) => {
           if (err) return done.fail(err);
           expect(res.headers.location).toEqual('/login');
           done();
