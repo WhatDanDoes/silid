@@ -58,8 +58,9 @@ module.exports = function(options, done) {
            */
           stubUserRead(options.userRead ? options.userRead : undefined, (err, apiScopes) => {
             if (err) return done(err);
+            ({userReadScope: checkPermissionsUserReadScope} = apiScopes);
 
-            done(null, {userReadScope, rolesReadScope, userAssignRolesScope, userRolesReadScope});
+            done(null, {userReadScope, rolesReadScope, userAssignRolesScope, userRolesReadScope, checkPermissionsUserReadScope});
           });
         });
       });
