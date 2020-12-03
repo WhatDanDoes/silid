@@ -24,8 +24,12 @@ const _profile = require('../../fixtures/sample-auth0-profile-response');
 
 describe('root/teamMembershipSpec', () => {
 
-  let login, pub, prv, keystore;
+  let login, pub, prv, keystore,
+      originalProfile;
   beforeEach(done => {
+    originalProfile = {..._profile};
+    _profile.email = process.env.ROOT_AGENT;
+ 
     stubAuth0Sessions((err, sessionStuff) => {
       if (err) return done.fail(err);
       ({ login, pub, prv, keystore } = sessionStuff);
@@ -33,7 +37,6 @@ describe('root/teamMembershipSpec', () => {
     });
   });
 
-  let originalProfile;
   afterEach(() => {
     mailer.transport.sentMail = [];
     // Through the magic of node I am able to adjust the profile data returned.
@@ -41,31 +44,24 @@ describe('root/teamMembershipSpec', () => {
     _profile.email = originalProfile.email;
   });
 
-  let root, team, organization, regularAgent;
-  beforeEach(done => {
-    originalProfile = {..._profile};
-    _profile.email = process.env.ROOT_AGENT;
+  describe('authorized', () => {
 
-    models.sequelize.sync({force: true}).then(() => {
-      models.Agent.create({ email: process.env.ROOT_AGENT, name: 'Professor Fresh' }).then(results => {
-        root = results;
-        expect(root.isSuper).toBe(true);
-        done();
+    let root, team, organization, regularAgent;
+    beforeEach(done => {
+      models.sequelize.sync({force: true}).then(() => {
+        models.Agent.create({ email: process.env.ROOT_AGENT, name: 'Professor Fresh' }).then(results => {
+          root = results;
+          expect(root.isSuper).toBe(true);
+          done();
+        }).catch(err => {
+          done.fail(err);
+        });
       }).catch(err => {
         done.fail(err);
       });
-    }).catch(err => {
-      done.fail(err);
     });
-  });
-
-  describe('authorized', () => {
 
     let rootSession;
-
-//    describe('create', () => {
-//    });
-
     describe('delete', () => {
 
       describe('from root\'s own team', () => {
@@ -74,7 +70,6 @@ describe('root/teamMembershipSpec', () => {
 
         let teamId;
         beforeEach(done => {
-
           // Member agent profile
           teamId = uuid.v4();
           agentProfile.email = 'member@example.com';
@@ -91,21 +86,15 @@ describe('root/teamMembershipSpec', () => {
               if (err) return done.fail(err);
               rootSession = session;
 
-              // Cached profile doesn't match "live" data, so agent needs to be updated
-              // with a call to Auth0
-              stubUserRead((err, apiScopes) => {
+              // Retrieve the member agent
+              stubUserAppMetadataRead(agentProfile, (err, apiScopes) => {
                 if (err) return done.fail();
 
-                // Retrieve the member agent
-                stubUserAppMetadataRead(agentProfile, (err, apiScopes) => {
+                // Update the agent
+                stubUserAppMetadataUpdate(agentProfile, (err, apiScopes) => {
                   if (err) return done.fail();
 
-                  // Update the agent
-                  stubUserAppMetadataUpdate(agentProfile, (err, apiScopes) => {
-                    if (err) return done.fail();
-
-                    done();
-                  });
+                  done();
                 });
               });
             });
@@ -119,7 +108,7 @@ describe('root/teamMembershipSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(agentProfile.user_metadata.teams.length).toEqual(0);
               done();
@@ -132,7 +121,7 @@ describe('root/teamMembershipSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(404)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.message).toEqual('No such team');
               done();
@@ -146,7 +135,7 @@ describe('root/teamMembershipSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
 
               // Cached profile doesn't match "live" data, so agent needs to be updated
@@ -166,7 +155,7 @@ describe('root/teamMembershipSpec', () => {
                       .set('Accept', 'application/json')
                       .expect('Content-Type', /json/)
                       .expect(404)
-                      .end(function(err, res) {
+                      .end((err, res) => {
                         if (err) return done.fail(err);
                         expect(res.body.message).toEqual('That agent is not a member');
                         done();
@@ -184,7 +173,7 @@ describe('root/teamMembershipSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(mailer.transport.sentMail.length).toEqual(1);
               expect(mailer.transport.sentMail[0].data.to).toEqual(agentProfile.email);
@@ -202,7 +191,7 @@ describe('root/teamMembershipSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(404)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
 
               // Cached profile doesn't match "live" data, so agent needs to be updated
@@ -222,7 +211,7 @@ describe('root/teamMembershipSpec', () => {
                       .set('Accept', 'application/json')
                       .expect('Content-Type', /json/)
                       .expect(403)
-                      .end(function(err, res) {
+                      .end((err, res) => {
                         if (err) return done.fail(err);
                         expect(res.body.message).toEqual('Team leader cannot be removed from team');
                         done();
@@ -257,24 +246,18 @@ describe('root/teamMembershipSpec', () => {
               if (err) return done.fail(err);
               rootSession = session;
 
-              // Cached profile doesn't match "live" data, so agent needs to be updated
-              // with a call to Auth0
-              stubUserRead((err, apiScopes) => {
-                if (err) return done.fail();
+              stubUserRolesRead((err, apiScopes) => {
+                if (err) return done(err);
 
-                stubUserRolesRead((err, apiScopes) => {
-                  if (err) return done(err);
+                // Retrieve the member agent
+                stubUserAppMetadataRead((err, apiScopes) => {
+                  if (err) return done.fail();
 
-                  // Retrieve the member agent
-                  stubUserAppMetadataRead((err, apiScopes) => {
+                  // Update the agent
+                  stubUserAppMetadataUpdate((err, apiScopes) => {
                     if (err) return done.fail();
 
-                    // Update the agent
-                    stubUserAppMetadataUpdate((err, apiScopes) => {
-                      if (err) return done.fail();
-
-                      done();
-                    });
+                    done();
                   });
                 });
               });
@@ -289,7 +272,7 @@ describe('root/teamMembershipSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(_profile.user_metadata.teams.length).toEqual(0);
               done();
@@ -302,7 +285,7 @@ describe('root/teamMembershipSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(404)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.message).toEqual('No such team');
               done();
@@ -316,7 +299,7 @@ describe('root/teamMembershipSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
 
               // Cached profile doesn't match "live" data, so agent needs to be updated
@@ -340,7 +323,7 @@ describe('root/teamMembershipSpec', () => {
                         .set('Accept', 'application/json')
                         .expect('Content-Type', /json/)
                         .expect(404)
-                        .end(function(err, res) {
+                        .end((err, res) => {
                           if (err) return done.fail(err);
                           expect(res.body.message).toEqual('That agent is not a member');
                           done();
@@ -359,7 +342,7 @@ describe('root/teamMembershipSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(mailer.transport.sentMail.length).toEqual(1);
               expect(mailer.transport.sentMail[0].data.to).toEqual(_profile.email);
@@ -377,7 +360,7 @@ describe('root/teamMembershipSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(404)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
 
               // Cached profile doesn't match "live" data, so agent needs to be updated
@@ -397,7 +380,7 @@ describe('root/teamMembershipSpec', () => {
                       .set('Accept', 'application/json')
                       .expect('Content-Type', /json/)
                       .expect(403)
-                      .end(function(err, res) {
+                      .end((err, res) => {
                         if (err) return done.fail(err);
                         expect(res.body.message).toEqual('Team leader cannot be removed from team');
                         done();
@@ -432,24 +415,18 @@ describe('root/teamMembershipSpec', () => {
               if (err) return done.fail(err);
               rootSession = session;
 
-              // Cached profile doesn't match "live" data, so agent needs to be updated
-              // with a call to Auth0
-              stubUserRead((err, apiScopes) => {
-                if (err) return done.fail();
+              stubUserRolesRead((err, apiScopes) => {
+                if (err) return done(err);
 
-                stubUserRolesRead((err, apiScopes) => {
-                  if (err) return done(err);
+                // Retrieve the member agent
+                stubUserAppMetadataRead(agentProfile, (err, apiScopes) => {
+                  if (err) return done.fail();
 
-                  // Retrieve the member agent
-                  stubUserAppMetadataRead(agentProfile, (err, apiScopes) => {
+                  // Update the agent
+                  stubUserAppMetadataUpdate(agentProfile, (err, apiScopes) => {
                     if (err) return done.fail();
 
-                    // Update the agent
-                    stubUserAppMetadataUpdate(agentProfile, (err, apiScopes) => {
-                      if (err) return done.fail();
-
-                      done();
-                    });
+                    done();
                   });
                 });
               });
@@ -464,7 +441,7 @@ describe('root/teamMembershipSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(agentProfile.user_metadata.teams.length).toEqual(0);
               done();
@@ -477,7 +454,7 @@ describe('root/teamMembershipSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(404)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.message).toEqual('No such team');
               done();
@@ -491,7 +468,7 @@ describe('root/teamMembershipSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
 
               // Cached profile doesn't match "live" data, so agent needs to be updated
@@ -515,7 +492,7 @@ describe('root/teamMembershipSpec', () => {
                         .set('Accept', 'application/json')
                         .expect('Content-Type', /json/)
                         .expect(404)
-                        .end(function(err, res) {
+                        .end((err, res) => {
                           if (err) return done.fail(err);
                           expect(res.body.message).toEqual('That agent is not a member');
                           done();
@@ -534,7 +511,7 @@ describe('root/teamMembershipSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(mailer.transport.sentMail.length).toEqual(1);
               expect(mailer.transport.sentMail[0].data.to).toEqual(agentProfile.email);
@@ -552,7 +529,7 @@ describe('root/teamMembershipSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(404)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
 
               // Cached profile doesn't match "live" data, so agent needs to be updated
@@ -572,7 +549,7 @@ describe('root/teamMembershipSpec', () => {
                       .set('Accept', 'application/json')
                       .expect('Content-Type', /json/)
                       .expect(403)
-                      .end(function(err, res) {
+                      .end((err, res) => {
                         if (err) return done.fail(err);
                         expect(res.body.message).toEqual('Team leader cannot be removed from team');
                         done();
