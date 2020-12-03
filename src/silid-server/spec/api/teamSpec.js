@@ -1664,20 +1664,14 @@ describe('teamSpec', () => {
             if (err) return done.fail(err);
             unauthorizedSession = session;
 
-            // Cached profile doesn't match "live" data, so agent needs to be updated
-            // with a call to Auth0
-            stubUserRead((err, apiScopes) => {
+            stubTeamRead((err, apiScopes) => {
               if (err) return done.fail();
+              ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
 
-              stubTeamRead((err, apiScopes) => {
+              stubUserAppMetadataUpdate((err, apiScopes) => {
                 if (err) return done.fail();
-                ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-
-                stubUserAppMetadataUpdate((err, apiScopes) => {
-                  if (err) return done.fail();
-                  ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                  done();
-                });
+                ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                done();
               });
             });
           });
@@ -1756,6 +1750,15 @@ describe('teamSpec', () => {
         });
       });
 
+      /**
+       * 2020-12-3
+       *
+       * Why is this commented out?
+       *
+       * I suspect unauthorizedSessions should still be able to view a team.
+       *
+       * Revisit later...
+       */
 //      describe('read', () => {
 //        it('returns 403 on organization show', done => {
 //          unauthorizedSession
