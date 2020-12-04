@@ -172,7 +172,7 @@ app.use(function(req, res, next) {
 // error handler
 app.use(function(err, req, res, next) {
   console.error('ERROR', err);
-  res.status(err.status || 500).json(err);
+  res.status(err.statusCode || 500).json(err);
 });
 
 module.exports = app;

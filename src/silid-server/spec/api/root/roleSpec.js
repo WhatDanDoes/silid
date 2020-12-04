@@ -27,38 +27,34 @@ const _roles = require('../../fixtures/roles');
 
 describe('root/roleSpec', () => {
 
-  let login, pub, prv, keystore;
+  let login, pub, prv, keystore,
+      root, originalProfile;
   beforeEach(done => {
+    originalProfile = {..._profile};
+
     stubAuth0Sessions((err, sessionStuff) => {
       if (err) return done.fail(err);
       ({ login, pub, prv, keystore } = sessionStuff);
-      done();
+
+      models.sequelize.sync({force: true}).then(() => {
+        models.Agent.create({ email: process.env.ROOT_AGENT }).then(results => {
+          root = results;
+          expect(root.isSuper).toBe(true);
+          done();
+        }).catch(err => {
+          done.fail(err);
+        });
+      }).catch(err => {
+        done.fail(err);
+      });
     });
   });
 
-  let originalProfile;
   afterEach(() => {
     // Through the magic of node I am able to adjust the profile data returned.
     // This resets the default values
     _profile.email = originalProfile.email;
     delete _profile.user_metadata;
-  });
-
-  let root;
-  beforeEach(done => {
-    originalProfile = {..._profile};
-
-    models.sequelize.sync({force: true}).then(() => {
-      models.Agent.create({ email: process.env.ROOT_AGENT }).then(results => {
-        root = results;
-        expect(root.isSuper).toBe(true);
-        done();
-      }).catch(err => {
-        done.fail(err);
-      });
-    }).catch(err => {
-      done.fail(err);
-    });
   });
 
   describe('authorized', () => {
@@ -79,13 +75,7 @@ describe('root/roleSpec', () => {
           if (err) return done.fail(err);
           rootSession = session;
 
-          // Cached profile doesn't match "live" data, so agent needs to be updated
-          // with a call to Auth0
-          stubUserRead((err, apiScopes) => {
-            if (err) return done.fail();
-
-            done();
-          });
+          done();
         });
       });
     });
@@ -107,7 +97,7 @@ describe('root/roleSpec', () => {
           .set('Accept', 'application/json')
           .expect('Content-Type', /json/)
           .expect(200)
-          .end(function(err, res) {
+          .end((err, res) => {
             if (err) return done.fail(err);
 
             expect(res.body).toEqual(_roles);
@@ -122,7 +112,7 @@ describe('root/roleSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(200)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
 
               expect(rolesReadOauthTokenScope.isDone()).toBe(true);
@@ -171,7 +161,7 @@ describe('root/roleSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.email).toEqual(organizerProfile.email);
               expect(res.body.roles.length).toEqual(2);
@@ -188,7 +178,7 @@ describe('root/roleSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(true);
@@ -203,7 +193,7 @@ describe('root/roleSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 // 2020-6-23 Reuse token from above? This needs to be confirmed in production
@@ -219,7 +209,7 @@ describe('root/roleSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 // 2020-6-23 Reuse token from above? This needs to be confirmed in production
@@ -235,7 +225,7 @@ describe('root/roleSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 // 2020-6-23 Reuse token from above? This needs to be confirmed in production
@@ -288,7 +278,7 @@ describe('root/roleSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(404)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(res.body.message).toEqual('No such role');
                 done();
@@ -313,7 +303,7 @@ describe('root/roleSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(404)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(res.body.message).toEqual('No such agent');
                 done();
@@ -347,7 +337,7 @@ describe('root/roleSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(200)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(res.body.message).toEqual('Role already assigned');
                 done();
@@ -391,7 +381,7 @@ describe('root/roleSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.email).toEqual(organizerProfile.email);
               expect(res.body.roles.length).toEqual(1);
@@ -407,7 +397,7 @@ describe('root/roleSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(true);
@@ -422,7 +412,7 @@ describe('root/roleSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 // 2020-6-23 Reuse token from above? This needs to be confirmed in production
@@ -438,7 +428,7 @@ describe('root/roleSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 // 2020-6-23 Reuse token from above? This needs to be confirmed in production
@@ -482,7 +472,7 @@ describe('root/roleSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(404)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(res.body.message).toEqual('Role not assigned');
                 done();
@@ -507,7 +497,7 @@ describe('root/roleSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(404)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(res.body.message).toEqual('No such agent');
                 done();
@@ -539,7 +529,7 @@ describe('root/roleSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(404)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(res.body.message).toEqual('Role not assigned');
                 done();
@@ -553,20 +543,14 @@ describe('root/roleSpec', () => {
   describe('unauthorized', () => {
     const unauthorizedProfile = { ..._profile, name: 'Regular Guy', email: 'someregularguy@example.com', user_id: _profile.user_id + 1 };
     beforeEach(done => {
-      stubAuth0ManagementApi((err, apiScopes) => {
+      stubAuth0ManagementApi({ userRead: unauthorizedProfile }, (err, apiScopes) => {
         if (err) return done.fail();
 
         login({..._identity, email: unauthorizedProfile.email, name: unauthorizedProfile.name}, (err, session) => {
           if (err) return done.fail(err);
           unauthorizedSession = session;
 
-          // Cached profile doesn't match "live" data, so agent needs to be updated
-          // with a call to Auth0
-          stubUserRead(unauthorizedProfile, (err, apiScopes) => {
-            if (err) return done.fail();
-
-            done();
-          });
+          done();
         });
       });
     });
@@ -578,7 +562,7 @@ describe('root/roleSpec', () => {
           .set('Accept', 'application/json')
           .expect('Content-Type', /json/)
           .expect(403)
-          .end(function(err, res) {
+          .end((err, res) => {
             if (err) return done.fail(err);
 
             expect(res.body.message).toEqual('Insufficient scope');
@@ -594,7 +578,7 @@ describe('root/roleSpec', () => {
           .set('Accept', 'application/json')
           .expect('Content-Type', /json/)
           .expect(403)
-          .end(function(err, res) {
+          .end((err, res) => {
             if (err) return done.fail(err);
 
             expect(res.body.message).toEqual('Insufficient scope');
@@ -610,7 +594,7 @@ describe('root/roleSpec', () => {
           .set('Accept', 'application/json')
           .expect('Content-Type', /json/)
           .expect(403)
-          .end(function(err, res) {
+          .end((err, res) => {
             if (err) return done.fail(err);
 
             expect(res.body.message).toEqual('Insufficient scope');

@@ -1,5 +1,4 @@
 const nock = require('nock');
-const querystring = require('querystring');
 const apiScope = require('../../../config/apiPermissions');
 const jwt = require('jsonwebtoken');
 const stubOauthToken =  require('./stubOauthToken');
@@ -25,39 +24,37 @@ module.exports = function(roles, done) {
     stubOauthToken([apiScope.read.roles], (err, oauthScopes) => {
       if (err) return done(err);
 
-      ({accessToken, oauthTokenScope} = oauthScopes);
+      const {accessToken, oauthTokenScope: rolesReadOauthTokenScope} = oauthScopes;
 
-        const rolesReadOauthTokenScope = oauthTokenScope;
+      /**
+       * GET `/roles`
+       *
+       * 2020-6-23
+       *
+       * The default roles defined below match those defined at Auth0 (actual `id`s will vary)
+       */
+      const rolesReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+        .log(console.log)
+        .get('/api/v2/roles')
+        .reply(200, roles || [
+          {
+            "id": "123",
+            "name": "organizer",
+            "description": "Manage organizations and team memberships therein"
+          },
+          {
+            "id": "234",
+            "name": "sudo",
+            "description": "All-access pass to Identity resources"
+          },
+          {
+            "id": "345",
+            "name": "viewer",
+            "description": "Basic agent, organization, and team viewing permissions"
+          }
+        ]);
 
-        /**
-         * GET `/roles`
-         *
-         * 2020-6-23
-         *
-         * The default roles defined below match those defined at Auth0 (actual `id`s will vary)
-         */
-        const rolesReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-          .log(console.log)
-          .get('/api/v2/roles')
-          .reply(200, roles || [
-            {
-              "id": "123",
-              "name": "organizer",
-              "description": "Manage organizations and team memberships therein"
-            },
-            {
-              "id": "234",
-              "name": "sudo",
-              "description": "All-access pass to Identity resources"
-            },
-            {
-              "id": "345",
-              "name": "viewer",
-              "description": "Basic agent, organization, and team viewing permissions"
-            }
-          ]);
-
-        done(null, {rolesReadScope, rolesReadOauthTokenScope});
+      done(null, {rolesReadScope, rolesReadOauthTokenScope});
     });
   });
 };

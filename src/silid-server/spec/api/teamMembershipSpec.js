@@ -26,8 +26,10 @@ const _profile = require('../fixtures/sample-auth0-profile-response');
 
 describe('teamMembershipSpec', () => {
 
-  let login, pub, prv, keystore;
+  let login, pub, prv, keystore, originalProfile;
   beforeEach(done => {
+    originalProfile = {..._profile};
+
     stubAuth0Sessions((err, sessionStuff) => {
       if (err) return done.fail(err);
       ({ login, pub, prv, keystore } = sessionStuff);
@@ -37,27 +39,6 @@ describe('teamMembershipSpec', () => {
 
   afterEach(() => {
     mailer.transport.sentMail = [];
-  });
-
-  let originalProfile;
-  let team, organization, agent;
-  beforeEach(done => {
-    originalProfile = {..._profile};
-
-    models.sequelize.sync({force: true}).then(() => {
-      fixtures.loadFile(`${__dirname}/../fixtures/agents.json`, models).then(() => {
-        models.Agent.findAll().then(results => {
-          agent = results[0];
-          done();
-        }).catch(err => {
-          done.fail(err);
-        });
-      }).catch(err => {
-        done.fail(err);
-      });
-    }).catch(err => {
-      done.fail(err);
-    });
   });
 
   afterEach(() => {
@@ -70,6 +51,24 @@ describe('teamMembershipSpec', () => {
   });
 
   describe('authenticated', () => {
+
+    let team, organization, agent;
+    beforeEach(done => {
+      models.sequelize.sync({force: true}).then(() => {
+        fixtures.loadFile(`${__dirname}/../fixtures/agents.json`, models).then(() => {
+          models.Agent.findAll().then(results => {
+            agent = results[0];
+            done();
+          }).catch(err => {
+            done.fail(err);
+          });
+        }).catch(err => {
+          done.fail(err);
+        });
+      }).catch(err => {
+        done.fail(err);
+      });
+    });
 
     describe('authorized', () => {
 
@@ -88,16 +87,10 @@ describe('teamMembershipSpec', () => {
                 if (err) return done.fail(err);
                 authenticatedSession = session;
 
-                // Cached profile doesn't match "live" data, so agent needs to be updated
-                // with a call to Auth0
-                stubUserRead((err, apiScopes) => {
-                  if (err) return done.fail();
+                stubUserRolesRead((err, apiScopes) => {
+                  if (err) return done(err);
 
-                  stubUserRolesRead((err, apiScopes) => {
-                    if (err) return done(err);
-
-                    done();
-                  });
+                  done();
                 });
               });
             });
@@ -112,7 +105,7 @@ describe('teamMembershipSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(404)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(res.body.message).toEqual('No such team');
                 done();
@@ -125,7 +118,7 @@ describe('teamMembershipSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(400)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(res.body.message).toEqual('No email provided');
                 done();
@@ -159,7 +152,7 @@ describe('teamMembershipSpec', () => {
                       .set('Accept', 'application/json')
                       .expect('Content-Type', /json/)
                       .expect(201)
-                      .end(function(err, res) {
+                      .end((err, res) => {
                         if (err) return done.fail(err);
 
                         models.Update.findAll().then(results => {
@@ -196,7 +189,7 @@ describe('teamMembershipSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(201)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
 
                     models.Update.findAll().then(updates => {
@@ -227,7 +220,7 @@ describe('teamMembershipSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(201)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
 
                     models.Update.findAll().then(updates => {
@@ -255,7 +248,7 @@ describe('teamMembershipSpec', () => {
                             .set('Accept', 'application/json')
                             .expect('Content-Type', /json/)
                             .expect(201)
-                            .end(function(err, res) {
+                            .end((err, res) => {
                               if (err) return done.fail(err);
 
                               models.Update.findAll().then(updates => {
@@ -289,7 +282,7 @@ describe('teamMembershipSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(201)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
                       expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
                       done();
@@ -305,7 +298,7 @@ describe('teamMembershipSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(201)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
                       expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                       done();
@@ -322,7 +315,7 @@ describe('teamMembershipSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(201)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
 
                       models.Update.findAll().then(updates => {
@@ -354,7 +347,7 @@ describe('teamMembershipSpec', () => {
                       .set('Accept', 'application/json')
                       .expect('Content-Type', /json/)
                       .expect(201)
-                      .end(function(err, res) {
+                      .end((err, res) => {
                         if (err) return done.fail(err);
                         expect(mailer.transport.sentMail.length).toEqual(1);
                         expect(mailer.transport.sentMail[0].data.to).toEqual('somebrandnewguy@example.com');
@@ -383,7 +376,7 @@ describe('teamMembershipSpec', () => {
                       .set('Accept', 'application/json')
                       .expect('Content-Type', /json/)
                       .expect(201)
-                      .end(function(err, res) {
+                      .end((err, res) => {
                         if (err) return done.fail(err);
 
                         verificationUrl = `/team/${teamId}/invite`;
@@ -408,42 +401,36 @@ describe('teamMembershipSpec', () => {
                         login({..._identity, email: _profile.email, name: _profile.name }, (err, newAgentSession) => {
                           if (err) return done.fail(err);
 
-                          // Cached profile doesn't match "live" data, so agent needs to be updated
-                          // with a call to Auth0
+                          // For GET /agent
                           stubUserRead((err, apiScopes) => {
-                            if (err) return done.fail();
+                            if (err) return done.fail(err);
 
-                            // For GET /agent
-                            stubUserRead((err, apiScopes) => {
+                            // Retrieve the roles to which this agent is assigned
+                            stubUserRolesRead((err, apiScopes) => {
                               if (err) return done.fail(err);
 
-                              // Retrieve the roles to which this agent is assigned
-                              stubUserRolesRead((err, apiScopes) => {
-                                if (err) return done.fail(err);
+                              stubUserAppMetadataUpdate((err, apiScopes) => {
+                                if (err) return done.fail();
+                                newAgentSession
+                                  .get('/agent')
+                                  .set('Accept', 'application/json')
+                                  .expect('Content-Type', /json/)
+                                  .expect(200)
+                                  .end((err, res) => {
+                                    if (err) return done.fail(err);
 
-                                stubUserAppMetadataUpdate((err, apiScopes) => {
-                                  if (err) return done.fail();
-                                  newAgentSession
-                                    .get('/agent')
-                                    .set('Accept', 'application/json')
-                                    .expect('Content-Type', /json/)
-                                    .expect(200)
-                                    .end(function(err, res) {
-                                      if (err) return done.fail(err);
+                                    expect(_profile.user_metadata).toBeDefined();
+                                    expect(_profile.user_metadata.rsvps.length).toEqual(1);
+                                    expect(_profile.user_metadata.rsvps[0].uuid).toEqual(teamId);
+                                    expect(_profile.user_metadata.rsvps[0].type).toEqual('team');
+                                    expect(_profile.user_metadata.rsvps[0].recipient).toEqual(_profile.email);
+                                    expect(_profile.user_metadata.rsvps[0].data.id).toEqual(teamId);
+                                    expect(_profile.user_metadata.rsvps[0].data.name).toEqual('The Calgary Roughnecks');
+                                    expect(_profile.user_metadata.rsvps[0].data.leader).toEqual('someguy@example.com');
+                                    expect(_profile.user_metadata.rsvps[0].data.organizationId).toBeUndefined();
 
-                                      expect(_profile.user_metadata).toBeDefined();
-                                      expect(_profile.user_metadata.rsvps.length).toEqual(1);
-                                      expect(_profile.user_metadata.rsvps[0].uuid).toEqual(teamId);
-                                      expect(_profile.user_metadata.rsvps[0].type).toEqual('team');
-                                      expect(_profile.user_metadata.rsvps[0].recipient).toEqual(_profile.email);
-                                      expect(_profile.user_metadata.rsvps[0].data.id).toEqual(teamId);
-                                      expect(_profile.user_metadata.rsvps[0].data.name).toEqual('The Calgary Roughnecks');
-                                      expect(_profile.user_metadata.rsvps[0].data.leader).toEqual('someguy@example.com');
-                                      expect(_profile.user_metadata.rsvps[0].data.organizationId).toBeUndefined();
-
-                                      done();
-                                    });
-                                });
+                                    done();
+                                  });
                               });
                             });
                           });
@@ -461,38 +448,32 @@ describe('teamMembershipSpec', () => {
                           login({..._identity, email: _profile.email, name: _profile.name }, (err, newAgentSession) => {
                             if (err) return done.fail(err);
 
-                            // Cached profile doesn't match "live" data, so agent needs to be updated
-                            // with a call to Auth0
+                            // For GET /agent
                             stubUserRead((err, apiScopes) => {
-                              if (err) return done.fail();
+                              if (err) return done.fail(err);
 
-                              // For GET /agent
-                              stubUserRead((err, apiScopes) => {
+                              // Retrieve the roles to which this agent is assigned
+                              stubUserRolesRead((err, apiScopes) => {
                                 if (err) return done.fail(err);
 
-                                // Retrieve the roles to which this agent is assigned
-                                stubUserRolesRead((err, apiScopes) => {
-                                  if (err) return done.fail(err);
+                                stubUserAppMetadataUpdate((err, apiScopes) => {
+                                  if (err) return done.fail();
+                                  newAgentSession
+                                    .get('/agent')
+                                    .set('Accept', 'application/json')
+                                    .expect('Content-Type', /json/)
+                                    .expect(200)
+                                    .end((err, res) => {
+                                      if (err) return done.fail(err);
 
-                                  stubUserAppMetadataUpdate((err, apiScopes) => {
-                                    if (err) return done.fail();
-                                    newAgentSession
-                                      .get('/agent')
-                                      .set('Accept', 'application/json')
-                                      .expect('Content-Type', /json/)
-                                      .expect(200)
-                                      .end(function(err, res) {
-                                        if (err) return done.fail(err);
+                                      models.Update.findAll().then(updates => {
+                                        expect(updates.length).toEqual(0);
 
-                                        models.Update.findAll().then(updates => {
-                                          expect(updates.length).toEqual(0);
-
-                                          done();
-                                        }).catch(err => {
-                                          done.fail(err);
-                                        });
+                                        done();
+                                      }).catch(err => {
+                                        done.fail(err);
                                       });
-                                  });
+                                    });
                                 });
                               });
                             });
@@ -515,36 +496,30 @@ describe('teamMembershipSpec', () => {
                           if (err) return done.fail(err);
                           invitedAgentSession = session;
 
-                          // Cached profile doesn't match "live" data, so agent needs to be updated
-                          // with a call to Auth0
+                          // For GET /agent
                           stubUserRead((err, apiScopes) => {
-                            if (err) return done.fail();
+                            if (err) return done.fail(err);
 
-                            // For GET /agent
-                            stubUserRead((err, apiScopes) => {
+                            // Retrieve the roles to which this agent is assigned
+                            stubUserRolesRead((err, apiScopes) => {
                               if (err) return done.fail(err);
 
-                              // Retrieve the roles to which this agent is assigned
-                              stubUserRolesRead((err, apiScopes) => {
-                                if (err) return done.fail(err);
+                              stubUserAppMetadataUpdate((err, apiScopes) => {
+                                if (err) return done.fail();
 
-                                stubUserAppMetadataUpdate((err, apiScopes) => {
-                                  if (err) return done.fail();
+                                // Simulates first login action. Invite is written to metadata and removed from DB
+                                invitedAgentSession
+                                  .get('/agent')
+                                  .set('Accept', 'application/json')
+                                  .expect('Content-Type', /json/)
+                                  .expect(200)
+                                  .end((err, res) => {
+                                    if (err) return done.fail(err);
 
-                                  // Simulates first login action. Invite is written to metadata and removed from DB
-                                  invitedAgentSession
-                                    .get('/agent')
-                                    .set('Accept', 'application/json')
-                                    .expect('Content-Type', /json/)
-                                    .expect(200)
-                                    .end(function(err, res) {
-                                      if (err) return done.fail(err);
+                                    expect(_profile.user_metadata.rsvps.length).toEqual(1);
 
-                                      expect(_profile.user_metadata.rsvps.length).toEqual(1);
-
-                                      done();
-                                    });
-                                });
+                                    done();
+                                  });
                               });
                             });
                           });
@@ -555,8 +530,6 @@ describe('teamMembershipSpec', () => {
                     describe('the agent may', () => {
 
                       beforeEach(done => {
-                        // Cached profile doesn't match "live" data, so agent needs to be updated
-                        // with a call to Auth0
                         stubUserRead((err, apiScopes) => {
                           if (err) return done.fail();
                           stubUserReadQuery([{..._profile,
@@ -591,7 +564,7 @@ describe('teamMembershipSpec', () => {
                             .set('Accept', 'application/json')
                             .expect('Content-Type', /json/)
                             .expect(201)
-                            .end(function(err, res) {
+                            .end((err, res) => {
                               if (err) return done.fail(err);
 
                               expect(_profile.user_metadata.teams.length).toEqual(1);
@@ -616,7 +589,7 @@ describe('teamMembershipSpec', () => {
                             .set('Accept', 'application/json')
                             .expect('Content-Type', /json/)
                             .expect(201)
-                            .end(function(err, res) {
+                            .end((err, res) => {
                               if (err) return done.fail(err);
 
                               expect(res.body.user_metadata.rsvps.length).toEqual(0);
@@ -631,7 +604,7 @@ describe('teamMembershipSpec', () => {
                             .set('Accept', 'application/json')
                             .expect('Content-Type', /json/)
                             .expect(404)
-                            .end(function(err, res) {
+                            .end((err, res) => {
                               if (err) return done.fail(err);
 
                               expect(res.body.message).toEqual('No such invitation');
@@ -646,7 +619,7 @@ describe('teamMembershipSpec', () => {
                             .set('Accept', 'application/json')
                             .expect('Content-Type', /json/)
                             .expect(201)
-                            .end(function(err, res) {
+                            .end((err, res) => {
                               if (err) return done.fail(err);
 
                               // _profile reflects state of team leader. Cf. above...
@@ -663,7 +636,7 @@ describe('teamMembershipSpec', () => {
                             .set('Accept', 'application/json')
                             .expect('Content-Type', /json/)
                             .expect(201)
-                            .end(function(err, res) {
+                            .end((err, res) => {
                               if (err) return done.fail(err);
 
                               // Try adding the agent again
@@ -689,7 +662,7 @@ describe('teamMembershipSpec', () => {
                                       .set('Accept', 'application/json')
                                       .expect('Content-Type', /json/)
                                       .expect(200)
-                                      .end(function(err, res) {
+                                      .end((err, res) => {
                                         if (err) return done.fail(err);
 
                                         expect(res.body.message).toEqual('somebrandnewguy@example.com is already a member of this team');
@@ -712,7 +685,7 @@ describe('teamMembershipSpec', () => {
                             .set('Accept', 'application/json')
                             .expect('Content-Type', /json/)
                             .expect(201)
-                            .end(function(err, res) {
+                            .end((err, res) => {
                               if (err) return done.fail(err);
 
                               expect(res.body.user_metadata.teams.length).toEqual(0);
@@ -729,7 +702,7 @@ describe('teamMembershipSpec', () => {
                             .set('Accept', 'application/json')
                             .expect('Content-Type', /json/)
                             .expect(201)
-                            .end(function(err, res) {
+                            .end((err, res) => {
                               if (err) return done.fail(err);
 
                               expect(res.body.user_metadata.rsvps.length).toEqual(0);
@@ -744,7 +717,7 @@ describe('teamMembershipSpec', () => {
                             .set('Accept', 'application/json')
                             .expect('Content-Type', /json/)
                             .expect(404)
-                            .end(function(err, res) {
+                            .end((err, res) => {
                               if (err) return done.fail(err);
 
                               expect(res.body.message).toEqual('No such invitation');
@@ -759,7 +732,7 @@ describe('teamMembershipSpec', () => {
                             .set('Accept', 'application/json')
                             .expect('Content-Type', /json/)
                             .expect(201)
-                            .end(function(err, res) {
+                            .end((err, res) => {
                               if (err) return done.fail(err);
 
                               // _profile reflects state of team leader. Cf. above...
@@ -778,7 +751,7 @@ describe('teamMembershipSpec', () => {
                         .get(`${verificationUrl}/accept`)
                         .set('Accept', 'application/json')
                         .expect(302)
-                        .end(function(err, res) {
+                        .end((err, res) => {
                           if (err) return done.fail(err);
 
                           expect(res.headers.location).toEqual(`/login`);
@@ -800,7 +773,7 @@ describe('teamMembershipSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(201)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
 
                     stubUserRead((err, apiScopes) => {
@@ -824,7 +797,7 @@ describe('teamMembershipSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(201)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
 
                       models.Update.findAll().then(results => {
@@ -851,7 +824,7 @@ describe('teamMembershipSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(201)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
                     expect(mailer.transport.sentMail.length).toEqual(2);
                     expect(mailer.transport.sentMail[0].data.to).toEqual('somebrandnewguy@example.com');
@@ -880,7 +853,7 @@ describe('teamMembershipSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(201)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
 
                     verificationUrl = `/team/${teamId}/invite`;
@@ -914,7 +887,7 @@ describe('teamMembershipSpec', () => {
                       .set('Accept', 'application/json')
                       .expect('Content-Type', /json/)
                       .expect(201)
-                      .end(function(err, res) {
+                      .end((err, res) => {
                         if (err) return done.fail(err);
                         models.Update.findAll().then(results => {
                           expect(results.length).toEqual(0);
@@ -941,7 +914,7 @@ describe('teamMembershipSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(201)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
 
                     expect(_profile.user_metadata.pendingInvitations.length).toEqual(0);
@@ -959,7 +932,7 @@ describe('teamMembershipSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(404)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
 
                     expect(res.body.message).toEqual('No such invitation');
@@ -977,7 +950,7 @@ describe('teamMembershipSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(201)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
 
                     stubUserRead((err, apiScopes) => {
@@ -994,7 +967,7 @@ describe('teamMembershipSpec', () => {
                           .set('Accept', 'application/json')
                           .expect('Content-Type', /json/)
                           .expect(404)
-                          .end(function(err, res) {
+                          .end((err, res) => {
                             if (err) return done.fail(err);
 
                             expect(res.body.message).toEqual('No such invitation');
@@ -1075,7 +1048,7 @@ describe('teamMembershipSpec', () => {
                         .set('Accept', 'application/json')
                         .expect('Content-Type', /json/)
                         .expect(201)
-                        .end(function(err, res) {
+                        .end((err, res) => {
                           if (err) return done.fail(err);
 
                           models.Update.findAll().then(results => {
@@ -1104,7 +1077,7 @@ describe('teamMembershipSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(201)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
 
                       expect(_registeredProfile.user_metadata.rsvps.length).toEqual(1);
@@ -1139,7 +1112,7 @@ describe('teamMembershipSpec', () => {
                                   .set('Accept', 'application/json')
                                   .expect('Content-Type', /json/)
                                   .expect(201)
-                                  .end(function(err, res) {
+                                  .end((err, res) => {
                                     if (err) return done.fail(err);
 
                                     expect(_registeredProfile.user_metadata.rsvps.length).toEqual(1);
@@ -1166,7 +1139,7 @@ describe('teamMembershipSpec', () => {
                         .set('Accept', 'application/json')
                         .expect('Content-Type', /json/)
                         .expect(201)
-                        .end(function(err, res) {
+                        .end((err, res) => {
                           if (err) return done.fail(err);
                           expect(invitedUserAppMetadataReadOauthTokenScope.isDone()).toBe(true);
                           done();
@@ -1182,7 +1155,7 @@ describe('teamMembershipSpec', () => {
                         .set('Accept', 'application/json')
                         .expect('Content-Type', /json/)
                         .expect(201)
-                        .end(function(err, res) {
+                        .end((err, res) => {
                           if (err) return done.fail(err);
                           expect(invitedUserAppMetadataReadScope.isDone()).toBe(true);
                           done();
@@ -1198,7 +1171,7 @@ describe('teamMembershipSpec', () => {
                         .set('Accept', 'application/json')
                         .expect('Content-Type', /json/)
                         .expect(201)
-                        .end(function(err, res) {
+                        .end((err, res) => {
                           if (err) return done.fail(err);
 
                           expect(invitedUserAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
@@ -1217,7 +1190,7 @@ describe('teamMembershipSpec', () => {
                         .set('Accept', 'application/json')
                         .expect('Content-Type', /json/)
                         .expect(201)
-                        .end(function(err, res) {
+                        .end((err, res) => {
                           if (err) return done.fail(err);
                           expect(teamLeaderAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
                           done();
@@ -1233,7 +1206,7 @@ describe('teamMembershipSpec', () => {
                         .set('Accept', 'application/json')
                         .expect('Content-Type', /json/)
                         .expect(201)
-                        .end(function(err, res) {
+                        .end((err, res) => {
                           if (err) return done.fail(err);
 
                           expect(teamLeaderAppMetadataUpdateScope.isDone()).toBe(true);
@@ -1256,7 +1229,7 @@ describe('teamMembershipSpec', () => {
                         .set('Accept', 'application/json')
                         .expect('Content-Type', /json/)
                         .expect(201)
-                        .end(function(err, res) {
+                        .end((err, res) => {
                           if (err) return done.fail(err);
                           expect(mailer.transport.sentMail.length).toEqual(1);
                           expect(mailer.transport.sentMail[0].data.to).toEqual(registeredAgent.email);
@@ -1285,7 +1258,7 @@ describe('teamMembershipSpec', () => {
                         .set('Accept', 'application/json')
                         .expect('Content-Type', /json/)
                         .expect(201)
-                        .end(function(err, res) {
+                        .end((err, res) => {
                           if (err) return done.fail(err);
 
                           verificationUrl = `/team/${teamId}/invite`;
@@ -1362,7 +1335,7 @@ describe('teamMembershipSpec', () => {
                               .set('Accept', 'application/json')
                               .expect('Content-Type', /json/)
                               .expect(201)
-                              .end(function(err, res) {
+                              .end((err, res) => {
                                 if (err) return done.fail(err);
 
                                 expect(_profile.user_metadata.teams).toBeDefined();
@@ -1388,7 +1361,7 @@ describe('teamMembershipSpec', () => {
                               .set('Accept', 'application/json')
                               .expect('Content-Type', /json/)
                               .expect(201)
-                              .end(function(err, res) {
+                              .end((err, res) => {
                                 if (err) return done.fail(err);
 
                                 expect(res.body.user_metadata.rsvps.length).toEqual(0);
@@ -1403,7 +1376,7 @@ describe('teamMembershipSpec', () => {
                               .set('Accept', 'application/json')
                               .expect('Content-Type', /json/)
                               .expect(404)
-                              .end(function(err, res) {
+                              .end((err, res) => {
                                 if (err) return done.fail(err);
 
                                 expect(res.body.message).toEqual('No such invitation');
@@ -1423,7 +1396,7 @@ describe('teamMembershipSpec', () => {
                               .set('Accept', 'application/json')
                               .expect('Content-Type', /json/)
                               .expect(201)
-                              .end(function(err, res) {
+                              .end((err, res) => {
                                 if (err) return done.fail(err);
 
                                 // _profile reflects state of team leader. Cf. above...
@@ -1441,7 +1414,7 @@ describe('teamMembershipSpec', () => {
                                 .set('Accept', 'application/json')
                                 .expect('Content-Type', /json/)
                                 .expect(201)
-                                .end(function(err, res) {
+                                .end((err, res) => {
                                   if (err) return done.fail(err);
 
                                   // Try adding the agent again
@@ -1473,7 +1446,7 @@ describe('teamMembershipSpec', () => {
                                 .set('Accept', 'application/json')
                                 .expect('Content-Type', /json/)
                                 .expect(200)
-                                .end(function(err, res) {
+                                .end((err, res) => {
                                   if (err) return done.fail(err);
 
                                   expect(res.body.message).toEqual(`${registeredAgent.email} is already a member of this team`);
@@ -1495,7 +1468,7 @@ describe('teamMembershipSpec', () => {
                                 .set('Accept', 'application/json')
                                 .expect('Content-Type', /json/)
                                 .expect(200)
-                                .end(function(err, res) {
+                                .end((err, res) => {
                                   if (err) return done.fail(err);
 
                                   expect(_profile.user_metadata.pendingInvitations.length).toEqual(0);
@@ -1516,7 +1489,7 @@ describe('teamMembershipSpec', () => {
                                   .set('Accept', 'application/json')
                                   .expect('Content-Type', /json/)
                                   .expect(200)
-                                  .end(function(err, res) {
+                                  .end((err, res) => {
                                     if (err) return done.fail(err);
 
                                     expect(userAppMetadataUpdateScope.isDone()).toBe(false);
@@ -1538,7 +1511,7 @@ describe('teamMembershipSpec', () => {
                               .set('Accept', 'application/json')
                               .expect('Content-Type', /json/)
                               .expect(201)
-                              .end(function(err, res) {
+                              .end((err, res) => {
                                 if (err) return done.fail(err);
 
                                 expect(res.body.user_metadata.teams.length).toEqual(0);
@@ -1555,7 +1528,7 @@ describe('teamMembershipSpec', () => {
                               .set('Accept', 'application/json')
                               .expect('Content-Type', /json/)
                               .expect(201)
-                              .end(function(err, res) {
+                              .end((err, res) => {
                                 if (err) return done.fail(err);
 
                                 expect(res.body.user_metadata.rsvps.length).toEqual(0);
@@ -1570,7 +1543,7 @@ describe('teamMembershipSpec', () => {
                               .set('Accept', 'application/json')
                               .expect('Content-Type', /json/)
                               .expect(404)
-                              .end(function(err, res) {
+                              .end((err, res) => {
                                 if (err) return done.fail(err);
 
                                 expect(res.body.message).toEqual('No such invitation');
@@ -1585,7 +1558,7 @@ describe('teamMembershipSpec', () => {
                               .set('Accept', 'application/json')
                               .expect('Content-Type', /json/)
                               .expect(201)
-                              .end(function(err, res) {
+                              .end((err, res) => {
                                 if (err) return done.fail(err);
 
                                 // _profile reflects state of team leader. Cf. above...
@@ -1604,7 +1577,7 @@ describe('teamMembershipSpec', () => {
                           .get(`${verificationUrl}/accept`)
                           .set('Accept', 'application/json')
                           .expect(302)
-                          .end(function(err, res) {
+                          .end((err, res) => {
                             if (err) return done.fail(err);
 
                             expect(res.headers.location).toEqual(`/login`);
@@ -1626,7 +1599,7 @@ describe('teamMembershipSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(201)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
 
                       stubUserRead((err, apiScopes) => {
@@ -1651,7 +1624,7 @@ describe('teamMembershipSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(201)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
                       expect(mailer.transport.sentMail.length).toEqual(2);
                       expect(mailer.transport.sentMail[0].data.to).toEqual('somebrandnewguy@example.com');
@@ -1681,7 +1654,7 @@ describe('teamMembershipSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(201)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
 
                       verificationUrl = `/team/${teamId}/invite`;
@@ -1734,7 +1707,7 @@ describe('teamMembershipSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(201)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
 
                       expect(invitedUserAppMetadataReadScope.isDone()).toBe(true);
@@ -1756,7 +1729,7 @@ describe('teamMembershipSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(201)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
 
                       expect(res.body.user_metadata.pendingInvitations.length).toEqual(0);
@@ -1775,7 +1748,7 @@ describe('teamMembershipSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(404)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
 
                       expect(res.body.message).toEqual('No such invitation');
@@ -1793,7 +1766,7 @@ describe('teamMembershipSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(201)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
 
                       stubUserRead((err, apiScopes) => {
@@ -1807,7 +1780,7 @@ describe('teamMembershipSpec', () => {
                           .set('Accept', 'application/json')
                           .expect('Content-Type', /json/)
                           .expect(404)
-                          .end(function(err, res) {
+                          .end((err, res) => {
                             if (err) return done.fail(err);
 
                             expect(res.body.message).toEqual('No such invitation');
@@ -1875,7 +1848,7 @@ describe('teamMembershipSpec', () => {
                       .set('Accept', 'application/json')
                       .expect('Content-Type', /json/)
                       .expect(201)
-                      .end(function(err, res) {
+                      .end((err, res) => {
                         if (err) return done.fail(err);
 
                         models.Update.findAll().then(results => {
@@ -1921,16 +1894,10 @@ describe('teamMembershipSpec', () => {
                 if (err) return done.fail(err);
                 authenticatedSession = session;
 
-                // Cached profile doesn't match "live" data, so agent needs to be updated
-                // with a call to Auth0
-                stubUserRead((err, apiScopes) => {
-                  if (err) return done.fail();
+                stubUserRolesRead((err, apiScopes) => {
+                  if (err) return done(err);
 
-                  stubUserRolesRead((err, apiScopes) => {
-                    if (err) return done(err);
-
-                    done();
-                  });
+                  done();
                 });
               });
             });
@@ -1963,7 +1930,7 @@ describe('teamMembershipSpec', () => {
                       .set('Accept', 'application/json')
                       .expect('Content-Type', /json/)
                       .expect(201)
-                      .end(function(err, res) {
+                      .end((err, res) => {
                         if (err) return done.fail(err);
 
                         models.Update.findAll().then(results => {
@@ -2000,7 +1967,7 @@ describe('teamMembershipSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(201)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
 
                     models.Update.findAll().then(updates => {
@@ -2031,7 +1998,7 @@ describe('teamMembershipSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(201)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
                       expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
                       done();
@@ -2047,7 +2014,7 @@ describe('teamMembershipSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(201)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
                       expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                       done();
@@ -2064,7 +2031,7 @@ describe('teamMembershipSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(201)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
 
                       models.Update.findAll().then(updates => {
@@ -2097,7 +2064,7 @@ describe('teamMembershipSpec', () => {
                       .set('Accept', 'application/json')
                       .expect('Content-Type', /json/)
                       .expect(201)
-                      .end(function(err, res) {
+                      .end((err, res) => {
                         if (err) return done.fail(err);
 
                         verificationUrl = `/team/${teamId}/invite`;
@@ -2142,7 +2109,7 @@ describe('teamMembershipSpec', () => {
                                     .set('Accept', 'application/json')
                                     .expect('Content-Type', /json/)
                                     .expect(200)
-                                    .end(function(err, res) {
+                                    .end((err, res) => {
                                       if (err) return done.fail(err);
 
                                       expect(_profile.user_metadata).toBeDefined();
@@ -2195,7 +2162,7 @@ describe('teamMembershipSpec', () => {
                                       .set('Accept', 'application/json')
                                       .expect('Content-Type', /json/)
                                       .expect(200)
-                                      .end(function(err, res) {
+                                      .end((err, res) => {
                                         if (err) return done.fail(err);
 
                                         models.Update.findAll().then(updates => {
@@ -2251,7 +2218,7 @@ describe('teamMembershipSpec', () => {
                                     .set('Accept', 'application/json')
                                     .expect('Content-Type', /json/)
                                     .expect(200)
-                                    .end(function(err, res) {
+                                    .end((err, res) => {
                                       if (err) return done.fail(err);
 
                                       expect(_profile.user_metadata.rsvps.length).toEqual(1);
@@ -2305,7 +2272,7 @@ describe('teamMembershipSpec', () => {
                             .set('Accept', 'application/json')
                             .expect('Content-Type', /json/)
                             .expect(201)
-                            .end(function(err, res) {
+                            .end((err, res) => {
                               if (err) return done.fail(err);
 
                               expect(_profile.user_metadata.teams.length).toEqual(1);
@@ -2325,7 +2292,7 @@ describe('teamMembershipSpec', () => {
                             .set('Accept', 'application/json')
                             .expect('Content-Type', /json/)
                             .expect(201)
-                            .end(function(err, res) {
+                            .end((err, res) => {
                               if (err) return done.fail(err);
 
                               // Try adding the agent again
@@ -2351,7 +2318,7 @@ describe('teamMembershipSpec', () => {
                                       .set('Accept', 'application/json')
                                       .expect('Content-Type', /json/)
                                       .expect(200)
-                                      .end(function(err, res) {
+                                      .end((err, res) => {
                                         if (err) return done.fail(err);
 
                                         expect(res.body.message).toEqual('somebrandnewguy@example.com is already a member of this team');
@@ -2372,7 +2339,7 @@ describe('teamMembershipSpec', () => {
                         .get(`${verificationUrl}/accept`)
                         .set('Accept', 'application/json')
                         .expect(302)
-                        .end(function(err, res) {
+                        .end((err, res) => {
                           if (err) return done.fail(err);
 
                           expect(res.headers.location).toEqual(`/login`);
@@ -2394,7 +2361,7 @@ describe('teamMembershipSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(201)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
 
                     stubUserRead((err, apiScopes) => {
@@ -2418,7 +2385,7 @@ describe('teamMembershipSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(201)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
 
                       models.Update.findAll().then(results => {
@@ -2445,7 +2412,7 @@ describe('teamMembershipSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(201)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
                     expect(mailer.transport.sentMail.length).toEqual(2);
                     expect(mailer.transport.sentMail[0].data.to).toEqual('somebrandnewguy@example.com');
@@ -2474,7 +2441,7 @@ describe('teamMembershipSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(201)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
 
                     verificationUrl = `/team/${teamId}/invite`;
@@ -2508,7 +2475,7 @@ describe('teamMembershipSpec', () => {
                       .set('Accept', 'application/json')
                       .expect('Content-Type', /json/)
                       .expect(201)
-                      .end(function(err, res) {
+                      .end((err, res) => {
                         if (err) return done.fail(err);
                         models.Update.findAll().then(results => {
                           expect(results.length).toEqual(0);
@@ -2535,7 +2502,7 @@ describe('teamMembershipSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(201)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
 
                     expect(_profile.user_metadata.pendingInvitations.length).toEqual(0);
@@ -2553,7 +2520,7 @@ describe('teamMembershipSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(404)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
 
                     expect(res.body.message).toEqual('No such invitation');
@@ -2571,7 +2538,7 @@ describe('teamMembershipSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(201)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
 
                     stubUserRead((err, apiScopes) => {
@@ -2588,7 +2555,7 @@ describe('teamMembershipSpec', () => {
                           .set('Accept', 'application/json')
                           .expect('Content-Type', /json/)
                           .expect(404)
-                          .end(function(err, res) {
+                          .end((err, res) => {
                             if (err) return done.fail(err);
 
                             expect(res.body.message).toEqual('No such invitation');
@@ -2669,7 +2636,7 @@ describe('teamMembershipSpec', () => {
                         .set('Accept', 'application/json')
                         .expect('Content-Type', /json/)
                         .expect(201)
-                        .end(function(err, res) {
+                        .end((err, res) => {
                           if (err) return done.fail(err);
 
                           models.Update.findAll().then(results => {
@@ -2698,7 +2665,7 @@ describe('teamMembershipSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(201)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
 
                       expect(_registeredProfile.user_metadata.rsvps.length).toEqual(1);
@@ -2733,7 +2700,7 @@ describe('teamMembershipSpec', () => {
                                   .set('Accept', 'application/json')
                                   .expect('Content-Type', /json/)
                                   .expect(201)
-                                  .end(function(err, res) {
+                                  .end((err, res) => {
                                     if (err) return done.fail(err);
 
                                     expect(_registeredProfile.user_metadata.rsvps.length).toEqual(1);
@@ -2760,7 +2727,7 @@ describe('teamMembershipSpec', () => {
                         .set('Accept', 'application/json')
                         .expect('Content-Type', /json/)
                         .expect(201)
-                        .end(function(err, res) {
+                        .end((err, res) => {
                           if (err) return done.fail(err);
                           expect(invitedUserAppMetadataReadOauthTokenScope.isDone()).toBe(true);
                           done();
@@ -2776,7 +2743,7 @@ describe('teamMembershipSpec', () => {
                         .set('Accept', 'application/json')
                         .expect('Content-Type', /json/)
                         .expect(201)
-                        .end(function(err, res) {
+                        .end((err, res) => {
                           if (err) return done.fail(err);
                           expect(invitedUserAppMetadataReadScope.isDone()).toBe(true);
                           done();
@@ -2792,7 +2759,7 @@ describe('teamMembershipSpec', () => {
                         .set('Accept', 'application/json')
                         .expect('Content-Type', /json/)
                         .expect(201)
-                        .end(function(err, res) {
+                        .end((err, res) => {
                           if (err) return done.fail(err);
 
                           expect(invitedUserAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
@@ -2811,7 +2778,7 @@ describe('teamMembershipSpec', () => {
                         .set('Accept', 'application/json')
                         .expect('Content-Type', /json/)
                         .expect(201)
-                        .end(function(err, res) {
+                        .end((err, res) => {
                           if (err) return done.fail(err);
                           expect(teamLeaderAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
                           done();
@@ -2827,7 +2794,7 @@ describe('teamMembershipSpec', () => {
                         .set('Accept', 'application/json')
                         .expect('Content-Type', /json/)
                         .expect(201)
-                        .end(function(err, res) {
+                        .end((err, res) => {
                           if (err) return done.fail(err);
 
                           expect(teamLeaderAppMetadataUpdateScope.isDone()).toBe(true);
@@ -2850,7 +2817,7 @@ describe('teamMembershipSpec', () => {
                         .set('Accept', 'application/json')
                         .expect('Content-Type', /json/)
                         .expect(201)
-                        .end(function(err, res) {
+                        .end((err, res) => {
                           if (err) return done.fail(err);
                           expect(mailer.transport.sentMail.length).toEqual(1);
                           expect(mailer.transport.sentMail[0].data.to).toEqual(registeredAgent.email);
@@ -2879,7 +2846,7 @@ describe('teamMembershipSpec', () => {
                         .set('Accept', 'application/json')
                         .expect('Content-Type', /json/)
                         .expect(201)
-                        .end(function(err, res) {
+                        .end((err, res) => {
                           if (err) return done.fail(err);
 
                           verificationUrl = `/team/${teamId}/invite`;
@@ -2956,7 +2923,7 @@ describe('teamMembershipSpec', () => {
                               .set('Accept', 'application/json')
                               .expect('Content-Type', /json/)
                               .expect(201)
-                              .end(function(err, res) {
+                              .end((err, res) => {
                                 if (err) return done.fail(err);
 
                                 expect(_profile.user_metadata.teams).toBeDefined();
@@ -2982,7 +2949,7 @@ describe('teamMembershipSpec', () => {
                               .set('Accept', 'application/json')
                               .expect('Content-Type', /json/)
                               .expect(201)
-                              .end(function(err, res) {
+                              .end((err, res) => {
                                 if (err) return done.fail(err);
 
                                 expect(res.body.user_metadata.rsvps.length).toEqual(0);
@@ -2997,7 +2964,7 @@ describe('teamMembershipSpec', () => {
                               .set('Accept', 'application/json')
                               .expect('Content-Type', /json/)
                               .expect(404)
-                              .end(function(err, res) {
+                              .end((err, res) => {
                                 if (err) return done.fail(err);
 
                                 expect(res.body.message).toEqual('No such invitation');
@@ -3017,7 +2984,7 @@ describe('teamMembershipSpec', () => {
                               .set('Accept', 'application/json')
                               .expect('Content-Type', /json/)
                               .expect(201)
-                              .end(function(err, res) {
+                              .end((err, res) => {
                                 if (err) return done.fail(err);
 
                                 // _profile reflects state of team leader. Cf. above...
@@ -3035,7 +3002,7 @@ describe('teamMembershipSpec', () => {
                                 .set('Accept', 'application/json')
                                 .expect('Content-Type', /json/)
                                 .expect(201)
-                                .end(function(err, res) {
+                                .end((err, res) => {
                                   if (err) return done.fail(err);
 
                                   // Try adding the agent again
@@ -3067,7 +3034,7 @@ describe('teamMembershipSpec', () => {
                                 .set('Accept', 'application/json')
                                 .expect('Content-Type', /json/)
                                 .expect(200)
-                                .end(function(err, res) {
+                                .end((err, res) => {
                                   if (err) return done.fail(err);
 
                                   expect(res.body.message).toEqual(`${registeredAgent.email} is already a member of this team`);
@@ -3089,7 +3056,7 @@ describe('teamMembershipSpec', () => {
                                 .set('Accept', 'application/json')
                                 .expect('Content-Type', /json/)
                                 .expect(200)
-                                .end(function(err, res) {
+                                .end((err, res) => {
                                   if (err) return done.fail(err);
 
                                   expect(_profile.user_metadata.pendingInvitations.length).toEqual(0);
@@ -3110,7 +3077,7 @@ describe('teamMembershipSpec', () => {
                                   .set('Accept', 'application/json')
                                   .expect('Content-Type', /json/)
                                   .expect(200)
-                                  .end(function(err, res) {
+                                  .end((err, res) => {
                                     if (err) return done.fail(err);
 
                                     expect(userAppMetadataUpdateScope.isDone()).toBe(false);
@@ -3132,7 +3099,7 @@ describe('teamMembershipSpec', () => {
                               .set('Accept', 'application/json')
                               .expect('Content-Type', /json/)
                               .expect(201)
-                              .end(function(err, res) {
+                              .end((err, res) => {
                                 if (err) return done.fail(err);
 
                                 expect(res.body.user_metadata.teams.length).toEqual(0);
@@ -3149,7 +3116,7 @@ describe('teamMembershipSpec', () => {
                               .set('Accept', 'application/json')
                               .expect('Content-Type', /json/)
                               .expect(201)
-                              .end(function(err, res) {
+                              .end((err, res) => {
                                 if (err) return done.fail(err);
 
                                 expect(res.body.user_metadata.rsvps.length).toEqual(0);
@@ -3164,7 +3131,7 @@ describe('teamMembershipSpec', () => {
                               .set('Accept', 'application/json')
                               .expect('Content-Type', /json/)
                               .expect(404)
-                              .end(function(err, res) {
+                              .end((err, res) => {
                                 if (err) return done.fail(err);
 
                                 expect(res.body.message).toEqual('No such invitation');
@@ -3179,7 +3146,7 @@ describe('teamMembershipSpec', () => {
                               .set('Accept', 'application/json')
                               .expect('Content-Type', /json/)
                               .expect(201)
-                              .end(function(err, res) {
+                              .end((err, res) => {
                                 if (err) return done.fail(err);
 
                                 // _profile reflects state of team leader. Cf. above...
@@ -3198,7 +3165,7 @@ describe('teamMembershipSpec', () => {
                           .get(`${verificationUrl}/accept`)
                           .set('Accept', 'application/json')
                           .expect(302)
-                          .end(function(err, res) {
+                          .end((err, res) => {
                             if (err) return done.fail(err);
 
                             expect(res.headers.location).toEqual(`/login`);
@@ -3220,7 +3187,7 @@ describe('teamMembershipSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(201)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
 
                       stubUserRead((err, apiScopes) => {
@@ -3245,7 +3212,7 @@ describe('teamMembershipSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(201)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
                       expect(mailer.transport.sentMail.length).toEqual(2);
                       expect(mailer.transport.sentMail[0].data.to).toEqual('somebrandnewguy@example.com');
@@ -3275,7 +3242,7 @@ describe('teamMembershipSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(201)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
 
                       verificationUrl = `/team/${teamId}/invite`;
@@ -3328,7 +3295,7 @@ describe('teamMembershipSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(201)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
 
                       expect(invitedUserAppMetadataReadScope.isDone()).toBe(true);
@@ -3350,7 +3317,7 @@ describe('teamMembershipSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(201)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
 
                       expect(res.body.user_metadata.pendingInvitations.length).toEqual(0);
@@ -3369,7 +3336,7 @@ describe('teamMembershipSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(404)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
 
                       expect(res.body.message).toEqual('No such invitation');
@@ -3387,7 +3354,7 @@ describe('teamMembershipSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(201)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
 
                       stubUserRead((err, apiScopes) => {
@@ -3401,7 +3368,7 @@ describe('teamMembershipSpec', () => {
                           .set('Accept', 'application/json')
                           .expect('Content-Type', /json/)
                           .expect(404)
-                          .end(function(err, res) {
+                          .end((err, res) => {
                             if (err) return done.fail(err);
 
                             expect(res.body.message).toEqual('No such invitation');
@@ -3469,7 +3436,7 @@ describe('teamMembershipSpec', () => {
                       .set('Accept', 'application/json')
                       .expect('Content-Type', /json/)
                       .expect(201)
-                      .end(function(err, res) {
+                      .end((err, res) => {
                         if (err) return done.fail(err);
 
                         models.Update.findAll().then(results => {
@@ -3530,27 +3497,21 @@ describe('teamMembershipSpec', () => {
                 if (err) return done.fail(err);
                 authenticatedSession = session;
 
-                // Cached profile doesn't match "live" data, so agent needs to be updated
-                // with a call to Auth0
-                stubUserRead((err, apiScopes) => {
+                // Retrieve the member agent
+                stubUserAppMetadataRead(agentProfile, (err, apiScopes) => {
                   if (err) return done.fail();
+                  let {userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes;
+                  memberUserAppMetadataReadScope = userAppMetadataReadScope;
+                  memberUserAppMetadataReadOauthTokenScope = userAppMetadataReadOauthTokenScope;
 
-                  // Retrieve the member agent
-                  stubUserAppMetadataRead(agentProfile, (err, apiScopes) => {
+                  // Update the agent
+                  stubUserAppMetadataUpdate(agentProfile, (err, apiScopes) => {
                     if (err) return done.fail();
-                    let {userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes;
-                    memberUserAppMetadataReadScope = userAppMetadataReadScope;
-                    memberUserAppMetadataReadOauthTokenScope = userAppMetadataReadOauthTokenScope;
+                    let {userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes;
+                    formerMemberUserAppMetadataUpdateScope = userAppMetadataUpdateScope;
+                    formerMemberUserAppMetadataUpdateOauthTokenScope = userAppMetadataUpdateOauthTokenScope;
 
-                    // Update the agent
-                    stubUserAppMetadataUpdate(agentProfile, (err, apiScopes) => {
-                      if (err) return done.fail();
-                      let {userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes;
-                      formerMemberUserAppMetadataUpdateScope = userAppMetadataUpdateScope;
-                      formerMemberUserAppMetadataUpdateOauthTokenScope = userAppMetadataUpdateOauthTokenScope;
-
-                      done();
-                    });
+                    done();
                   });
                 });
               });
@@ -3567,7 +3528,7 @@ describe('teamMembershipSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(agentProfile.user_metadata.teams.length).toEqual(0);
               done();
@@ -3580,7 +3541,7 @@ describe('teamMembershipSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.message).toEqual(`Member removed`);
               done();
@@ -3593,7 +3554,7 @@ describe('teamMembershipSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(404)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.message).toEqual('No such team');
               done();
@@ -3607,7 +3568,7 @@ describe('teamMembershipSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
 
               // For team leader permission check
@@ -3626,7 +3587,7 @@ describe('teamMembershipSpec', () => {
                       .set('Accept', 'application/json')
                       .expect('Content-Type', /json/)
                       .expect(404)
-                      .end(function(err, res) {
+                      .end((err, res) => {
                         if (err) return done.fail(err);
                         expect(res.body.message).toEqual('That agent is not a member');
                         done();
@@ -3644,7 +3605,7 @@ describe('teamMembershipSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(mailer.transport.sentMail.length).toEqual(1);
               expect(mailer.transport.sentMail[0].data.to).toEqual(knownAgent.email);
@@ -3661,7 +3622,7 @@ describe('teamMembershipSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(403)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.message).toEqual('Team leader cannot be removed from team');
               done();
@@ -3675,7 +3636,7 @@ describe('teamMembershipSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(memberUserAppMetadataReadScope.isDone()).toBe(true);
                 expect(memberUserAppMetadataReadOauthTokenScope.isDone()).toBe(true);
@@ -3689,7 +3650,7 @@ describe('teamMembershipSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(formerMemberUserAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
                 expect(formerMemberUserAppMetadataUpdateScope.isDone()).toBe(true);
@@ -3719,21 +3680,15 @@ describe('teamMembershipSpec', () => {
                 if (err) return done.fail(err);
                 authenticatedSession = session;
 
-                // Cached profile doesn't match "live" data, so agent needs to be updated
-                // with a call to Auth0
-                stubUserRead((err, apiScopes) => {
+                // No pending invite found
+                stubUserReadQuery([], (err, apiScopes) => {
                   if (err) return done.fail();
 
-                  // No pending invite found
-                  stubUserReadQuery([], (err, apiScopes) => {
+                  stubUserAppMetadataUpdate((err, apiScopes) => {
                     if (err) return done.fail();
+                    ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
 
-                    stubUserAppMetadataUpdate((err, apiScopes) => {
-                      if (err) return done.fail();
-                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-
-                      done();
-                    });
+                    done();
                   });
                 });
               });
@@ -3748,7 +3703,7 @@ describe('teamMembershipSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(404)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
                   expect(_profile.user_metadata.rsvps.length).toEqual(0);
                   done();
@@ -3762,7 +3717,7 @@ describe('teamMembershipSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(404)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
                     expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                     // 2020-6-12 I may be making unnecessary token requests.
@@ -3784,7 +3739,7 @@ describe('teamMembershipSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(404)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
                   expect(_profile.user_metadata.rsvps.length).toEqual(0);
                   done();
@@ -3798,7 +3753,7 @@ describe('teamMembershipSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(404)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
                     expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                     // 2020-6-12 See note above
@@ -3825,21 +3780,15 @@ describe('teamMembershipSpec', () => {
                 if (err) return done.fail(err);
                 authenticatedSession = session;
 
-                // Cached profile doesn't match "live" data, so agent needs to be updated
-                // with a call to Auth0
-                stubUserRead((err, apiScopes) => {
+                // No pending invite found
+                stubUserReadQuery([], (err, apiScopes) => {
                   if (err) return done.fail();
 
-                  // No pending invite found
-                  stubUserReadQuery([], (err, apiScopes) => {
+                  stubUserAppMetadataUpdate((err, apiScopes) => {
                     if (err) return done.fail();
+                    ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
 
-                    stubUserAppMetadataUpdate((err, apiScopes) => {
-                      if (err) return done.fail();
-                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-
-                      done();
-                    });
+                    done();
                   });
                 });
               });
@@ -3857,7 +3806,7 @@ describe('teamMembershipSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(404)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
                   expect(_profile.user_metadata.pendingInvitations.length).toEqual(0);
                   done();
@@ -3874,7 +3823,7 @@ describe('teamMembershipSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(404)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
                     expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                     expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
@@ -3895,7 +3844,7 @@ describe('teamMembershipSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(404)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
 
                   expect(_profile.user_metadata.pendingInvitations.length).toEqual(0);
@@ -3914,7 +3863,7 @@ describe('teamMembershipSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(404)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
                     expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                     expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
@@ -3944,13 +3893,7 @@ describe('teamMembershipSpec', () => {
               if (err) return done.fail(err);
               unauthorizedSession = session;
 
-              // Cached profile doesn't match "live" data, so agent needs to be updated
-              // with a call to Auth0
-              stubUserRead((err, apiScopes) => {
-                if (err) return done.fail();
-
-                done();
-              });
+              done();
             });
           });
         }).catch(err => {
@@ -3968,7 +3911,7 @@ describe('teamMembershipSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(404)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               // Only the team leader can add a member. This is the correct response
               expect(res.body.message).toEqual('No such team');
@@ -4004,7 +3947,7 @@ describe('teamMembershipSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(404)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.message).toEqual('No such team');
               done();
@@ -4020,7 +3963,7 @@ describe('teamMembershipSpec', () => {
         .get('/team')
         .set('Accept', 'application/json')
         .expect(302)
-        .end(function(err, res) {
+        .end((err, res) => {
           if (err) return done.fail(err);
           expect(res.headers.location).toEqual('/login');
           done();
