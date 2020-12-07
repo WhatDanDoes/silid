@@ -40,9 +40,7 @@ module.exports = function(profile, done, options) {
     stubOauthToken([apiScope.read.users, apiScope.read.usersAppMetadata], (err, oauthScopes) => {
       if (err) return done(err);
 
-      ({accessToken, oauthTokenScope} = oauthScopes);
-
-      const userAppMetadataReadOauthTokenScope = oauthTokenScope;
+      ({accessToken, oauthTokenScope: userAppMetadataReadOauthTokenScope} = oauthScopes);
 
       /**
        * GET `/users/:id`. Get a single user by Auth0 ID

@@ -24,7 +24,7 @@ const _profile = require('../../fixtures/sample-auth0-profile-response');
 describe('root/organizationReadSpec', () => {
 
   let login, pub, prv, keystore,
-      originalProfile;;
+      root, originalProfile;
 
   beforeEach(done => {
     originalProfile = {..._profile};
@@ -33,7 +33,18 @@ describe('root/organizationReadSpec', () => {
     stubAuth0Sessions((err, sessionStuff) => {
       if (err) return done.fail(err);
       ({ login, pub, prv, keystore } = sessionStuff);
-      done();
+
+      models.sequelize.sync({force: true}).then(() => {
+        models.Agent.create({ email: process.env.ROOT_AGENT }).then(results => {
+          root = results;
+          expect(root.isSuper).toBe(true);
+          done();
+        }).catch(err => {
+          done.fail(err);
+        });
+      }).catch(err => {
+        done.fail(err);
+      });
     });
   });
 
@@ -42,23 +53,8 @@ describe('root/organizationReadSpec', () => {
     delete _profile.user_metadata;
   });
 
-  let root;
-  beforeEach(done => {
-    models.sequelize.sync({force: true}).then(() => {
-      models.Agent.create({ email: process.env.ROOT_AGENT }).then(results => {
-        root = results;
-        expect(root.isSuper).toBe(true);
-        done();
-      }).catch(err => {
-        done.fail(err);
-      });
-    }).catch(err => {
-      done.fail(err);
-    });
-  });
-
   describe('authorized', () => {
-    let oauthTokenScope, rootSession,
+    let rootSession,
         userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope,
         userAppMetadataReadScope, userAppMetadataReadOauthTokenScope,
         organizationReadScope, organizationReadOauthTokenScope,
@@ -97,19 +93,11 @@ describe('root/organizationReadSpec', () => {
             ]
           };
 
-          // Cached profile doesn't match "live" data, so agent needs to be updated
-          // with a call to Auth0
-          stubUserRead((err, apiScopes) => {
+          stubUserAppMetadataRead((err, apiScopes) => {
             if (err) return done.fail(err);
+            ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
 
-
-            // Of the two following mocks, only one will be called (cf., the Auth0 tests)
-            stubUserAppMetadataRead((err, apiScopes) => {
-              if (err) return done.fail(err);
-              ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
-
-              done();
-            });
+            done();
           });
         });
 
@@ -137,7 +125,7 @@ describe('root/organizationReadSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(200)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(true);
                 expect(userAppMetadataReadScope.isDone()).toBe(true);
@@ -175,42 +163,36 @@ describe('root/organizationReadSpec', () => {
 
             _profile.user_metadata = { organizations: [{ name: 'One Book Canada', organizer: _profile.email, id: organizationId }] };
 
-            // Cached profile doesn't match "live" data, so agent needs to be updated
-            // with a call to Auth0
-            stubUserRead((err, apiScopes) => {
+            stubOrganizationRead((err, apiScopes) => {
               if (err) return done.fail();
+              ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
 
-              stubOrganizationRead((err, apiScopes) => {
-                if (err) return done.fail();
-                ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
+              stubTeamRead([{..._profile,
+                              user_metadata: {
+                                ..._profile.user_metadata,
+                                teams: [
+                                  { name: 'Guinea-Bissau', leader: 'squadleader@example.com', id: team2Id, organizationId: organizationId },
+                                  { name: 'Mystery Incorporated', leader: 'thelma@example.com', id: uuid.v4(), organizationId: uuid.v4() }
+                                ]
+                              }
+                            },
+                            {..._profile,
+                              name: 'A Aaronson',
+                              email: 'aaaronson@example.com',
+                              user_id: _profile.user_id + 1,
+                              user_metadata: {
+                                teams: [
+                                  { name: 'Asia Sensitive', leader: 'teamleader@example.com', id: team1Id, organizationId: organizationId },
+                                  { name: 'The A-Team', leader: 'babaracus@example.com', id: uuid.v4(), organizationId: uuid.v4() }
+                                ]
+                              }
+                            }], (err, apiScopes) => {
+                ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
 
-                stubTeamRead([{..._profile,
-                                user_metadata: {
-                                  ..._profile.user_metadata,
-                                  teams: [
-                                    { name: 'Guinea-Bissau', leader: 'squadleader@example.com', id: team2Id, organizationId: organizationId },
-                                    { name: 'Mystery Incorporated', leader: 'thelma@example.com', id: uuid.v4(), organizationId: uuid.v4() }
-                                  ]
-                                }
-                              },
-                              {..._profile,
-                                name: 'A Aaronson',
-                                email: 'aaaronson@example.com',
-                                user_id: _profile.user_id + 1,
-                                user_metadata: {
-                                  teams: [
-                                    { name: 'Asia Sensitive', leader: 'teamleader@example.com', id: team1Id, organizationId: organizationId },
-                                    { name: 'The A-Team', leader: 'babaracus@example.com', id: uuid.v4(), organizationId: uuid.v4() }
-                                  ]
-                                }
-                              }], (err, apiScopes) => {
-                  ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-
-                  stubUserAppMetadataUpdate((err, apiScopes) => {
-                    if (err) return done.fail();
-                    ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                    done();
-                  });
+                stubUserAppMetadataUpdate((err, apiScopes) => {
+                  if (err) return done.fail();
+                  ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                  done();
                 });
               });
             });
@@ -222,7 +204,7 @@ describe('root/organizationReadSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(200)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(res.body.name).toEqual('One Book Canada');
                 expect(res.body.organizer).toEqual(_profile.email);
@@ -242,7 +224,7 @@ describe('root/organizationReadSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(404)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(res.body.message).toEqual('No such organization');
                 done();
@@ -256,7 +238,7 @@ describe('root/organizationReadSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(200)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
                   expect(organizationReadOauthTokenScope.isDone()).toBe(true);
                   expect(organizationReadScope.isDone()).toBe(true);
@@ -270,7 +252,7 @@ describe('root/organizationReadSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(200)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
                   // Token re-used from first request
                   expect(teamReadOauthTokenScope.isDone()).toBe(false);
@@ -290,52 +272,46 @@ describe('root/organizationReadSpec', () => {
 
             _profile.user_metadata = {  };
 
-            // Cached profile doesn't match "live" data, so agent needs to be updated
-            // with a call to Auth0
-            stubUserRead((err, apiScopes) => {
+            stubOrganizationRead([{..._profile,
+                name: 'A Aaronson',
+                email: 'aaaronson@example.com',
+                user_id: _profile.user_id + 1,
+                user_metadata: {
+                  organizations: [{ name: 'One Book Canada', organizer: 'aaaronson@example.com', id: organizationId }],
+                }
+            }],(err, apiScopes) => {
               if (err) return done.fail();
+              ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
 
-              stubOrganizationRead([{..._profile,
-                  name: 'A Aaronson',
-                  email: 'aaaronson@example.com',
-                  user_id: _profile.user_id + 1,
-                  user_metadata: {
-                    organizations: [{ name: 'One Book Canada', organizer: 'aaaronson@example.com', id: organizationId }],
-                  }
-              }],(err, apiScopes) => {
+              stubTeamRead([{..._profile,
+                              name: 'BA Baracus',
+                              email: 'babaracus@example.com',
+                              user_metadata: {
+                                ..._profile.user_metadata,
+                                teams: [
+                                  { name: 'Guinea-Bissau', leader: 'squadleader@example.com', id: team2Id, organizationId: organizationId },
+                                  { name: 'The A-Team', leader: 'babaracus@example.com', id: uuid.v4(), organizationId: uuid.v4() }
+                                ]
+                              }
+                            },
+                            {..._profile,
+                              name: 'Zelda Zerk',
+                              email: 'zzerk@example.com',
+                              user_id: _profile.user_id + 2,
+                              user_metadata: {
+                                teams: [
+                                  { name: 'Asia Sensitive', leader: 'teamleader@example.com', id: team1Id, organizationId: organizationId },
+                                  { name: 'The A-Team', leader: 'babaracus@example.com', id: uuid.v4(), organizationId: uuid.v4() }
+                                ]
+                              }
+                            }], (err, apiScopes) => {
                 if (err) return done.fail();
-                ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
+                ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
 
-                stubTeamRead([{..._profile,
-                                name: 'BA Baracus',
-                                email: 'babaracus@example.com',
-                                user_metadata: {
-                                  ..._profile.user_metadata,
-                                  teams: [
-                                    { name: 'Guinea-Bissau', leader: 'squadleader@example.com', id: team2Id, organizationId: organizationId },
-                                    { name: 'The A-Team', leader: 'babaracus@example.com', id: uuid.v4(), organizationId: uuid.v4() }
-                                  ]
-                                }
-                              },
-                              {..._profile,
-                                name: 'Zelda Zerk',
-                                email: 'zzerk@example.com',
-                                user_id: _profile.user_id + 2,
-                                user_metadata: {
-                                  teams: [
-                                    { name: 'Asia Sensitive', leader: 'teamleader@example.com', id: team1Id, organizationId: organizationId },
-                                    { name: 'The A-Team', leader: 'babaracus@example.com', id: uuid.v4(), organizationId: uuid.v4() }
-                                  ]
-                                }
-                              }], (err, apiScopes) => {
+                stubUserAppMetadataUpdate((err, apiScopes) => {
                   if (err) return done.fail();
-                  ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-
-                  stubUserAppMetadataUpdate((err, apiScopes) => {
-                    if (err) return done.fail();
-                    ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                    done();
-                  });
+                  ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                  done();
                 });
               });
             });
@@ -347,7 +323,7 @@ describe('root/organizationReadSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(200)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(res.body.name).toEqual('One Book Canada');
                 expect(res.body.organizer).toEqual('aaaronson@example.com');
@@ -367,7 +343,7 @@ describe('root/organizationReadSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(404)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(res.body.message).toEqual('No such organization');
                 done();
@@ -381,7 +357,7 @@ describe('root/organizationReadSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(200)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
                   expect(organizationReadOauthTokenScope.isDone()).toBe(true);
                   expect(organizationReadScope.isDone()).toBe(true);
@@ -395,7 +371,7 @@ describe('root/organizationReadSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(200)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
                   // Token re-used from first request
                   expect(teamReadOauthTokenScope.isDone()).toBe(false);

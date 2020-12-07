@@ -33,7 +33,7 @@ module.exports = function(profile, done, options) {
     stubOauthToken([apiScope.read.users], (err, oauthScopes) => {
       if (err) return done(err);
 
-      ({accessToken, oauthTokenScope} = oauthScopes);
+      const {accessToken, oauthTokenScope: userReadOauthTokenScope} = oauthScopes;
 
       /**
        * GET `/users/:id`. Get a single user by Auth0 ID
@@ -46,7 +46,7 @@ module.exports = function(profile, done, options) {
           return profile || _profile;
         });
 
-      done(null, {userReadScope, oauthTokenScope});
+      done(null, {userReadScope, userReadOauthTokenScope});
 
     });
   });

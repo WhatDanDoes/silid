@@ -18,7 +18,7 @@ module.exports = function(done) {
     stubOauthToken([apiScope.read.users], (err, oauthScopes) => {
       if (err) return done(err);
 
-      ({accessToken, oauthTokenScope} = oauthScopes);
+      ({accessToken, oauthTokenScope: userListOauthTokenScope} = oauthScopes);
 
       /**
        * Get a list of Auth0 users
@@ -34,7 +34,7 @@ module.exports = function(done) {
           cb(null, {...require('../../fixtures/managementApi/userList'), start: parseInt(q.page) });
         });
 
-        done(null, {userListScope, oauthTokenScope});
+        done(null, {userListScope, userListOauthTokenScope});
     });
   });
 };

@@ -34,9 +34,7 @@ module.exports = function(profiles, done, options) {
     stubOauthToken([apiScope.read.usersAppMetadata], (err, oauthScopes) => {
       if (err) return done(err);
 
-      ({accessToken, oauthTokenScope} = oauthScopes);
-
-      const organizationReadOauthTokenScope = oauthTokenScope;
+      ({accessToken, oauthTokenScope: organizationReadOauthTokenScope} = oauthScopes);
 
       /**
        * Search for an organization by ID

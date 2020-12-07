@@ -27,8 +27,12 @@ const _profile = require('../../fixtures/sample-auth0-profile-response');
 
 describe('root/teamSpec', () => {
 
-  let login, pub, prv, keystore;
+  let login, pub, prv, keystore,
+      originalProfile;
   beforeEach(done => {
+    originalProfile = {..._profile};
+    _profile.email = process.env.ROOT_AGENT;
+
     stubAuth0Sessions((err, sessionStuff) => {
       if (err) return done.fail(err);
       ({ login, pub, prv, keystore } = sessionStuff);
@@ -36,7 +40,6 @@ describe('root/teamSpec', () => {
     });
   });
 
-  let originalProfile;
   afterEach(() => {
     // Through the magic of node I am able to adjust the profile data returned.
     // This resets the default values
@@ -45,28 +48,25 @@ describe('root/teamSpec', () => {
     delete _profile.user_metadata;
   });
 
-  let agent;
-  beforeEach(done => {
-    originalProfile = {..._profile};
-    _profile.email = process.env.ROOT_AGENT;
+  describe('authorized', () => {
 
-    models.sequelize.sync({force: true}).then(() => {
-      fixtures.loadFile(`${__dirname}/../../fixtures/agents.json`, models).then(() => {
-        models.Agent.findAll().then(results => {
-          agent = results[0];
-          done();
+    let agent;
+    beforeEach(done => {
+      models.sequelize.sync({force: true}).then(() => {
+        fixtures.loadFile(`${__dirname}/../../fixtures/agents.json`, models).then(() => {
+          models.Agent.findAll().then(results => {
+            agent = results[0];
+            done();
+          }).catch(err => {
+            done.fail(err);
+          });
         }).catch(err => {
           done.fail(err);
         });
       }).catch(err => {
         done.fail(err);
       });
-    }).catch(err => {
-      done.fail(err);
     });
-  });
-
-  describe('authorized', () => {
 
     let rootSession, teamId, userReadScope, organizationReadScope, organizationReadOauthTokenScope, teamReadScope, teamReadOauthTokenScope;
     describe('read', () => {
@@ -84,18 +84,12 @@ describe('root/teamSpec', () => {
               if (err) return done.fail(err);
               rootSession = session;
 
-              // Cached profile doesn't match "live" data, so agent needs to be updated
-              // with a call to Auth0
-              stubUserRead((err, apiScopes) => {
+              // This stubs calls subsequent to the initial login
+              stubUserAppMetadataRead((err, apiScopes) => {
                 if (err) return done.fail();
+                ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
 
-                // This stubs calls subsequent to the initial login
-                stubUserAppMetadataRead((err, apiScopes) => {
-                  if (err) return done.fail();
-                  ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
-
-                  done();
-                });
+                done();
               });
             });
           });
@@ -107,7 +101,7 @@ describe('root/teamSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(200)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.length).toEqual(1);
               expect(res.body[0].name).toEqual('The Calgary Roughnecks');
@@ -122,7 +116,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(200)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(true);
                 done();
@@ -135,7 +129,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(200)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 expect(userAppMetadataReadScope.isDone()).toBe(true);
@@ -161,21 +155,15 @@ describe('root/teamSpec', () => {
                 if (err) return done.fail(err);
                 rootSession = session;
 
-                // Cached profile doesn't match "live" data, so agent needs to be updated
-                // with a call to Auth0
-                stubUserRead((err, apiScopes) => {
+                stubTeamRead((err, apiScopes) => {
                   if (err) return done.fail();
+                  ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
 
-                  stubTeamRead((err, apiScopes) => {
+                  stubOrganizationRead((err, apiScopes) => {
                     if (err) return done.fail();
-                    ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
+                    ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
 
-                    stubOrganizationRead((err, apiScopes) => {
-                      if (err) return done.fail();
-                      ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
-
-                      done();
-                    });
+                    done();
                   });
                 });
               });
@@ -188,7 +176,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(200)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(res.body.name).toEqual('The Calgary Roughnecks');
                 expect(res.body.leader).toEqual(_profile.email);
@@ -205,7 +193,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(404)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(res.body.message).toEqual('No such team');
                 done();
@@ -219,7 +207,7 @@ describe('root/teamSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(200)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
 
                   expect(teamReadOauthTokenScope.isDone()).toBe(true);
@@ -234,7 +222,7 @@ describe('root/teamSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(200)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
 
                   expect(organizationReadOauthTokenScope.isDone()).toBe(false);
@@ -260,25 +248,18 @@ describe('root/teamSpec', () => {
               if (err) return done.fail();
 
               login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, [scope.create.teams], (err, session) => {
-
                 if (err) return done.fail(err);
                 rootSession = session;
 
-                // Cached profile doesn't match "live" data, so agent needs to be updated
-                // with a call to Auth0
-                stubUserRead((err, apiScopes) => {
+                stubTeamRead((err, apiScopes) => {
                   if (err) return done.fail();
+                  ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
 
-                  stubTeamRead((err, apiScopes) => {
+                  stubOrganizationRead((err, apiScopes) => {
                     if (err) return done.fail();
-                    ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
+                    ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
 
-                    stubOrganizationRead((err, apiScopes) => {
-                      if (err) return done.fail();
-                      ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
-
-                      done();
-                    });
+                    done();
                   });
                 });
               });
@@ -291,7 +272,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(200)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(res.body.name).toEqual('The Calgary Roughnecks');
                 expect(res.body.leader).toEqual(_profile.email);
@@ -312,7 +293,7 @@ describe('root/teamSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(200)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
 
                   expect(teamReadOauthTokenScope.isDone()).toBe(true);
@@ -327,7 +308,7 @@ describe('root/teamSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(200)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
 
                   expect(organizationReadOauthTokenScope.isDone()).toBe(false);
@@ -352,25 +333,19 @@ describe('root/teamSpec', () => {
               if (err) return done.fail(err);
               rootSession = session;
 
-              // Cached profile doesn't match "live" data, so agent needs to be updated
-              // with a call to Auth0
-              stubUserRead((err, apiScopes) => {
+              // Stub user-read calls subsequent to initial login
+              stubUserAppMetadataRead((err, apiScopes) => {
                 if (err) return done.fail();
+                ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
 
-                // Stub user-read calls subsequent to initial login
-                stubUserAppMetadataRead((err, apiScopes) => {
+                stubTeamRead((err, apiScopes) => {
                   if (err) return done.fail();
-                  ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
+                  ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
 
-                  stubTeamRead((err, apiScopes) => {
+                  stubUserAppMetadataUpdate((err, apiScopes) => {
                     if (err) return done.fail();
-                    ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-
-                    stubUserAppMetadataUpdate((err, apiScopes) => {
-                      if (err) return done.fail();
-                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                      done();
-                    });
+                    ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                    done();
                   });
                 });
               });
@@ -387,7 +362,7 @@ describe('root/teamSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.email).toEqual(_profile.email);
               expect(res.body.user_metadata.teams.length).toEqual(1);
@@ -405,7 +380,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(true);
                 expect(userAppMetadataReadScope.isDone()).toBe(true);
@@ -422,7 +397,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
@@ -446,25 +421,19 @@ describe('root/teamSpec', () => {
               if (err) return done.fail(err);
               rootSession = session;
 
-              // Cached profile doesn't match "live" data, so agent needs to be updated
-              // with a call to Auth0
-              stubUserRead((err, apiScopes) => {
+              // Stub user-read calls subsequent to login
+              stubUserAppMetadataRead((err, apiScopes) => {
                 if (err) return done.fail();
+                ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
 
-                // Stub user-read calls subsequent to login
-                stubUserAppMetadataRead((err, apiScopes) => {
+                stubTeamRead((err, apiScopes) => {
                   if (err) return done.fail();
-                  ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
+                  ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
 
-                  stubTeamRead((err, apiScopes) => {
+                  stubUserAppMetadataUpdate((err, apiScopes) => {
                     if (err) return done.fail();
-                    ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-
-                    stubUserAppMetadataUpdate((err, apiScopes) => {
-                      if (err) return done.fail();
-                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                      done();
-                    });
+                    ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                    done();
                   });
                 });
               });
@@ -482,7 +451,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(400)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(res.body.errors.length).toEqual(1);
                 expect(res.body.errors[0].message).toEqual('That team is already registered');
@@ -500,7 +469,7 @@ describe('root/teamSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(400)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
 
                   expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(true);
@@ -518,7 +487,7 @@ describe('root/teamSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(400)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
 
                   expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
@@ -538,7 +507,7 @@ describe('root/teamSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(400)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.errors.length).toEqual(1);
               expect(res.body.errors[0].message).toEqual('Team requires a name');
@@ -553,7 +522,7 @@ describe('root/teamSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(400)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.errors.length).toEqual(1);
               expect(res.body.errors[0].message).toEqual('Team requires a name');
@@ -583,33 +552,27 @@ describe('root/teamSpec', () => {
                 if (err) return done.fail(err);
                 rootSession = session;
 
-                // Cached profile doesn't match "live" data, so agent needs to be updated
-                // with a call to Auth0
-                stubUserRead((err, apiScopes) => {
+                // Get team members
+                stubTeamRead((err, apiScopes) => {
                   if (err) return done.fail();
+                  ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
+                  teamMembershipReadScope = teamReadScope;
+                  teamMembershipReadOauthTokenScope = teamReadOauthTokenScope;
 
-                  // Get team members
-                  stubTeamRead((err, apiScopes) => {
+                  // Get RSVPs
+                  const rsvps = [
+                    {..._profile, email: 'someprospectiveteammember@example.com', name: 'Some Prospective Team Member',
+                       user_metadata: { rsvps: [{ name: 'Vancouver Warriors', recipient: 'someprospectiveteammember@example.com', uuid: teamId, type: 'team' }] }
+                    }
+                  ];
+                  stubTeamRead(rsvps, (err, apiScopes) => {
                     if (err) return done.fail();
                     ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-                    teamMembershipReadScope = teamReadScope;
-                    teamMembershipReadOauthTokenScope = teamReadOauthTokenScope;
 
-                    // Get RSVPs
-                    const rsvps = [
-                      {..._profile, email: 'someprospectiveteammember@example.com', name: 'Some Prospective Team Member',
-                         user_metadata: { rsvps: [{ name: 'Vancouver Warriors', recipient: 'someprospectiveteammember@example.com', uuid: teamId, type: 'team' }] }
-                      }
-                    ];
-                    stubTeamRead(rsvps, (err, apiScopes) => {
+                    stubUserAppMetadataUpdate((err, apiScopes) => {
                       if (err) return done.fail();
-                      ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-
-                      stubUserAppMetadataUpdate((err, apiScopes) => {
-                        if (err) return done.fail();
-                        ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                        done();
-                      });
+                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                      done();
                     });
                   });
                 });
@@ -626,7 +589,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 expect(res.body.name).toEqual('Vancouver Riot');
@@ -646,7 +609,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 expect(_profile.user_metadata.pendingInvitations.length).toEqual(2);
@@ -667,7 +630,7 @@ describe('root/teamSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(201)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
 
                   models.Update.findAll().then(updates => {
@@ -712,7 +675,7 @@ describe('root/teamSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(201)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
 
                   models.Update.findAll({ where: {recipient: 'onecooldude@example.com'} }).then(updates => {
@@ -746,7 +709,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(400)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(res.body.errors.length).toEqual(1);
                 expect(res.body.errors[0].message).toEqual('Team requires a name');
@@ -763,7 +726,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(400)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(res.body.errors.length).toEqual(1);
                 expect(res.body.errors[0].message).toEqual('That team is already registered');
@@ -780,7 +743,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(404)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
                 expect(res.body.message).toEqual('No such team');
                 done();
@@ -797,7 +760,7 @@ describe('root/teamSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(201)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
 
                   expect(teamMembershipReadOauthTokenScope.isDone()).toBe(true);
@@ -815,7 +778,7 @@ describe('root/teamSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(201)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
 
                   // Doesn't get called because route is re-using token
@@ -834,7 +797,7 @@ describe('root/teamSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(201)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
 
                   expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
@@ -855,7 +818,7 @@ describe('root/teamSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(201)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
 
                   // Cached profile doesn't match "live" data, so agent needs to be updated
@@ -894,8 +857,6 @@ describe('root/teamSpec', () => {
                 });
             });
 
-            // 2020-6-8 One of these is creating a sporadic 404 error. It has not been
-            // reproduced and disappears on subsequent executions. Keep an eye out
             it('creates an update record to update team info on next login', done => {
               models.Update.findAll().then(updates => {
                 // One update because of the RSVP in the ancestor beforeEach
@@ -909,7 +870,7 @@ describe('root/teamSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(201)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
                     models.Update.findAll({ order: [['recipient', 'ASC']] }).then(updates => {
 
@@ -949,8 +910,6 @@ describe('root/teamSpec', () => {
                 });
             });
 
-            // 2020-6-24 One of these is creating a sporadic 404 error. It has not been
-            // reproduced and disappears on subsequent executions. Keep an eye out
             it('overwrites existing update records to update team info on next login', done => {
               models.Update.findAll().then(updates => {
                 // One update because of the RSVP in the ancestor beforeEach
@@ -965,7 +924,7 @@ describe('root/teamSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(201)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
                     models.Update.findAll({ order: [['recipient', 'ASC']] }).then(updates => {
 
@@ -1030,7 +989,7 @@ describe('root/teamSpec', () => {
                                   .set('Accept', 'application/json')
                                   .expect('Content-Type', /json/)
                                   .expect(201)
-                                  .end(function(err, res) {
+                                  .end((err, res) => {
                                     if (err) return done.fail(err);
                                     models.Update.findAll({ order: [['recipient', 'ASC']] }).then(updates => {
 
@@ -1100,33 +1059,27 @@ describe('root/teamSpec', () => {
                 if (err) return done.fail(err);
                 rootSession = session;
 
-                // Cached profile doesn't match "live" data, so agent needs to be updated
-                // with a call to Auth0
-                stubUserRead((err, apiScopes) => {
+                // Get team members
+                stubTeamRead((err, apiScopes) => {
                   if (err) return done.fail();
+                  ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
+                  teamMembershipReadScope = teamReadScope;
+                  teamMembershipReadOauthTokenScope = teamReadOauthTokenScope;
 
-                  // Get team members
-                  stubTeamRead((err, apiScopes) => {
+                  // Get RSVPs
+                  const rsvps = [
+                    {..._profile, email: 'someprospectiveteammember@example.com', name: 'Some Prospective Team Member',
+                       user_metadata: { rsvps: [{ name: 'Vancouver Warriors', recipient: 'someprospectiveteammember@example.com', uuid: teamId, type: 'team' }] }
+                    }
+                  ];
+                  stubTeamRead(rsvps, (err, apiScopes) => {
                     if (err) return done.fail();
                     ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-                    teamMembershipReadScope = teamReadScope;
-                    teamMembershipReadOauthTokenScope = teamReadOauthTokenScope;
 
-                    // Get RSVPs
-                    const rsvps = [
-                      {..._profile, email: 'someprospectiveteammember@example.com', name: 'Some Prospective Team Member',
-                         user_metadata: { rsvps: [{ name: 'Vancouver Warriors', recipient: 'someprospectiveteammember@example.com', uuid: teamId, type: 'team' }] }
-                      }
-                    ];
-                    stubTeamRead(rsvps, (err, apiScopes) => {
+                    stubUserAppMetadataUpdate((err, apiScopes) => {
                       if (err) return done.fail();
-                      ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-
-                      stubUserAppMetadataUpdate((err, apiScopes) => {
-                        if (err) return done.fail();
-                        ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                        done();
-                      });
+                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                      done();
                     });
                   });
                 });
@@ -1143,7 +1096,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 expect(_profile.user_metadata.pendingInvitations.length).toEqual(2);
@@ -1173,7 +1126,7 @@ describe('root/teamSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(201)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
 
                   models.Update.findAll().then(updates => {
@@ -1218,7 +1171,7 @@ describe('root/teamSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(201)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
 
                   models.Update.findAll({ where: {recipient: 'onecooldude@example.com'} }).then(updates => {
@@ -1254,7 +1207,7 @@ describe('root/teamSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(201)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
 
                   // Cached profile doesn't match "live" data, so agent needs to be updated
@@ -1293,8 +1246,6 @@ describe('root/teamSpec', () => {
                 });
             });
 
-            // 2020-6-8 One of these is creating a sporadic 404 error. It has not been
-            // reproduced and disappears on subsequent executions. Keep an eye out
             it('creates an update record to update team info on next login', done => {
               models.Update.findAll().then(updates => {
                 // One update because of the RSVP in the ancestor beforeEach
@@ -1308,7 +1259,7 @@ describe('root/teamSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(201)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
                     models.Update.findAll({ order: [['recipient', 'ASC']] }).then(updates => {
 
@@ -1348,8 +1299,6 @@ describe('root/teamSpec', () => {
                 });
             });
 
-            // 2020-6-24 One of these is creating a sporadic 404 error. It has not been
-            // reproduced and disappears on subsequent executions. Keep an eye out
             it('overwrites existing update records to update team info on next login', done => {
               models.Update.findAll().then(updates => {
                 // One update because of the RSVP in the ancestor beforeEach
@@ -1364,7 +1313,7 @@ describe('root/teamSpec', () => {
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(201)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
                     models.Update.findAll({ order: [['recipient', 'ASC']] }).then(updates => {
 
@@ -1429,7 +1378,7 @@ describe('root/teamSpec', () => {
                                   .set('Accept', 'application/json')
                                   .expect('Content-Type', /json/)
                                   .expect(201)
-                                  .end(function(err, res) {
+                                  .end((err, res) => {
                                     if (err) return done.fail(err);
                                     models.Update.findAll({ order: [['recipient', 'ASC']] }).then(updates => {
 
@@ -1494,36 +1443,30 @@ describe('root/teamSpec', () => {
               if (err) return done.fail(err);
               rootSession = session;
 
-              // Cached profile doesn't match "live" data, so agent needs to be updated
-              // with a call to Auth0
-              stubUserRead((err, apiScopes) => {
-                if (err) return done.fail();
+              stubUserRolesRead((err, apiScopes) => {
+                if (err) return done(err);
 
-                stubUserRolesRead((err, apiScopes) => {
-                  if (err) return done(err);
+                // Get team members
+                teamLeaderProfile.user_metadata = {
+                  teams: [{ name: 'Vancouver Warriors', leader: 'someotherguy@example.com', id: teamId }],
+                  pendingInvitations: [{ name: 'Vancouver Warriors', recipient: 'newteammember@example.com', uuid: teamId, type: 'team' }]
+                };
 
-                  // Get team members
-                  teamLeaderProfile.user_metadata = {
-                    teams: [{ name: 'Vancouver Warriors', leader: 'someotherguy@example.com', id: teamId }],
-                    pendingInvitations: [{ name: 'Vancouver Warriors', recipient: 'newteammember@example.com', uuid: teamId, type: 'team' }]
-                  };
+                stubTeamRead([_profile, teamLeaderProfile], (err, apiScopes) => {
+                  if (err) return done.fail();
+                  ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
+                  teamMembershipReadScope = teamReadScope;
+                  teamMembershipReadOauthTokenScope = teamReadOauthTokenScope;
 
-                  stubTeamRead([_profile, teamLeaderProfile], (err, apiScopes) => {
+                  // Get RSVPs
+                  stubTeamRead((err, apiScopes) => {
                     if (err) return done.fail();
                     ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-                    teamMembershipReadScope = teamReadScope;
-                    teamMembershipReadOauthTokenScope = teamReadOauthTokenScope;
 
-                    // Get RSVPs
-                    stubTeamRead((err, apiScopes) => {
+                    stubUserAppMetadataUpdate(teamLeaderProfile, (err, apiScopes) => {
                       if (err) return done.fail();
-                      ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-
-                      stubUserAppMetadataUpdate(teamLeaderProfile, (err, apiScopes) => {
-                        if (err) return done.fail();
-                        ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                        done();
-                      });
+                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                      done();
                     });
                   });
                 });
@@ -1541,7 +1484,7 @@ describe('root/teamSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
 
               expect(res.body.name).toEqual('Vancouver Riot');
@@ -1565,7 +1508,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 models.Update.findAll().then(updates => {
@@ -1599,7 +1542,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 models.Update.findAll({ order: [['recipient', 'ASC']] }).then(updates => {
@@ -1631,7 +1574,7 @@ describe('root/teamSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(400)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.errors.length).toEqual(1);
               expect(res.body.errors[0].message).toEqual('Team requires a name');
@@ -1648,7 +1591,7 @@ describe('root/teamSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(400)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.errors.length).toEqual(1);
               expect(res.body.errors[0].message).toEqual('That team is already registered');
@@ -1666,7 +1609,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 expect(teamMembershipReadOauthTokenScope.isDone()).toBe(true);
@@ -1684,7 +1627,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 // Doesn't get called because route is re-using token
@@ -1703,7 +1646,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
@@ -1724,7 +1667,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 // Cached profile doesn't match "live" data, so agent needs to be updated
@@ -1769,8 +1712,6 @@ describe('root/teamSpec', () => {
               });
           });
 
-          // 2020-6-8 One of these is creating a sporadic 404 error. It has not been
-          // reproduced and disappears on subsequent executions. Keep an eye out
           it('creates an update record to update team info on next login', done => {
             models.Update.findAll().then(updates => {
               // One, because root got updated when mock was cleared
@@ -1784,7 +1725,7 @@ describe('root/teamSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(201)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
                   models.Update.findAll({ order: [['recipient', 'ASC']] }).then(updates => {
 
@@ -1816,8 +1757,6 @@ describe('root/teamSpec', () => {
               });
           });
 
-          // 2020-6-24 One of these is creating a sporadic 404 error. It has not been
-          // reproduced and disappears on subsequent executions. Keep an eye out
           it('overwrites existing update records to update team info on next login', done => {
             models.Update.findAll().then(updates => {
               // One, because team leader got updated when mock was cleared
@@ -1832,7 +1771,7 @@ describe('root/teamSpec', () => {
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(201)
-                .end(function(err, res) {
+                .end((err, res) => {
                   if (err) return done.fail(err);
                   models.Update.findAll({ order: [['recipient', 'ASC']] }).then(updates => {
 
@@ -1898,7 +1837,7 @@ describe('root/teamSpec', () => {
                                     .set('Accept', 'application/json')
                                     .expect('Content-Type', /json/)
                                     .expect(201)
-                                    .end(function(err, res) {
+                                    .end((err, res) => {
                                       if (err) return done.fail(err);
                                       models.Update.findAll().then(updates => {
 
@@ -1958,45 +1897,39 @@ describe('root/teamSpec', () => {
               if (err) return done.fail(err);
               rootSession = session;
 
-              // Cached profile doesn't match "live" data, so agent needs to be updated
-              // with a call to Auth0
-              stubUserRead((err, apiScopes) => {
-                if (err) return done.fail();
+              // Get team members
+              teamLeaderProfile.user_metadata = {
+                teams: [{ name: 'Vancouver Warriors', leader: teamLeaderProfile.email, id: teamId }],
+                pendingInvitations: [{ name: 'Vancouver Warriors', recipient: 'someprospectiveteammember@example.com', uuid: teamId, type: 'team' }]
+              };
 
-                // Get team members
-                teamLeaderProfile.user_metadata = {
-                  teams: [{ name: 'Vancouver Warriors', leader: teamLeaderProfile.email, id: teamId }],
-                  pendingInvitations: [{ name: 'Vancouver Warriors', recipient: 'someprospectiveteammember@example.com', uuid: teamId, type: 'team' }]
-                };
-
-                stubTeamRead([
-                  teamLeaderProfile,
-                  {..._profile, email: 'teamplayer@example.com', name: 'Team Player', user_id: _profile.user_id + 2,
-                    user_metadata: {
-                      teams: [{ name: 'Vancouver Warriors', leader: teamLeaderProfile.email, id: teamId }]
-                    }
+              stubTeamRead([
+                teamLeaderProfile,
+                {..._profile, email: 'teamplayer@example.com', name: 'Team Player', user_id: _profile.user_id + 2,
+                  user_metadata: {
+                    teams: [{ name: 'Vancouver Warriors', leader: teamLeaderProfile.email, id: teamId }]
                   }
-                ], (err, apiScopes) => {
+                }
+              ], (err, apiScopes) => {
+                if (err) return done.fail();
+                ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
+                teamMembershipReadScope = teamReadScope;
+                teamMembershipReadOauthTokenScope = teamReadOauthTokenScope;
+
+                // Get RSVPs
+                const rsvps = [
+                  {..._profile, email: 'someprospectiveteammember@example.com', name: 'Some Prospective Team Member',
+                     user_metadata: { rsvps: [{ name: 'Vancouver Warriors', recipient: 'someprospectiveteammember@example.com', uuid: teamId, type: 'team' }] }
+                  }
+                ];
+                stubTeamRead(rsvps, (err, apiScopes) => {
                   if (err) return done.fail();
                   ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-                  teamMembershipReadScope = teamReadScope;
-                  teamMembershipReadOauthTokenScope = teamReadOauthTokenScope;
 
-                  // Get RSVPs
-                  const rsvps = [
-                    {..._profile, email: 'someprospectiveteammember@example.com', name: 'Some Prospective Team Member',
-                       user_metadata: { rsvps: [{ name: 'Vancouver Warriors', recipient: 'someprospectiveteammember@example.com', uuid: teamId, type: 'team' }] }
-                    }
-                  ];
-                  stubTeamRead(rsvps, (err, apiScopes) => {
+                  stubUserAppMetadataUpdate(teamLeaderProfile, (err, apiScopes) => {
                     if (err) return done.fail();
-                    ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-
-                    stubUserAppMetadataUpdate(teamLeaderProfile, (err, apiScopes) => {
-                      if (err) return done.fail();
-                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                      done();
-                    });
+                    ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                    done();
                   });
                 });
               });
@@ -2013,7 +1946,7 @@ describe('root/teamSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
 
               expect(res.body.name).toEqual('Vancouver Riot');
@@ -2035,7 +1968,7 @@ describe('root/teamSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
 
               expect(teamLeaderProfile.user_metadata.teams.length).toEqual(1);
@@ -2057,7 +1990,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 models.Update.findAll({ order: [['recipient', 'ASC']] }).then(updates => {
@@ -2110,7 +2043,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 models.Update.findAll({ where: {recipient: 'onecooldude@example.com'} }).then(updates => {
@@ -2142,7 +2075,7 @@ describe('root/teamSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(400)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.errors.length).toEqual(1);
               expect(res.body.errors[0].message).toEqual('Team requires a name');
@@ -2159,7 +2092,7 @@ describe('root/teamSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(400)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.errors.length).toEqual(1);
               expect(res.body.errors[0].message).toEqual('That team is already registered');
@@ -2177,7 +2110,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 expect(teamMembershipReadOauthTokenScope.isDone()).toBe(true);
@@ -2195,7 +2128,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 // Doesn't get called because route is re-using token
@@ -2215,7 +2148,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
@@ -2241,28 +2174,22 @@ describe('root/teamSpec', () => {
             if (err) return done.fail();
 
             login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, [scope.delete.teams], (err, session) => {
-
               if (err) return done.fail(err);
               rootSession = session;
 
-              // Cached profile doesn't match "live" data, so agent needs to be updated
-              // with a call to Auth0
-              stubUserRead((err, apiScopes) => {
+              stubUserAppMetadataRead((err, apiScopes) => {
                 if (err) return done.fail();
+                ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
 
-                stubUserAppMetadataRead((err, apiScopes) => {
+                stubTeamRead((err, apiScopes) => {
                   if (err) return done.fail();
-                  ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
+                  ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
 
-                  stubTeamRead((err, apiScopes) => {
+                  stubUserAppMetadataUpdate((err, apiScopes) => {
                     if (err) return done.fail();
-                    ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
+                    ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
 
-                    stubUserAppMetadataUpdate((err, apiScopes) => {
-                      if (err) return done.fail();
-                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                      done();
-                    });
+                    done();
                   });
                 });
               });
@@ -2276,7 +2203,7 @@ describe('root/teamSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.message).toEqual('Team deleted');
               done();
@@ -2284,26 +2211,13 @@ describe('root/teamSpec', () => {
         });
 
         describe('Auth0', () => {
-          it('does not call /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
-            rootSession
-              .delete(`/team/${rootTeamId}`)
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(201)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-                expect(oauthTokenScope.isDone()).toBe(false);
-                done();
-              });
-          });
-
           it('is called to retrieve the agent user_metadata', done => {
             rootSession
               .delete(`/team/${rootTeamId}`)
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 expect(teamReadOauthTokenScope.isDone()).toBe(true);
@@ -2318,7 +2232,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
@@ -2348,24 +2262,18 @@ describe('root/teamSpec', () => {
               if (err) return done.fail(err);
               rootSession = session;
 
-              // Cached profile doesn't match "live" data, so agent needs to be updated
-              // with a call to Auth0
-              stubUserRead((err, apiScopes) => {
+              stubUserAppMetadataRead((err, apiScopes) => {
                 if (err) return done.fail();
+                ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
 
-                stubUserAppMetadataRead((err, apiScopes) => {
+                stubTeamRead([teamLeaderProfile], (err, apiScopes) => {
                   if (err) return done.fail();
-                  ({userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes);
+                  ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
 
-                  stubTeamRead([teamLeaderProfile], (err, apiScopes) => {
+                  stubUserAppMetadataUpdate(teamLeaderProfile, (err, apiScopes) => {
                     if (err) return done.fail();
-                    ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-
-                    stubUserAppMetadataUpdate(teamLeaderProfile, (err, apiScopes) => {
-                      if (err) return done.fail();
-                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                      done();
-                    });
+                    ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                    done();
                   });
                 });
               });
@@ -2379,7 +2287,7 @@ describe('root/teamSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.message).toEqual('Team deleted');
               done();
@@ -2399,7 +2307,7 @@ describe('root/teamSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(201)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(teamLeaderProfile.user_metadata.teams.length).toEqual(0);
               expect(_profile.user_metadata).toBeUndefined();
@@ -2414,7 +2322,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 expect(teamReadOauthTokenScope.isDone()).toBe(true);
@@ -2429,7 +2337,7 @@ describe('root/teamSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
@@ -2445,7 +2353,7 @@ describe('root/teamSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(404)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.message).toEqual('No such team');
               done();
@@ -2454,45 +2362,4 @@ describe('root/teamSpec', () => {
       });
     });
   });
-
-//  describe('non-root', () => {
-//    let nonRootSession;
-//    beforeEach(done => {
-//      login({ ..._identity, email: agent.email }, [scope.read.teams], (err, session) => {
-//        if (err) return done.fail(err);
-//        nonRootSession = session;
-//
-//        stubAuth0ManagementApi((err, apiScopes) => {
-//          if (err) return done.fail();
-//          done();
-//        });
-//      });
-//    });
-//
-//    describe('read', () => {
-//      describe('/team', () => {
-//        it('returns only the teams created by the requesting agent', done => {
-//          models.Team.create({ name: 'The Mike Tyson Mystery Team', organizationId: organization.id, creatorId: root.id }).then(o => {
-//            models.Team.findAll().then(results => {
-//              expect(results.length).toEqual(2);
-//              nonRootSession
-//                .get(`/team`)
-//                .set('Accept', 'application/json')
-//                .expect('Content-Type', /json/)
-//                .expect(200)
-//                .end(function(err, res) {
-//                  if (err) return done.fail(err);
-//                  expect(res.body.length).toEqual(1);
-//                  done();
-//                });
-//            }).catch(err => {
-//              done.fail(err);
-//            });
-//          }).catch(err => {
-//            done.fail(err);
-//          });
-//        });
-//      });
-//    });
-//  });
 });

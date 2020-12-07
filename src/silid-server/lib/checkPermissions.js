@@ -17,7 +17,7 @@ function updateDbAndVerify(permissions, req, res, next) {
   const socialProfile = {...req.user};
 
   // Read agent's assigned roles
-  let managementClient = getManagementClient([apiScope.read.users, apiScope.read.roles].join(' '));
+  const managementClient = getManagementClient([apiScope.read.users, apiScope.read.roles].join(' '));
   managementClient.getUserRoles({id: req.user.user_id}).then(roles => {
     req.user.roles = roles;
 
@@ -54,7 +54,6 @@ function updateDbAndVerify(permissions, req, res, next) {
       }
 
       if (!agent || profileChanged) {
-        managementClient = getManagementClient(apiScope.read.users);
         managementClient.getUser({id: socialProfile.user_id}).then(results => {
 
           models.Agent.update(
@@ -82,7 +81,7 @@ function updateDbAndVerify(permissions, req, res, next) {
 
               jwtAuthz(permissions, { failWithError: true, checkAllScopes: true })(req, res, err => {
                 if (err) {
-                  return res.status(err.statusCode).json(err);
+                  return next(err);
                 }
 
                 next();
@@ -109,20 +108,20 @@ function updateDbAndVerify(permissions, req, res, next) {
 
                 jwtAuthz(permissions, { failWithError: true, checkAllScopes: true })(req, res, err => {
                   if (err) {
-                    return res.status(err.statusCode).json(err);
+                    return next(err);
                   }
 
                   next();
                 });
               }).catch(err => {
-                res.status(500).json(err);
+                return next(err);
               });
             }
           }).catch(err => {
-            res.status(500).json(err);
+            return next(err);
           });
         }).catch(err => {
-          res.status(500).json(err);
+          return next(err);
         });
       }
       else {
@@ -150,7 +149,7 @@ function updateDbAndVerify(permissions, req, res, next) {
               next();
             });
           }).catch(err => {
-            res.status(500).json(err);
+            return next(err);
           });
         }
         else {
@@ -160,7 +159,7 @@ function updateDbAndVerify(permissions, req, res, next) {
 
           jwtAuthz(permissions, { failWithError: true, checkAllScopes: true })(req, res, err => {
             if (err) {
-              return res.status(err.statusCode).json(err);
+              return next(err);
             }
 
             next();
@@ -168,10 +167,10 @@ function updateDbAndVerify(permissions, req, res, next) {
         }
       }
     }).catch(err => {
-      res.status(500).json(err);
+      next(err);
     });
   }).catch(err => {
-    res.status(err.statusCode).json(err.message.error_description);
+    next(err);
   });
 };
 
@@ -202,7 +201,7 @@ const checkPermissions = function(permissions) {
       // Functionality covered by client-side tests
       checkForUpdates(req, err => {
         if (err) {
-          return res.status(500).json(err);
+          return next(err);
         }
         updateDbAndVerify(permissions, req, res, next);
       });
@@ -222,15 +221,15 @@ const checkPermissions = function(permissions) {
 
           checkForUpdates(req, err => {
             if (err) {
-              return res.status(500).json(err);
+              return next(err);
             }
             updateDbAndVerify(permissions, req, res, next);
           });
         }).catch(err => {
-          res.status(err.statusCode).json(err.message.error_description);
+          return next(err);
         });
       }).catch(err => {
-        res.status(err.statusCode).json(err.message.error_description);
+        return next(err);
       });
     }
   };
