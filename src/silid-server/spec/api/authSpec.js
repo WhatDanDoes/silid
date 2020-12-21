@@ -17,7 +17,7 @@ describe('authSpec', () => {
    *
    * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
    */
-  const _identity = require('../fixtures/sample-auth0-identity-token');
+  const _identity = { ...require('../fixtures/sample-auth0-identity-token'), iss: `https://${process.env.AUTH0_DOMAIN}/`};
   const _access = require('../fixtures/sample-auth0-access-token');
   const _profile = require('../fixtures/sample-auth0-profile-response');
 
@@ -232,7 +232,15 @@ describe('authSpec', () => {
                                     'grant_type': 'client_credentials',
                                     'client_id': process.env.AUTH0_CLIENT_ID,
                                     'client_secret': process.env.AUTH0_CLIENT_SECRET,
-                                    'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                                    /**
+                                     * 2020-12-17
+                                     *
+                                     * Set as such because we have a custom domain.
+                                     *
+                                     * https://auth0.com/docs/custom-domains/configure-features-to-use-custom-domains#apis
+                                     */
+                                    //'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                                    'audience': process.env.AUTH0_DEFAULT_AUDIENCE,
                                     'scope': apiScope.read.users
                                   })
             .reply(200, {
@@ -426,7 +434,15 @@ describe('authSpec', () => {
                                                   'grant_type': 'client_credentials',
                                                   'client_id': process.env.AUTH0_CLIENT_ID,
                                                   'client_secret': process.env.AUTH0_CLIENT_SECRET,
-                                                  'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                                                  /**
+                                                   * 2020-12-17
+                                                   *
+                                                   * Set as such because we have a custom domain.
+                                                   *
+                                                   * https://auth0.com/docs/custom-domains/configure-features-to-use-custom-domains#apis
+                                                   */
+                                                  //'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                                                  'audience': process.env.AUTH0_DEFAULT_AUDIENCE,
                                                   'scope': apiScope.read.users
                                                 })
                           .reply(200, {
@@ -546,7 +562,15 @@ describe('authSpec', () => {
                                   'grant_type': 'client_credentials',
                                   'client_id': process.env.AUTH0_CLIENT_ID,
                                   'client_secret': process.env.AUTH0_CLIENT_SECRET,
-                                  'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                                  /**
+                                   * 2020-12-17
+                                   *
+                                   * Set as such because we have a custom domain.
+                                   *
+                                   * https://auth0.com/docs/custom-domains/configure-features-to-use-custom-domains#apis
+                                   */
+                                  //'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                                  'audience': process.env.AUTH0_DEFAULT_AUDIENCE,
                                   'scope': apiScope.read.clients
                                 })
           .reply(200, {
@@ -726,7 +750,15 @@ describe('authSpec', () => {
                                       'grant_type': 'client_credentials',
                                       'client_id': process.env.AUTH0_CLIENT_ID,
                                       'client_secret': process.env.AUTH0_CLIENT_SECRET,
-                                      'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                                      /**
+                                       * 2020-12-17
+                                       *
+                                       * Set as such because we have a custom domain.
+                                       *
+                                       * https://auth0.com/docs/custom-domains/configure-features-to-use-custom-domains#apis
+                                       */
+                                      //'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                                      'audience': process.env.AUTH0_DEFAULT_AUDIENCE,
                                       'scope': apiScope.read.users
                                     })
               .reply(200, {

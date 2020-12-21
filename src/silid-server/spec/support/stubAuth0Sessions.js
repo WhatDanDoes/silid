@@ -13,8 +13,7 @@ const roles = require('../../config/roles');
  * For the moment, it doesn't seem to matter that all authenticated
  * agents are using the same access token for testing purposes.
  */
-const _access = require('../fixtures/sample-auth0-access-token');
-_access.iss = `http://${process.env.AUTH0_DOMAIN}/`;
+const _access = { ...require('../fixtures/sample-auth0-access-token'), iss: `http://${process.env.AUTH0_DOMAIN}/`};
 
 const jwt = require('jsonwebtoken');
 const jose = require('node-jose');
