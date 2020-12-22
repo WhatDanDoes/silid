@@ -35,7 +35,24 @@ context('root/Agent edit', function() {
               cy.login(_profile.email, _profile);
 
               cy.get('#app-menu-button').click();
-              cy.wait(200);
+              cy.wait(300);
+
+              /**
+               * 2020-12-22
+               *
+               * This causes problems in headless tests.
+               *
+               * https://on.cypress.io/element-cannot-be-interacted-with
+               *
+               * Added `force: true` rather than mucking around with
+               * what is probably headless flakiness
+               *
+               * More...
+               *
+               * I increased the wait time to 300 milliseconds. This seems
+               * sufficient. I may not need to `Ignore built-in error checking`
+               */
+              //cy.get('#admin-switch').uncheck({force: true});
               cy.get('#admin-switch').uncheck();
 
               // Just to close the menu
