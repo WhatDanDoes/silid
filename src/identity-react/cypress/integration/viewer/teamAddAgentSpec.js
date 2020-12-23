@@ -448,20 +448,18 @@ context('viewer/Team add agent', function() {
                       });
 
                       it('displays the team invite', () => {
-                        cy.get('#rsvps-table table tbody').find('tr').its('length').should('eq', 1);
-
                         cy.get('#rsvps-table').should('exist');
+
+                        cy.get('#rsvps-table table tbody').find('tr').its('length').should('eq', 1);
                         cy.get('#rsvps-table table thead tr th').should('not.contain', 'Actions');
-                        cy.get('#rsvps-table table tbody tr td button span').should('not.contain', 'delete_outline');
-                        cy.get('#rsvps-table table tbody tr td button span').should('not.contain', 'check');
+                        // Can't accept or reject until email is verified
+                        cy.get('#rsvps-table table tbody tr td button').should('not.exist');
                         cy.get('#rsvps-table table thead tr th').contains('Name');
                         cy.get('#rsvps-table table tbody tr td').contains('The A-Team');
                         cy.get('#rsvps-table table thead tr th').contains('Type');
                         cy.get('#rsvps-table table tbody tr td').contains('team');
                       });
                     });
-
-
                   });
                 });
               });

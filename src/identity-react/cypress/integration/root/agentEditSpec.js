@@ -35,7 +35,24 @@ context('root/Agent edit', function() {
               cy.login(_profile.email, _profile);
 
               cy.get('#app-menu-button').click();
-              cy.wait(200);
+              cy.wait(300);
+
+              /**
+               * 2020-12-22
+               *
+               * This causes problems in headless tests.
+               *
+               * https://on.cypress.io/element-cannot-be-interacted-with
+               *
+               * Added `force: true` rather than mucking around with
+               * what is probably headless flakiness
+               *
+               * More...
+               *
+               * I increased the wait time to 300 milliseconds. This seems
+               * sufficient. I may not need to `Ignore built-in error checking`
+               */
+              //cy.get('#admin-switch').uncheck({force: true});
               cy.get('#admin-switch').uncheck();
 
               // Just to close the menu
@@ -78,7 +95,6 @@ context('root/Agent edit', function() {
             cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
             cy.get('#profile-table table tbody tr td input#agent-given-name-field').should('not.be.visible');
             cy.get('#profile-table table tbody tr td input#agent-family-name-field').should('not.be.visible');
-            cy.get('#profile-table table tbody tr td input#agent-username-field').should('not.be.visible');
             cy.get('#profile-table table tbody tr td input#agent-nickname-field').should('not.be.visible');
 
             // Toggle accordion
@@ -151,7 +167,6 @@ context('root/Agent edit', function() {
               cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
               cy.get('#profile-table table tbody tr td input#agent-given-name-field').should('not.be.visible');
               cy.get('#profile-table table tbody tr td input#agent-family-name-field').should('not.be.visible');
-              cy.get('#profile-table table tbody tr td input#agent-username-field').should('not.be.visible');
               cy.get('#profile-table table tbody tr td input#agent-nickname-field').should('not.be.visible');
 
               // Toggle accordion
@@ -518,7 +533,6 @@ context('root/Agent edit', function() {
               cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
               cy.get('#profile-table table tbody tr td input#agent-given-name-field').should('not.be.visible');
               cy.get('#profile-table table tbody tr td input#agent-family-name-field').should('not.be.visible');
-              cy.get('#profile-table table tbody tr td input#agent-username-field').should('not.be.visible');
               cy.get('#profile-table table tbody tr td input#agent-nickname-field').should('not.be.visible');
 
               // Toggle accordion
@@ -924,7 +938,6 @@ context('root/Agent edit', function() {
           cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
           cy.get('#profile-table table tbody tr td input#agent-given-name-field').should('not.be.visible');
           cy.get('#profile-table table tbody tr td input#agent-family-name-field').should('not.be.visible');
-          cy.get('#profile-table table tbody tr td input#agent-username-field').should('not.be.visible');
           cy.get('#profile-table table tbody tr td input#agent-nickname-field').should('not.be.visible');
 
           // Toggle accordion

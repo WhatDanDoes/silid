@@ -11,7 +11,7 @@ const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
  *
  * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
  */
-const _identity = require('../fixtures/sample-auth0-identity-token');
+const _identity = { ...require('../fixtures/sample-auth0-identity-token'), iss: `https://${process.env.AUTH0_DOMAIN}/`};
 
 describe('client end points', () => {
   describe('/', () => {

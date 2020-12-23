@@ -45,7 +45,7 @@ describe('checkForUpdates', function() {
 
   describe('organization membership', () => {
 
-    const player = { ..._profile, name: 'Tracey Kelusky', email: 'player@example.com'};
+    const player = { ..._profile, name: 'Tracey Kelusky', email: 'player@example.com' };
 
     let organizationId, teamId,
         userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope;
@@ -65,7 +65,7 @@ describe('checkForUpdates', function() {
     describe('enrolling', () => {
 
       beforeEach(done => {
-        player.user_metadata = { teams: [ {name: 'The Calgary Roughnecks', leader: 'coach@example.com', id: teamId } ] };
+        player.user_metadata = { teams: [ {name: 'The Calgary Roughnecks', leader: 'coach@example.com', id: teamId} ] };
 
         models.Update.create({ recipient: player.email, uuid: organizationId, type: 'organization',
                                data: {name: 'The National Lacrosse League', leader: _profile.email, id: organizationId, teamId: teamId} }).then(results => {

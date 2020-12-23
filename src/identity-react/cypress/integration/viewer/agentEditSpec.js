@@ -64,7 +64,6 @@ context('viewer/Agent edit', function() {
         cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
         cy.get('#profile-table table tbody tr td input#agent-given-name-field').should('not.be.visible');
         cy.get('#profile-table table tbody tr td input#agent-family-name-field').should('not.be.visible');
-        cy.get('#profile-table table tbody tr td input#agent-username-field').should('not.be.visible');
         cy.get('#profile-table table tbody tr td input#agent-nickname-field').should('not.be.visible');
 
         // Toggle accordion
@@ -136,7 +135,6 @@ context('viewer/Agent edit', function() {
           cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
           cy.get('#profile-table table tbody tr td input#agent-given-name-field').should('not.be.visible');
           cy.get('#profile-table table tbody tr td input#agent-family-name-field').should('not.be.visible');
-          cy.get('#profile-table table tbody tr td input#agent-username-field').should('not.be.visible');
           cy.get('#profile-table table tbody tr td input#agent-nickname-field').should('not.be.visible');
 
           // Toggle accordion
@@ -656,7 +654,6 @@ context('viewer/Agent edit', function() {
           cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
           cy.get('#profile-table table tbody tr td input#agent-given-name-field').should('not.be.visible');
           cy.get('#profile-table table tbody tr td input#agent-family-name-field').should('not.be.visible');
-          cy.get('#profile-table table tbody tr td input#agent-username-field').should('not.be.visible');
           cy.get('#profile-table table tbody tr td input#agent-nickname-field').should('not.be.visible');
 
           // Toggle accordion

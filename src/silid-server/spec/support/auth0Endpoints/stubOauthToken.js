@@ -50,7 +50,16 @@ module.exports = function(permissions, done) {
                               'grant_type': 'client_credentials',
                               'client_id': process.env.AUTH0_CLIENT_ID,
                               'client_secret': process.env.AUTH0_CLIENT_SECRET,
-                              'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                              /**
+                               * 2020-12-21
+                               *
+                               * Though you may have a custom domain configured, the management client requires the
+                               * `audience` to be set as below.
+                               *
+                               * https://auth0.com/docs/custom-domains/configure-features-to-use-custom-domains#apis
+                               */
+                              //'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                              'audience': process.env.AUTH0_DEFAULT_AUDIENCE,
                               'scope': permissions.join(' ')
                             })
       .reply(200, {

@@ -52,7 +52,7 @@ if (process.env.NODE_ENV === 'e2e') {
  *
  * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
  */
-const _identity = require('../fixtures/sample-auth0-identity-token');
+const _identity = { ...require('../fixtures/sample-auth0-identity-token'), iss: `https://${process.env.AUTH0_DOMAIN}/`};
 const _access = require('../fixtures/sample-auth0-access-token');
 const _profile = require('../fixtures/sample-auth0-profile-response');
 

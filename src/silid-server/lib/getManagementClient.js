@@ -12,6 +12,14 @@ function getManagementClient(permissions) {
     domain: process.env.AUTH0_DOMAIN,
     clientId: process.env.AUTH0_CLIENT_ID,
     clientSecret: process.env.AUTH0_CLIENT_SECRET,
+    /**
+     * 2020-12-17
+     *
+     * Set as such because we have a custom domain.
+     *
+     * https://auth0.com/docs/custom-domains/configure-features-to-use-custom-domains#apis
+     */
+    audience: process.env.AUTH0_DEFAULT_AUDIENCE,
     scope: permissions
   });
 }
