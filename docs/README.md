@@ -52,23 +52,10 @@ Using the Authorization Code Flow as prescribed her reveals some immediate and o
 
 # Development arrangements
 
-Perhaps the best way to compare how core technologies are arranged for development is to walk through a critical authentication interaction.
-
-Compare the how the core technologies named above are arranged for the server-side and client-side components of the Identity application:
 
 ## Identity server
 
-
-
 ## Identity client
-
-
-That arrangement is as follows:
-
-
-
-
-
 
 
 
@@ -77,7 +64,3 @@ The benefits of a true-to-form testing configuration reveal themselves immediate
 
 
 
-# Advantages
-
-- No CSRF problems
-- Developers don't need to worry about Auth0
