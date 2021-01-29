@@ -56,7 +56,7 @@ Let's first examine the critical authentication interaction between real-life Id
 
 ![GET /callback?auth_code=abc1234](figures/08-get-callback.svg)
 
-## 10. `silid-server` takes the _authorization code_ set in the in the callback URL's query string and submits a request for an _access token_ from Auth0. This request is accompanied by `silid-server`'s registered client and secret IDs.
+## 10. `silid-server` takes the _authorization code_ set in the callback URL's query string and submits a request for an _access token_ from Auth0. This request is accompanied by `silid-server`'s registered client and secret IDs.
 
 ![POST sil.auth0.com/oauth/token](figures/09-post-oauth-token.svg)
 
