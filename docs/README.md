@@ -20,21 +20,67 @@ Looking back, I'm glad that ejecting the app wasn't an option. I once had a semi
 
 Let's first examine the critical authentication interaction between real-life Identity and the Auth0 service.
 
-1. Human agent lands on the Identity homepage. This first interaction is between the browser client and the _backend_, hereafter known as `silid-server`. `silid-server` serves a plain HTML page with a _Login_ button.
-2. The human presses the _Login_ button on the browser client. `silid-server` responds with a redirect to the configured Auth0 authentication page.
-3. The browser client requests the Auth0 authentication page.
-4. Auth0 responds and the browser client loads the authentication page provided.
-5. The human agent takes action to confirm his identity and submits the appropriate request to Auth0.
-6. Auth0 decides if the human agent is who he says he is (we don't get to see this part).
-7. Auth0 responds with a redirect, or callback URL directing the browser client back to `silid-server`.
-8. The browser client redirects with a request to `silid-server`.
-9. `silid-server` takes the _authorization code_ set in the in the callback URL's query string and submits a request for an _access token_ from Auth0. This request is accompanied by `silid-server`'s registered client and secret IDs.
-10. Auth0 receives `silid-server`'s credentials, verifies this _backend client's_ identity along with the browser client's _access token_.
-11. Assuming all credentials are in order, Auth0 responds to `silid-server`'s request with an _identity token_ (I think!! Double check I'm not missing a step). This contains the _normalized_ profile data of the original human agent.
-12. Upon receipt, `silid-server` starts a _session_ and ties all the agent's profile data to a unique _session ID_.
-13. `silid-server` then responds to the browser client, being operated by the human agent, with a redirect and a _cookie_, which holds the browser client's unique session ID.
-14. The browser client receives the redirect, saves the cookie.
+## 1. A human agent sends an HTTP request to through his browser client to the Identity _backend_, hereafter known as `silid-server`.
+
+![GET /](figures/00-get-slash.svg)
+
+## 2. `silid-server` includes the requested home page in its response.
+
+![200](figures/01-homepage-response.svg)
+
+## 3. The human agent presses the _Login_ button on the browser client.
+
+![GET /login](figures/02-get-login.svg)
+
+## 4. `silid-server` responds with a redirect to the configured Auth0 authentication page.
+
+![302 /login](figures/03-login-response.svg)
+
+## 5. The browser client requests the Auth0 authentication page.
+
+![GET sil.auth0.com/login](figures/04-get-auth0-login.svg)
+
+## 6. Auth0 responds and the browser client loads the authentication page provided.
+
+![200](figures/05-auth0-login-response.svg)
+
+## 7. The human agent takes action to confirm his identity and submits the appropriate request to Auth0.
+
+![POST sil.auth0.com/...](figures/06-post-auth0-credentials.svg)
+
+## 8. Having verified the credentials provided, Auth0 responds with a redirect, or callback URL directing the browser client back to `silid-server`.
+
+![302 /callback?auth_code=abc1234](figures/07-auth0-success-response.svg)
+
+## 9. The browser client requests the provided callback URL from `silid-server`.
+
+![GET /callback?auth_code=abc1234](figures/08-get-callback.svg)
+
+## 10. `silid-server` takes the _authorization code_ set in the in the callback URL's query string and submits a request for an _access token_ from Auth0. This request is accompanied by `silid-server`'s registered client and secret IDs.
+
+![POST sil.auth0.com/oauth/token](figures/09-post-oauth-token.svg)
+
+## 11. Assuming all credentials are in order, Auth0 responds to `silid-server`'s request with an _access token_. 
+
+![200](figures/10-auth0-token-response.svg)
+
+## 12. `silid-server` requests the human agent's information from Auth0.
+
+![GET sil.auth0.com/userinfo](figures/11-get-userinfo.svg)
+
+## 13. Auth0 responds with the human agent's information. Upon receipt, `silid-server` starts a _session_ and ties all the agent's profile data to a unique _session ID_.
+
+![200](figures/12-auth0-userinfo-response.svg)
+
+## 14. `silid-server` then responds to the browser client with a redirect and a _cookie_, which holds the browser client's unique session ID.
+
+![302 /](figures/13-redirect-with-cookie.svg)
+
+## 15. The browser client receives the redirect, saves the cookie.
+
+
 15. The browser client requests the page to which it was redirected. The cookie goes along for the ride. This redirect goes back to `silid-server`.
+
 16. `silid-server` receives the browser's request, matches the cookie to the session ID, and knows that this browser has been authenticated. It responds with the bundled `identity-react` application.
 17. The browser client receives the response and executes `identity-react`.
 
