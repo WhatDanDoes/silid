@@ -1,4 +1,6 @@
-The subject of _mental models_ was raised during the SIL global staff meeting on January 26, 2021. SIL leadership invited input on how we explain real-world phenomenon collectively and as individuals. Which mental models are good and worth preserving? Which mental models are bad and should be abandoned? May God allow each of us the discernment required.
+# Identity's Implementation of the Authorization Code Flow
+
+The subject of _mental models_ was raised during the SIL global staff meeting on January 26, 2021. SIL leadership invited input on how we explain real-world phenomenon collectively and as individuals. _Which mental models are good and worth preserving? Which mental models are bad and should be abandoned?_ May God allow each of us the discernment required.
 
 SIL Identity is where mental models collide (not really, but it may seem so at first). It consists of three main components:
 
@@ -6,7 +8,7 @@ SIL Identity is where mental models collide (not really, but it may seem so at f
 - [identity-react](https://github.com/sillsdev/silid/tree/master/src/identity-react) on the _frontend_
 - The [Auth0](https://auth0.com/) authentication/access-management platform
 
-Identity was born of a marriage that should not seem unusual at first: [Express](https://expressjs.com/), React bootstrapped with [create-react-app](https://github.com/facebook/create-react-app), and [PostgreSQL](https://www.postgresql.org/) backed by the [Sequelize ORM](https://sequelize.org/).
+Identity was born of a fairly typical marriage between [Express](https://expressjs.com/), React bootstrapped with [create-react-app](https://github.com/facebook/create-react-app), and [PostgreSQL](https://www.postgresql.org/) backed by the [Sequelize ORM](https://sequelize.org/).
 
 ![Core software](figures/core-software.svg)
 
@@ -24,7 +26,7 @@ The tests above, of course, can only be applied to the server-side of the Identi
 
 Testing `identity-react`, which was bootstrapped with `create-react-app`, necessitated the introduction of an independent [mock server](https://github.com/sillsdev/silid/blob/master/src/silid-server/spec/support/mockAuth0ServerWithRBAC.js) to occupy the _authentication side_ in place of Auth0. The mock server was built with [Hapi](https://hapi.dev/). You'd think that this by itself would be tricky enough, but no. The _mental model_ constraints enforced by `create-react-app` raised issues so horribly mundane that we all must pray that I never be allowed to expound upon them at great length.
 
-The constraints imposed by `create-react-app`'s strict mental model necessitated a testing topology that closely mirrors the Identity application as it is deployed in _real life_. This software arrangment is proven with tests executed by [Cypress](https://www.cypress.io/). The client-side component of Identity is a seperate application, afterall. As such, it was expedient to build upon a set of integration tests seperate from its server-side component.
+The constraints imposed by `create-react-app`'s strict mental model necessitated a testing topology that closely mirrors the Identity application as it is deployed in _real life_. This software arrangement is proven with tests executed by [Cypress](https://www.cypress.io/). The client-side component of Identity is a seperate application, afterall. As such, it was expedient to build upon a set of integration tests seperate from its server-side component.
 
 ![End-to-end test tools](figures/e2e-test-tools.svg)
 
@@ -62,7 +64,7 @@ I'll return to mock servers and test configurations in a moment, but first let's
 
 ![POST sil.auth0.com/...](figures/06-post-auth0-credentials.svg)
 
-## 8. Having verified the credentials provided, Auth0 responds with a redirect, or callback URL directing the browser client back to `silid-server`.
+## 8. Having verified the credentials provided, Auth0 responds with a callback URL redirecting the browser client back to `silid-server`.
 
 ![302 /callback?auth_code=abc1234](figures/07-auth0-success-response.svg)
 
@@ -99,12 +101,15 @@ I'll return to mock servers and test configurations in a moment, but first let's
 ![200](figures/15-react-app-response.svg)
 
 
-From this point, every request initiated by `identity-react` contains a cookie that points to a `silid-server` session ID. This session ID is only meaningful to `silid-server`. For so long as the session is valid (it automatically expires after an hour if not kept fresh), `silid-server` will respond to `identity-react`'s requests as determined by the human agent's prescribed level of access. Though `identity-react` is its own application, it can only talk to `silid-server`. It _cannot_ talk to Auth0. All Identity-Auth0 interaction originate from `silid-server`.
+From this point, every request initiated by `identity-react` contains a cookie that points to a `silid-server` session ID. This session ID is only meaningful to `silid-server`. For so long as the session is valid (it automatically expires after an hour if not kept fresh), `silid-server` will respond to `identity-react`'s requests as determined by the human agent's prescribed level of access. Though `identity-react` is its own application, it can only talk to `silid-server`. It _cannot_ talk to Auth0. All Identity-Auth0 interaction originates from `silid-server`.
 
 ![No SPA Auth0 access](figures/16-no-spa-access.svg)
 
+## Summary of Interactions
 
 Here, the Authorization Code Flow is used to establish a traditional browser session so that `silid-server` allows the authenticated human-agent access to `identity-react`, which is executed in the browser. For some, especially those used to the _Implicit_ OAuth flow, this is where _mental models collide_. Single page applications like `identity-react` often require storing potentially sensitive information in the host browser.
+
+# Advantages
 
 Implementing the Authorization Code Flow as described here reveals some immediate and obvious benefits:
 
@@ -115,9 +120,11 @@ Implementing the Authorization Code Flow as described here reveals some immediat
 
 # Development arrangements
 
+Proof of this interaction and its viability is demonstrated and documented in the development environments and their respective arrangements. The tests that pertain to Identity's Authorization Code Flow implementation are linked.
+
 ## `silid-server`
 
-This authentication interaction is documented and tested server-side [here](https://github.com/sillsdev/silid/blob/article/mental-models/src/silid-server/spec/api/authSpec.js). Recall the server-side test tools names above:
+This authentication interaction is documented and tested server-side [here](https://github.com/sillsdev/silid/blob/article/mental-models/src/silid-server/spec/api/authSpec.js). Recall the server-side test tools named above:
 
 ![Server-side test tools](figures/server-test-tools.svg)
 
@@ -131,16 +138,18 @@ There is one notable exception to this arrangement. It is found in the `Browser`
 
 ## `identity-react`
 
-The _wholistic_ end-to-end tests are managed alongside [`identity-react`](https://github.com/sillsdev/silid/tree/article/mental-models/src/identity-react/cypress). This is a much more true-to-form representation of an actual Identity deployment. These are the tools used to test that arrangment:
+The _wholistic_ end-to-end tests are managed alongside [`identity-react`](https://github.com/sillsdev/silid/tree/article/mental-models/src/identity-react/cypress). This is a much more true-to-form representation of an actual Identity deployment. These are the tools used to test that arrangement:
 
 ![End-to-end test tools](figures/e2e-test-tools.svg)
 
-Compare the real-life authentication interaction with the E2E test arrangment:
+Compare the real-life authentication interaction with the E2E test arrangement:
 
-![End-to-end test arrangment](figures/e2e-test-arrangement.svg)
+![End-to-end test arrangement](figures/e2e-test-arrangement.svg)
 
-Apart from the automated test runners and [mock Auth0 server](https://github.com/sillsdev/silid/blob/article/mental-models/src/silid-server/spec/support/mockAuth0ServerWithRBAC.js), the `create-react-app` build server is not part of a production deployment. `identity-react` is pre-built and served as a static file from `silid-server` itself.
+Apart from the automated test runner and [the mock Auth0 server](https://github.com/sillsdev/silid/blob/article/mental-models/src/silid-server/spec/support/mockAuth0ServerWithRBAC.js), the `create-react-app` build server is not part of a production deployment. `identity-react` is pre-built and served as a static file from `silid-server` itself.
 
 The behavioural authentication tests are documented [here](https://github.com/sillsdev/silid/blob/article/mental-models/src/identity-react/cypress/integration/viewer/authenticationSpec.js). As stated among the advantages of this software arrangement, strict SPA developers need not necessarily concern themselves with authentication. If there is concern, it would be within this context that a test to manage locally stored tokens would be written (for example).
 
+# God's peace,
 
+## Dan
