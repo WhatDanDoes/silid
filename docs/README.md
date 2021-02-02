@@ -107,7 +107,7 @@ From this point, every request initiated by `identity-react` contains a cookie t
 
 ## Summary of Interactions
 
-Here, the Authorization Code Flow is used to establish a traditional browser session so that `silid-server` allows the authenticated human-agent access to `identity-react`, which is executed in the browser. For some, especially those used to the _Implicit_ OAuth flow, this is where _mental models collide_. Single page applications like `identity-react` often require storing potentially sensitive information in the host browser.
+Here, the Authorization Code Flow is used to establish a traditional browser session so that `silid-server` allows the authenticated human-agent access to `identity-react`, which is executed in the browser. For some, especially those used to the _Implicit_ OAuth flow, this is where _mental models collide_. Single page applications like `identity-react` often require storing potentially sensitive information in the browser client.
 
 # Advantages
 
@@ -120,7 +120,7 @@ Implementing the Authorization Code Flow as described here reveals some immediat
 
 # Development arrangements
 
-Proof of this interaction and its viability is demonstrated and documented in the development environments and their respective arrangements. The tests that pertain to Identity's Authorization Code Flow implementation are linked.
+Proof of this interaction and its viability is demonstrated and documented in the development environments and their respective arrangements. The tests that pertain to Identity's Authorization Code Flow implementation are linked below.
 
 ## `silid-server`
 
