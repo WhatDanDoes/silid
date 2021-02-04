@@ -51,6 +51,11 @@ const puppeteer = require('puppeteer');
     request.continue()
   })
 
+
+  page.on('requestFinished', async request => {
+    console.log(`\t  ${await getLocalStorage(page)}`);
+  });
+
   // This snoops on all server responses
   let responseCount = 0;
   page.on('response', async response => {
