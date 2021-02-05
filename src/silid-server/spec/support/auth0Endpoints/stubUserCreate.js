@@ -27,7 +27,7 @@ module.exports = function(done) {
        *
        * https://manage.auth0.com/dashboard/us/silid/connections
        */
-      const userCreateScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+      const userCreateScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
         .log(console.log)
         .post(/api\/v2\/users/, {
                                 'email': /.+/i,

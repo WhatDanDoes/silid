@@ -41,7 +41,7 @@ module.exports = function(profiles, done, options) {
        *
        * GET `/users`
        */
-      const organizationReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+      const organizationReadScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
         .log(console.log)
         .get(/api\/v2\/users/)
         .query({ search_engine: 'v3', q: /.+/ })

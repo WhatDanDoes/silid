@@ -35,12 +35,12 @@ module.exports = function(permissions, done) {
      */
     let accessToken = jwt.sign({..._access, scope: permissions},
                                prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } });
-    const oauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+    const oauthTokenScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`)
       .log(console.log)
       .post(/oauth\/token/, {
                               'grant_type': 'client_credentials',
-                              'client_id': process.env.AUTH0_CLIENT_ID,
-                              'client_secret': process.env.AUTH0_CLIENT_SECRET,
+                              'client_id': process.env.AUTH0_M2M_CLIENT_ID,
+                              'client_secret': process.env.AUTH0_M2M_CLIENT_SECRET,
                               /**
                                * 2020-12-17
                                *
@@ -65,7 +65,7 @@ module.exports = function(permissions, done) {
      *
      * https://manage.auth0.com/dashboard/us/silid/connections
      */
-    const userCreateScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+    const userCreateScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .log(console.log)
       .post(/api\/v2\/users/, {
                               'email': /.+/i,
@@ -87,7 +87,7 @@ module.exports = function(permissions, done) {
      *
      * PATCH `/users`
      */
-    const updateTeamScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+    const updateTeamScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .log(console.log)
       .patch(/api\/v2\/users\/.+/, body => {
         if (body.user_metadata) {
@@ -109,7 +109,7 @@ module.exports = function(permissions, done) {
      * DELETE `/users`
      *
      */
-    const userDeleteScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+    const userDeleteScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .log(console.log)
       .delete(/api\/v2\/users\/*/)
       .reply(201, {
