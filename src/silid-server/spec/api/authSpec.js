@@ -226,12 +226,12 @@ describe('authSpec', () => {
            */
           const accessToken = jwt.sign({..._access, scope: [apiScope.read.users]},
                                         prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
-          anotherOauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+          anotherOauthTokenScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`)
             .log(console.log)
             .post(/oauth\/token/, {
                                     'grant_type': 'client_credentials',
-                                    'client_id': process.env.AUTH0_CLIENT_ID,
-                                    'client_secret': process.env.AUTH0_CLIENT_SECRET,
+                                    'client_id': process.env.AUTH0_M2M_CLIENT_ID,
+                                    'client_secret': process.env.AUTH0_M2M_CLIENT_SECRET,
                                     /**
                                      * 2020-12-17
                                      *
@@ -252,7 +252,7 @@ describe('authSpec', () => {
            * The token retrieved above is used to get the
            * non-OIDC-compliant metadata, etc.
            */
-          userReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+          userReadScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
             .log(console.log)
             .get(/api\/v2\/users\/.+/)
             .query({})
@@ -428,12 +428,12 @@ describe('authSpec', () => {
                          */
                         const accessToken = jwt.sign({..._access, scope: [apiScope.read.users]},
                                                       prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
-                        let anotherOauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+                        let anotherOauthTokenScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`)
                           .log(console.log)
                           .post(/oauth\/token/, {
                                                   'grant_type': 'client_credentials',
-                                                  'client_id': process.env.AUTH0_CLIENT_ID,
-                                                  'client_secret': process.env.AUTH0_CLIENT_SECRET,
+                                                  'client_id': process.env.AUTH0_M2M_CLIENT_ID,
+                                                  'client_secret': process.env.AUTH0_M2M_CLIENT_SECRET,
                                                   /**
                                                    * 2020-12-17
                                                    *
@@ -454,7 +454,7 @@ describe('authSpec', () => {
                          * The token retrieved above is used to get the
                          * non-OIDC-compliant metadata, etc.
                          */
-                        let userReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+                        let userReadScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
                           .log(console.log)
                           .get(/api\/v2\/users\/.+/)
                           .query({})
@@ -556,12 +556,12 @@ describe('authSpec', () => {
         const accessToken = jwt.sign({..._access, scope: [apiScope.read.clients]},
                                       prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
 
-        const getClientsOauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+        const getClientsOauthTokenScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`)
           .log(console.log)
           .post(/oauth\/token/, {
                                   'grant_type': 'client_credentials',
-                                  'client_id': process.env.AUTH0_CLIENT_ID,
-                                  'client_secret': process.env.AUTH0_CLIENT_SECRET,
+                                  'client_id': process.env.AUTH0_M2M_CLIENT_ID,
+                                  'client_secret': process.env.AUTH0_M2M_CLIENT_SECRET,
                                   /**
                                    * 2020-12-17
                                    *
@@ -604,7 +604,7 @@ describe('authSpec', () => {
             "name": "Misconfigured. No callbacks"
           }
         ];
-        getClientsScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+        getClientsScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`)
           .log(console.log)
           .get(/api\/v2\/clients/)
           .query({
@@ -744,12 +744,12 @@ describe('authSpec', () => {
              */
             const accessToken = jwt.sign({..._access, scope: [apiScope.read.users]},
                                           prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
-            const anotherOauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+            const anotherOauthTokenScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`)
               .log(console.log)
               .post(/oauth\/token/, {
                                       'grant_type': 'client_credentials',
-                                      'client_id': process.env.AUTH0_CLIENT_ID,
-                                      'client_secret': process.env.AUTH0_CLIENT_SECRET,
+                                      'client_id': process.env.AUTH0_M2M_CLIENT_ID,
+                                      'client_secret': process.env.AUTH0_M2M_CLIENT_SECRET,
                                       /**
                                        * 2020-12-17
                                        *
@@ -770,7 +770,7 @@ describe('authSpec', () => {
              * The token retrieved above is used to get the
              * non-OIDC-compliant metadata, etc.
              */
-            const userReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+            const userReadScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
               .log(console.log)
               .get(/api\/v2\/users\/.+/)
               .query({})
@@ -817,12 +817,12 @@ describe('authSpec', () => {
              */
             const accessToken = jwt.sign({..._access, scope: [apiScope.read.clients]},
                                           prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
-            const anotherOauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+            const anotherOauthTokenScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`)
               .log(console.log)
               .post(/oauth\/token/, {
                                       'grant_type': 'client_credentials',
-                                      'client_id': process.env.AUTH0_CLIENT_ID,
-                                      'client_secret': process.env.AUTH0_CLIENT_SECRET,
+                                      'client_id': process.env.AUTH0_M2M_CLIENT_ID,
+                                      'client_secret': process.env.AUTH0_M2M_CLIENT_SECRET,
                                       'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
                                       'scope': apiScope.read.clients
                                     })
@@ -864,7 +864,7 @@ describe('authSpec', () => {
                 "name": "Misconfigured. No callbacks"
               }
             ];
-            getClientsScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+            getClientsScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`)
               .log(console.log)
               .get(/api\/v2\/clients/)
               .query({
@@ -940,12 +940,12 @@ describe('authSpec', () => {
              */
             const accessToken = jwt.sign({..._access, scope: [apiScope.read.clients]},
                                           prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
-            const anotherOauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+            const anotherOauthTokenScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`)
               .log(console.log)
               .post(/oauth\/token/, {
                                       'grant_type': 'client_credentials',
-                                      'client_id': process.env.AUTH0_CLIENT_ID,
-                                      'client_secret': process.env.AUTH0_CLIENT_SECRET,
+                                      'client_id': process.env.AUTH0_M2M_CLIENT_ID,
+                                      'client_secret': process.env.AUTH0_M2M_CLIENT_SECRET,
                                       'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
                                       'scope': apiScope.read.clients
                                     })
@@ -977,7 +977,7 @@ describe('authSpec', () => {
             getClientsScopes = [];
             for (let i = 0; i < 151; i += 50) {
               getClientsScopes.push(
-                nock(`https://${process.env.AUTH0_DOMAIN}`)
+                nock(`https://${process.env.AUTH0_M2M_DOMAIN}`)
                   .log(console.log)
                   .get(/api\/v2\/clients/)
                   .query({

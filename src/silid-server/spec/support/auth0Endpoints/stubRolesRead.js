@@ -33,7 +33,7 @@ module.exports = function(roles, done) {
        *
        * The default roles defined below match those defined at Auth0 (actual `id`s will vary)
        */
-      const rolesReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+      const rolesReadScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
         .log(console.log)
         .get('/api/v2/roles')
         .reply(200, roles || [
