@@ -19,7 +19,7 @@ function getManagementClient(permissions) {
      *
      * https://auth0.com/docs/custom-domains/configure-features-to-use-custom-domains#apis
      */
-    audience: process.env.AUTH0_DEFAULT_AUDIENCE,
+    audience: process.env.AUTH0_M2M_AUDIENCE,
 
     scope: permissions
   });

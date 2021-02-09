@@ -25,7 +25,7 @@ describe('agentSpec', () => {
    *
    * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
    */
-  const _identity = { ...require('../fixtures/sample-auth0-identity-token'), iss: `https://${process.env.AUTH0_DOMAIN}/`};
+  const _identity = { ...require('../fixtures/sample-auth0-identity-token'), iss: `https://${process.env.AUTH0_CUSTOM_DOMAIN}/`};
   const _access = require('../fixtures/sample-auth0-access-token');
 
   let login, pub, prv, keystore,
