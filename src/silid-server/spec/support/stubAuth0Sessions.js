@@ -13,7 +13,7 @@ const roles = require('../../config/roles');
  * For the moment, it doesn't seem to matter that all authenticated
  * agents are using the same access token for testing purposes.
  */
-const _access = { ...require('../fixtures/sample-auth0-access-token'), iss: `http://${process.env.AUTH0_DOMAIN}/`};
+const _access = { ...require('../fixtures/sample-auth0-access-token'), iss: `http://${process.env.AUTH0_CUSTOM_DOMAIN}/`};
 
 const jwt = require('jsonwebtoken');
 const jose = require('node-jose');
@@ -38,7 +38,7 @@ module.exports = function(done) {
      * created prior to redirect.
      */
     let state, nonce;
-    const authorizeScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+    const authorizeScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
       .log(console.log)
       .persist()
       .get(/authorize*/)
@@ -65,7 +65,7 @@ module.exports = function(done) {
        * Strangley, this seems to be called before the token
        * exchange and before the encoded id_token is delivered
        */
-      const userInfoScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+      const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
         .log(console.log)
         .get(/userinfo/)
         .reply(200, idToken);
@@ -95,7 +95,7 @@ module.exports = function(done) {
            * Called on `/callback` when the client exchanges the
            * `authorization_code` for access and ID tokens
            */
-          const oauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
+          const oauthTokenScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
             .log(console.log)
             .post(/oauth\/token/, {
                                     'grant_type': 'authorization_code',

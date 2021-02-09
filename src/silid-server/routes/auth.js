@@ -15,7 +15,7 @@ const roles = require('../config/roles');
 router.get('/login', (req, res, next) => {
   const authenticator = passport.authenticate('auth0', {
     scope: 'openid email profile',
-    audience: process.env.AUTH0_AUDIENCE
+    audience: process.env.AUTH0_API_AUDIENCE
   });
   return authenticator(req, res, next);
 });
@@ -86,7 +86,7 @@ router.get('/logout', (req, res) => {
   }
 
   const logoutURL = new url.URL(
-    util.format('https://%s/v2/logout', process.env.AUTH0_DOMAIN)
+    util.format('https://%s/v2/logout', process.env.AUTH0_CUSTOM_DOMAIN)
   );
 
   const searchString = querystring.stringify({

@@ -12,7 +12,7 @@ const apiScope = require('../../../config/apiPermissions');
  * agents are using the same access token for testing purposes.
  */
 const _access = require('../../fixtures/sample-auth0-access-token');
-_access.iss = `http://${process.env.AUTH0_DOMAIN}/`;
+_access.iss = `http://${process.env.AUTH0_CUSTOM_DOMAIN}/`;
 const _profile = require('../../fixtures/sample-auth0-profile-response');
 
 const jwt = require('jsonwebtoken');
@@ -60,8 +60,8 @@ module.exports = function(permissions, done) {
                                *
                                * https://auth0.com/docs/custom-domains/configure-features-to-use-custom-domains#apis
                                */
-                              //'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
-                              'audience': process.env.AUTH0_DEFAULT_AUDIENCE,
+                              //'audience': `https://${process.env.AUTH0_CUSTOM_DOMAIN}/api/v2/`,
+                              'audience': process.env.AUTH0_M2M_AUDIENCE,
                               'scope': permissions.join(' ')
                             })
       .reply(200, {

@@ -10,7 +10,7 @@ const querystring = require('querystring');
  * For the moment, it doesn't seem to matter that all authenticated
  * agents are using the same access token for testing purposes.
  */
-const _access = { ...require('../fixtures/sample-auth0-access-token'), iss: `http://${process.env.AUTH0_DOMAIN}/`};
+const _access = { ...require('../fixtures/sample-auth0-access-token'), iss: `http://${process.env.AUTH0_CUSTOM_DOMAIN}/`};
 
 const _profile = require('../fixtures/sample-auth0-profile-response');
 
@@ -48,8 +48,8 @@ module.exports = function(permissions, done) {
                                *
                                * https://auth0.com/docs/custom-domains/configure-features-to-use-custom-domains#apis
                                */
-                              //'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
-                              'audience': process.env.AUTH0_DEFAULT_AUDIENCE,
+                              //'audience': `https://${process.env.AUTH0_CUSTOM_DOMAIN}/api/v2/`,
+                              'audience': process.env.AUTH0_M2M_AUDIENCE,
                               'scope': permissions.join(' ')
                             })
       .reply(200, {

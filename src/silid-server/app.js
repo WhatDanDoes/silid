@@ -110,7 +110,7 @@ const passport = require('passport');
 
 const strategy = new Auth0Strategy(
   {
-    domain: process.env.AUTH0_DOMAIN,
+    domain: process.env.AUTH0_CUSTOM_DOMAIN,
     clientID: process.env.AUTH0_CLIENT_ID,
     clientSecret: process.env.AUTH0_CLIENT_SECRET,
     callbackURL: process.env.CALLBACK_URL
