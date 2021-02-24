@@ -1555,7 +1555,6 @@ describe('teamSpec', () => {
             models.Session.findAll().then(results => {
               expect(results.length).toEqual(1);
               let session = JSON.parse(results[0].data).passport.user;
-              console.log(session);
               expect(session.user_metadata.teams.length).toEqual(2);
 
               authenticatedSession
@@ -1569,7 +1568,6 @@ describe('teamSpec', () => {
                   models.Session.findAll().then(results => {
                     expect(results.length).toEqual(1);
                     session = JSON.parse(results[0].data).passport.user;
-                    console.log(session);
                     expect(session.user_metadata.teams.length).toEqual(1);
 
                     done();
