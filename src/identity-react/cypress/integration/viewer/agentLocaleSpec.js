@@ -165,9 +165,20 @@ context('viewer/Agent locale', function() {
             // Bug discovered during manual service worker testing...
             //
             // Recreate error: Create a team -> switch languages -> delete team -> switch language back... the team still exists!!!!!
+            //
+            // Solution: It used to be that the req.session.passport.user value
+            //           would linger after a team deletion on `silid-server`.
+            //           The problem was solved by updating the session value.
+            //
+            //           This also means that basically any operation has the
+            //           potential to resurrect altered details.
+            //
+            //           In all likelihood, if you are reading this, this hole
+            //           was already filled through backend testing
+            //
             describe('team deletion/resurrection on language switching bug', () => {
 
-              it.only('does not resurrect the team', () => {
+              it('does not resurrect the team', () => {
                 // Add team as Klingonese speaker
                 cy.get('table tbody tr td').contains('Team Zombie').should('not.exist');
                 cy.get('button span span').contains('add_box').click();
