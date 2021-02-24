@@ -174,6 +174,9 @@ router.post('/', checkPermissions([scope.create.teams]), function(req, res, next
       result.scope = req.user.scope;
       // 2020-4-30 https://stackoverflow.com/a/24498660/1356582
       // This updates the agent's session data
+      //
+      // Lole! It's 2021-2-24 and I just wrote a test for this now. How did I
+      // find it before? Maybe in e2e...
       req.login(result, err => {
         if (err) return next(err);
 
