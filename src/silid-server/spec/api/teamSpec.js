@@ -1512,7 +1512,6 @@ describe('teamSpec', () => {
             if (err) return done.fail();
 
             login(_identity, [scope.delete.teams], (err, session) => {
-
               if (err) return done.fail(err);
               authenticatedSession = session;
 
@@ -1550,6 +1549,37 @@ describe('teamSpec', () => {
                 expect(res.body.agent.user_metadata.teams.length).toEqual(1);
                 done();
               });
+          });
+
+          it('updates the user session data', done => {
+            models.Session.findAll().then(results => {
+              expect(results.length).toEqual(1);
+              let session = JSON.parse(results[0].data).passport.user;
+              console.log(session);
+              expect(session.user_metadata.teams.length).toEqual(2);
+
+              authenticatedSession
+                .delete(`/team/${teamId}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  models.Session.findAll().then(results => {
+                    expect(results.length).toEqual(1);
+                    session = JSON.parse(results[0].data).passport.user;
+                    console.log(session);
+                    expect(session.user_metadata.teams.length).toEqual(1);
+
+                    done();
+                  }).catch(err => {
+                    done.fail(err);
+                  });
+                });
+            }).catch(err => {
+              done.fail(err);
+            });
           });
 
           it('does not remove the team if it still has member agents', done => {
