@@ -222,7 +222,10 @@ router.put('/:id', checkPermissions([scope.update.organizations]), function(req,
         // Update the organizer's metadata
         managementClient.updateUser({id: organizers[organizerIndex].user_id}, { user_metadata: organizers[organizerIndex].user_metadata }).then(result => {
           // Update session data (assuming one organizer for the time being)
-          req.session.passport.user = {...req.user, ...result};
+          // This super status is covered by e2e tests
+          if (!req.user.isSuper) {
+            req.session.passport.user = {...req.user, ...result};
+          }
 
           // Retrieve and consolidate organization info
           managementClient.getUsers({ search_engine: 'v3', q: `user_metadata.teams.organizationId:"${req.params.id}"` }).then(agents => {
@@ -278,7 +281,10 @@ router.delete('/:id', checkPermissions([scope.delete.organizations]), function(r
         // Update the organizer's metadata
         managementClient.updateUser({id: organizers[0].user_id}, { user_metadata: organizers[0].user_metadata }).then(result => {
           // Update session data (assuming one organizer for the time being)
-          req.session.passport.user = {...req.user, ...result};
+          // This super status is covered by e2e tests
+          if (!req.user.isSuper) {
+            req.session.passport.user = {...req.user, ...result};
+          }
 
           res.status(201).json({ message: 'Organization deleted', organizerId: organizers[0].user_id });
         }).catch(err => {
