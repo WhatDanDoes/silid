@@ -285,6 +285,8 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
 
       // Update user_metadata at Auth0
       managementClient.updateUserMetadata({id: teamLeader.user_id}, teamLeader.user_metadata).then(agent => {
+        // Update session data
+        req.session.passport.user.user_metadata = agent.user_metadata;
 
         // Update retrieved team membership list
         const replaceIndex = agents.findIndex(agent => agent.user_id === teamLeader.user_id);
