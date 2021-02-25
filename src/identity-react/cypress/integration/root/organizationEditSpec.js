@@ -19,7 +19,7 @@ context('root/Organization edit', function() {
   describe('Editing', () => {
 
     describe('authenticated', () => {
-  
+
       let root;
       beforeEach(() => {
         // Get root agent
@@ -41,7 +41,7 @@ context('root/Organization edit', function() {
            */
           // The '123' role ID matches that defined in the RBAC mock server
           cy.request('POST', `https://localhost:3002/api/v2/users/${root.socialProfile.user_id}/roles`, { roles: ['123'] });
-  
+
           cy.login(_profile.email, _profile, [this.scope.create.organizations, this.scope.update.organizations]);
 
           cy.get('#organizations-table button span span').contains('add_box').click();
@@ -72,39 +72,39 @@ context('root/Organization edit', function() {
                   cy.get('button#delete-org').should('exist');
                   cy.get('button#save-org').should('not.exist');
                   cy.get('button#cancel-org-changes').should('not.exist');
-        
+
                   cy.get('#org-name-field').type('!!!');
                   cy.get('#org-name-field').should('have.value', 'The National Lacrosse League!!!');
-        
+
                   cy.get('button#delete-org').should('not.exist');
                   cy.get('button#save-org').should('exist');
                   cy.get('button#cancel-org-changes').should('exist');
                 });
-        
+
                 describe('#cancel-team-update button', () => {
                   beforeEach(() => {
                     cy.get('#org-name-field').clear();
                     cy.get('#org-name-field').type('The Regional Lacrosse Association');
                   });
-        
+
                   it('resets the changes to the editable fields', () => {
                     cy.get('#org-name-field').should('have.value', 'The Regional Lacrosse Association');
                     cy.get('button#cancel-org-changes').click();
                     cy.get('#org-name-field').should('have.value', 'The National Lacrosse League');
                   });
-        
+
                   it('hides the Cancel and Save buttons', () => {
                     cy.get('button#delete-org').should('not.exist');
                     cy.get('button#save-org').should('exist');
                     cy.get('button#cancel-org-changes').should('exist');
-        
+
                     cy.get('button#cancel-org-changes').click();
-        
+
                     cy.get('button#delete-org').should('exist');
                     cy.get('button#save-org').should('not.exist');
                     cy.get('button#cancel-org-changes').should('not.exist');
                   });
-        
+
                   it('does not change the record in the organizer\'s user_metadata', () => {
                     cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
                       expect(results.length).to.eq(1);
@@ -118,11 +118,11 @@ context('root/Organization edit', function() {
                     });
                   });
                 });
-        
+
                 describe('#save-org button', () => {
-        
+
                   describe('is unsuccessful in making changes', () => {
-        
+
                     describe('with invalid field', () => {
                       it('empty name field', () => {
                         cy.get('#org-name-field').clear();
@@ -131,7 +131,7 @@ context('root/Organization edit', function() {
                         cy.wait(300);
                         cy.get('#flash-message').contains('Organization name can\'t be blank');
                       });
-        
+
                       it('blank name field', () => {
                         cy.get('#org-name-field').clear();
                         cy.get('#org-name-field').type('     ');
@@ -140,25 +140,25 @@ context('root/Organization edit', function() {
                         cy.wait(300);
                         cy.get('#flash-message').contains('Organization name can\'t be blank');
                       });
-        
+
                       it('does not change the record in the organizer\'s user_metadata', () => {
                         cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
                           expect(results.length).to.eq(1);
                           expect(results[0].socialProfile.user_metadata.organizations.length).to.eq(1);
                           expect(results[0].socialProfile.user_metadata.organizations[0].name).to.eq('The National Lacrosse League');
-        
+
                           cy.get('#org-name-field').clear();
                           cy.get('button#save-org').click();
-        
+
                           cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
                             expect(results[0].socialProfile.user_metadata.organizations.length).to.eq(1);
                             expect(results[0].socialProfile.user_metadata.organizations[0].name).to.eq('The National Lacrosse League');
                           });
                         });
                       });
-        
+
                       describe('duplicate organization name', () => {
-        
+
                         it('displays friendly error message', () => {
                           cy.get('#org-name-field').clear();
                           cy.get('#org-name-field').type('The National Lacrosse League');
@@ -166,22 +166,22 @@ context('root/Organization edit', function() {
                           cy.wait(300);
                           cy.get('#flash-message').contains('That organization is already registered');
                           cy.get('#flash-message #close-flash').click();
-        
+
                           // Make sure flash state resets
                           cy.get('button#save-org').click();
                           cy.wait(300);
                           cy.get('#flash-message').contains('That organization is already registered');
                         });
-        
+
                         it('does not change the record in the team leader\'s user_metadata', () => {
                           cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
                             expect(results[0].socialProfile.user_metadata.organizations.length).to.eq(1);
                             expect(results[0].socialProfile.user_metadata.organizations[0].name).to.eq('The National Lacrosse League');
-        
+
                             cy.get('#org-name-field').clear();
                             cy.get('#org-name-field').type('The National Lacrosse League');
                             cy.get('button#save-org').click();
-        
+
                             cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
                               expect(results[0].socialProfile.user_metadata.organizations.length).to.eq(1);
                               expect(results[0].socialProfile.user_metadata.organizations[0].name).to.eq('The National Lacrosse League');
@@ -191,38 +191,38 @@ context('root/Organization edit', function() {
                       });
                     });
                   });
-        
+
                   describe('successfully makes changes', () => {
                     beforeEach(() => {
                       cy.get('#org-name-field').clear();
                       cy.get('#org-name-field').type('The Regional Lacrosse Association');
                     });
-        
+
                     it('lands in the proper place', () => {
                       cy.get('button#save-org').click();
                       cy.wait(300);
                       cy.url().should('contain', `/#/organization/${root.socialProfile.user_metadata.organizations[0].id}`);
                     });
-        
+
                     it('persists the changes to the editable fields', () => {
                       cy.get('#org-name-field').should('have.value', 'The Regional Lacrosse Association');
                       cy.get('button#save-org').click();
                       cy.wait(300);
                       cy.get('#org-name-field').should('have.value', 'The Regional Lacrosse Association');
                     });
-        
+
                     it('hides the Cancel and Save buttons', () => {
                       cy.get('button#delete-org').should('not.exist');
                       cy.get('button#save-org').should('exist');
                       cy.get('button#cancel-org-changes').should('exist');
-        
+
                       cy.get('button#save-org').click();
-        
+
                       cy.get('button#delete-org').should('exist');
                       cy.get('button#save-org').should('not.exist');
                       cy.get('button#cancel-org-changes').should('not.exist');
                     });
-        
+
                     it('changes the record in the organizer\'s user_metadata', () => {
                       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
                         expect(results.length).to.eq(1);
@@ -235,14 +235,14 @@ context('root/Organization edit', function() {
                         });
                       });
                     });
-        
+
                     it('displays a friendly message', () => {
                       cy.get('#org-name-field').should('have.value', 'The Regional Lacrosse Association');
                       cy.get('button#save-org').click();
                       cy.wait(300);
                       cy.get('#flash-message').contains('Organization updated');
                     });
-        
+
                     it('persists updated team data between browser refreshes', function() {
                       cy.get('#org-name-field').should('have.value', 'The Regional Lacrosse Association');
                       cy.get('button#save-org').click();
@@ -276,39 +276,39 @@ context('root/Organization edit', function() {
                   cy.get('button#delete-org').should('exist');
                   cy.get('button#save-org').should('not.exist');
                   cy.get('button#cancel-org-changes').should('not.exist');
-        
+
                   cy.get('#org-name-field').type('!!!');
                   cy.get('#org-name-field').should('have.value', 'The National Lacrosse League!!!');
-        
+
                   cy.get('button#delete-org').should('not.exist');
                   cy.get('button#save-org').should('exist');
                   cy.get('button#cancel-org-changes').should('exist');
                 });
-        
+
                 describe('#cancel-team-update button', () => {
                   beforeEach(() => {
                     cy.get('#org-name-field').clear();
                     cy.get('#org-name-field').type('The Regional Lacrosse Association');
                   });
-        
+
                   it('resets the changes to the editable fields', () => {
                     cy.get('#org-name-field').should('have.value', 'The Regional Lacrosse Association');
                     cy.get('button#cancel-org-changes').click();
                     cy.get('#org-name-field').should('have.value', 'The National Lacrosse League');
                   });
-        
+
                   it('hides the Cancel and Save buttons', () => {
                     cy.get('button#delete-org').should('not.exist');
                     cy.get('button#save-org').should('exist');
                     cy.get('button#cancel-org-changes').should('exist');
-        
+
                     cy.get('button#cancel-org-changes').click();
-        
+
                     cy.get('button#delete-org').should('exist');
                     cy.get('button#save-org').should('not.exist');
                     cy.get('button#cancel-org-changes').should('not.exist');
                   });
-        
+
                   it('does not change the record in the organizer\'s user_metadata', () => {
                     cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
                       expect(results.length).to.eq(1);
@@ -322,11 +322,11 @@ context('root/Organization edit', function() {
                     });
                   });
                 });
-        
+
                 describe('#save-org button', () => {
-        
+
                   describe('is unsuccessful in making changes', () => {
-        
+
                     describe('with invalid field', () => {
                       it('empty name field', () => {
                         cy.get('#org-name-field').clear();
@@ -335,7 +335,7 @@ context('root/Organization edit', function() {
                         cy.wait(300);
                         cy.get('#flash-message').contains('Organization name can\'t be blank');
                       });
-        
+
                       it('blank name field', () => {
                         cy.get('#org-name-field').clear();
                         cy.get('#org-name-field').type('     ');
@@ -344,25 +344,25 @@ context('root/Organization edit', function() {
                         cy.wait(300);
                         cy.get('#flash-message').contains('Organization name can\'t be blank');
                       });
-        
+
                       it('does not change the record in the organizer\'s user_metadata', () => {
                         cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
                           expect(results.length).to.eq(1);
                           expect(results[0].socialProfile.user_metadata.organizations.length).to.eq(1);
                           expect(results[0].socialProfile.user_metadata.organizations[0].name).to.eq('The National Lacrosse League');
-        
+
                           cy.get('#org-name-field').clear();
                           cy.get('button#save-org').click();
-        
+
                           cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
                             expect(results[0].socialProfile.user_metadata.organizations.length).to.eq(1);
                             expect(results[0].socialProfile.user_metadata.organizations[0].name).to.eq('The National Lacrosse League');
                           });
                         });
                       });
-        
+
                       describe('duplicate organization name', () => {
-        
+
                         it('displays friendly error message', () => {
                           cy.get('#org-name-field').clear();
                           cy.get('#org-name-field').type('The National Lacrosse League');
@@ -370,22 +370,22 @@ context('root/Organization edit', function() {
                           cy.wait(300);
                           cy.get('#flash-message').contains('That organization is already registered');
                           cy.get('#flash-message #close-flash').click();
-        
+
                           // Make sure flash state resets
                           cy.get('button#save-org').click();
                           cy.wait(300);
                           cy.get('#flash-message').contains('That organization is already registered');
                         });
-        
+
                         it('does not change the record in the team leader\'s user_metadata', () => {
                           cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
                             expect(results[0].socialProfile.user_metadata.organizations.length).to.eq(1);
                             expect(results[0].socialProfile.user_metadata.organizations[0].name).to.eq('The National Lacrosse League');
-        
+
                             cy.get('#org-name-field').clear();
                             cy.get('#org-name-field').type('The National Lacrosse League');
                             cy.get('button#save-org').click();
-        
+
                             cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
                               expect(results[0].socialProfile.user_metadata.organizations.length).to.eq(1);
                               expect(results[0].socialProfile.user_metadata.organizations[0].name).to.eq('The National Lacrosse League');
@@ -395,38 +395,38 @@ context('root/Organization edit', function() {
                       });
                     });
                   });
-        
+
                   describe('successfully makes changes', () => {
                     beforeEach(() => {
                       cy.get('#org-name-field').clear();
                       cy.get('#org-name-field').type('The Regional Lacrosse Association');
                     });
-        
+
                     it('lands in the proper place', () => {
                       cy.get('button#save-org').click();
                       cy.wait(300);
                       cy.url().should('contain', `/#/organization/${root.socialProfile.user_metadata.organizations[0].id}`);
                     });
-        
+
                     it('persists the changes to the editable fields', () => {
                       cy.get('#org-name-field').should('have.value', 'The Regional Lacrosse Association');
                       cy.get('button#save-org').click();
                       cy.wait(300);
                       cy.get('#org-name-field').should('have.value', 'The Regional Lacrosse Association');
                     });
-        
+
                     it('hides the Cancel and Save buttons', () => {
                       cy.get('button#delete-org').should('not.exist');
                       cy.get('button#save-org').should('exist');
                       cy.get('button#cancel-org-changes').should('exist');
-        
+
                       cy.get('button#save-org').click();
-        
+
                       cy.get('button#delete-org').should('exist');
                       cy.get('button#save-org').should('not.exist');
                       cy.get('button#cancel-org-changes').should('not.exist');
                     });
-        
+
                     it('changes the record in the organizer\'s user_metadata', () => {
                       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
                         expect(results.length).to.eq(1);
@@ -439,14 +439,14 @@ context('root/Organization edit', function() {
                         });
                       });
                     });
-        
+
                     it('displays a friendly message', () => {
                       cy.get('#org-name-field').should('have.value', 'The Regional Lacrosse Association');
                       cy.get('button#save-org').click();
                       cy.wait(300);
                       cy.get('#flash-message').contains('Organization updated');
                     });
-        
+
                     it('persists updated team data between browser refreshes', function() {
                       cy.get('#org-name-field').should('have.value', 'The Regional Lacrosse Association');
                       cy.get('button#save-org').click();
@@ -487,7 +487,7 @@ context('root/Organization edit', function() {
 
             cy.task('query', `SELECT * FROM "Agents" WHERE "email"='commissioner@example.com' LIMIT 1;`).then(([results, metadata]) => {
               organizer = results[0];
-   
+
               cy.login(root.email, _profile);
             });
           });
@@ -512,39 +512,39 @@ context('root/Organization edit', function() {
                   cy.get('button#delete-org').should('exist');
                   cy.get('button#save-org').should('not.exist');
                   cy.get('button#cancel-org-changes').should('not.exist');
-        
+
                   cy.get('#org-name-field').type('!!!');
                   cy.get('#org-name-field').should('have.value', 'The National Lacrosse League!!!');
-        
+
                   cy.get('button#delete-org').should('not.exist');
                   cy.get('button#save-org').should('exist');
                   cy.get('button#cancel-org-changes').should('exist');
                 });
-        
+
                 describe('#cancel-team-update button', () => {
                   beforeEach(() => {
                     cy.get('#org-name-field').clear();
                     cy.get('#org-name-field').type('The Regional Lacrosse Association');
                   });
-        
+
                   it('resets the changes to the editable fields', () => {
                     cy.get('#org-name-field').should('have.value', 'The Regional Lacrosse Association');
                     cy.get('button#cancel-org-changes').click();
                     cy.get('#org-name-field').should('have.value', 'The National Lacrosse League');
                   });
-        
+
                   it('hides the Cancel and Save buttons', () => {
                     cy.get('button#delete-org').should('not.exist');
                     cy.get('button#save-org').should('exist');
                     cy.get('button#cancel-org-changes').should('exist');
-        
+
                     cy.get('button#cancel-org-changes').click();
-        
+
                     cy.get('button#delete-org').should('exist');
                     cy.get('button#save-org').should('not.exist');
                     cy.get('button#cancel-org-changes').should('not.exist');
                   });
-        
+
                   it('does not change the record in the organizer\'s user_metadata', () => {
                     cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${organizer.email}' LIMIT 1;`).then(([results, metadata]) => {
                       expect(results.length).to.eq(1);
@@ -558,11 +558,11 @@ context('root/Organization edit', function() {
                     });
                   });
                 });
-        
+
                 describe('#save-org button', () => {
-        
+
                   describe('is unsuccessful in making changes', () => {
-        
+
                     describe('with invalid field', () => {
                       it('empty name field', () => {
                         cy.get('#org-name-field').clear();
@@ -571,7 +571,7 @@ context('root/Organization edit', function() {
                         cy.wait(300);
                         cy.get('#flash-message').contains('Organization name can\'t be blank');
                       });
-        
+
                       it('blank name field', () => {
                         cy.get('#org-name-field').clear();
                         cy.get('#org-name-field').type('     ');
@@ -580,25 +580,25 @@ context('root/Organization edit', function() {
                         cy.wait(300);
                         cy.get('#flash-message').contains('Organization name can\'t be blank');
                       });
-        
+
                       it('does not change the record in the organizer\'s user_metadata', () => {
                         cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${organizer.email}' LIMIT 1;`).then(([results, metadata]) => {
                           expect(results.length).to.eq(1);
                           expect(results[0].socialProfile.user_metadata.organizations.length).to.eq(1);
                           expect(results[0].socialProfile.user_metadata.organizations[0].name).to.eq('The National Lacrosse League');
-        
+
                           cy.get('#org-name-field').clear();
                           cy.get('button#save-org').click();
-        
+
                           cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${organizer.email}' LIMIT 1;`).then(([results, metadata]) => {
                             expect(results[0].socialProfile.user_metadata.organizations.length).to.eq(1);
                             expect(results[0].socialProfile.user_metadata.organizations[0].name).to.eq('The National Lacrosse League');
                           });
                         });
                       });
-        
+
                       describe('duplicate organization name', () => {
-        
+
                         it('displays friendly error message', () => {
                           cy.get('#org-name-field').clear();
                           cy.get('#org-name-field').type('The National Lacrosse League');
@@ -606,22 +606,22 @@ context('root/Organization edit', function() {
                           cy.wait(300);
                           cy.get('#flash-message').contains('That organization is already registered');
                           cy.get('#flash-message #close-flash').click();
-        
+
                           // Make sure flash state resets
                           cy.get('button#save-org').click();
                           cy.wait(300);
                           cy.get('#flash-message').contains('That organization is already registered');
                         });
-        
+
                         it('does not change the record in the team leader\'s user_metadata', () => {
                           cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${organizer.email}' LIMIT 1;`).then(([results, metadata]) => {
                             expect(results[0].socialProfile.user_metadata.organizations.length).to.eq(1);
                             expect(results[0].socialProfile.user_metadata.organizations[0].name).to.eq('The National Lacrosse League');
-        
+
                             cy.get('#org-name-field').clear();
                             cy.get('#org-name-field').type('The National Lacrosse League');
                             cy.get('button#save-org').click();
-        
+
                             cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${organizer.email}' LIMIT 1;`).then(([results, metadata]) => {
                               expect(results[0].socialProfile.user_metadata.organizations.length).to.eq(1);
                               expect(results[0].socialProfile.user_metadata.organizations[0].name).to.eq('The National Lacrosse League');
@@ -631,38 +631,38 @@ context('root/Organization edit', function() {
                       });
                     });
                   });
-        
+
                   describe('successfully makes changes', () => {
                     beforeEach(() => {
                       cy.get('#org-name-field').clear();
                       cy.get('#org-name-field').type('The Regional Lacrosse Association');
                     });
-        
+
                     it('lands in the proper place', () => {
                       cy.get('button#save-org').click();
                       cy.wait(300);
                       cy.url().should('contain', `/#/organization/${organizer.socialProfile.user_metadata.organizations[0].id}`);
                     });
-        
+
                     it('persists the changes to the editable fields', () => {
                       cy.get('#org-name-field').should('have.value', 'The Regional Lacrosse Association');
                       cy.get('button#save-org').click();
                       cy.wait(300);
                       cy.get('#org-name-field').should('have.value', 'The Regional Lacrosse Association');
                     });
-        
+
                     it('hides the Cancel and Save buttons', () => {
                       cy.get('button#delete-org').should('not.exist');
                       cy.get('button#save-org').should('exist');
                       cy.get('button#cancel-org-changes').should('exist');
-        
+
                       cy.get('button#save-org').click();
-        
+
                       cy.get('button#delete-org').should('exist');
                       cy.get('button#save-org').should('not.exist');
                       cy.get('button#cancel-org-changes').should('not.exist');
                     });
-        
+
                     it('changes the record in the organizer\'s user_metadata', () => {
                       cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${organizer.email}' LIMIT 1;`).then(([results, metadata]) => {
                         expect(results.length).to.eq(1);
@@ -675,14 +675,14 @@ context('root/Organization edit', function() {
                         });
                       });
                     });
-        
+
                     it('displays a friendly message', () => {
                       cy.get('#org-name-field').should('have.value', 'The Regional Lacrosse Association');
                       cy.get('button#save-org').click();
                       cy.wait(300);
                       cy.get('#flash-message').contains('Organization updated');
                     });
-        
+
                     it('persists updated team data between browser refreshes', function() {
                       cy.get('#org-name-field').should('have.value', 'The Regional Lacrosse Association');
                       cy.get('button#save-org').click();
