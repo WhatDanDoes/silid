@@ -60,7 +60,7 @@ describe('root/organizationMembershipSpec', () => {
 
     describe('create', () => {
 
-      describe('for root\'s own team', () => {
+      describe('for root\'s own organization', () => {
 
         let rootSession, organizationId, teamId,
             teamReadScope, teamReadOauthTokenScope,

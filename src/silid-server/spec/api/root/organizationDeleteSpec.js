@@ -131,6 +131,38 @@ describe('root/organizationDeleteSpec', () => {
               });
           });
 
+          it('updates the user session data', done => {
+            models.Session.findAll().then(results => {
+              expect(results.length).toEqual(1);
+              let session = JSON.parse(results[0].data).passport.user;
+              // This is a little hokey. Though it should be defined, there isn't any
+              // route hit that actually sets the session data. I don't want to set up
+              // a bunch of new mocks
+              expect(session.user_metadata.organizations).toBeUndefined();
+
+              rootSession
+                .delete(`/organization/${organizationId}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  models.Session.findAll().then(results => {
+                    expect(results.length).toEqual(1);
+                    session = JSON.parse(results[0].data).passport.user;
+                    expect(session.user_metadata.organizations.length).toEqual(0);
+
+                    done();
+                  }).catch(err => {
+                    done.fail(err);
+                  });
+                });
+            }).catch(err => {
+              done.fail(err);
+            });
+          });
+
           describe('Auth0', () => {
             it('is called to retrieve any existing member teams', done => {
               rootSession
