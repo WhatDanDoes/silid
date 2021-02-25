@@ -74,8 +74,7 @@ router.put('/:id', checkPermissions([scope.update.agents]), function(req, res, n
   //  res.status(err.statusCode).json(err.message.error_description);
   //});
   const managementClient = getManagementClient([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata].join(' '));
-  managementClient.updateUser({id: req.params.id}, { user_metadata: { zoneinfo: timezone} }).then(result => {
-
+  managementClient.updateUser({id: req.params.id}, { user_metadata: { zoneinfo: timezone } }).then(result => {
     // Is this a sudo agent updating another?
     if (req.params.id !== req.user.user_id) {
       managementClient.getUserRoles({id: req.params.id}).then(assignedRoles => {
@@ -86,6 +85,8 @@ router.put('/:id', checkPermissions([scope.update.agents]), function(req, res, n
       });
     }
     else {
+      // Update session data
+      req.session.passport.user = {...req.user, ...result};
       res.status(201).json({...req.user, ...result});
     }
   }).catch(err => {

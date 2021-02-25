@@ -210,7 +210,7 @@ describe('timezoneSpec', () => {
                 let session = JSON.parse(results[0].data).passport.user;
                 expect(session.name).toEqual(_profile.name);
                 expect(session.email).toEqual(_profile.email);
-                expect(session.zoneinfo).toBeUndefined();
+                expect(session.user_metadata.zoneinfo).toBeUndefined();
 
                 authenticatedSession
                   .put(`/timezone/${_identity.sub}`)
@@ -227,7 +227,7 @@ describe('timezoneSpec', () => {
                       expect(results.length).toEqual(1);
                       session = JSON.parse(results[0].data).passport.user;
 
-                      expect(session.zoneinfo).toEqual(ct.getTimezone('America/Edmonton'));
+                      expect(session.user_metadata.zoneinfo).toEqual(ct.getTimezone('America/Edmonton'));
                       expect(session.name).toEqual(_profile.name);
                       expect(session.email).toEqual(_profile.email);
                       expect(session.roles.length).toEqual(1);
@@ -284,7 +284,7 @@ describe('timezoneSpec', () => {
           describe('timezone set', () => {
 
             beforeEach(done => {
-              _profile.zoneinfo = ct.getTimezone('America/Edmonton');
+              _profile.user_metadata = { zoneinfo: ct.getTimezone('America/Edmonton') };
 
               stubAuth0ManagementApi((err, apiScopes) => {
                 if (err) return done.fail();
@@ -367,7 +367,7 @@ describe('timezoneSpec', () => {
                 let session = JSON.parse(results[0].data).passport.user;
                 expect(session.name).toEqual(_profile.name);
                 expect(session.email).toEqual(_profile.email);
-                expect(session.zoneinfo).toEqual(ct.getTimezone('America/Edmonton'));
+                expect(session.user_metadata.zoneinfo).toEqual(ct.getTimezone('America/Edmonton'));
 
                 authenticatedSession
                   .put(`/timezone/${_identity.sub}`)
@@ -384,7 +384,7 @@ describe('timezoneSpec', () => {
                       expect(results.length).toEqual(1);
                       session = JSON.parse(results[0].data).passport.user;
 
-                      expect(session.zoneinfo).toEqual(ct.getTimezone('Europe/Paris'));
+                      expect(session.user_metadata.zoneinfo).toEqual(ct.getTimezone('Europe/Paris'));
                       expect(session.name).toEqual(_profile.name);
                       expect(session.email).toEqual(_profile.email);
                       expect(session.roles.length).toEqual(1);
@@ -421,7 +421,7 @@ describe('timezoneSpec', () => {
               });
 
               it('is still called even if the language is already assigned to the agent', done => {
-                expect(_profile.zoneinfo).toEqual(ct.getTimezone('America/Edmonton'));
+                expect(_profile.user_metadata.zoneinfo).toEqual(ct.getTimezone('America/Edmonton'));
                 authenticatedSession
                   .put(`/timezone/${_identity.sub}`)
                   .send({
