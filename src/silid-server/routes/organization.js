@@ -223,7 +223,7 @@ router.put('/:id', checkPermissions([scope.update.organizations]), function(req,
         managementClient.updateUser({id: organizers[organizerIndex].user_id}, { user_metadata: organizers[organizerIndex].user_metadata }).then(result => {
           // Update session data (assuming one organizer for the time being)
           // This super status is covered by e2e tests
-          if (!req.user.isSuper) {
+          if (organizers[0].email === req.user.email || !req.user.isSuper) {
             req.session.passport.user = {...req.user, ...result};
           }
 
@@ -282,7 +282,7 @@ router.delete('/:id', checkPermissions([scope.delete.organizations]), function(r
         managementClient.updateUser({id: organizers[0].user_id}, { user_metadata: organizers[0].user_metadata }).then(result => {
           // Update session data (assuming one organizer for the time being)
           // This super status is covered by e2e tests
-          if (!req.user.isSuper) {
+          if (organizers[0].email === req.user.email || !req.user.isSuper) {
             req.session.passport.user = {...req.user, ...result};
           }
 
