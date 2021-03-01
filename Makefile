@@ -26,10 +26,11 @@ silid-compose-build-up:
 	cd src/; docker-compose up --build
 
 silid-compose-up:
-	cd $(client_src); npm run build
 	cd src/; docker-compose up
 
 silid-compose-up-cra-build:
+	cd $(client_src); npm run build
+	cp -r $(client_src)/build/* $(app_src)/build
 	cd src/; docker-compose -f docker-compose.cra-build.yml up
 
 silid-compose-down:
