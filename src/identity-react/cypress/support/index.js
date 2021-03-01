@@ -92,3 +92,4 @@ Cypress.on('log:added', (options) => {
 
 import './login'
 import './log'
+import './clear-service-workers'
