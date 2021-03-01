@@ -25,6 +25,8 @@ services:
       NODE_ENV: e2e
       PORT: 3001
       DATABASE_URL: 'postgres://user:pass@localhost:5432/postgres'
+      # Needs to be a string, number, or null
+      TEST_BUILD: 'true'
 
   # mock identity server for local-only testing
   auth0:
