@@ -13,7 +13,7 @@ services:
     depends_on:
       - auth0
       - postgres
-    build: .
+    build: ./silid-server
     network_mode: host
     command: npm run dev
     volumes:
