@@ -237,10 +237,10 @@ context('viewer/Team creation', function() {
                   cy.get('table tbody tr td').contains(_profile.email);
                 });
 
-                it('clears input field', () => {
+                it('closes the input field', () => {
                   cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').type('Mystery Incorporated{enter}');
                   cy.wait(300);
-                  cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').should('have.value', '');
+                  cy.get('div div div div div div table tbody tr td div div input[placeholder="Name"]').should('not.exist');
                 });
               });
             });

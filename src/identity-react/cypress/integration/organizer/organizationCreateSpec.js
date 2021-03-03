@@ -242,10 +242,10 @@ context('organizer/Organization creation', function() {
                   cy.get('#organizations-table table tbody tr td').contains(_profile.email);
                 });
 
-                it('clears input field', () => {
+                it('closes the input field', () => {
                   cy.get('#organizations-table table tbody tr td div div input[placeholder="Name"]').type('Mystery Incorporated{enter}');
                   cy.wait(300);
-                  cy.get('#organizations-table table tbody tr td div div input[placeholder="Name"]').should('have.value', '');
+                  cy.get('#organizations-table table tbody tr td div div input').should('not.exist');
                 });
               });
             });
