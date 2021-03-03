@@ -32,6 +32,7 @@ silid-compose-up:
 # This prebuilds the React bundle and runs the tests agains that
 #
 silid-compose-up-cra-build:
+	cd $(app_src); rm -rf build/*
 	cd $(client_src); rm -rf build
 	cd $(client_src); npm run build
 	cp -R $(client_src)/build/* $(app_src)/build/
