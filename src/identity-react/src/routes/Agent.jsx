@@ -876,14 +876,6 @@ const Agent = (props) => {
                             columnDef={props.columnDef}
                             value={props.value ? props.value : ''}
                             onChange={value => props.onChange(value) }
-                            onKeyDown={evt => {
-                                if (evt.key === 'Enter') {
-                                  createOrganization({ name: evt.target.value });
-                                  props.onChange('');
-                                  return;
-                                }
-                              }
-                            }
                           />
                         );
                       }
@@ -915,14 +907,6 @@ const Agent = (props) => {
                           columnDef={props.columnDef}
                           value={props.value ? props.value : ''}
                           onChange={value => props.onChange(value) }
-                          onKeyDown={evt => {
-                              if (evt.key === 'Enter') {
-                                createTeam({ name: evt.target.value });
-                                props.onChange('');
-                                return;
-                              }
-                            }
-                          }
                         />
                       );
                     }

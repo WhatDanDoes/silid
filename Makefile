@@ -29,14 +29,16 @@ silid-compose-up:
 	cd src/; docker-compose up
 
 #
-# This prebuilds the React bundle and runs the tests agains that
+# This prebuilds the React bundle and runs the tests against that.
+#
+# It was motivated by the need to register service workers for tests.
 #
 silid-compose-up-cra-build:
 	cd $(app_src); rm -rf build/*
 	cd $(client_src); rm -rf build
 	cd $(client_src); npm run build
 	cp -R $(client_src)/build/* $(app_src)/build/
-	cd src/; docker-compose -f docker-compose.cra-build.yml up
+	cd src/; docker-compose -f docker-compose.cra-build.yml up --build
 
 silid-compose-down:
 	cd src/; docker-compose down
