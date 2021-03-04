@@ -68,8 +68,18 @@ silid-compose-restart-client:
 #
 # Execute silid platform end-to-end tests
 #
+# This depends on the CRA build server. It is useful for side-by-side debugging
+#
 silid-e2e-open:
 	cd $(client_src); npx cypress	open
+
+#
+# Execute silid platform end-to-end tests on pre-built client app
+#
+# Use this to test Service Workers
+#
+silid-e2e-open-build:
+	cd $(client_src); TEST_BUILD=true npx cypress	open
 
 #
 # Execute all tests
@@ -78,8 +88,18 @@ silid-e2e-open:
 #
 # https://github.com/cypress-io/cypress/issues/2028#issuecomment-400356563
 #
+# This depends on the CRA build server. It is useful for side-by-side debugging
+#
 silid-e2e-run:
 	cd $(client_src); npx cypress	run --headed
+
+#
+# Execute all tests on the pre-built client app
+#
+# Use this to test Service Workers
+#
+silid-e2e-run-build:
+	cd $(client_src); TEST_BUILD=true npx cypress	run --headed
 
 #
 # This executes a containerized headless run
