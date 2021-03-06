@@ -40,6 +40,16 @@ silid-compose-up-cra-build:
 	cp -R $(client_src)/build/* $(app_src)/build/
 	cd src/; docker-compose -f docker-compose.cra-build.yml up --build
 
+silid-compose-up-auth0-build:
+	cd $(app_src); rm -rf build/*
+	cd $(client_src); rm -rf build
+	cd $(client_src); npm run build
+	cp -R $(client_src)/build/* $(app_src)/build/
+	cd src/; docker-compose -f docker-compose.auth0-build.yml build --no-cache
+	cd src/; docker-compose -f docker-compose.auth0-build.yml up
+
+
+
 silid-compose-down:
 	cd src/; docker-compose down
 
