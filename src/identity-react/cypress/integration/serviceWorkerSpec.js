@@ -1,14 +1,27 @@
+/**
+ * 2021-3-8
+ *
+ * This spec is completely useless, but I'm going to leave ti here for the
+ * moment...
+ *
+ * Cypress has an interesting problem when it comes to testing Service Workers.
+ *
+ * https://github.com/cypress-io/cypress/issues/702
+ *
+ * Cypress talks to the browser. If the browser is running Service Workers,
+ * all the wrong things get cached. It seems the present solution involves
+ * disabling Service Workers entirely.
+ *
+ * For the moment, I'm going to opt out of registering a version-control
+ * Service Worker, but I'll leave everything in place while I'll figure out how
+ * to properly test with Service Workers running.
+ */
 import { onlyOn, skipOn } from '@cypress/skip-test'
 
 context('Service Workers', () => {
 
-  // docker-compose doesn't take boolean values for env vars.
+  // docker-compose tells me it doesn't take boolean values for env vars.
   onlyOn(Cypress.env('TEST_BUILD') === 'true', () => {
-
-//    Cypress.on('window:before:load', win => {
-//      // disable service workers
-//      delete win.navigator.__proto__.serviceWorker;
-//    });
 
     before(function() {
       cy.fixture('google-profile-response.json').as('profile');
@@ -34,39 +47,20 @@ context('Service Workers', () => {
       cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
     });
 
-//    describe('unauthenticated', done => {
-//      beforeEach(() => {
-//        cy.visit('/build');
-//      });
-//
-//      it('lands in the right spot', () => {
-//        cy.url().should('contain', '/build');
-//      });
-//
-//      it('shows the build version string', () => {
-//        cy.get('body').contains('Howdy, from your friendly neighbourhood service worker!');
-//      });
-//    });
-
     describe('authenticated', () => {
 
       beforeEach(() => {
-//        cy.intercept({ method: 'GET', url: '/build' }, []);
-
         cy.login(_profile.email, _profile);
         cy.url().should('contain', '/#/agent');
 
-//        cy.reload();
-//        cy.wait(1000);
         cy.visit('/build');
-        //cy.request('/build');
       });
 
       it('lands in the right spot', () => {
         cy.url().should('contain', '/build');
       });
 
-      it.only('shows the build version string', () => {
+      it('shows the build version string', () => {
         cy.get('body').contains('Howdy, from your friendly neighbourhood service worker!');
       });
     });
