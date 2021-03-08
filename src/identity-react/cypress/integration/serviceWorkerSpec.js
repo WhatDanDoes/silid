@@ -18,7 +18,7 @@
  */
 import { onlyOn, skipOn } from '@cypress/skip-test'
 
-context('Service Workers', () => {
+context.skip('Service Workers', () => {
 
   // docker-compose tells me it doesn't take boolean values for env vars.
   onlyOn(Cypress.env('TEST_BUILD') === 'true', () => {
