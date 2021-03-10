@@ -114,6 +114,36 @@ describe('agentEditSpec', () => {
                 });
             });
 
+            it('updates the user session data', done => {
+              models.Session.findAll().then(results => {
+                expect(results.length).toEqual(1);
+                let session = JSON.parse(results[0].data).passport.user;
+                expect(session.nickname).toEqual(_profile.nickname);
+
+                authenticatedSession
+                  .patch(`/agent/${_identity.sub}`)
+                  .send({ nickname: 'That Guy Over There' })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+
+                    models.Session.findAll().then(results => {
+                      expect(results.length).toEqual(1);
+                      session = JSON.parse(results[0].data).passport.user;
+                      expect(session.nickname).toEqual('That Guy Over There');
+
+                      done();
+                    }).catch(err => {
+                      done.fail(err);
+                    });
+                  });
+              }).catch(err => {
+                done.fail(err);
+              });
+            });
+
             describe('dependent claims', () => {
 
               it('does not unblock when `blocked` is set to false (as per the docs)', done => {
@@ -233,6 +263,45 @@ describe('agentEditSpec', () => {
                 });
             });
 
+            it('updates the user session data', done => {
+              models.Session.findAll().then(results => {
+                expect(results.length).toEqual(1);
+                let session = JSON.parse(results[0].data).passport.user;
+                expect(session.nickname).toEqual(_profile.nickname);
+                expect(session.name).toEqual(_profile.name);
+                expect(session.email).toEqual(_profile.email);
+                expect(session.roles).toBeUndefined();
+
+                authenticatedSession
+                  .patch(`/agent/${_identity.sub}`)
+                  .send({
+                    nickname: 'That Guy Over There'
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+
+                    models.Session.findAll().then(results => {
+                      expect(results.length).toEqual(1);
+                      session = JSON.parse(results[0].data).passport.user;
+                      expect(session.nickname).toEqual('That Guy Over There');
+                      expect(session.name).toEqual(_profile.name);
+                      expect(session.email).toEqual(_profile.email);
+                      expect(session.roles.length).toEqual(1);
+                      expect(session.roles[0].name).toEqual('viewer');
+
+                      done();
+                    }).catch(err => {
+                      done.fail(err);
+                    });
+                  });
+              }).catch(err => {
+                done.fail(err);
+              });
+            });
+
             describe('Auth0', () => {
               it('is called to update the agent', done => {
                 authenticatedSession
@@ -319,6 +388,38 @@ describe('agentEditSpec', () => {
                 });
             });
 
+            it('updates the user session data', done => {
+              models.Session.findAll().then(results => {
+                expect(results.length).toEqual(1);
+                let session = JSON.parse(results[0].data).passport.user;
+                expect(session.user_metadata.phone_number).toBeUndefined();
+
+                authenticatedSession
+                  .patch(`/agent/${_identity.sub}`)
+                  .send({
+                    phone_number: '403-266-1234'
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+
+                    models.Session.findAll().then(results => {
+                      expect(results.length).toEqual(1);
+                      session = JSON.parse(results[0].data).passport.user;
+                      expect(session.user_metadata.phone_number).toEqual('403-266-1234');
+
+                      done();
+                    }).catch(err => {
+                      done.fail(err);
+                    });
+                  });
+              }).catch(err => {
+                done.fail(err);
+              });
+            });
+
             describe('Auth0', () => {
               it('is called to update the agent\'s root claims', done => {
                 authenticatedSession
@@ -375,6 +476,49 @@ describe('agentEditSpec', () => {
 
                   done();
                 });
+            });
+
+            it('updates the user session data', done => {
+              models.Session.findAll().then(results => {
+                expect(results.length).toEqual(1);
+                let session = JSON.parse(results[0].data).passport.user;
+                expect(session.user_metadata.phone_number).toBeUndefined();
+                expect(session.email_verified).toBe(_profile.email_verified);
+                expect(session.family_name).toEqual(_profile.family_name);
+                expect(session.given_name).toEqual(_profile.given_name);
+                expect(session.name).toEqual(_profile.name);
+                expect(session.nickname).toEqual(_profile.nickname);
+                expect(session.picture).toEqual(_profile.picture);
+
+                authenticatedSession
+                  .patch(`/agent/${_identity.sub}`)
+                  .send(allClaims)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+
+                    models.Session.findAll().then(results => {
+                      expect(results.length).toEqual(1);
+                      session = JSON.parse(results[0].data).passport.user;
+
+                      expect(session.user_metadata.phone_number).toEqual('403-266-1234');
+                      expect(session.email_verified).toBe(true);
+                      expect(session.family_name).toEqual('Sanders');
+                      expect(session.given_name).toEqual('Harland');
+                      expect(session.name).toEqual('Harland Sanders');
+                      expect(session.nickname).toEqual('Colonel Sanders');
+                      expect(session.picture).toEqual('http://example.com/mypic.jpg');
+
+                      done();
+                    }).catch(err => {
+                      done.fail(err);
+                    });
+                  });
+              }).catch(err => {
+                done.fail(err);
+              });
             });
 
             describe('Auth0', () => {
@@ -434,9 +578,6 @@ describe('agentEditSpec', () => {
                 if (err) return done.fail(err);
 
                 expect(res.body.message).toEqual('Check your email to verify your account');
-                done();
-
-
                 done();
               });
           });

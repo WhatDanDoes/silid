@@ -13,6 +13,7 @@ module.exports = (sequelize, DataTypes) => {
     expires: DataTypes.DATE,
     data: DataTypes.STRING(50000)
   }, {
+    freezeTableName: true,
     indexes: [
       {
         name: 'session_sid_index',

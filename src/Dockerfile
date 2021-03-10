@@ -2,6 +2,7 @@ FROM node:10.20.1
 
 ARG NODE_ENV
 ARG PORT=3001
+ARG REACT_APP_COMMIT
 
 ENV NODE_ENV=$NODE_ENV
 ENV PORT=$PORT
@@ -32,7 +33,7 @@ COPY ./silid-server .
 
 
 # Copy client build
-RUN mkdir -p /app/build && cp -R /srv/app/client/build/* /app/build
+RUN mkdir -p /app/build && cp -r /srv/app/client/build/* /app/build
 
 EXPOSE $PORT
 

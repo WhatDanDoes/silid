@@ -224,6 +224,47 @@ describe('localeSpec', () => {
                 });
             });
 
+            it('updates the user session data', done => {
+              models.Session.findAll().then(results => {
+                expect(results.length).toEqual(1);
+                let session = JSON.parse(results[0].data).passport.user;
+                expect(session.name).toEqual(_profile.name);
+                expect(session.email).toEqual(_profile.email);
+                expect(session.user_metadata.silLocale).toBeUndefined();
+
+                authenticatedSession
+                  .put('/locale/tlh')
+                  .set('Accept', 'application/json')
+                  .redirects(1)
+                  .expect('Content-Type', /json/)
+                  .expect(200)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+
+                    models.Session.findAll().then(results => {
+                      expect(results.length).toEqual(1);
+                      session = JSON.parse(results[0].data).passport.user;
+
+                      expect(session.name).toEqual(_profile.name);
+                      expect(session.email).toEqual(_profile.email);
+                      expect(session.user_metadata.silLocale).toBeDefined();
+                      expect(session.user_metadata.silLocale.name).toEqual('Klingon');
+                      expect(session.user_metadata.silLocale.type).toEqual('constructed');
+                      expect(session.user_metadata.silLocale.scope).toEqual('individual');
+                      expect(session.user_metadata.silLocale.iso6393).toEqual('tlh');
+                      expect(session.user_metadata.silLocale.iso6392B).toEqual('tlh');
+                      expect(session.user_metadata.silLocale.iso6392T).toEqual('tlh');
+
+                      done();
+                    }).catch(err => {
+                      done.fail(err);
+                    });
+                  });
+              }).catch(err => {
+                done.fail(err);
+              });
+            });
+
             it('redirects to the /agent route', done => {
               authenticatedSession
                 .put('/locale/tlh')
@@ -354,6 +395,47 @@ describe('localeSpec', () => {
                   expect(res.body.user_metadata.silLocale.iso6392T).toEqual('tlh');
                   done();
                 });
+            });
+
+            it('updates the user session data', done => {
+              models.Session.findAll().then(results => {
+                expect(results.length).toEqual(1);
+                let session = JSON.parse(results[0].data).passport.user;
+                expect(session.name).toEqual(_profile.name);
+                expect(session.email).toEqual(_profile.email);
+                expect(session.user_metadata.silLocale).toEqual(_profile.user_metadata.silLocale);
+
+                authenticatedSession
+                  .put('/locale/tlh')
+                  .set('Accept', 'application/json')
+                  .redirects(1)
+                  .expect('Content-Type', /json/)
+                  .expect(200)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+
+                    models.Session.findAll().then(results => {
+                      expect(results.length).toEqual(1);
+                      session = JSON.parse(results[0].data).passport.user;
+
+                      expect(session.name).toEqual(_profile.name);
+                      expect(session.email).toEqual(_profile.email);
+                      expect(session.user_metadata.silLocale).toBeDefined();
+                      expect(session.user_metadata.silLocale.name).toEqual('Klingon');
+                      expect(session.user_metadata.silLocale.type).toEqual('constructed');
+                      expect(session.user_metadata.silLocale.scope).toEqual('individual');
+                      expect(session.user_metadata.silLocale.iso6393).toEqual('tlh');
+                      expect(session.user_metadata.silLocale.iso6392B).toEqual('tlh');
+                      expect(session.user_metadata.silLocale.iso6392T).toEqual('tlh');
+
+                      done();
+                    }).catch(err => {
+                      done.fail(err);
+                    });
+                  });
+              }).catch(err => {
+                done.fail(err);
+              });
             });
 
             it('returns a friendly message if an invalid ISO-639-3 code provided', done => {

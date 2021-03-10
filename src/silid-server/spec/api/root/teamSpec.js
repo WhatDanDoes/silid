@@ -370,6 +370,38 @@ describe('root/teamSpec', () => {
             });
         });
 
+        it('updates the user session data', done => {
+          models.Session.findAll().then(results => {
+            expect(results.length).toEqual(1);
+            let session = JSON.parse(results[0].data).passport.user;
+            expect(session.user_metadata.teams).toBeUndefined();
+
+            rootSession
+              .post('/team')
+              .send({
+                name: 'The Mike Tyson Mystery Team'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end((err, res) => {
+                if (err) return done.fail(err);
+
+                models.Session.findAll().then(results => {
+                  expect(results.length).toEqual(1);
+                  session = JSON.parse(results[0].data).passport.user;
+                  expect(session.user_metadata.teams.length).toEqual(1);
+
+                  done();
+                }).catch(err => {
+                  done.fail(err);
+                });
+              });
+          }).catch(err => {
+            done.fail(err);
+          });
+        });
+
         describe('Auth0', () => {
           it('calls Auth0 to retrieve the agent user_metadata', done => {
             rootSession
@@ -598,6 +630,45 @@ describe('root/teamSpec', () => {
                 expect(res.body.members).toEqual([{ name: _profile.name, email: _profile.email, user_id: _profile.user_id }]);
                 done();
               });
+          });
+
+          it('updates the user session data', done => {
+            models.Session.findAll().then(results => {
+              expect(results.length).toEqual(1);
+              let session = JSON.parse(results[0].data).passport.user;
+
+              expect(session.user_metadata.teams.length).toEqual(2);
+              expect(session.user_metadata.teams[0].name).toEqual('Vancouver Warriors');
+
+              rootSession
+                .put(`/team/${teamId}`)
+                .send({
+                  name: 'Vancouver Riot'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  models.Session.findAll().then(results => {
+                    expect(results.length).toEqual(1);
+                    let session = JSON.parse(results[0].data).passport.user;
+                    if (session.email !== 'root@example.com') {
+                      session = JSON.parse(results[1].data).passport.user;
+                    }
+                    session = JSON.parse(results[0].data).passport.user;
+                    expect(session.user_metadata.teams.length).toEqual(2);
+                    expect(session.user_metadata.teams[0].name).toEqual('Vancouver Riot');
+
+                    done();
+                  }).catch(err => {
+                    done.fail(err);
+                  });
+                });
+            }).catch(err => {
+              done.fail(err);
+            });
           });
 
           it('updates any pending invitations', done => {

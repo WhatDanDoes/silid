@@ -59,19 +59,32 @@ const AgentDirectory = (props) => {
 
   const service = useGetAgentDirectoryService(page);
 
-  // This squelches missing dependency warning in `useEffect` and prevents recursive depth exceeded error
-  const memoizedGetFormattedMessage = React.useCallback(getFormattedMessage, [service.payload]);
-
   useEffect(() => {
     if (service.status === 'loaded') {
       if (service.payload.message) {
-        setFlashProps({ message: memoizedGetFormattedMessage(service.payload.message), variant: 'error' });
+        setFlashProps({ message: getFormattedMessage(service.payload.message), variant: 'error' });
       }
       else {
         setAgentList(service.payload);
       }
     }
-  }, [service, memoizedGetFormattedMessage]);
+
+  /**
+   * 2021-3-3
+   *
+   * The linter will tell you to include `getFormattedMessage` in the dependencies below.
+   * If the dependency is included, there is a _max-depth-exceeded_ error.
+   *
+   * Great resource on the discussion:
+   * https://github.com/facebook/create-react-app/issues/6880
+   *
+   * I'm not sure what to do, so ignoring the warning for now...
+   *
+   * See `cypress/integration/root/agentIndexSpec.js` for failing test
+   */
+
+  // eslint-disable-next-line
+  }, [service]);
 
   function ListItemLink(props) {
     return <ListItem className='list-item' button component="a" {...props} />;

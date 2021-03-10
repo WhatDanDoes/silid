@@ -1,3 +1,5 @@
+import npmPackage from '../../../package.json';
+
 context('viewer/Agent Index', () => {
 
   before(function() {
@@ -45,6 +47,21 @@ context('viewer/Agent Index', () => {
 
       it('lands in the right spot', () => {
         cy.url().should('contain', '/#/agent');
+      });
+
+      it('sets app build version metadata', done => {
+        // Build version is only set when the app is built and bundled...
+        if (Cypress.env('TEST_BUILD')) {
+          cy.exec('git rev-parse --short HEAD').then(commit => {
+            cy.get('html head meta[name="generator"]').contains(`${npmPackage.version}-${commit.stdout}`);
+            done();
+          });
+        }
+        // ... otherwise it just shows the variable placeholders
+        else {
+          cy.get('html head meta[name="build"]').should('have.attr', 'content', '%REACT_APP_VERSION%-%REACT_APP_COMMIT%');
+          done();
+        }
       });
 
       describe('profile highlights', () => {

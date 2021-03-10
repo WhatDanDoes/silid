@@ -107,6 +107,38 @@ describe('root/organizationCreateSpec', () => {
             });
         });
 
+        it('updates the user session data', done => {
+          models.Session.findAll().then(results => {
+            expect(results.length).toEqual(1);
+            let session = JSON.parse(results[0].data).passport.user;
+            expect(session.user_metadata.organizations).toBeUndefined();
+
+            rootSession
+              .post('/organization')
+              .send({
+                name: 'One Book Canada'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end((err, res) => {
+                if (err) return done.fail(err);
+
+                models.Session.findAll().then(results => {
+                  expect(results.length).toEqual(1);
+                  session = JSON.parse(results[0].data).passport.user;
+                  expect(session.user_metadata.organizations.length).toEqual(1);
+
+                  done();
+                }).catch(err => {
+                  done.fail(err);
+                });
+              });
+          }).catch(err => {
+            done.fail(err);
+          });
+        });
+
         describe('Auth0', () => {
           it('is called to see if organization name is already registered', done => {
             rootSession

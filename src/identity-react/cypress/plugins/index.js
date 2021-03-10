@@ -24,14 +24,6 @@ module.exports = (on, config) => {
     },
   });
 
-
-  /**
-   * 2020-4-3
-   *
-   * I want to refer to these old tests without executing them
-   */
-  config.ignoreTestFiles = "**/archive/**/*Spec.js";
-
   config.env = {...config.env, ...process.env};
 
   return config;

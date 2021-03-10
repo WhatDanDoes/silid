@@ -401,7 +401,7 @@ describe('agentSpec', () => {
               });
 
               describe('Auth0', () => {
-                it('is called to retrieve a the agent\'s user_metadata', done => {
+                it('is called to retrieve the agent\'s user_metadata', done => {
                   authenticatedSession
                     .get('/agent')
                     .set('Accept', 'application/json')

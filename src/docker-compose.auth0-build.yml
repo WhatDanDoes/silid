@@ -1,0 +1,39 @@
+#### docker-compose.yml
+# all containers required for cypress tests
+#
+# TODO:
+#   * add more documentation and use-case details
+#   * consider how to coalesce DB service ENV vars with other services
+#   * see if it makes sense to connect cypress test container here
+#
+version: "3"
+services:
+  # silid server app serving the primary UI
+  app:
+    depends_on:
+      - postgres
+    build: ./silid-server
+    network_mode: host
+    command: npm run dev
+    volumes:
+      - ./silid-server:/app/
+#      - app-build:/app/build
+    environment:
+      - NODE_ENV=development
+      - TEST_BUILD='true'
+      - PORT=3001
+      #- CLIENT_DOMAIN=http://localhost:3000
+  postgres:
+    image: postgres:10.12
+    network_mode: host
+    volumes:
+      - silid-postgres-data:/var/lib/postgresql/data
+    # for now, need to make sure these ENV vars match ENV files (see top TODO)
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=silid_development
+
+volumes:
+  app-node_modules:
+  silid-postgres-data:
