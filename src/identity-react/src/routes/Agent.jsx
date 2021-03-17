@@ -133,7 +133,7 @@ const Agent = (props) => {
       }
       else {
         setProfileData(service.payload);
-        setIsIdpAuthenticated(!/^auth0\|*/.test(profileData.user_id));
+        setIsIdpAuthenticated(!/^auth0\|*/.test(service.payload.user_id));
       }
     }
   }, [service]);
