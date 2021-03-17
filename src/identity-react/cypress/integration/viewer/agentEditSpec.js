@@ -147,7 +147,6 @@ context('viewer/Agent edit', function() {
             cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
 
             // Not displayed until expand button clicked
-            //cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
             cy.get('#profile-table table tbody tr td input#agent-given-name-field').should('not.be.visible');
             cy.get('#profile-table table tbody tr td input#agent-family-name-field').should('not.be.visible');
             cy.get('#profile-table table tbody tr td input#agent-nickname-field').should('not.be.visible');
@@ -175,72 +174,59 @@ context('viewer/Agent edit', function() {
 
           describe('#agent-name-field', () => {
 
-            /**
-             * 2021-3-17
-             *
-             * Happy Saint Patrick's Day!
-             *
-             * If you sync an agent's third-party IdP details, then it doesn't
-             * make sense to overwrite them through Identity
-             *
-             * https://auth0.com/docs/users/configure-connection-sync-with-auth0
-             */
-            describe('for third-party IdP agent', () => {
+            it('allows editing appropriate fields (can\'t edit name info)', () => {
+              cy.get('h3').contains('Profile');
 
-              it('does not allow editing name info', () => {
-                cy.get('h3').contains('Profile');
+              cy.get('#profile-table table tbody tr th').contains('Name:');
+              cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
+              cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
 
-                cy.get('#profile-table table tbody tr th').contains('Name:');
-                cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
-                cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
+              cy.get('#profile-table table tbody tr th').contains('Phone:');
+              cy.get('#profile-table table tbody tr td input#phone-number-field').should('have.attr', 'placeholder', 'Set your phone number');
+              cy.get('#profile-table table tbody tr td input#phone-number-field').should('not.be.disabled');
 
-                cy.get('#profile-table table tbody tr th').contains('Phone:');
-                cy.get('#profile-table table tbody tr td input#phone-number-field').should('have.attr', 'placeholder', 'Set your phone number');
-                cy.get('#profile-table table tbody tr td input#phone-number-field').should('not.be.disabled');
+              cy.get('#profile-table table tbody tr th').contains('Timezone:');
+              cy.get('#profile-table table tbody tr td label[for="timezone-dropdown"]').contains('Set your timezone');
+              cy.get('#profile-table table tbody tr td #timezone-dropdown').should('not.be.disabled');
 
-                cy.get('#profile-table table tbody tr th').contains('Timezone:');
-                cy.get('#profile-table table tbody tr td label[for="timezone-dropdown"]').contains('Set your timezone');
-                cy.get('#profile-table table tbody tr td #timezone-dropdown').should('not.be.disabled');
+              // Not really relevant for root-level agent profile edits, but included here anyway
+              cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
+              cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
+            });
 
-                // Not really relevant for root-level agent profile edits, but included here anyway
-                cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
-                cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
-              });
+            it('does not allow editing constituent name components', () => {
+              cy.get('h3').contains('Profile');
 
-              it('does not allow editing constituent name components', () => {
-                cy.get('h3').contains('Profile');
+              // Displayed on the accordion summary
+              cy.get('#profile-table table tbody tr th').contains('Name:');
+              cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
+              cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
 
-                // Displayed on the accordion summary
-                cy.get('#profile-table table tbody tr th').contains('Name:');
-                cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
-                cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
+              // Not displayed until expand button clicked
+              cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
+              cy.get('#profile-table table tbody tr td input#agent-given-name-field').should('not.be.visible');
+              cy.get('#profile-table table tbody tr td input#agent-family-name-field').should('not.be.visible');
+              cy.get('#profile-table table tbody tr td input#agent-nickname-field').should('not.be.visible');
 
-                // Not displayed until expand button clicked
-                cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
-                cy.get('#profile-table table tbody tr td input#agent-given-name-field').should('not.be.visible');
-                cy.get('#profile-table table tbody tr td input#agent-family-name-field').should('not.be.visible');
-                cy.get('#profile-table table tbody tr td input#agent-nickname-field').should('not.be.visible');
+              // Toggle accordion
+              cy.get('#name-components-accordion #expand-name-components').click();
+              cy.wait(222); // Actual default transition duration
 
-                // Toggle accordion
-                cy.get('#name-components-accordion #expand-name-components').click();
-                cy.wait(222); // Actual default transition duration
+              cy.get('#profile-table table tbody tr th').contains('Name:');
+              cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
+              cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
 
-                cy.get('#profile-table table tbody tr th').contains('Name:');
-                cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
-                cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
+              cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details label').contains('Family name');
+              cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input#agent-family-name-field').should('have.value', agent.socialProfile.family_name);
+              cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input#agent-family-name-field').should('be.disabled');
 
-                cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details label').contains('Family name');
-                cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input#agent-family-name-field').should('have.value', agent.socialProfile.family_name);
-                cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input#agent-family-name-field').should('be.disabled');
+              cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details label').contains('Given name');
+              cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input#agent-given-name-field').should('have.value', agent.socialProfile.given_name);
+              cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input#agent-given-name-field').should('be.disabled');
 
-                cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details label').contains('Given name');
-                cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input#agent-given-name-field').should('have.value', agent.socialProfile.given_name);
-                cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input#agent-given-name-field').should('be.disabled');
-
-                cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details label').contains('Nickname');
-                cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input#agent-nickname-field').should('have.value', agent.socialProfile.nickname);
-                cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input#agent-nickname-field').should('be.disabled');
-              });
+              cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details label').contains('Nickname');
+              cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input#agent-nickname-field').should('have.value', agent.socialProfile.nickname);
+              cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input#agent-nickname-field').should('be.disabled');
             });
           });
 
