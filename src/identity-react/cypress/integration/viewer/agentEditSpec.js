@@ -242,37 +242,6 @@ context('viewer/Agent edit', function() {
                 cy.get('#profile-table table tbody tr td #name-components-accordion #agent-name-details input#agent-nickname-field').should('be.disabled');
               });
             });
-
-            /**
-             * 2021-3-17
-             *
-             * If an agent registers with Auth0, let him change whatever he wants
-             *
-             * Cf., above
-             */
-            describe('for Auth0-registered agent', () => {
-
-              beforeEach(() => {
-                cy.login('someguy@example.com', { ..._profile,
-                    // 2021-3-17 Live sample taken from staging
-                    "identities": [
-                        {
-                          "user_id": "6046c48d1168f10000000000",
-                          "provider": "auth0",
-                          "connection": "Username-Password-Authentication",
-                          "isSocial": false,
-                        }
-                      ]
-                });
-                cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
-                  agent = results[0];
-                  cy.visit(`/#/agent/${agent.socialProfile.user_id}`);
-                  cy.wait(300);
-                });
-
-              });
-
-            });
           });
 
           describe('#phone-number-field', () => {
@@ -532,18 +501,9 @@ context('viewer/Agent edit', function() {
          */
         describe('for Auth0-registered agent', () => {
           beforeEach(() => {
-            cy.login('someguy@example.com', { ..._profile,
-                user_id: "auth0|6046c48d1168f10000000000",
-                // 2021-3-17 Live sample taken from staging
-                "identities": [
-                    {
-                      "user_id": "6046c48d1168f10000000000",
-                      "provider": "auth0",
-                      "connection": "Username-Password-Authentication",
-                      "isSocial": false,
-                    }
-                  ]
-            });
+
+            // Why `sub`? It serves as the `user_id` on the mock Auth0 server
+            cy.login('someguy@example.com', { ..._profile, sub: "auth0|6046c48d1168f10000000000" });
             cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
               agent = results[0];
               cy.visit(`/#/agent/${agent.socialProfile.user_id}`);
