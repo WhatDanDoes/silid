@@ -172,7 +172,7 @@ context('viewer/Agent edit', function() {
            */
           describe('for third-party IdP agent', () => {
 
-            it('does not allow editing info', () => {
+            it('does not allow editing name info', () => {
               cy.get('h3').contains('Profile');
 
               cy.get('#profile-table table tbody tr th').contains('Name:');
@@ -181,15 +181,15 @@ context('viewer/Agent edit', function() {
 
               cy.get('#profile-table table tbody tr th').contains('Phone:');
               cy.get('#profile-table table tbody tr td input#phone-number-field').should('have.attr', 'placeholder', 'Set your phone number');
-              cy.get('#profile-table table tbody tr td input#phone-number-field').should('be.disabled');
+              cy.get('#profile-table table tbody tr td input#phone-number-field').should('not.be.disabled');
 
               cy.get('#profile-table table tbody tr th').contains('Timezone:');
               cy.get('#profile-table table tbody tr td label[for="timezone-dropdown"]').contains('Set your timezone');
-              cy.get('#profile-table table tbody tr td #timezone-dropdown').should('be.disabled');
+              cy.get('#profile-table table tbody tr td #timezone-dropdown').should('not.be.disabled');
 
               // Not really relevant for root-level agent profile edits, but included here anyway
               cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
-              cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('be.disabled');
+              cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
             });
 
             it('does not allow editing constituent name components', () => {
