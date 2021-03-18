@@ -33,7 +33,7 @@ context('viewer/Agent locale', function() {
           cy.get('h3').contains('Profile');
           cy.get('#profile-table table tbody tr th').contains('Name:');
           cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
-          cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
 
           cy.get('#profile-table table tbody tr th').contains('Email:');
           cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.email);
@@ -107,7 +107,7 @@ context('viewer/Agent locale', function() {
               // Name
               cy.get('#profile-table table tbody tr th').contains('Pong:');
               cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
-              cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
+              cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
 
               // Email
               cy.get('#profile-table table tbody tr th').contains('De\'wI\' QIn:');
@@ -159,6 +159,53 @@ context('viewer/Agent locale', function() {
                 });
               });
             });
+
+            // 2021-2-24
+            //
+            // Bug discovered during manual service worker testing...
+            //
+            // Recreate error: Create a team -> switch languages -> delete team -> switch language back... the team still exists!!!!!
+            //
+            // Solution: It used to be that the req.session.passport.user value
+            //           would linger after a team deletion on `silid-server`.
+            //           The problem was solved by updating the session value.
+            //
+            //           This also means that basically any operation has the
+            //           potential to resurrect altered details.
+            //
+            //           In all likelihood, if you are reading this, this hole
+            //           was already filled through backend testing
+            //
+            describe('team deletion/resurrection on language switching bug', () => {
+
+              it('does not resurrect the team', () => {
+                // Add team as Klingonese speaker
+                cy.get('table tbody tr td').contains('Team Zombie').should('not.exist');
+                cy.get('button span span').contains('add_box').click();
+                cy.get('div div div div div div table tbody tr td div div input[placeholder="Pong"]').type('Team Zombie');
+                cy.get('div div div div div div table tbody tr td div button[title="Save"]').click();
+                cy.wait(300);
+                cy.get('table tbody tr td').contains('Team Zombie');
+
+                // Switch to English locale preference
+                cy.get('#profile-table table tbody tr td #sil-local-dropdown').type('engl{downarrow}{enter}');
+
+                // Delete the team
+                cy.contains('Team Zombie').click();
+                cy.wait(300);
+                cy.on('window:confirm', (str) => {
+                  return true;
+                });
+                cy.get('#delete-team').click();
+                cy.wait(300);
+                cy.url().should('contain', '/#/agent');
+
+                // Switch to Klingon locale preference
+                cy.get('#profile-table table tbody tr td #sil-local-dropdown').type('kling{downarrow}{enter}');
+                cy.wait(300);
+                cy.get('table tbody tr td').contains('Team Zombie').should('not.exist');
+              });
+            });
           });
 
           context('non-existent language selected', () => {
@@ -174,7 +221,7 @@ context('viewer/Agent locale', function() {
               cy.get('h3').contains('Profile');
               cy.get('#profile-table table tbody tr th').contains('Name:');
               cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
-              cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
+              cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
 
               cy.get('#profile-table table tbody tr th').contains('Email:');
               cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.email);
@@ -208,7 +255,7 @@ context('viewer/Agent locale', function() {
            *
            * Cf. with dated note above....
            *
-           * There once was a time when all living/constructed languages would be retreived from the
+           * There once was a time when all living/constructed languages would be retrieved from the
            * server. This functionality still exists, but has been supplanted in favour of only
            * retrieving languages that are currently supported.
            *

@@ -21,7 +21,7 @@ const nock = require('nock');
  *
  * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
  */
-const _identity = require('../fixtures/sample-auth0-identity-token');
+const _identity = { ...require('../fixtures/sample-auth0-identity-token'), iss: `https://${process.env.AUTH0_CUSTOM_DOMAIN}/`};
 const _profile = require('../fixtures/sample-auth0-profile-response');
 
 describe('organizationSpec', () => {
@@ -115,6 +115,38 @@ describe('organizationSpec', () => {
                 expect(res.body.user_metadata.organizations.length).toEqual(1);
                 done();
               });
+          });
+
+          it('updates the user session data', done => {
+            models.Session.findAll().then(results => {
+              expect(results.length).toEqual(1);
+              let session = JSON.parse(results[0].data).passport.user;
+              expect(session.user_metadata.organizations).toBeUndefined();
+
+              authenticatedSession
+                .post('/organization')
+                .send({
+                  name: 'One Book Canada'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  models.Session.findAll().then(results => {
+                    expect(results.length).toEqual(1);
+                    session = JSON.parse(results[0].data).passport.user;
+                    expect(session.user_metadata.organizations.length).toEqual(1);
+
+                    done();
+                  }).catch(err => {
+                    done.fail(err);
+                  });
+                });
+            }).catch(err => {
+              done.fail(err);
+            });
           });
 
           describe('Auth0', () => {
@@ -436,6 +468,40 @@ describe('organizationSpec', () => {
             });
         });
 
+        it('updates the user session data', done => {
+          models.Session.findAll().then(results => {
+            expect(results.length).toEqual(1);
+            let session = JSON.parse(results[0].data).passport.user;
+            expect(session.user_metadata.organizations.length).toEqual(1);
+            expect(session.user_metadata.organizations[0].name).toEqual('One Book Canada');
+
+            authenticatedSession
+              .put(`/organization/${organizationId}`)
+              .send({
+                name: 'Two Testaments Bolivia'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end((err, res) => {
+                if (err) return done.fail(err);
+
+                models.Session.findAll().then(results => {
+                  expect(results.length).toEqual(1);
+                  session = JSON.parse(results[0].data).passport.user;
+                  expect(session.user_metadata.organizations.length).toEqual(1);
+                  expect(session.user_metadata.organizations[0].name).toEqual('Two Testaments Bolivia');
+
+                  done();
+                }).catch(err => {
+                  done.fail(err);
+                });
+              });
+          }).catch(err => {
+            done.fail(err);
+          });
+        });
+
         it('returns an error if empty organization name provided', done => {
           authenticatedSession
             .put(`/organization/${organizationId}`)
@@ -621,6 +687,36 @@ describe('organizationSpec', () => {
                   expect(_profile.user_metadata.organizations.length).toEqual(0);
                   done();
                 });
+            });
+
+            it('updates the user session data', done => {
+              models.Session.findAll().then(results => {
+                expect(results.length).toEqual(1);
+                let session = JSON.parse(results[0].data).passport.user;
+                expect(session.user_metadata.organizations.length).toEqual(1);
+                expect(session.user_metadata.organizations[0].name).toEqual('One Book Canada');
+
+                authenticatedSession
+                  .delete(`/organization/${organizationId}`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+
+                    models.Session.findAll().then(results => {
+                      expect(results.length).toEqual(1);
+                      session = JSON.parse(results[0].data).passport.user;
+                      expect(session.user_metadata.organizations.length).toEqual(0);
+
+                      done();
+                    }).catch(err => {
+                      done.fail(err);
+                    });
+                  });
+              }).catch(err => {
+                done.fail(err);
+              });
             });
 
             describe('Auth0', () => {

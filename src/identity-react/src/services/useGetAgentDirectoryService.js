@@ -1,14 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Service } from '../types/Service';
-import { Agent } from '../types/Agent';
-
-export interface Agents {
-  results: Agent[];
-  message?: string;
-}
 
 const useGetAgentDirectoryService = (page) => {
-  const [result, setResult] = useState<Service<Agents>>({
+  const [result, setResult] = useState({
     status: 'loading'
   });
 

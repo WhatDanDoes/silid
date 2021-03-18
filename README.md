@@ -152,15 +152,19 @@ npm install --production
 In `./src/silid-server/`, configure `.env`:
 
 ```
-AUTH0_DOMAIN=silid.auth0.com
+AUTH0_CLIENT_ID=some-id
+AUTH0_CLIENT_SECRET=some-secret
 AUTH0_AUDIENCE=https://id.languagetechnology.org/
+AUTH0_DEFAULT_AUDIENCE=https://silid.us.auth0.com/api/v2/
+AUTH0_DOMAIN=auth.languagetechnology.org
+CALLBACK_URL=http://id.languagetechnology.org/callback
 NOREPLY_EMAIL=noreply@example.com
 NOREPLY_PASSWORD=secret
-AUTH0_CLIENT_ID=KdUmLO7eZSAgY1AXEdryBkPth8jKSryz
-AUTH0_CLIENT_SECRET=secret
-CALLBACK_URL=https://id.whatdandoes.info/callback
-SERVER_DOMAIN=https://id.whatdandoes.info
-ROOT_AGENT=dan.bidulock@wycliffe.ca
+ROOT_AGENT=root@example.com
+SERVER_DOMAIN=https://id.languagetechnology.org
+AUTH0_M2M_DOMAIN=silid.us.auth0.com
+AUTH0_M2M_CLIENT_ID=some-id
+AUTH0_M2M_CLIENT_SECRET=some-secret
 ```
 
 Install dependencies:

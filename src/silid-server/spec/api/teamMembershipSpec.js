@@ -21,7 +21,7 @@ const apiScope = require('../../config/apiPermissions');
  *
  * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
  */
-const _identity = require('../fixtures/sample-auth0-identity-token');
+const _identity = { ...require('../fixtures/sample-auth0-identity-token'), iss: `https://${process.env.AUTH0_CUSTOM_DOMAIN}/`};
 const _profile = require('../fixtures/sample-auth0-profile-response');
 
 describe('teamMembershipSpec', () => {
@@ -209,6 +209,45 @@ describe('teamMembershipSpec', () => {
                       done.fail(err);
                     });
                   });
+              });
+
+              it('updates the user session data', done => {
+                models.Session.findAll().then(results => {
+                  expect(results.length).toEqual(1);
+                  let session = JSON.parse(results[0].data).passport.user;
+                  expect(session.user_metadata.pendingInvitations).toBeUndefined();
+
+                  authenticatedSession
+                    .put(`/team/${teamId}/agent`)
+                    .send({
+                      email: 'somebrandnewguy@example.com'
+                    })
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(201)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+
+                      models.Session.findAll().then(results => {
+                        expect(results.length).toEqual(1);
+                        session = JSON.parse(results[0].data).passport.user;
+                        expect(session.user_metadata.pendingInvitations.length).toEqual(1);
+                        expect(session.user_metadata.pendingInvitations[0].type).toEqual('team');
+                        expect(session.user_metadata.pendingInvitations[0].uuid).toEqual(teamId);
+                        expect(session.user_metadata.pendingInvitations[0].recipient).toEqual('somebrandnewguy@example.com');
+                        expect(session.user_metadata.pendingInvitations[0].data.id).toEqual(teamId);
+                        expect(session.user_metadata.pendingInvitations[0].data.name).toEqual('The Calgary Roughnecks');
+                        expect(session.user_metadata.pendingInvitations[0].data.leader).toEqual('someguy@example.com');
+                        expect(session.user_metadata.pendingInvitations[0].data.organizationId).toBeUndefined();
+
+                        done();
+                      }).catch(err => {
+                        done.fail(err);
+                      });
+                    });
+                }).catch(err => {
+                  done.fail(err);
+                });
               });
 
               it('converts all email invitations to lowercase', done => {
@@ -598,6 +637,49 @@ describe('teamMembershipSpec', () => {
                             });
                         });
 
+                        it('updates the user session data', done => {
+                          models.Session.findAll().then(results => {
+                            expect(results.length).toEqual(2);
+                            let session = JSON.parse(results[0].data).passport.user;
+                            if (session.email !== 'somebrandnewguy@example.com') {
+                              session = JSON.parse(results[1].data).passport.user;
+                            }
+                            expect(session.email).toEqual('somebrandnewguy@example.com');
+                            expect(session.user_metadata.rsvps.length).toEqual(1);
+                            expect(session.user_metadata.teams.length).toEqual(0);
+
+                            invitedAgentSession
+                              .get(`${verificationUrl}/accept`)
+                              .set('Accept', 'application/json')
+                              .expect('Content-Type', /json/)
+                              .expect(201)
+                              .end((err, res) => {
+                                if (err) return done.fail(err);
+
+                                models.Session.findAll().then(results => {
+                                  expect(results.length).toEqual(2);
+                                  session = JSON.parse(results[0].data).passport.user;
+                                  if (session.email !== 'somebrandnewguy@example.com') {
+                                    session = JSON.parse(results[1].data).passport.user;
+                                  }
+                                  expect(session.email).toEqual('somebrandnewguy@example.com');
+
+                                  expect(session.user_metadata.rsvps.length).toEqual(0);
+                                  expect(session.user_metadata.teams.length).toEqual(1);
+                                  expect(session.user_metadata.teams[0].name).toEqual('The Calgary Roughnecks');
+                                  expect(session.user_metadata.teams[0].id).toEqual(teamId);
+                                  expect(session.user_metadata.teams[0].leader).toEqual('someguy@example.com');
+
+                                  done();
+                                }).catch(err => {
+                                  done.fail(err);
+                                });
+                              });
+                          }).catch(err => {
+                            done.fail(err);
+                          });
+                        });
+
                         it('doesn\'t barf if the team doesn\'t exist', done => {
                           invitedAgentSession
                             .get('/team/333/invite/accept')
@@ -709,6 +791,46 @@ describe('teamMembershipSpec', () => {
 
                               done();
                             });
+                        });
+
+                        it('updates the user session data', done => {
+                          models.Session.findAll().then(results => {
+                            expect(results.length).toEqual(2);
+                            let session = JSON.parse(results[0].data).passport.user;
+                            if (session.email !== 'somebrandnewguy@example.com') {
+                              session = JSON.parse(results[1].data).passport.user;
+                            }
+                            expect(session.email).toEqual('somebrandnewguy@example.com');
+                            expect(session.user_metadata.rsvps.length).toEqual(1);
+                            expect(session.user_metadata.teams.length).toEqual(0);
+
+                            invitedAgentSession
+                              .get(`${verificationUrl}/reject`)
+                              .set('Accept', 'application/json')
+                              .expect('Content-Type', /json/)
+                              .expect(201)
+                              .end((err, res) => {
+                                if (err) return done.fail(err);
+
+                                models.Session.findAll().then(results => {
+                                  expect(results.length).toEqual(2);
+                                  session = JSON.parse(results[0].data).passport.user;
+                                  if (session.email !== 'somebrandnewguy@example.com') {
+                                    session = JSON.parse(results[1].data).passport.user;
+                                  }
+                                  expect(session.email).toEqual('somebrandnewguy@example.com');
+
+                                  expect(session.user_metadata.rsvps.length).toEqual(0);
+                                  expect(session.user_metadata.teams.length).toEqual(0);
+
+                                  done();
+                                }).catch(err => {
+                                  done.fail(err);
+                                });
+                              });
+                          }).catch(err => {
+                            done.fail(err);
+                          });
                         });
 
                         it('doesn\'t barf if the team doesn\'t exist', done => {
@@ -923,6 +1045,38 @@ describe('teamMembershipSpec', () => {
                   });
               });
 
+              it('updates the user session data', done => {
+                models.Session.findAll().then(results => {
+                  expect(results.length).toEqual(1);
+                  let session = JSON.parse(results[0].data).passport.user;
+                  expect(session.user_metadata.pendingInvitations.length).toEqual(1);
+
+                  authenticatedSession
+                    .delete(verificationUrl)
+                    .send({
+                      email: 'somebrandnewguy@example.com'
+                    })
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(201)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+
+                      models.Session.findAll().then(results => {
+                        expect(results.length).toEqual(1);
+                        session = JSON.parse(results[0].data).passport.user;
+                        expect(session.user_metadata.pendingInvitations.length).toEqual(0);
+
+                        done();
+                      }).catch(err => {
+                        done.fail(err);
+                      });
+                    });
+                }).catch(err => {
+                  done.fail(err);
+                });
+              });
+
               it('doesn\'t barf if the team doesn\'t exist', done => {
                 authenticatedSession
                   .delete('/team/333/invite')
@@ -1126,6 +1280,38 @@ describe('teamMembershipSpec', () => {
                         });
                       });
                     });
+                });
+
+                it('updates the user session data', done => {
+                  models.Session.findAll().then(results => {
+                    expect(results.length).toEqual(1);
+                    let session = JSON.parse(results[0].data).passport.user;
+                    expect(session.user_metadata.pendingInvitations).toBeUndefined();
+
+                    authenticatedSession
+                      .put(`/team/${teamId}/agent`)
+                      .send({
+                        email: registeredAgent.email.toUpperCase()
+                      })
+                      .set('Accept', 'application/json')
+                      .expect('Content-Type', /json/)
+                      .expect(201)
+                      .end((err, res) => {
+                        if (err) return done.fail(err);
+
+                        models.Session.findAll().then(results => {
+                          expect(results.length).toEqual(1);
+                          session = JSON.parse(results[0].data).passport.user;
+                          expect(session.user_metadata.pendingInvitations.length).toEqual(1);
+
+                          done();
+                        }).catch(err => {
+                          done.fail(err);
+                        });
+                      });
+                  }).catch(err => {
+                    done.fail(err);
+                  });
                 });
 
                 describe('Auth0', () => {
@@ -1370,6 +1556,49 @@ describe('teamMembershipSpec', () => {
                               });
                           });
 
+                          it('updates the user session data', done => {
+                            models.Session.findAll().then(results => {
+                              expect(results.length).toEqual(2);
+                              let session = JSON.parse(results[0].data).passport.user;
+                              if (session.email !== 'someotherguy@example.com') {
+                                session = JSON.parse(results[1].data).passport.user;
+                              }
+                              expect(session.email).toEqual('someotherguy@example.com');
+                              expect(session.user_metadata.rsvps.length).toEqual(1);
+                              expect(session.user_metadata.teams).toBeUndefined();
+
+                              invitedAgentSession
+                                .get(`${verificationUrl}/accept`)
+                                .set('Accept', 'application/json')
+                                .expect('Content-Type', /json/)
+                                .expect(201)
+                                .end((err, res) => {
+                                  if (err) return done.fail(err);
+
+                                  models.Session.findAll().then(results => {
+                                    expect(results.length).toEqual(2);
+                                    session = JSON.parse(results[0].data).passport.user;
+                                    if (session.email !== 'someotherguy@example.com') {
+                                      session = JSON.parse(results[1].data).passport.user;
+                                    }
+                                    expect(session.email).toEqual('someotherguy@example.com');
+
+                                    expect(session.user_metadata.rsvps.length).toEqual(0);
+                                    expect(session.user_metadata.teams.length).toEqual(1);
+                                    expect(session.user_metadata.teams[0].name).toEqual('The Calgary Roughnecks');
+                                    expect(session.user_metadata.teams[0].id).toEqual(teamId);
+                                    expect(session.user_metadata.teams[0].leader).toEqual('someguy@example.com');
+
+                                    done();
+                                  }).catch(err => {
+                                    done.fail(err);
+                                  });
+                                });
+                            }).catch(err => {
+                              done.fail(err);
+                            });
+                          });
+
                           it('doesn\'t barf if the team doesn\'t exist', done => {
                             invitedAgentSession
                               .get('/team/333/invite/accept')
@@ -1535,6 +1764,46 @@ describe('teamMembershipSpec', () => {
 
                                 done();
                               });
+                          });
+
+                          it('updates the user session data', done => {
+                            models.Session.findAll().then(results => {
+                              expect(results.length).toEqual(2);
+                              let session = JSON.parse(results[0].data).passport.user;
+                              if (session.email !== 'someotherguy@example.com') {
+                                session = JSON.parse(results[1].data).passport.user;
+                              }
+                              expect(session.email).toEqual('someotherguy@example.com');
+                              expect(session.user_metadata.rsvps.length).toEqual(1);
+                              expect(session.user_metadata.teams).toBeUndefined();
+
+                              invitedAgentSession
+                                .get(`${verificationUrl}/reject`)
+                                .set('Accept', 'application/json')
+                                .expect('Content-Type', /json/)
+                                .expect(201)
+                                .end((err, res) => {
+                                  if (err) return done.fail(err);
+
+                                  models.Session.findAll().then(results => {
+                                    expect(results.length).toEqual(2);
+                                    session = JSON.parse(results[0].data).passport.user;
+                                    if (session.email !== 'someotherguy@example.com') {
+                                      session = JSON.parse(results[1].data).passport.user;
+                                    }
+                                    expect(session.email).toEqual('someotherguy@example.com');
+
+                                    expect(session.user_metadata.rsvps.length).toEqual(0);
+                                    expect(session.user_metadata.teams.length).toEqual(0);
+
+                                    done();
+                                  }).catch(err => {
+                                    done.fail(err);
+                                  });
+                                });
+                            }).catch(err => {
+                              done.fail(err);
+                            });
                           });
 
                           it('doesn\'t barf if the team doesn\'t exist', done => {
@@ -1737,6 +2006,38 @@ describe('teamMembershipSpec', () => {
 
                       done();
                     });
+                });
+
+                it('updates the user session data', done => {
+                  models.Session.findAll().then(results => {
+                    expect(results.length).toEqual(1);
+                    let session = JSON.parse(results[0].data).passport.user;
+                    expect(session.user_metadata.pendingInvitations.length).toEqual(1);
+
+                    authenticatedSession
+                      .delete(verificationUrl)
+                      .send({
+                        email: registeredAgent.email
+                      })
+                      .set('Accept', 'application/json')
+                      .expect('Content-Type', /json/)
+                      .expect(201)
+                      .end((err, res) => {
+                        if (err) return done.fail(err);
+
+                        models.Session.findAll().then(results => {
+                          expect(results.length).toEqual(1);
+                          session = JSON.parse(results[0].data).passport.user;
+                          expect(session.user_metadata.pendingInvitations.length).toEqual(0);
+
+                          done();
+                        }).catch(err => {
+                          done.fail(err);
+                        });
+                      });
+                  }).catch(err => {
+                    done.fail(err);
+                  });
                 });
 
                 it('doesn\'t barf if the team doesn\'t exist', done => {
@@ -1986,6 +2287,46 @@ describe('teamMembershipSpec', () => {
                       done.fail(err);
                     });
                   });
+              });
+
+              it('updates the user session data', done => {
+                models.Session.findAll().then(results => {
+                  expect(results.length).toEqual(1);
+                  let session = JSON.parse(results[0].data).passport.user;
+                  expect(session.user_metadata.pendingInvitations).toBeUndefined();
+
+                  authenticatedSession
+                    .put(`/team/${teamId}/agent`)
+                    .send({
+                      email: 'somebrandnewguy@example.com'
+                    })
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(201)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+
+                      models.Session.findAll().then(results => {
+                        expect(results.length).toEqual(1);
+                        session = JSON.parse(results[0].data).passport.user;
+                        expect(session.user_metadata.pendingInvitations.length).toEqual(1);
+
+                        expect(session.user_metadata.pendingInvitations[0].type).toEqual('team');
+                        expect(session.user_metadata.pendingInvitations[0].uuid).toEqual(teamId);
+                        expect(session.user_metadata.pendingInvitations[0].recipient).toEqual('somebrandnewguy@example.com');
+                        expect(session.user_metadata.pendingInvitations[0].data.id).toEqual(teamId);
+                        expect(session.user_metadata.pendingInvitations[0].data.name).toEqual('The Calgary Roughnecks');
+                        expect(session.user_metadata.pendingInvitations[0].data.leader).toEqual('someguy@example.com');
+                        expect(session.user_metadata.pendingInvitations[0].data.organizationId).toEqual(organizationId);
+
+                        done();
+                      }).catch(err => {
+                        done.fail(err);
+                      });
+                    });
+                }).catch(err => {
+                  done.fail(err);
+                });
               });
 
               describe('Auth0', () => {
@@ -2285,6 +2626,51 @@ describe('teamMembershipSpec', () => {
                             });
                         });
 
+                        it('updates the user session data', done => {
+                          models.Session.findAll().then(results => {
+                            expect(results.length).toEqual(2);
+                            let session = JSON.parse(results[0].data).passport.user;
+                            if (session.email !== 'somebrandnewguy@example.com') {
+                              session = JSON.parse(results[1].data).passport.user;
+                            }
+                            expect(session.email).toEqual('somebrandnewguy@example.com');
+
+                            expect(session.user_metadata.rsvps.length).toEqual(1);
+                            expect(session.user_metadata.teams.length).toEqual(0);
+
+                            invitedAgentSession
+                              .get(`${verificationUrl}/accept`)
+                              .set('Accept', 'application/json')
+                              .expect('Content-Type', /json/)
+                              .expect(201)
+                              .end((err, res) => {
+                                if (err) return done.fail(err);
+
+                                models.Session.findAll().then(results => {
+                                  expect(results.length).toEqual(2);
+                                  session = JSON.parse(results[0].data).passport.user;
+                                  if (session.email !== 'somebrandnewguy@example.com') {
+                                    session = JSON.parse(results[1].data).passport.user;
+                                  }
+                                  expect(session.email).toEqual('somebrandnewguy@example.com');
+
+                                  expect(session.user_metadata.rsvps.length).toEqual(0);
+                                  expect(session.user_metadata.teams.length).toEqual(1);
+                                  expect(session.user_metadata.teams[0].name).toEqual('The Calgary Roughnecks');
+                                  expect(session.user_metadata.teams[0].id).toEqual(teamId);
+                                  expect(session.user_metadata.teams[0].leader).toEqual('someguy@example.com');
+                                  expect(session.user_metadata.teams[0].organizationId).toEqual(organizationId);
+
+                                  done();
+                                }).catch(err => {
+                                  done.fail(err);
+                                });
+                              });
+                          }).catch(err => {
+                            done.fail(err);
+                          });
+                        });
+
                         it('returns a friendly message if agent is already a member of the team', done => {
                           // Agent accepts invite
                           invitedAgentSession
@@ -2509,6 +2895,38 @@ describe('teamMembershipSpec', () => {
 
                     done();
                   });
+              });
+
+              it('updates the user session data', done => {
+                models.Session.findAll().then(results => {
+                  expect(results.length).toEqual(1);
+                  let session = JSON.parse(results[0].data).passport.user;
+                  expect(session.user_metadata.pendingInvitations.length).toEqual(1);
+
+                  authenticatedSession
+                    .delete(verificationUrl)
+                    .send({
+                      email: 'somebrandnewguy@example.com'
+                    })
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(201)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+
+                      models.Session.findAll().then(results => {
+                        expect(results.length).toEqual(1);
+                        session = JSON.parse(results[0].data).passport.user;
+                        expect(session.user_metadata.pendingInvitations.length).toEqual(0);
+
+                        done();
+                      }).catch(err => {
+                        done.fail(err);
+                      });
+                    });
+                }).catch(err => {
+                  done.fail(err);
+                });
               });
 
               it('doesn\'t barf if the team doesn\'t exist', done => {
@@ -2958,6 +3376,51 @@ describe('teamMembershipSpec', () => {
                               });
                           });
 
+                          it('updates the user session data', done => {
+                            models.Session.findAll().then(results => {
+                              expect(results.length).toEqual(2);
+                              let session = JSON.parse(results[0].data).passport.user;
+                              if (session.email !== registeredAgent.email) {
+                                session = JSON.parse(results[1].data).passport.user;
+                              }
+                              expect(session.email).toEqual(registeredAgent.email);
+                              expect(session.user_metadata.rsvps.length).toEqual(1);
+                              expect(session.user_metadata.teams).toBeUndefined(0);
+
+                              invitedAgentSession
+                                .get(`${verificationUrl}/accept`)
+                                .set('Accept', 'application/json')
+                                .expect('Content-Type', /json/)
+                                .expect(201)
+                                .end((err, res) => {
+                                  if (err) return done.fail(err);
+
+                                  models.Session.findAll().then(results => {
+                                    expect(results.length).toEqual(2);
+                                    session = JSON.parse(results[0].data).passport.user;
+                                    if (session.email !== registeredAgent.email) {
+                                      session = JSON.parse(results[1].data).passport.user;
+                                    }
+                                    expect(session.email).toEqual(registeredAgent.email);
+                                    expect(session.user_metadata.rsvps.length).toEqual(0);
+                                    expect(session.user_metadata.teams.length).toEqual(1);
+
+                                    expect(session.user_metadata.teams.length).toEqual(1);
+                                    expect(session.user_metadata.teams[0].name).toEqual('The Calgary Roughnecks');
+                                    expect(session.user_metadata.teams[0].id).toEqual(teamId);
+                                    expect(session.user_metadata.teams[0].leader).toEqual('someguy@example.com');
+                                    expect(session.user_metadata.teams[0].organizationId).toEqual(organizationId);
+
+                                    done();
+                                  }).catch(err => {
+                                    done.fail(err);
+                                  });
+                                });
+                            }).catch(err => {
+                              done.fail(err);
+                            });
+                          });
+
                           it('doesn\'t barf if the team doesn\'t exist', done => {
                             invitedAgentSession
                               .get('/team/333/invite/accept')
@@ -3123,6 +3586,45 @@ describe('teamMembershipSpec', () => {
 
                                 done();
                               });
+                          });
+
+                          it('updates the user session data', done => {
+                            models.Session.findAll().then(results => {
+                              expect(results.length).toEqual(2);
+                              let session = JSON.parse(results[0].data).passport.user;
+                              if (session.email !== registeredAgent.email) {
+                                session = JSON.parse(results[1].data).passport.user;
+                              }
+                              expect(session.email).toEqual(registeredAgent.email);
+                              expect(session.user_metadata.rsvps.length).toEqual(1);
+                              expect(session.user_metadata.teams).toBeUndefined();
+
+                              invitedAgentSession
+                                .get(`${verificationUrl}/reject`)
+                                .set('Accept', 'application/json')
+                                .expect('Content-Type', /json/)
+                                .expect(201)
+                                .end((err, res) => {
+                                  if (err) return done.fail(err);
+
+                                  models.Session.findAll().then(results => {
+                                    expect(results.length).toEqual(2);
+                                    session = JSON.parse(results[0].data).passport.user;
+                                    if (session.email !== registeredAgent.email) {
+                                      session = JSON.parse(results[1].data).passport.user;
+                                    }
+                                    expect(session.email).toEqual(registeredAgent.email);
+                                    expect(session.user_metadata.rsvps.length).toEqual(0);
+                                    expect(session.user_metadata.teams.length).toEqual(0);
+
+                                    done();
+                                  }).catch(err => {
+                                    done.fail(err);
+                                  });
+                                });
+                            }).catch(err => {
+                              done.fail(err);
+                            });
                           });
 
                           it('doesn\'t barf if the team doesn\'t exist', done => {
@@ -3325,6 +3827,38 @@ describe('teamMembershipSpec', () => {
 
                       done();
                     });
+                });
+
+                it('updates the user session data', done => {
+                  models.Session.findAll().then(results => {
+                    expect(results.length).toEqual(1);
+                    let session = JSON.parse(results[0].data).passport.user;
+                    expect(session.user_metadata.pendingInvitations.length).toEqual(1);
+
+                    authenticatedSession
+                      .delete(verificationUrl)
+                      .send({
+                        email: registeredAgent.email
+                      })
+                      .set('Accept', 'application/json')
+                      .expect('Content-Type', /json/)
+                      .expect(201)
+                      .end((err, res) => {
+                        if (err) return done.fail(err);
+
+                        models.Session.findAll().then(results => {
+                          expect(results.length).toEqual(1);
+                          session = JSON.parse(results[0].data).passport.user;
+                          expect(session.user_metadata.pendingInvitations.length).toEqual(0);
+
+                          done();
+                        }).catch(err => {
+                          done.fail(err);
+                        });
+                      });
+                  }).catch(err => {
+                    done.fail(err);
+                  });
                 });
 
                 it('doesn\'t barf if the team doesn\'t exist', done => {
@@ -3710,6 +4244,35 @@ describe('teamMembershipSpec', () => {
                 });
             });
 
+            it('updates the user session data', done => {
+              models.Session.findAll().then(results => {
+                expect(results.length).toEqual(1);
+                let session = JSON.parse(results[0].data).passport.user;
+                expect(session.user_metadata.rsvps.length).toEqual(1);
+
+                authenticatedSession
+                  .get(`${verificationUrl}/accept`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(404)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+
+                    models.Session.findAll().then(results => {
+                      expect(results.length).toEqual(1);
+                      session = JSON.parse(results[0].data).passport.user;
+                      expect(session.user_metadata.rsvps.length).toEqual(0);
+
+                      done();
+                    }).catch(err => {
+                      done.fail(err);
+                    });
+                  });
+              }).catch(err => {
+                done.fail(err);
+              });
+            });
+
             describe('Auth0', () => {
               it('is called to save the updated user_metadata', done => {
                 authenticatedSession
@@ -3744,6 +4307,35 @@ describe('teamMembershipSpec', () => {
                   expect(_profile.user_metadata.rsvps.length).toEqual(0);
                   done();
                 });
+            });
+
+            it('updates the user session data', done => {
+              models.Session.findAll().then(results => {
+                expect(results.length).toEqual(1);
+                let session = JSON.parse(results[0].data).passport.user;
+                expect(session.user_metadata.rsvps.length).toEqual(1);
+
+                authenticatedSession
+                  .get(`${verificationUrl}/reject`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(404)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+
+                    models.Session.findAll().then(results => {
+                      expect(results.length).toEqual(1);
+                      session = JSON.parse(results[0].data).passport.user;
+                      expect(session.user_metadata.rsvps.length).toEqual(0);
+
+                      done();
+                    }).catch(err => {
+                      done.fail(err);
+                    });
+                  });
+              }).catch(err => {
+                done.fail(err);
+              });
             });
 
             describe('Auth0', () => {
@@ -3813,6 +4405,38 @@ describe('teamMembershipSpec', () => {
                 });
             });
 
+            it('updates the user session data', done => {
+              models.Session.findAll().then(results => {
+                expect(results.length).toEqual(1);
+                let session = JSON.parse(results[0].data).passport.user;
+                expect(session.user_metadata.pendingInvitations.length).toEqual(1);
+
+                authenticatedSession
+                  .put(`/team/${teamId}/agent`)
+                  .send({
+                    email: 'somebrandnewguy@example.com'
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(404)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+
+                    models.Session.findAll().then(results => {
+                      expect(results.length).toEqual(1);
+                      session = JSON.parse(results[0].data).passport.user;
+                      expect(session.user_metadata.pendingInvitations.length).toEqual(0);
+
+                      done();
+                    }).catch(err => {
+                      done.fail(err);
+                    });
+                  });
+              }).catch(err => {
+                done.fail(err);
+              });
+            });
+
             describe('Auth0', () => {
               it('is called to save the updated user_metadata', done => {
                 authenticatedSession
@@ -3851,6 +4475,38 @@ describe('teamMembershipSpec', () => {
 
                   done();
                 });
+            });
+
+            it('updates the user session data', done => {
+              models.Session.findAll().then(results => {
+                expect(results.length).toEqual(1);
+                let session = JSON.parse(results[0].data).passport.user;
+                expect(session.user_metadata.pendingInvitations.length).toEqual(1);
+
+                authenticatedSession
+                  .delete(verificationUrl)
+                  .send({
+                    email: 'somebrandnewguy@example.com'
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(404)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+
+                    models.Session.findAll().then(results => {
+                      expect(results.length).toEqual(1);
+                      session = JSON.parse(results[0].data).passport.user;
+                      expect(session.user_metadata.pendingInvitations.length).toEqual(0);
+
+                      done();
+                    }).catch(err => {
+                      done.fail(err);
+                    });
+                  });
+              }).catch(err => {
+                done.fail(err);
+              });
             });
 
             describe('Auth0', () => {

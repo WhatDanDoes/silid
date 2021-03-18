@@ -14,7 +14,8 @@ const clientProxy = httpProxy.createProxyServer();
 let staticPath;
 if (
   process.env.NODE_ENV === 'production' ||
-  process.env.NODE_ENV === 'staging'
+  process.env.NODE_ENV === 'staging' ||
+  process.env.TEST_BUILD
 ) {
   staticPath = path.join(__dirname, '/../build');
 } else {
@@ -24,10 +25,10 @@ if (
 /**
  * Current end-to-end test configurations require the `react` build server to
  * be running. To avoid cors issues, this requires the client-side app to be
- * served up via proxy. In testing and production-like scenarios, the client
- * app is assembled for production and served from a static folder.
+ * served up via proxy. In production-like scenarios, the client app is
+ * assembled for production and served from the static folder.
  */
-if (process.env.NODE_ENV === 'e2e' || process.env.NODE_ENV === 'development') {
+if ((process.env.NODE_ENV === 'e2e' || process.env.NODE_ENV === 'development') && !process.env.TEST_BUILD) {
   /**
    * Send app to client if authenticated.
    * Render home otherwise
@@ -51,7 +52,8 @@ if (process.env.NODE_ENV === 'e2e' || process.env.NODE_ENV === 'development') {
 
     /**
      * Language data is not proxied. Neither is any static asset,
-     * for that matter...
+     * for that matter... (2021-3-1 Is this still true? I'm only checking
+     * for `jpg`s here. Check back later...)
      */
     if (/\/languages\/.+\.json/.test(req.path) || /jpg/.test(req.path)) {
       try {

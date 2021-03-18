@@ -40,7 +40,7 @@ module.exports = function(profile, done, options) {
        *
        * PATCH `/users`
        */
-      const userAppMetadataUpdateScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+      const userAppMetadataUpdateScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
         .log(console.log)
         .patch(/api\/v2\/users\/.+/)
         .reply(options.status, (uri, requestBody) => {

@@ -30,7 +30,7 @@ module.exports = function(done) {
        * Sample response taken from:
        * https://auth0.com/docs/api/management/v2?_ga=2.91635738.1600097788.1595507023-63924015.1587573995#!/Jobs/post_verification_email
        */
-      const emailVerificationScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+      const emailVerificationScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
         .log(console.log)
         .post('/api/v2/jobs/verification-email', {
             'user_id': /.+/i,

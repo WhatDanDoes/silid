@@ -22,7 +22,7 @@ const apiScope = require('../../config/apiPermissions');
  *
  * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
  */
-const _identity = require('../fixtures/sample-auth0-identity-token');
+const _identity = { ...require('../fixtures/sample-auth0-identity-token'), iss: `https://${process.env.AUTH0_CUSTOM_DOMAIN}/`};
 const _profile = require('../fixtures/sample-auth0-profile-response');
 
 describe('teamSpec', () => {
@@ -112,6 +112,38 @@ describe('teamSpec', () => {
                 expect(res.body.user_metadata.teams.length).toEqual(1);
                 done();
               });
+          });
+
+          it('updates the user session data', done => {
+            models.Session.findAll().then(results => {
+              expect(results.length).toEqual(1);
+              let session = JSON.parse(results[0].data).passport.user;
+              expect(session.user_metadata.teams).toBeUndefined();
+
+              authenticatedSession
+                .post('/team')
+                .send({
+                  name: 'The Mike Tyson Mystery Team'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  models.Session.findAll().then(results => {
+                    expect(results.length).toEqual(1);
+                    session = JSON.parse(results[0].data).passport.user;
+                    expect(session.user_metadata.teams.length).toEqual(1);
+
+                    done();
+                  }).catch(err => {
+                    done.fail(err);
+                  });
+                });
+            }).catch(err => {
+              done.fail(err);
+            });
           });
 
           describe('Auth0', () => {
@@ -715,6 +747,42 @@ describe('teamSpec', () => {
             });
           });
 
+          it('updates the user session data', done => {
+            models.Session.findAll().then(results => {
+              expect(results.length).toEqual(1);
+              let session = JSON.parse(results[0].data).passport.user;
+              expect(session.user_metadata.teams.length).toEqual(2);
+              expect(session.user_metadata.teams[0].name).toEqual('Vancouver Warriors');
+              expect(session.user_metadata.teams[1].name).toEqual('Georgia Swarm');
+
+              authenticatedSession
+                .put(`/team/${teamId}`)
+                .send({
+                  name: 'Vancouver Riot'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  models.Session.findAll().then(results => {
+                    expect(results.length).toEqual(1);
+                    session = JSON.parse(results[0].data).passport.user;
+                    expect(session.user_metadata.teams.length).toEqual(2);
+                    expect(session.user_metadata.teams[0].name).toEqual('Vancouver Riot');
+                    expect(session.user_metadata.teams[1].name).toEqual('Georgia Swarm');
+
+                    done();
+                  }).catch(err => {
+                    done.fail(err);
+                  });
+                });
+            }).catch(err => {
+              done.fail(err);
+            });
+          });
+
           it('returns an error if empty team name provided', done => {
             authenticatedSession
               .put(`/team/${teamId}`)
@@ -919,6 +987,41 @@ describe('teamSpec', () => {
                 });
             });
 
+            it('updates the user session data', done => {
+              models.Session.findAll().then(results => {
+                expect(results.length).toEqual(1);
+                let session = JSON.parse(results[0].data).passport.user;
+                expect(session.user_metadata.pendingInvitations.length).toEqual(2);
+                expect(session.user_metadata.pendingInvitations[0].name).toEqual('Vancouver Riot');
+                expect(session.user_metadata.pendingInvitations[1].name).toEqual('Vancouver Riot');
+
+                authenticatedSession
+                  .put(`/team/${teamId}`)
+                  .send({
+                    name: 'Vancouver Warriors'
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+
+                    models.Session.findAll().then(results => {
+                      expect(results.length).toEqual(1);
+                      session = JSON.parse(results[0].data).passport.user;
+                      expect(session.user_metadata.pendingInvitations.length).toEqual(2);
+                      expect(session.user_metadata.pendingInvitations[0].name).toEqual('Vancouver Warriors');
+                      expect(session.user_metadata.pendingInvitations[1].name).toEqual('Vancouver Warriors');
+
+                      done();
+                    }).catch(err => {
+                      done.fail(err);
+                    });
+                  });
+              }).catch(err => {
+                done.fail(err);
+              });
+            });
 
             it('overwrites existing update records to update team info on next login', done => {
               models.Update.findAll().then(updates => {
@@ -1172,6 +1275,47 @@ describe('teamSpec', () => {
             });
           });
 
+          it('updates the user session data', done => {
+            models.Session.findAll().then(results => {
+              expect(results.length).toEqual(1);
+              let session = JSON.parse(results[0].data).passport.user;
+
+              expect(session.user_metadata.pendingInvitations.length).toEqual(2);
+              expect(session.user_metadata.pendingInvitations[0].name).toEqual('Vancouver Warriors');
+              expect(session.user_metadata.pendingInvitations[0].organizationId).toEqual(organizationId);
+              expect(session.user_metadata.pendingInvitations[1].name).toEqual('Vancouver Warriors');
+              expect(session.user_metadata.pendingInvitations[1].organizationId).toEqual(organizationId);
+
+              authenticatedSession
+                .put(`/team/${teamId}`)
+                .send({
+                  name: 'Vancouver Riot'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  models.Session.findAll().then(results => {
+                    expect(results.length).toEqual(1);
+                    session = JSON.parse(results[0].data).passport.user;
+                    expect(session.user_metadata.pendingInvitations.length).toEqual(2);
+                    expect(session.user_metadata.pendingInvitations[0].name).toEqual('Vancouver Riot');
+                    expect(session.user_metadata.pendingInvitations[0].organizationId).toEqual(organizationId);
+                    expect(session.user_metadata.pendingInvitations[1].name).toEqual('Vancouver Riot');
+                    expect(session.user_metadata.pendingInvitations[1].organizationId).toEqual(organizationId);
+
+                    done();
+                  }).catch(err => {
+                    done.fail(err);
+                  });
+                });
+            }).catch(err => {
+              done.fail(err);
+            });
+          });
+
           it('returns an error if empty team name provided', done => {
             authenticatedSession
               .put(`/team/${teamId}`)
@@ -1259,7 +1403,6 @@ describe('teamSpec', () => {
                   done();
                 });
             });
-
 
             it('is called to update the agent user_metadata', done => {
               authenticatedSession
@@ -1376,6 +1519,61 @@ describe('teamSpec', () => {
                 });
             });
 
+            it('updates the user session data', done => {
+              models.Session.findAll().then(results => {
+                expect(results.length).toEqual(1);
+                let session = JSON.parse(results[0].data).passport.user;
+
+                expect(session.user_metadata.pendingInvitations.length).toEqual(2);
+                expect(session.user_metadata.pendingInvitations[0].name).toEqual('Vancouver Riot');
+                expect(session.user_metadata.pendingInvitations[0].uuid).toEqual(teamId);
+                expect(session.user_metadata.pendingInvitations[0].recipient).toEqual('someotherguy@example.com');
+                expect(session.user_metadata.pendingInvitations[0].type).toEqual('team');
+                expect(session.user_metadata.pendingInvitations[0].organizationId).toEqual(organizationId);
+
+                expect(session.user_metadata.pendingInvitations[1].name).toEqual('Vancouver Riot');
+                expect(session.user_metadata.pendingInvitations[1].uuid).toEqual(teamId);
+                expect(session.user_metadata.pendingInvitations[1].recipient).toEqual('anotherteamplayer@example.com');
+                expect(session.user_metadata.pendingInvitations[1].type).toEqual('team');
+                expect(session.user_metadata.pendingInvitations[1].organizationId).toEqual(organizationId);
+
+                authenticatedSession
+                  .put(`/team/${teamId}`)
+                  .send({
+                    name: 'Vancouver Warriors'
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+
+                    models.Session.findAll().then(results => {
+                      expect(results.length).toEqual(1);
+                      session = JSON.parse(results[0].data).passport.user;
+
+                      expect(session.user_metadata.pendingInvitations.length).toEqual(2);
+                      expect(session.user_metadata.pendingInvitations[0].name).toEqual('Vancouver Warriors');
+                      expect(session.user_metadata.pendingInvitations[0].uuid).toEqual(teamId);
+                      expect(session.user_metadata.pendingInvitations[0].recipient).toEqual('someotherguy@example.com');
+                      expect(session.user_metadata.pendingInvitations[0].type).toEqual('team');
+                      expect(session.user_metadata.pendingInvitations[0].organizationId).toEqual(organizationId);
+
+                      expect(session.user_metadata.pendingInvitations[1].name).toEqual('Vancouver Warriors');
+                      expect(session.user_metadata.pendingInvitations[1].uuid).toEqual(teamId);
+                      expect(session.user_metadata.pendingInvitations[1].recipient).toEqual('anotherteamplayer@example.com');
+                      expect(session.user_metadata.pendingInvitations[1].type).toEqual('team');
+                      expect(session.user_metadata.pendingInvitations[1].organizationId).toEqual(organizationId);
+
+                      done();
+                    }).catch(err => {
+                      done.fail(err);
+                    });
+                  });
+              }).catch(err => {
+                done.fail(err);
+              });
+            });
 
             it('overwrites existing update records to update team info on next login', done => {
               models.Update.findAll().then(updates => {
@@ -1512,7 +1710,6 @@ describe('teamSpec', () => {
             if (err) return done.fail();
 
             login(_identity, [scope.delete.teams], (err, session) => {
-
               if (err) return done.fail(err);
               authenticatedSession = session;
 
@@ -1550,6 +1747,35 @@ describe('teamSpec', () => {
                 expect(res.body.agent.user_metadata.teams.length).toEqual(1);
                 done();
               });
+          });
+
+          it('updates the user session data', done => {
+            models.Session.findAll().then(results => {
+              expect(results.length).toEqual(1);
+              let session = JSON.parse(results[0].data).passport.user;
+              expect(session.user_metadata.teams.length).toEqual(2);
+
+              authenticatedSession
+                .delete(`/team/${teamId}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  models.Session.findAll().then(results => {
+                    expect(results.length).toEqual(1);
+                    session = JSON.parse(results[0].data).passport.user;
+                    expect(session.user_metadata.teams.length).toEqual(1);
+
+                    done();
+                  }).catch(err => {
+                    done.fail(err);
+                  });
+                });
+            }).catch(err => {
+              done.fail(err);
+            });
           });
 
           it('does not remove the team if it still has member agents', done => {

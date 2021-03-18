@@ -52,7 +52,7 @@ if (process.env.NODE_ENV === 'e2e') {
  *
  * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
  */
-const _identity = require('../fixtures/sample-auth0-identity-token');
+const _identity = { ...require('../fixtures/sample-auth0-identity-token'), iss: `https://${process.env.AUTH0_CUSTOM_DOMAIN}/`};
 const _access = require('../fixtures/sample-auth0-access-token');
 const _profile = require('../fixtures/sample-auth0-profile-response');
 
@@ -155,7 +155,7 @@ require('../support/setupKeystore').then(keyStuff => {
           _agentIdToken = {...request.payload.token,
                              aud: process.env.AUTH0_CLIENT_ID,
                              sub: agent.socialProfile.user_id,
-                             iss: `https://${process.env.AUTH0_DOMAIN}/`,
+                             iss: `https://${process.env.AUTH0_CUSTOM_DOMAIN}/`,
                              iat: Math.floor(Date.now() / 1000) - (60 * 60)};
 
           _permissions = request.payload.permissions.length ? request.payload.permissions : [];
@@ -253,7 +253,7 @@ require('../support/setupKeystore').then(keyStuff => {
             signedIdToken = jwt.sign({..._identity,
                                          aud: process.env.AUTH0_CLIENT_ID,
                                          iat: Math.floor(Date.now() / 1000) - (60 * 60),
-                                         iss: `https://${process.env.AUTH0_DOMAIN}/`,
+                                         iss: `https://${process.env.AUTH0_CUSTOM_DOMAIN}/`,
                                          nonce: _identityDb[request.payload.code] ? _identityDb[request.payload.code].idToken.nonce : _nonce},
                                      prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
 

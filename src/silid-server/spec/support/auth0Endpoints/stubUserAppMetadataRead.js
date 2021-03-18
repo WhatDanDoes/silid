@@ -45,7 +45,7 @@ module.exports = function(profile, done, options) {
       /**
        * GET `/users/:id`. Get a single user by Auth0 ID
        */
-      const userAppMetadataReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+      const userAppMetadataReadScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
         .log(console.log)
         .get(/api\/v2\/users\/.+/)
         .query({})
