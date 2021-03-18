@@ -69,7 +69,7 @@ context('viewer/Agent Index', () => {
           cy.get('h3').contains('Profile');
           cy.get('#profile-table table tbody tr th').contains('Name:');
           cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', this.profile.name);
-          cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
 
           cy.get('#profile-table table tbody tr th').contains('Email:');
           cy.get('#profile-table table tbody tr td').contains(this.profile.email);
