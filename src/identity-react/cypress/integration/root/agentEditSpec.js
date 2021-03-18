@@ -1153,7 +1153,7 @@ context('root/Agent edit', function() {
               });
             });
 
-            describe.only('for Auth0-registered root agent', () => {
+            describe('for Auth0-registered root agent', () => {
               beforeEach(() => {
                 cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
 
@@ -1334,7 +1334,7 @@ context('root/Agent edit', function() {
                * All-fields-update in lieu of individual fields as in the `viewer` tests
                */
               describe('all field update', () => {
-                describe.only('successfully makes changes', () => {
+                describe('successfully makes changes', () => {
                   beforeEach(() => {
                     // Toggle accordion
                     cy.get('#name-components-accordion #expand-name-components').click();
@@ -1379,16 +1379,12 @@ context('root/Agent edit', function() {
 
                   it('changes the agent\'s record', () => {
                     cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
-cy.log('results');
-cy.log(JSON.stringify(results));
                       expect(results.length).to.eq(1);
                       expect(results[0].socialProfile.name).to.eq('Professor Fresh');;
                       expect(results[0].socialProfile.user_metadata.phone_number).to.be.undefined;
                       cy.get('button#save-agent').click();
+                      cy.wait(300);
                       cy.task('query', `SELECT * FROM "Agents";`).then(([results, metadata]) => {
-cy.log('after');
-cy.log(JSON.stringify(results));
-
                         expect(results.length).to.eq(1);
                         expect(results[0].socialProfile.family_name).to.eq('Groovy Cat');
                         expect(results[0].socialProfile.given_name).to.eq('Some');
