@@ -71,7 +71,7 @@ context('root/Agent show', function() {
             cy.get('h3').contains('Profile');
             cy.get('#profile-table table tbody tr th').contains('Name:');
             cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', memberAgent.socialProfile.name);
-            cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
+            cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
 
             cy.get('#profile-table table tbody tr th').contains('Email:');
             cy.get('#profile-table table tbody tr td').contains(memberAgent.socialProfile.email);
@@ -187,7 +187,7 @@ context('root/Agent show', function() {
             cy.get('h3').contains('Profile');
             cy.get('#profile-table table tbody tr th').contains('Name:');
             cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', root.socialProfile.name);
-            cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
+            cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
 
             cy.get('#profile-table table tbody tr th').contains('Email:');
             cy.get('#profile-table table tbody tr td').contains(root.socialProfile.email);
@@ -414,7 +414,7 @@ context('root/Agent show', function() {
           cy.get('h3').contains('Profile');
           cy.get('#profile-table table tbody tr th').contains('Name:');
           cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', root.socialProfile.name);
-          cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
 
           cy.get('#profile-table table tbody tr th').contains('Email:');
           cy.get('#profile-table table tbody tr td').contains(root.socialProfile.email);

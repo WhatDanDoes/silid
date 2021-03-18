@@ -113,6 +113,7 @@ const Agent = (props) => {
   const [flashProps, setFlashProps] = useState({});
   const [isWaiting, setIsWaiting] = useState(false);
   const [unassignedRoles, setUnassignedRoles] = useState([]);
+  const [isIdpAuthenticated, setIsIdpAuthenticated] = React.useState(true);
 
   const admin = useAdminState();
   const {agent} = useAuthState();
@@ -132,6 +133,7 @@ const Agent = (props) => {
       }
       else {
         setProfileData(service.payload);
+        setIsIdpAuthenticated(!/^auth0\|*/.test(service.payload.user_id));
       }
     }
   }, [service]);
@@ -294,7 +296,7 @@ const Agent = (props) => {
                           >
                             <input id='agent-name-field'
                               value={profileData.name || ''}
-                              disabled={!profileData.email_verified || (agent.email !== profileData.email && !admin.isEnabled)}
+                              disabled={!profileData.email_verified || isIdpAuthenticated || (agent.email !== profileData.email && !admin.isEnabled)}
                               onClick={(event) => event.stopPropagation()}
                               onFocus={(event) => event.stopPropagation()}
                               onChange={e => {
@@ -310,7 +312,7 @@ const Agent = (props) => {
                               <FormControl>
                                 <InputLabel htmlFor='component-simple'><FormattedMessage id='Family name' /></InputLabel>
                                 <Input id='agent-family-name-field'
-                                  disabled={!profileData.email_verified || (agent.email !== profileData.email && !admin.isEnabled)}
+                                  disabled={!profileData.email_verified || isIdpAuthenticated || (agent.email !== profileData.email && !admin.isEnabled)}
                                   value={profileData.family_name || ''}
                                   onChange={e => {
                                       if (!prevAgentInputState.family_name) {
@@ -323,7 +325,7 @@ const Agent = (props) => {
                               <FormControl>
                                 <InputLabel htmlFor='component-simple'><FormattedMessage id='Given name' /></InputLabel>
                                 <Input id='agent-given-name-field'
-                                  disabled={!profileData.email_verified || (agent.email !== profileData.email && !admin.isEnabled)}
+                                  disabled={!profileData.email_verified || isIdpAuthenticated || (agent.email !== profileData.email && !admin.isEnabled)}
                                   value={profileData.given_name || ''}
                                   onChange={e => {
                                       if (!prevAgentInputState.given_name) {
@@ -336,7 +338,7 @@ const Agent = (props) => {
                               <FormControl>
                                 <InputLabel htmlFor='component-simple'><FormattedMessage id='Nickname' /></InputLabel>
                                 <Input id='agent-nickname-field'
-                                  disabled={!profileData.email_verified || (agent.email !== profileData.email && !admin.isEnabled)}
+                                  disabled={!profileData.email_verified || isIdpAuthenticated || (agent.email !== profileData.email && !admin.isEnabled)}
                                   value={profileData.nickname || ''}
                                   onChange={e => {
                                       if (!prevAgentInputState.nickname) {
