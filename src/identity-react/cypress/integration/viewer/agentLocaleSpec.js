@@ -33,7 +33,7 @@ context('viewer/Agent locale', function() {
           cy.get('h3').contains('Profile');
           cy.get('#profile-table table tbody tr th').contains('Name:');
           cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
-          cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
 
           cy.get('#profile-table table tbody tr th').contains('Email:');
           cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.email);
@@ -107,7 +107,7 @@ context('viewer/Agent locale', function() {
               // Name
               cy.get('#profile-table table tbody tr th').contains('Pong:');
               cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
-              cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
+              cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
 
               // Email
               cy.get('#profile-table table tbody tr th').contains('De\'wI\' QIn:');
@@ -221,7 +221,7 @@ context('viewer/Agent locale', function() {
               cy.get('h3').contains('Profile');
               cy.get('#profile-table table tbody tr th').contains('Name:');
               cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
-              cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
+              cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
 
               cy.get('#profile-table table tbody tr th').contains('Email:');
               cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.email);
