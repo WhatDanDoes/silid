@@ -255,7 +255,7 @@ user_metadata: {
 }
 ```
 
-## Conclusion
+## Summary
 
 This document provides an overview of Identity agent roles and the impact they have on Auth0-supported `user_metadata`. You can inspect your own normalized profile data and the impact of viewer operations in the Identity app itself (expand _Social Data_ at the bottom of the landing screen).
 
