@@ -4,7 +4,7 @@ One of Auth0's critical core offerings is the [normalization](https://auth0.com/
 
 It is through this _profile customization_ that the Identity application enables the creation and management of _Organizations_, _Teams_, and the agent memberships therein.
 
-This document will soon be accompanied by a [formal schema definition](https://json-schema.org/) so that the custom data can be validated by a consuming client application.
+This document is accompanied by a [formal schema definition](https://json-schema.org/). It was inferred using [this tool](https://www.liquid-technologies.com/online-json-to-schema-converter) and can be obtained [here](schema.json).
 
 ## The Normalized Auth0 Profile
 

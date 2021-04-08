@@ -1,0 +1,784 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "created_at": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "email_verified": {
+      "type": "boolean"
+    },
+    "family_name": {
+      "type": "string"
+    },
+    "given_name": {
+      "type": "string"
+    },
+    "identities": {
+      "type": "array",
+      "items": [
+        {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string"
+            },
+            "user_id": {
+              "type": "string"
+            },
+            "connection": {
+              "type": "string"
+            },
+            "isSocial": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "provider",
+            "user_id",
+            "connection",
+            "isSocial"
+          ]
+        }
+      ]
+    },
+    "locale": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "nickname": {
+      "type": "string"
+    },
+    "picture": {
+      "type": "string"
+    },
+    "updated_at": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "user_metadata": {
+      "type": "object",
+      "properties": {
+        "favorite_fish": {
+          "type": "string"
+        },
+        "teams": {
+          "type": "array",
+          "items": [
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "leader": {
+                  "type": "string"
+                },
+                "tableData": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "leader",
+                "tableData"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "leader": {
+                  "type": "string"
+                },
+                "tableData": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "leader",
+                "tableData"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "leader": {
+                  "type": "string"
+                },
+                "tableData": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "leader",
+                "tableData"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "leader": {
+                  "type": "string"
+                },
+                "tableData": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "leader",
+                "tableData"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "leader": {
+                  "type": "string"
+                },
+                "organizationId": {
+                  "type": "string"
+                },
+                "tableData": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "leader",
+                "organizationId",
+                "tableData"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "leader": {
+                  "type": "string"
+                },
+                "organizationId": {
+                  "type": "string"
+                },
+                "tableData": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "leader",
+                "organizationId",
+                "tableData"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "leader": {
+                  "type": "string"
+                },
+                "organizationId": {
+                  "type": "string"
+                },
+                "tableData": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "leader",
+                "organizationId",
+                "tableData"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "leader": {
+                  "type": "string"
+                },
+                "organizationId": {
+                  "type": "string"
+                },
+                "tableData": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "leader",
+                "organizationId",
+                "tableData"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "leader": {
+                  "type": "string"
+                },
+                "organizationId": {
+                  "type": "string"
+                },
+                "tableData": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "leader",
+                "organizationId",
+                "tableData"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "leader": {
+                  "type": "string"
+                },
+                "organizationId": {
+                  "type": "string"
+                },
+                "tableData": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "leader",
+                "organizationId",
+                "tableData"
+              ]
+            }
+          ]
+        },
+        "rsvps": {
+          "type": "array",
+          "items": [
+            {
+              "type": "object",
+              "properties": {
+                "uuid": {
+                  "type": "string"
+                },
+                "recipient": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "leader": {
+                      "type": "string"
+                    },
+                    "organizationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "id",
+                    "leader",
+                    "organizationId"
+                  ]
+                },
+                "tableData": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              "required": [
+                "uuid",
+                "recipient",
+                "type",
+                "data",
+                "tableData"
+              ]
+            }
+          ]
+        },
+        "isSuper": {
+          "type": "boolean"
+        },
+        "pendingInvitations": {
+          "type": "array",
+          "items": [
+            {
+              "type": "object",
+              "properties": {
+                "uuid": {
+                  "type": "string"
+                },
+                "recipient": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "leader": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "id",
+                    "leader"
+                  ]
+                }
+              },
+              "required": [
+                "uuid",
+                "recipient",
+                "type",
+                "data"
+              ]
+            }
+          ]
+        },
+        "organizations": {
+          "type": "array",
+          "items": [
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "organizer": {
+                  "type": "string"
+                },
+                "tableData": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "organizer",
+                "tableData"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "organizer": {
+                  "type": "string"
+                },
+                "tableData": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "organizer",
+                "tableData"
+              ]
+            }
+          ]
+        },
+        "silLocale": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "iso6393": {
+              "type": "string"
+            },
+            "iso6392B": {
+              "type": "string"
+            },
+            "iso6392T": {
+              "type": "string"
+            },
+            "iso6391": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "type",
+            "scope",
+            "iso6393",
+            "iso6392B",
+            "iso6392T",
+            "iso6391"
+          ]
+        },
+        "zoneinfo": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "country": {
+              "type": "string"
+            },
+            "utcOffset": {
+              "type": "integer"
+            },
+            "utcOffsetStr": {
+              "type": "string"
+            },
+            "dstOffset": {
+              "type": "integer"
+            },
+            "dstOffsetStr": {
+              "type": "string"
+            },
+            "aliasOf": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "country",
+            "utcOffset",
+            "utcOffsetStr",
+            "dstOffset",
+            "dstOffsetStr",
+            "aliasOf"
+          ]
+        },
+        "phone_number": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "favorite_fish",
+        "teams",
+        "rsvps",
+        "isSuper",
+        "pendingInvitations",
+        "organizations",
+        "silLocale",
+        "zoneinfo",
+        "phone_number"
+      ]
+    },
+    "last_ip": {
+      "type": "string"
+    },
+    "last_login": {
+      "type": "string"
+    },
+    "logins_count": {
+      "type": "integer"
+    },
+    "scope": {
+      "type": "array",
+      "items": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "roles": {
+      "type": "array",
+      "items": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "description"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "description"
+          ]
+        }
+      ]
+    },
+    "isSuper": {
+      "type": "boolean"
+    },
+    "isOrganizer": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "created_at",
+    "email",
+    "email_verified",
+    "family_name",
+    "given_name",
+    "identities",
+    "locale",
+    "name",
+    "nickname",
+    "picture",
+    "updated_at",
+    "user_id",
+    "user_metadata",
+    "last_ip",
+    "last_login",
+    "logins_count",
+    "scope",
+    "roles",
+    "isSuper",
+    "isOrganizer"
+  ]
+}
