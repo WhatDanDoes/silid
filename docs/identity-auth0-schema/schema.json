@@ -66,9 +66,6 @@
     "user_metadata": {
       "type": "object",
       "properties": {
-        "favorite_fish": {
-          "type": "string"
-        },
         "teams": {
           "type": "array",
           "items": [
@@ -657,7 +654,6 @@
         }
       },
       "required": [
-        "favorite_fish",
         "teams",
         "rsvps",
         "isSuper",
