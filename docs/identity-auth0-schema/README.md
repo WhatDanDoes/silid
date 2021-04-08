@@ -8,7 +8,7 @@ This document will soon be accompanied by a [formal schema definition](https://j
 
 ## The Normalized Auth0 Profile
 
-[Source documentation](https://auth0.com/docs/users/normalized-user-profiles). This sample profile is provided here for illustrative purposes.
+[Source documentation](https://auth0.com/docs/users/normalized-user-profiles). This is a normalized sample profile:
 
 ```
 {
@@ -61,12 +61,11 @@ Certain data, [though paired with standard OICD claims](https://openid.net/specs
 - Timezone (AKA, _zoneinfo_)
 - Phone number
 
-At Auth0, `phone_number` is only relevant for SMS users. As such, and though it is part of the agent profile, it is slotted into `user_metadata`. _Locale_ is delivered as part of a normalized profile, but only as two-character locale short codes. Timezone is not provided by Auth0.
+At Auth0, `phone_number` is only relevant for SMS users. As such, and though it is part of the agent profile, it is slotted into `user_metadata`. _Locale_ is delivered as part of a normalized profile, but only as two-character locale shortcodes. Timezone is not provided by Auth0.
 
 #### Locale
 
-
-Setting the timezone changes the `user_metadata` as follows:
+Setting the SIL Locale preference changes the `user_metadata` as follows:
 
 ```
 user_metadata: {
@@ -138,7 +137,7 @@ user_metadata: {
 
 A viewer agent can create _teams_ and invite other agents to join.
 
-Creating a team:
+Creating a team produces this change:
 
 ```
 user_metadata: {
