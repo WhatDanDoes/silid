@@ -1136,6 +1136,14 @@ describe('authSpec', () => {
     });
 
     describe('with valid token', () => {
+      let userInfoScope, oauthTokenScope,
+          rolesReadScope, rolesReadOauthTokenScope,
+          userReadScope, userReadOauthTokenScope,
+          userRolesReadScope, userRolesReadOauthTokenScope,
+          userAssignRolesScope, userAssignRolesOauthTokenScope,
+          secondUserReadScope, secondUserReadOauthTokenScope,
+          secondUserRolesReadScope, secondUserRolesReadOauthTokenScope;
+
       beforeEach(done => {
         /**
          * `/userinfo` mock
@@ -1147,7 +1155,7 @@ describe('authSpec', () => {
 
         stubOauthToken([apiScope.read.users], (err, apiScopes) => {
           if (err) return done.fail(err);
-          ({oauthTokenScope, oauthTokenScope} = apiScopes);
+          ({oauthTokenScope} = apiScopes);
 
           stubRolesRead((err, apiScopes) => {
             if (err) return done.fail(err);
@@ -1168,12 +1176,12 @@ describe('authSpec', () => {
 
                   stubUserRead((err, apiScopes) => {
                     if (err) return done.fail(err);
-                    ({userReadScope, userReadOauthTokenScope} = apiScopes);
+                    ({userReadScope: secondUserReadScope, userReadOauthTokenScope: secondUserReadOauthTokenScope} = apiScopes);
 
                     // Retrieve the roles to which this agent is assigned
                     stubUserRolesRead((err, apiScopes) => {
                       if (err) return done.fail(err);
-                      ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+                      ({userRolesReadScope: secondUserRolesReadScope, userRolesReadOauthTokenScope: secondUserRolesReadOauthTokenScope} = apiScopes);
 
                       done();
                     });
@@ -1216,6 +1224,25 @@ describe('authSpec', () => {
             if (err) return done.fail(err);
             expect(userInfoScope.isDone()).toBe(true);
             expect(oauthTokenScope.isDone()).toBe(true);
+
+            expect(rolesReadScope.isDone()).toBe(true);
+            expect(rolesReadOauthTokenScope.isDone()).toBe(true);
+
+            expect(userReadScope.isDone()).toBe(true);
+            expect(userReadOauthTokenScope.isDone()).toBe(false);
+
+            expect(userRolesReadScope.isDone()).toBe(true);
+            expect(userRolesReadOauthTokenScope.isDone()).toBe(true);
+
+            expect(userRolesReadScope.isDone()).toBe(true);
+            expect(userAssignRolesOauthTokenScope.isDone()).toBe(false);
+
+            expect(secondUserReadScope.isDone()).toBe(true);
+            expect(secondUserReadOauthTokenScope.isDone()).toBe(false);
+
+            expect(secondUserRolesReadScope.isDone()).toBe(true);
+            expect(secondUserRolesReadOauthTokenScope.isDone()).toBe(false);
+
             done();
           });
       });
