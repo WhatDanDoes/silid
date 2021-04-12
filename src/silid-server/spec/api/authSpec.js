@@ -280,7 +280,7 @@ describe('authSpec', () => {
         .expect(302)
         .end(function(err, res) {
           if (err) return done.fail(err);
-          userInfoScope.done();
+          expect(userInfoScope.isDone()).toBe(true);
           done();
         });
     });
@@ -1047,6 +1047,125 @@ describe('authSpec', () => {
             });
           });
         });
+      });
+    });
+  });
+
+  describe('Bearer token API access', () => {
+    let userInfoScope;
+
+    describe('with no token', () => {
+      beforeEach(() => {
+        /**
+         * `/userinfo` mock
+         */
+        userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+          .log(console.log)
+          .get(/userinfo/)
+          .reply(200, _identity);
+      });
+
+      it('return 401 error with message', done => {
+        request(app)
+          .get('/agent')
+          .set('Accept', 'application/json')
+          .expect(401)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(res.body.message).toEqual('Token could not be validated');
+            done();
+          });
+      });
+
+      it('does not call Auth0 /userinfo', done => {
+        request(app)
+          .get('/agent')
+          .set('Accept', 'application/json')
+          .expect(401)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(userInfoScope.isDone()).toBe(false);
+            done();
+          });
+      });
+    });
+
+    describe('with invalid token', () => {
+
+      // `silid-server` doesn't do any validation. Validation is left to Auth0
+      // when passing the provided token to the `GET /userinfo` endpoint
+      beforeEach(() => {
+        /**
+         * `/userinfo` mock
+         */
+        userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+          .log(console.log)
+          .get(/userinfo/)
+          .reply(403, _identity);
+      });
+
+      it('return 403 error with message', done => {
+        request(app)
+          .get('/agent')
+          .set('Accept', 'application/json')
+          .set('Authorization', 'Bearer some-made-up-bearer-token')
+          .expect(403)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(res.body.message).toEqual('Token could not be validated');
+            done();
+          });
+      });
+
+      it('calls Auth0 /userinfo', done => {
+        request(app)
+          .get('/agent')
+          .set('Accept', 'application/json')
+          .set('Authorization', 'Bearer some-made-up-bearer-token')
+          .expect(403)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(userInfoScope.isDone()).toBe(true);
+            done();
+          });
+      });
+    });
+
+    describe('with valid token', () => {
+      beforeEach(() => {
+        /**
+         * `/userinfo` mock
+         */
+        userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+          .log(console.log)
+          .get(/userinfo/)
+          .reply(200, _identity);
+      });
+
+      it('allows access to the requested resource', done => {
+        request(app)
+          .get('/agent')
+          .set('Accept', 'application/json')
+          .set('Authorization', 'Bearer some-made-up-bearer-token')
+          .expect(200)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(req.body).toEqual(_profile);
+            done();
+          });
+      });
+
+      it('calls Auth0 /userinfo', done => {
+        request(app)
+          .get('/agent')
+          .set('Accept', 'application/json')
+          .set('Authorization', 'Bearer some-made-up-bearer-token')
+          .expect(200)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(userInfoScope.isDone()).toBe(true);
+            done();
+          });
       });
     });
   });
