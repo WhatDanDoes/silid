@@ -218,7 +218,7 @@ user_metadata: {
 
 ### Organizer Role
 
-An organizer agent can create _organizations and invite _teams_ to join.
+An organizer agent can create _organizations_ and invite _teams_ to join.
 
 Creating a organization:
 
