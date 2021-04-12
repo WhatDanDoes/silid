@@ -1181,15 +1181,27 @@ describe('authSpec', () => {
           secondUserReadScope, secondUserReadOauthTokenScope,
           secondUserRolesReadScope, secondUserRolesReadOauthTokenScope;
 
+      /**
+       * 2021-4-12
+       *
+       * The following test prove and document the Auth0 endpoints hit when a
+       * client comes bearing a `Bearer` `Authorization` token.
+       */
       beforeEach(done => {
         /**
          * `/userinfo` mock
+         *
+         * I'm leaving it to Auth0 to validate the `Bearer` `Authorization`
+         * token. This happens when I request `GET /userinfo`.
          */
         userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
           .log(console.log)
           .get(/userinfo/)
           .reply(200, _identity);
 
+        // Immediately upon token verification (i.e., a successful return from
+        // `GET /userinfo`, Identity retrieves the agent\'s roles and
+        // `user_metadata`
         stubRolesRead((err, apiScopes) => {
           if (err) return done.fail(err);
           ({rolesReadScope, rolesReadOauthTokenScope} = apiScopes);
@@ -1198,7 +1210,6 @@ describe('authSpec', () => {
             if (err) return done.fail(err);
             ({userReadScope, userReadOauthTokenScope} = apiScopes);
 
-            // Retrieve the roles to which this agent is assigned
             stubUserRolesRead((err, apiScopes) => {
               if (err) return done.fail(err);
               ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
@@ -1207,11 +1218,16 @@ describe('authSpec', () => {
                 if (err) return done.fail(err);
                 ({userAssignRolesScope, userAssignRolesOauthTokenScope} = apiScopes);
 
+                // This stubs the Auth0 calls for `GET /agent`. As you can see,
+                // there is some redundancy...
+                //
+                // Are API sessions a viable option for reducing Auth0 calls
+                // on subsequent requests?
+                //
                 stubUserRead((err, apiScopes) => {
                   if (err) return done.fail(err);
                   ({userReadScope: secondUserReadScope, userReadOauthTokenScope: secondUserReadOauthTokenScope} = apiScopes);
 
-                  // Retrieve the roles to which this agent is assigned
                   stubUserRolesRead((err, apiScopes) => {
                     if (err) return done.fail(err);
                     ({userRolesReadScope: secondUserRolesReadScope, userRolesReadOauthTokenScope: secondUserRolesReadOauthTokenScope} = apiScopes);
