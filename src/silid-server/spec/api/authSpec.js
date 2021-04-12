@@ -8,7 +8,6 @@ const models = require('../../models');
 const url = require('url');
 const cheerio = require('cheerio');
 
-
 describe('authSpec', () => {
 
   /**
@@ -170,7 +169,7 @@ describe('authSpec', () => {
    */
   describe('/callback', () => {
 
-    let session, oauthTokenScope, userInfoScope, auth0UserAssignRolesScope, auth0GetRolesScope;
+    let session, oauthTokenScope, userInfoScope;
     // Added for when agent info is requested immediately after authentication
     let anotherOauthTokenScope, userReadScope;
     beforeEach(done => {
@@ -1052,7 +1051,12 @@ describe('authSpec', () => {
   });
 
   describe('Bearer token API access', () => {
-    let userInfoScope;
+    const stubOauthToken = require('../support/auth0Endpoints/stubOauthToken');
+    const stubRolesRead = require('../support/auth0Endpoints/stubRolesRead');
+    const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
+    const stubUserAssignRoles = require('../support/auth0Endpoints/stubUserAssignRoles');
+    const stubUserRolesRead = require('../support/auth0Endpoints/stubUserRolesRead');
+    const stubUserAppMetadataUpdate = require('../support/auth0Endpoints/stubUserAppMetadataUpdate');
 
     describe('with no token', () => {
       beforeEach(() => {
@@ -1132,7 +1136,7 @@ describe('authSpec', () => {
     });
 
     describe('with valid token', () => {
-      beforeEach(() => {
+      beforeEach(done => {
         /**
          * `/userinfo` mock
          */
@@ -1140,6 +1144,45 @@ describe('authSpec', () => {
           .log(console.log)
           .get(/userinfo/)
           .reply(200, _identity);
+
+        stubOauthToken([apiScope.read.users], (err, apiScopes) => {
+          if (err) return done.fail(err);
+          ({oauthTokenScope, oauthTokenScope} = apiScopes);
+
+          stubRolesRead((err, apiScopes) => {
+            if (err) return done.fail(err);
+            ({rolesReadScope, rolesReadOauthTokenScope} = apiScopes);
+
+            stubUserRead((err, apiScopes) => {
+              if (err) return done.fail(err);
+              ({userReadScope, userReadOauthTokenScope} = apiScopes);
+
+              // Retrieve the roles to which this agent is assigned
+              stubUserRolesRead((err, apiScopes) => {
+                if (err) return done.fail(err);
+                ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+                stubUserAssignRoles((err, apiScopes) => {
+                  if (err) return done.fail(err);
+                  ({userAssignRolesScope, userAssignRolesOauthTokenScope} = apiScopes);
+
+                  stubUserRead((err, apiScopes) => {
+                    if (err) return done.fail(err);
+                    ({userReadScope, userReadOauthTokenScope} = apiScopes);
+
+                    // Retrieve the roles to which this agent is assigned
+                    stubUserRolesRead((err, apiScopes) => {
+                      if (err) return done.fail(err);
+                      ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+                      done();
+                    });
+                  });
+                });
+              });
+            });
+          });
+        });
       });
 
       it('allows access to the requested resource', done => {
@@ -1150,12 +1193,20 @@ describe('authSpec', () => {
           .expect(200)
           .end(function(err, res) {
             if (err) return done.fail(err);
-            expect(req.body).toEqual(_profile);
+
+            expect(res.body.email).toEqual(_profile.email);
+            expect(res.body.name).toEqual(_profile.name);
+            expect(res.body.user_id).toEqual(_profile.user_id);
+            expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
+            expect(res.body.user_metadata).toEqual({});
+            expect(res.body.isSuper).toBe(false);
+            expect(res.body.scope).toEqual(roles.viewer);
+
             done();
           });
       });
 
-      it('calls Auth0 /userinfo', done => {
+      it('calls Auth0 /userinfo and the appropriate endpoints', done => {
         request(app)
           .get('/agent')
           .set('Accept', 'application/json')
@@ -1164,6 +1215,7 @@ describe('authSpec', () => {
           .end(function(err, res) {
             if (err) return done.fail(err);
             expect(userInfoScope.isDone()).toBe(true);
+            expect(oauthTokenScope.isDone()).toBe(true);
             done();
           });
       });
