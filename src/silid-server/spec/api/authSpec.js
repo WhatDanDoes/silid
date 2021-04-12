@@ -1073,10 +1073,10 @@ describe('authSpec', () => {
         request(app)
           .get('/agent')
           .set('Accept', 'application/json')
-          .expect(404)
+          .expect(302)
           .end(function(err, res) {
             if (err) return done.fail(err);
-            expect(res.body.message).toEqual('Token could not be verified');
+            expect(res.headers.location).toEqual('/login');
             done();
           });
       });
@@ -1085,7 +1085,7 @@ describe('authSpec', () => {
         request(app)
           .get('/agent')
           .set('Accept', 'application/json')
-          .expect(404)
+          .expect(302)
           .end(function(err, res) {
             if (err) return done.fail(err);
             expect(userInfoScope.isDone()).toBe(false);
@@ -1110,7 +1110,7 @@ describe('authSpec', () => {
           .get('/agent')
           .set('Accept', 'application/json')
           .set('Authorization', 'Not-proper-Bearer some-made-up-bearer-token')
-          .expect(404)
+          .expect(401)
           .end(function(err, res) {
             if (err) return done.fail(err);
             expect(res.body.message).toEqual('Token could not be verified');
@@ -1123,7 +1123,7 @@ describe('authSpec', () => {
           .get('/agent')
           .set('Accept', 'application/json')
           .set('Authorization', 'Not-proper-Bearer some-made-up-bearer-token')
-          .expect(404)
+          .expect(401)
           .end(function(err, res) {
             if (err) return done.fail(err);
             expect(userInfoScope.isDone()).toBe(false);
@@ -1131,8 +1131,6 @@ describe('authSpec', () => {
           });
       });
     });
-
-
 
     describe('with invalid token', () => {
       let userInfoScope;
@@ -1144,18 +1142,18 @@ describe('authSpec', () => {
         userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
           .log(console.log)
           .get(/userinfo/)
-          .reply(403, { message: 'Token expired or something. I don\'t know what actually happens here' });
+          .reply(401, { message: 'Token expired or something. I don\'t know what actually happens here' });
       });
 
-      it('return 403 error with message', done => {
+      it('return 401 error with message', done => {
         request(app)
           .get('/agent')
           .set('Accept', 'application/json')
           .set('Authorization', 'Bearer some-made-up-bearer-token')
-          .expect(403)
+          .expect(401)
           .end(function(err, res) {
             if (err) return done.fail(err);
-            expect(res.body.message).toEqual('Forbidden');
+            expect(res.body.message).toEqual('Unauthorized');
             done();
           });
       });
@@ -1165,11 +1163,10 @@ describe('authSpec', () => {
           .get('/agent')
           .set('Accept', 'application/json')
           .set('Authorization', 'Bearer some-made-up-bearer-token')
-          .expect(403)
+          .expect(401)
           .end(function(err, res) {
             if (err) return done.fail(err);
             expect(userInfoScope.isDone()).toBe(true);
-            //expect(oauthTokenScope.isDone()).toBe(true);
             done();
           });
       });

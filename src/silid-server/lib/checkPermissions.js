@@ -205,15 +205,18 @@ const checkAgent = function(req, res, done) {
           done();
         })
         .catch(err => {
-          return res.status(403).json({ message: err.message });
+          return res.status(401).json({ message: err.message });
         });
       }
       else {
-        return res.status(404).json({ message: 'Token could not be verified' });
+        if (req.header('Accept') === 'application/json') {
+          return res.status(401).json({ message: 'Token could not be verified' });
+        }
+        res.redirect('/login');
       }
     }
     else {
-      return res.status(404).json({ message: 'Token could not be verified' });
+      res.redirect('/login');
     }
   }
   else {
