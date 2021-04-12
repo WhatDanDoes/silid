@@ -1073,10 +1073,10 @@ describe('authSpec', () => {
         request(app)
           .get('/agent')
           .set('Accept', 'application/json')
-          .expect(401)
+          .expect(404)
           .end(function(err, res) {
             if (err) return done.fail(err);
-            expect(res.body.message).toEqual('Token could not be validated');
+            expect(res.body.message).toEqual('Token could not be verified');
             done();
           });
       });
@@ -1085,7 +1085,7 @@ describe('authSpec', () => {
         request(app)
           .get('/agent')
           .set('Accept', 'application/json')
-          .expect(401)
+          .expect(404)
           .end(function(err, res) {
             if (err) return done.fail(err);
             expect(userInfoScope.isDone()).toBe(false);
@@ -1094,10 +1094,7 @@ describe('authSpec', () => {
       });
     });
 
-    describe('with invalid token', () => {
-
-      // `silid-server` doesn't do any validation. Validation is left to Auth0
-      // when passing the provided token to the `GET /userinfo` endpoint
+    describe('with mangled token', () => {
       beforeEach(() => {
         /**
          * `/userinfo` mock
@@ -1105,7 +1102,49 @@ describe('authSpec', () => {
         userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
           .log(console.log)
           .get(/userinfo/)
-          .reply(403, _identity);
+          .reply(200, _identity);
+      });
+
+      it('return 401 error with message', done => {
+        request(app)
+          .get('/agent')
+          .set('Accept', 'application/json')
+          .set('Authorization', 'Not-proper-Bearer some-made-up-bearer-token')
+          .expect(404)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(res.body.message).toEqual('Token could not be verified');
+            done();
+          });
+      });
+
+      it('does not call Auth0 /userinfo', done => {
+        request(app)
+          .get('/agent')
+          .set('Accept', 'application/json')
+          .set('Authorization', 'Not-proper-Bearer some-made-up-bearer-token')
+          .expect(404)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(userInfoScope.isDone()).toBe(false);
+            done();
+          });
+      });
+    });
+
+
+
+    describe('with invalid token', () => {
+      let userInfoScope;
+
+      beforeEach(()=> {
+        /**
+         * `/userinfo` mock
+         */
+        userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+          .log(console.log)
+          .get(/userinfo/)
+          .reply(403, { message: 'Token expired or something. I don\'t know what actually happens here' });
       });
 
       it('return 403 error with message', done => {
@@ -1116,7 +1155,7 @@ describe('authSpec', () => {
           .expect(403)
           .end(function(err, res) {
             if (err) return done.fail(err);
-            expect(res.body.message).toEqual('Token could not be validated');
+            expect(res.body.message).toEqual('Forbidden');
             done();
           });
       });
@@ -1130,13 +1169,14 @@ describe('authSpec', () => {
           .end(function(err, res) {
             if (err) return done.fail(err);
             expect(userInfoScope.isDone()).toBe(true);
+            //expect(oauthTokenScope.isDone()).toBe(true);
             done();
           });
       });
     });
 
     describe('with valid token', () => {
-      let userInfoScope, oauthTokenScope,
+      let userInfoScope,
           rolesReadScope, rolesReadOauthTokenScope,
           userReadScope, userReadOauthTokenScope,
           userRolesReadScope, userRolesReadOauthTokenScope,
@@ -1153,38 +1193,33 @@ describe('authSpec', () => {
           .get(/userinfo/)
           .reply(200, _identity);
 
-        stubOauthToken([apiScope.read.users], (err, apiScopes) => {
+        stubRolesRead((err, apiScopes) => {
           if (err) return done.fail(err);
-          ({oauthTokenScope} = apiScopes);
+          ({rolesReadScope, rolesReadOauthTokenScope} = apiScopes);
 
-          stubRolesRead((err, apiScopes) => {
+          stubUserRead((err, apiScopes) => {
             if (err) return done.fail(err);
-            ({rolesReadScope, rolesReadOauthTokenScope} = apiScopes);
+            ({userReadScope, userReadOauthTokenScope} = apiScopes);
 
-            stubUserRead((err, apiScopes) => {
+            // Retrieve the roles to which this agent is assigned
+            stubUserRolesRead((err, apiScopes) => {
               if (err) return done.fail(err);
-              ({userReadScope, userReadOauthTokenScope} = apiScopes);
+              ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
 
-              // Retrieve the roles to which this agent is assigned
-              stubUserRolesRead((err, apiScopes) => {
+              stubUserAssignRoles((err, apiScopes) => {
                 if (err) return done.fail(err);
-                ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+                ({userAssignRolesScope, userAssignRolesOauthTokenScope} = apiScopes);
 
-                stubUserAssignRoles((err, apiScopes) => {
+                stubUserRead((err, apiScopes) => {
                   if (err) return done.fail(err);
-                  ({userAssignRolesScope, userAssignRolesOauthTokenScope} = apiScopes);
+                  ({userReadScope: secondUserReadScope, userReadOauthTokenScope: secondUserReadOauthTokenScope} = apiScopes);
 
-                  stubUserRead((err, apiScopes) => {
+                  // Retrieve the roles to which this agent is assigned
+                  stubUserRolesRead((err, apiScopes) => {
                     if (err) return done.fail(err);
-                    ({userReadScope: secondUserReadScope, userReadOauthTokenScope: secondUserReadOauthTokenScope} = apiScopes);
+                    ({userRolesReadScope: secondUserRolesReadScope, userRolesReadOauthTokenScope: secondUserRolesReadOauthTokenScope} = apiScopes);
 
-                    // Retrieve the roles to which this agent is assigned
-                    stubUserRolesRead((err, apiScopes) => {
-                      if (err) return done.fail(err);
-                      ({userRolesReadScope: secondUserRolesReadScope, userRolesReadOauthTokenScope: secondUserRolesReadOauthTokenScope} = apiScopes);
-
-                      done();
-                    });
+                    done();
                   });
                 });
               });
@@ -1223,13 +1258,12 @@ describe('authSpec', () => {
           .end(function(err, res) {
             if (err) return done.fail(err);
             expect(userInfoScope.isDone()).toBe(true);
-            expect(oauthTokenScope.isDone()).toBe(true);
 
             expect(rolesReadScope.isDone()).toBe(true);
             expect(rolesReadOauthTokenScope.isDone()).toBe(true);
 
             expect(userReadScope.isDone()).toBe(true);
-            expect(userReadOauthTokenScope.isDone()).toBe(false);
+            expect(userReadOauthTokenScope.isDone()).toBe(true);
 
             expect(userRolesReadScope.isDone()).toBe(true);
             expect(userRolesReadOauthTokenScope.isDone()).toBe(true);

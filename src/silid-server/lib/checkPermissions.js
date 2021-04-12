@@ -193,24 +193,27 @@ const checkAgent = function(req, res, done) {
             'Content-Type': 'application/json'
           },
         })
+        .then(res => {
+          if (!res.ok) {
+            throw Error(res.statusText);
+          }
+          return res;
+        })
         .then(res => res.json())
         .then(json => {
-          console.log('done /userinfo');
-          console.log(json);
           req.user = {...json, user_id: json.sub};
           done();
         })
         .catch(err => {
-          console.error(err);
-          done(err);
+          return res.status(403).json({ message: err.message });
         });
       }
       else {
-        return res.redirect('/login')
+        return res.status(404).json({ message: 'Token could not be verified' });
       }
     }
     else {
-      return res.redirect('/login')
+      return res.status(404).json({ message: 'Token could not be verified' });
     }
   }
   else {
@@ -226,7 +229,7 @@ const checkPermissions = function(permissions) {
   return (req, res, next) => {
 
     checkAgent(req, res, (err) => {
-      if (err) return res.json(err);
+      if (err) return res.status(403).json({ message: err.message });
       // Make sure agent has basic viewing permissions
       let isViewer = true;
       if (!req.user.scope) {
