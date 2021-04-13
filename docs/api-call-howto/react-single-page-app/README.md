@@ -1,14 +1,55 @@
+Calling the Identity API with a React Single Page Application
+=============================================================
+
+This React SPA demonstration application obtains an _access token_ via the Auth0-provided _Universal Login_. It is then submitted in an `Authorization` header to Identity. Upon receipt, Identity verifies the token with Auth0. If the token is legit, Identity fulfills the original request with the authorized agent's full Auth0 profile.
+
+This documentation and the accompanying demo app is a direct plagiarization of [Auth0's own documentation](https://auth0.com/docs/microsites/call-api/call-api-single-page-app). The code was bootstrapped on 2021-4-13.
+
+## React Customization
+
+The bootstrapped code was customized in a manner specific to the React framework. Though related client-side frameworks will employ different methods, if they use `fetch` to call an Identity endpoint they will all follow this basic approach.
+
+Upon authentication, the agent is provided a simple interface to access the app's _Home_, _Profile_, and _External API_ pages. There is a also a _Logout_ link.
+
+_Note:_ The _External API_ link, despite what it suggests, does not contact Identity. Rather, it hits a locally-deployed API server that came bundled with the bootstrapped code. See `api-server.js` for a valuable example of token validation.
+
+The API functionality of interest here is demonstrated when you click on the _Profile_ link. Upon doing so, the demo app sends a request to Identity. It asks to provide the data that only Identity can provide. Most significantly, the data contained in `user_metadata`. What follows is a **simplified** example. Refer to `src/views/Profile.js` to see the full version and some important inline documentation:
+
+```
+  const config = getConfig();
+  const { getAccessTokenSilently } = useAuth0();
+  const [agent, setAgent] = React.useState(null);
+
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const options = {
+          audience: config.audience,
+        };
+
+        const token = await getAccessTokenSilently(options);
+
+        const response = await fetch(`${config.identity}/agent`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        setAgent(await response.json());
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+  }, []);
+```
+
+The configuration of interest for this and any request made to Identity is the `Authorization` header. Upon authentication, the client is allowed to obtain a JWT-encoded string when required. When accompanying a request, the Identity app verifies the token against the Auth0 `GET /userinfo` endpoint. If the token is valid, Identity fulfills the request. If not, an error is returned.
+
 # Auth0 React SDK Sample Application
 
+The folowing is adapted from the original `README.md` included with the Auth0 sample project.
+
 This sample demonstrates the integration of [Auth0 React SDK](https://github.com/auth0/auth0-react) into a React application created using [create-react-app](https://reactjs.org/docs/create-a-new-react-app.html). The sample is a companion to the [Auth0 React SDK Quickstart](https://auth0.com/docs/quickstart/spa/react).
-
-This sample demonstrates the following use cases:
-
-- [Login](https://github.com/auth0-samples/auth0-react-samples/blob/master/Sample-01/src/components/NavBar.js#L72-L79)
-- [Logout](https://github.com/auth0-samples/auth0-react-samples/blob/master/Sample-01/src/components/NavBar.js#L102-L108)
-- [Showing the user profile](https://github.com/auth0-samples/auth0-react-samples/blob/master/Sample-01/src/views/Profile.js)
-- [Protecting routes](https://github.com/auth0-samples/auth0-react-samples/blob/master/Sample-01/src/views/Profile.js#L33)
-- [Calling APIs](https://github.com/auth0-samples/auth0-react-samples/blob/master/Sample-01/src/views/ExternalApi.js)
 
 ## Project setup
 
@@ -20,35 +61,26 @@ npm install
 
 ## Configuration
 
-### Create an API
-
-For the ["call an API"](https://auth0.com/docs/quickstart/spa/react/02-calling-an-api) page to work, you will need to [create an API](https://auth0.com/docs/apis) using the [management dashboard](https://manage.auth0.com/#/apis). This will give you an API identifier that you can use in the `audience` configuration field below.
-
-If you do not wish to use an API or observe the API call working, you should not specify the `audience` value in the next step. Otherwise, you will receive a "Service not found" error when trying to authenticate.
-
 ### Configure credentials
 
 The project needs to be configured with your Auth0 domain and client ID in order for the authentication flow to work.
 
-To do this, first copy `src/auth_config.json.example` into a new file in the same folder called `src/auth_config.json`, and replace the values with your own Auth0 application credentials, and optionally the base URLs of your application and API:
+To do this, first copy `src/auth_config.json.example` into a new file in the same folder called `src/auth_config.json`, and replace the values with your own Auth0 application credentials and the base URL of the Identity API:
 
 ```json
 {
   "domain": "{YOUR AUTH0 DOMAIN}",
   "clientId": "{YOUR AUTH0 CLIENT ID}",
   "audience": "{YOUR AUTH0 API_IDENTIFIER}",
-  "appOrigin": "{OPTIONAL: THE BASE URL OF YOUR APPLICATION (default: http://localhost:3000)}",
-  "apiOrigin": "{OPTIONAL: THE BASE URL OF YOUR API (default: http://localhost:3001)}"
+  "identity": "{THE BASE URL OF THE IDENTITY API (example: https://id.languagetechnology.org)}"
 }
 ```
-
-**Note**: Do not specify a value for `audience` here if you do not wish to use the API part of the sample.
 
 ## Run the sample
 
 ### Compile and hot-reload for development
 
-This compiles and serves the React app and starts the backend API server on port 3001.
+This compiles and serves the React app at http://localhost:3000. It starts the backend API server on port 3001.
 
 ```bash
 npm run dev
@@ -62,44 +94,3 @@ npm run dev
 npm run build
 ```
 
-### Docker build
-
-To build and run the Docker image, run `exec.sh`, or `exec.ps1` on Windows.
-
-### Run your tests
-
-```bash
-npm run test
-```
-
-## Frequently Asked Questions
-
-If you're having issues running the sample applications, including issues such as users not being authenticated on page refresh, please [check the auth0-react FAQ](https://github.com/auth0/auth0-react/blob/master/FAQ.md).
-
-## What is Auth0?
-
-Auth0 helps you to:
-
-* Add authentication with [multiple sources](https://auth0.com/docs/identityproviders), either social identity providers such as **Google, Facebook, Microsoft Account, LinkedIn, GitHub, Twitter, Box, Salesforce** (amongst others), or enterprise identity systems like **Windows Azure AD, Google Apps, Active Directory, ADFS, or any SAML Identity Provider**.
-* Add authentication through more traditional **[username/password databases](https://auth0.com/docs/connections/database/custom-db)**.
-* Add support for **[linking different user accounts](https://auth0.com/docs/users/user-account-linking)** with the same user.
-* Support for generating signed [JSON Web Tokens](https://auth0.com/docs/tokens/json-web-tokens) to call your APIs and **flow the user identity** securely.
-* Analytics of how, when, and where users are logging in.
-* Pull data from other sources and add it to the user profile through [JavaScript rules](https://auth0.com/docs/rules).
-
-## Create a Free Auth0 Account
-
-1. Go to [Auth0](https://auth0.com) and click **Sign Up**.
-2. Use Google, GitHub, or Microsoft Account to login.
-
-## Issue Reporting
-
-If you have found a bug or if you have a feature request, please report them at this repository issues section. Please do not report security vulnerabilities on the public GitHub issue tracker. The [Responsible Disclosure Program](https://auth0.com/responsible-disclosure-policy) details the procedure for disclosing security issues.
-
-## Author
-
-[Auth0](https://auth0.com)
-
-## License
-
-This project is licensed under the MIT license. See the [LICENSE](../LICENSE) file for more info.
