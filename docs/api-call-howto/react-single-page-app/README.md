@@ -59,9 +59,7 @@ Use `npm` to install the project dependencies:
 npm install
 ```
 
-## Configuration
-
-### Configure credentials
+## Configure credentials
 
 The project needs to be configured with your Auth0 domain and client ID in order for the authentication flow to work.
 
