@@ -6,6 +6,13 @@ import Loading from "../components/Loading";
 import { useAuth0, withAuthenticationRequired } from "@auth0/auth0-react";
 import { getConfig } from "../config";
 
+/**
+ * 2021-4-13
+ *
+ * Adapted from here:
+ *
+ * https://github.com/auth0/auth0-react/blob/master/EXAMPLES.md#4-create-a-useapi-hook-for-accessing-protected-apis-with-an-access-token
+ */
 export const ProfileComponent = () => {
   const config = getConfig();
 
@@ -39,8 +46,9 @@ export const ProfileComponent = () => {
         try {
           token = await getAccessTokenSilently(options);
         } catch(e) {
-          // consent_required error
+          // `consent_required` error
           console.error(e);
+          // Ask the agent for permssion and try again
           token = await getAccessTokenWithPopup(options);
         }
         const response = await fetch(`${config.identity}/agent`, {
@@ -55,7 +63,7 @@ export const ProfileComponent = () => {
     })();
     // Leave the dependency array as is.
     //
-    // If you do what the linter says, it starts hammering the API endpoint
+    // If you do what the linter asks, it starts hammering the API endpoint
     // for some reason. I'd love to know why...
   }, []);
 
