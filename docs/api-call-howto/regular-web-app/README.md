@@ -33,7 +33,7 @@ router.get('/profile', async (req, res) => {
 });
 ```
 
-The configuration of interest for this and any request made to Identity is the `Authorization` header. Upon authentication, the client is provided an access token consisting of a _type_ and a JWT-encoded string. The type in this case is `Bearer`. The Identity app verifies this token against the Auth0 `GET /userinfo` endpoint. If the token is valid, Identity fulfills the request. If not, an error is returned.
+The configuration of interest for this and any request made to Identity is the `Authorization` header. Upon authentication, the client is provided an access token consisting of a _type_ and a JWT-encoded string. The type in this case is `Bearer`. The Identity app verifies the JWT token against the Auth0 `GET /userinfo` endpoint. If the token is valid, Identity fulfills the request. If not, an error is returned.
 
 
 # Express OpenID Connect sample
@@ -44,7 +44,7 @@ See a detailed walk-through of this app on the [Express Quickstart](https://auth
 
 ## Running the Sample
 
-Install the dependencies with npm:
+Install the dependencies with `npm`:
 
 ```
 npm install
@@ -53,7 +53,7 @@ npm install
 Rename `.env.example` to `.env` and replace the following values:
 
 - `CLIENT_ID` - your Auth0 application client ID
-- `ISSUER_BASE_URL` - absolute URL to your Auth0 application domain (ie: `https://accountName.auth0.com`)
+- `ISSUER_BASE_URL` - absolute URL to your Auth0 application domain (ie: `https://silid.auth0.com`)
 - `SECRET` - your Auth0 application client secret
 - `IDENTITY_URL` - absolute URL to the Identity application domain (ie: `https://id.languagetechnology.org`)
 
