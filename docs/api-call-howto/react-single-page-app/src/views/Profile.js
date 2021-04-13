@@ -9,8 +9,9 @@ import { getConfig } from "../config";
 /**
  * 2021-4-13
  *
- * Adapted from here:
+ * Adapted from some awesome examples:
  *
+ * https://auth0.com/docs/libraries/auth0-react
  * https://github.com/auth0/auth0-react/blob/master/EXAMPLES.md#4-create-a-useapi-hook-for-accessing-protected-apis-with-an-access-token
  */
 export const ProfileComponent = () => {
