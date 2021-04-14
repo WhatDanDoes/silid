@@ -92,3 +92,8 @@ npm run dev
 npm run build
 ```
 
+## Production
+
+```
+docker-compose up
+```
