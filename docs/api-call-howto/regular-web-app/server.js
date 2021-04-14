@@ -23,8 +23,8 @@ const config = {
   clientSecret: process.env.SECRET,
   authorizationParams: {
     response_type: 'code',
-    audience: 'https://id.languagetechnology.org/',
-    scope: 'openid profile email read:current_user',
+    audience: process.env.AUDIENCE,
+    scope: 'openid profile email',
   },
 };
 
