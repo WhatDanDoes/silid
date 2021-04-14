@@ -1,0 +1,6 @@
+{
+  "domain": "silid.auth0.com",
+  "clientId": "some-client-id-abc123",
+  "audience": "https://id.languagetechnology.org/",
+  "identity": "https://id.languagetechnology.org"
+}

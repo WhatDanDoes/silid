@@ -1,0 +1,20 @@
+version: '3'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile-prod
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - VIRTUAL_HOST=spa.example.com
+      - LETSENCRYPT_HOST=spa.example.com
+      - LETSENCRYPT_EMAIL=daniel@example.com
+    volumes:
+      - .:/home/node
+      - /home/node/node_modules
+networks:
+  default:
+    external:
+      name: nginx-proxy
+

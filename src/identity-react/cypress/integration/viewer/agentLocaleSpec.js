@@ -189,6 +189,7 @@ context('viewer/Agent locale', function() {
 
                 // Switch to English locale preference
                 cy.get('#profile-table table tbody tr td #sil-local-dropdown').type('engl{downarrow}{enter}');
+                cy.wait(300);
 
                 // Delete the team
                 cy.contains('Team Zombie').click();
