@@ -56,6 +56,7 @@ Rename `.env.example` to `.env` and replace the following values:
 - `ISSUER_BASE_URL` - absolute URL to your Auth0 application domain (ie: `https://silid.auth0.com`)
 - `SECRET` - your Auth0 application client secret
 - `IDENTITY_URL` - absolute URL to the Identity application domain (ie: `https://id.languagetechnology.org`)
+- `AUDIENCE` - API audience (ie: `https://id.languagetechnology.org/`)
 - `BASE_URL` - absolute URL to the demo application domain. For production. Leave unset if in local development
 
 ```
