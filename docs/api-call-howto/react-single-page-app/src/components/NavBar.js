@@ -53,7 +53,7 @@ const NavBar = () => {
                   Home
                 </NavLink>
               </NavItem>
-              {isAuthenticated && (
+              {isAuthenticated && process.env.NODE_ENV !== 'production' && (
                 <NavItem>
                   <NavLink
                     tag={RouterNavLink}
