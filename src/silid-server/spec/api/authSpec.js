@@ -8,7 +8,6 @@ const models = require('../../models');
 const url = require('url');
 const cheerio = require('cheerio');
 
-
 describe('authSpec', () => {
 
   /**
@@ -170,7 +169,7 @@ describe('authSpec', () => {
    */
   describe('/callback', () => {
 
-    let session, oauthTokenScope, userInfoScope, auth0UserAssignRolesScope, auth0GetRolesScope;
+    let session, oauthTokenScope, userInfoScope;
     // Added for when agent info is requested immediately after authentication
     let anotherOauthTokenScope, userReadScope;
     beforeEach(done => {
@@ -280,7 +279,7 @@ describe('authSpec', () => {
         .expect(302)
         .end(function(err, res) {
           if (err) return done.fail(err);
-          userInfoScope.done();
+          expect(userInfoScope.isDone()).toBe(true);
           done();
         });
     });
@@ -1047,6 +1046,252 @@ describe('authSpec', () => {
             });
           });
         });
+      });
+    });
+  });
+
+  describe('Bearer token API access', () => {
+    const stubOauthToken = require('../support/auth0Endpoints/stubOauthToken');
+    const stubRolesRead = require('../support/auth0Endpoints/stubRolesRead');
+    const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
+    const stubUserAssignRoles = require('../support/auth0Endpoints/stubUserAssignRoles');
+    const stubUserRolesRead = require('../support/auth0Endpoints/stubUserRolesRead');
+    const stubUserAppMetadataUpdate = require('../support/auth0Endpoints/stubUserAppMetadataUpdate');
+
+    describe('with no token', () => {
+      beforeEach(() => {
+        /**
+         * `/userinfo` mock
+         */
+        userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+          .log(console.log)
+          .get(/userinfo/)
+          .reply(200, _identity);
+      });
+
+      it('return 401 error with message', done => {
+        request(app)
+          .get('/agent')
+          .set('Accept', 'application/json')
+          .expect(302)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(res.headers.location).toEqual('/login');
+            done();
+          });
+      });
+
+      it('does not call Auth0 /userinfo', done => {
+        request(app)
+          .get('/agent')
+          .set('Accept', 'application/json')
+          .expect(302)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(userInfoScope.isDone()).toBe(false);
+            done();
+          });
+      });
+    });
+
+    describe('with mangled token', () => {
+      beforeEach(() => {
+        /**
+         * `/userinfo` mock
+         */
+        userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+          .log(console.log)
+          .get(/userinfo/)
+          .reply(200, _identity);
+      });
+
+      it('return 401 error with message', done => {
+        request(app)
+          .get('/agent')
+          .set('Accept', 'application/json')
+          .set('Authorization', 'Not-proper-Bearer some-made-up-bearer-token')
+          .expect(401)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(res.body.message).toEqual('Token could not be verified');
+            done();
+          });
+      });
+
+      it('does not call Auth0 /userinfo', done => {
+        request(app)
+          .get('/agent')
+          .set('Accept', 'application/json')
+          .set('Authorization', 'Not-proper-Bearer some-made-up-bearer-token')
+          .expect(401)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(userInfoScope.isDone()).toBe(false);
+            done();
+          });
+      });
+    });
+
+    describe('with invalid token', () => {
+      let userInfoScope;
+
+      beforeEach(()=> {
+        /**
+         * `/userinfo` mock
+         */
+        userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+          .log(console.log)
+          .get(/userinfo/)
+          .reply(401, { message: 'Token expired or something. I don\'t know what actually happens here' });
+      });
+
+      it('return 401 error with message', done => {
+        request(app)
+          .get('/agent')
+          .set('Accept', 'application/json')
+          .set('Authorization', 'Bearer some-made-up-bearer-token')
+          .expect(401)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(res.body.message).toEqual('Unauthorized');
+            done();
+          });
+      });
+
+      it('calls Auth0 /userinfo', done => {
+        request(app)
+          .get('/agent')
+          .set('Accept', 'application/json')
+          .set('Authorization', 'Bearer some-made-up-bearer-token')
+          .expect(401)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(userInfoScope.isDone()).toBe(true);
+            done();
+          });
+      });
+    });
+
+    describe('with valid token', () => {
+      let userInfoScope,
+          rolesReadScope, rolesReadOauthTokenScope,
+          userReadScope, userReadOauthTokenScope,
+          userRolesReadScope, userRolesReadOauthTokenScope,
+          userAssignRolesScope, userAssignRolesOauthTokenScope,
+          secondUserReadScope, secondUserReadOauthTokenScope,
+          secondUserRolesReadScope, secondUserRolesReadOauthTokenScope;
+
+      /**
+       * 2021-4-12
+       *
+       * The following test prove and document the Auth0 endpoints hit when a
+       * client comes bearing a `Bearer` `Authorization` token.
+       */
+      beforeEach(done => {
+        /**
+         * `/userinfo` mock
+         *
+         * I'm leaving it to Auth0 to validate the `Bearer` `Authorization`
+         * token. This happens when I request `GET /userinfo`.
+         */
+        userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+          .log(console.log)
+          .get(/userinfo/)
+          .reply(200, _identity);
+
+        // Immediately upon token verification (i.e., a successful return from
+        // `GET /userinfo`, Identity retrieves the agent\'s roles and
+        // `user_metadata`
+        stubRolesRead((err, apiScopes) => {
+          if (err) return done.fail(err);
+          ({rolesReadScope, rolesReadOauthTokenScope} = apiScopes);
+
+          stubUserRead((err, apiScopes) => {
+            if (err) return done.fail(err);
+            ({userReadScope, userReadOauthTokenScope} = apiScopes);
+
+            stubUserRolesRead((err, apiScopes) => {
+              if (err) return done.fail(err);
+              ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+              stubUserAssignRoles((err, apiScopes) => {
+                if (err) return done.fail(err);
+                ({userAssignRolesScope, userAssignRolesOauthTokenScope} = apiScopes);
+
+                // This stubs the Auth0 calls for `GET /agent`. As you can see,
+                // there is some redundancy...
+                //
+                // Are API sessions a viable option for reducing Auth0 calls
+                // on subsequent requests?
+                //
+                stubUserRead((err, apiScopes) => {
+                  if (err) return done.fail(err);
+                  ({userReadScope: secondUserReadScope, userReadOauthTokenScope: secondUserReadOauthTokenScope} = apiScopes);
+
+                  stubUserRolesRead((err, apiScopes) => {
+                    if (err) return done.fail(err);
+                    ({userRolesReadScope: secondUserRolesReadScope, userRolesReadOauthTokenScope: secondUserRolesReadOauthTokenScope} = apiScopes);
+
+                    done();
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
+
+      it('allows access to the requested resource', done => {
+        request(app)
+          .get('/agent')
+          .set('Accept', 'application/json')
+          .set('Authorization', 'Bearer some-made-up-bearer-token')
+          .expect(200)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+
+            expect(res.body.email).toEqual(_profile.email);
+            expect(res.body.name).toEqual(_profile.name);
+            expect(res.body.user_id).toEqual(_profile.user_id);
+            expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
+            expect(res.body.user_metadata).toEqual({});
+            expect(res.body.isSuper).toBe(false);
+            expect(res.body.scope).toEqual(roles.viewer);
+
+            done();
+          });
+      });
+
+      it('calls Auth0 /userinfo and the appropriate endpoints', done => {
+        request(app)
+          .get('/agent')
+          .set('Accept', 'application/json')
+          .set('Authorization', 'Bearer some-made-up-bearer-token')
+          .expect(200)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(userInfoScope.isDone()).toBe(true);
+
+            expect(rolesReadScope.isDone()).toBe(true);
+            expect(rolesReadOauthTokenScope.isDone()).toBe(true);
+
+            expect(userReadScope.isDone()).toBe(true);
+            expect(userReadOauthTokenScope.isDone()).toBe(true);
+
+            expect(userRolesReadScope.isDone()).toBe(true);
+            expect(userRolesReadOauthTokenScope.isDone()).toBe(true);
+
+            expect(userRolesReadScope.isDone()).toBe(true);
+            expect(userAssignRolesOauthTokenScope.isDone()).toBe(false);
+
+            expect(secondUserReadScope.isDone()).toBe(true);
+            expect(secondUserReadOauthTokenScope.isDone()).toBe(false);
+
+            expect(secondUserRolesReadScope.isDone()).toBe(true);
+            expect(secondUserRolesReadOauthTokenScope.isDone()).toBe(false);
+
+            done();
+          });
       });
     });
   });
