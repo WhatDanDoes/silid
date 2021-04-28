@@ -36,13 +36,152 @@ The _viewer_ and _organizer_ roles are of interest here. Agents in the _sudo_ ro
 
 ## General
 
-Identity allows all roles to modify their own _locale_, _timezone_, and _phone number_. _User-Password_- authenticated agents can also update fields managed by Auth0 (e.g., _nickname_).
+Agents may authenticate against Auth0 via a third-party identity provider like Google, or they may sign up for Auth0-managed _User-Password_ authentication. Identity allows all roles to modify their own _SIL locale_, _timezone_, and _phone number_. These may be set individually or all at once.
 
-#### Locale
+If you are a User-Password-authenticated agent, you may also update fields like _name_, _family name_, _given name_, or _nickname_. The Auth0-stored values for these can be modified for third-party IdP agents, but any changes will be clobbered the next time they authenticate.
+
+```
+const response = await fetch(`/agent/${profileData.user_id}`,
+  {
+    method: 'PATCH',
+    body: JSON.stringify({
+      name: 'Some Guy',
+      given_name: 'Some',
+      family_name: 'Guy',
+      nickname: 'Guy Lafleur'
+    }),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+### SIL Locale
+
+Identity comes in-built with support for every _living_ and _constructed_ ISO 639-3 language (as per this [`npm` module](https://www.npmjs.com/package/iso-639-3)).
+
+Execute the following to obtain a list of Identity-supported locales:
+
+```
+const response = await fetch('/locale/supported',
+  {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+This will return an array of objects:
+
+```
+[
+...
+  {
+    "name": "Klingon",
+    "type": "constructed",
+    "scope": "individual",
+    "iso6393": "tlh",
+    "iso6392B": "tlh",
+    "iso6392T": "tlh",
+  },
+...
+]
+```
+
+For information on this and subsequent data structures, refer to the [schema document](../identity-auth0-schema/) already mentioned above.
+
+To set an agent's SIL locale, provide the value associated with the _iso6393_ key (_tlh_, as above):
+
+```
+const response = await fetch(`/locale/${lang.iso6393}`,
+  {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+### Timezone
+
+Identity supports timezones of the format defined in the [countries-and-timezones](https://www.npmjs.com/package/countries-and-timezones) `npm` module.
+
+Execute the following to obtain a list of timezones:
+
+```
+const response = await fetch('/timezone',
+  {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+This will return an array of objects:
+
+```
+[
+...
+  {
+    name: 'America/Los_Angeles',
+    country: 'US',
+    utcOffset: -480,
+    utcOffsetStr: '-08:00',
+    dstOffset: -420,
+    dstOffsetStr: '-07:00',
+    aliasOf: null
+  },
+...
+]
+```
+
+To set an agent's timezone, provide the value associated with the _name_ key (_America/Los_Angeles_, as above):
+
+```
+const response = await fetch(`/timezone/${profileData.user_id}`,
+  {
+    method: 'PUT',
+    body: JSON.stringify({
+      timezone: 'America/Los_Angeles',
+    }),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+### Phone Number
+
+The Identity client-side app enforces phone number format. Numbers submitted via the Identity API have no such validation. It is up the API consumer to ensure that phone number strings are submitted in a _recognized_ format.
+
+Execute the following to update an agent's phone number:
+
+```
+const response = await fetch(`/agent/${profileData.user_id}`,
+  {
+    method: 'PATCH',
+    body: JSON.stringify({
+      phone_number: '+1 (403) 266-1234',
+    }),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
 
 
 
-#### Timezone
-
-
-#### Phone
