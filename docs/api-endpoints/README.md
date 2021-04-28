@@ -7,7 +7,7 @@ This document describes the Identity API, which is meant to be used by SIL appli
 
 ## How do I get an Authorization Token?
 
-This depends on the type of application. Auth0 provides several boilerplate projects that demonstrate the difference schemes available. You may also refer to the [Authorization Code Flow examples](../api-call-howto), which provide Identity-specific examples of how to obtain a token and access an agent's full Auth0 profile.
+This depends on the type of application. Auth0 provides several template projects that demonstrate the different schemes available. You may also refer to the [API call _howto_ documentation](../api-call-howto), which provide Identity-specific examples of how to obtain a token and access an agent's full Auth0 profile.
 
 
 ## Making Authenticated Requests
@@ -164,7 +164,7 @@ const response = await fetch(`/timezone/${profileData.user_id}`,
 
 ### Phone Number
 
-The Identity client-side app enforces phone number format. Numbers submitted via the Identity API have no such validation. It is up the API consumer to ensure that phone number strings are submitted in a _recognized_ format.
+The Identity client-side app enforces phone number formatting. Numbers submitted via the Identity API have no such validation. It is up the API consumer to ensure that phone number strings are submitted in a _recognized_ format.
 
 Execute the following to update an agent's phone number:
 
@@ -459,4 +459,9 @@ const response = await fetch(`/organization/${organization.id}/team/${team.id}`,
 
 A sudo agent has certain elevated privileges, though this is not an _all powerful_ role. Sudo control will likely expand as expectations of the Identity API evolve.
 
+These endpoints may be accessed by a sudo agent by appending `/admin` to the request path:
 
+- `DELETE /organization/:organization_id/team/:team_id/admin`
+- `GET /team/:team_id/admin`
+
+Currently, sudo is most useful in assigning roles to agents. That is, the sudo role is the only role able to assign _organizer_ status.
