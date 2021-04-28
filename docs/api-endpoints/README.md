@@ -183,5 +183,280 @@ const response = await fetch(`/agent/${profileData.user_id}`,
 );
 ```
 
+## Viewer Role
+
+A viewer agent can create _teams_ and invite other agents to join.
+
+Create a team:
+
+```
+const response = await fetch(`/team`,
+  {
+    method: 'POST',
+    body: JSON.stringify({
+      name: 'The A Team',
+      leader: 'coach@example.com',
+    }),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+Read a team:
+
+```
+const response = await fetch(`/team/{team.id}`,
+  {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+Read all an agent's teams:
+
+```
+const response = await fetch(`/team`,
+  {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+Update a team:
+
+```
+const response = await fetch(`/team/${team.id}`,
+  {
+    method: 'PUT',
+    body: JSON.stringify({
+      name: 'The B Team',
+    }),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+Delete a team:
+
+```
+const response = await fetch(`/team/${team.id}`,
+  {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+#### Team Invitations
+
+Invite an agent to join a team:
+
+```
+const response = await fetch(`/team/${team.id}/agent`,
+  {
+    method: 'PUT',
+    body: JSON.stringify({
+      email: 'brandnewteammate@example.com',
+    }),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+An invitation has two sides: a `pendingInvitation` registered with the team leader, and an `rsvp` given to the potential team member. These are stored in each agent's _user_metatdata_ and can be retrieved with a `GET /agent` call, as in the first example provided in this document.
+
+To accept or reject an invitation:
+
+```
+const response = await fetch(`/team/${team.id}/invite/[accept|reject]`,
+  {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+A team leader may rescind a pending invitation:
+
+```
+const response = await fetch(`/team/${team.id}/invite`,
+  {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+A team leader may revoke membership:
+
+```
+const response = await fetch(`/team/${team.id}/agent/${teamMember.user_id}`,
+  {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+## Organizer Role
+
+An organizer agent can create _organizations_ and add _teams_ to their membership.
+
+Create an organization:
+
+```
+const response = await fetch(`/organization`,
+  {
+    method: 'POST',
+    body: JSON.stringify({
+      name: 'The Umbrella Corporation',
+      organizer: 'boss@example.com',
+    }),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+Read an organization:
+
+```
+const response = await fetch(`/organization/{organization.id}`,
+  {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+Read all an agent's organizations:
+
+```
+const response = await fetch(`/organization`,
+  {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+Update an organization:
+
+```
+const response = await fetch(`/organization/${organization.id}`,
+  {
+    method: 'PUT',
+    body: JSON.stringify({
+      name: 'General Systems',
+    }),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+Delete an organization:
+
+```
+const response = await fetch(`/organization/${organization.id}`,
+  {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+An organizer agent may also retrieve a complete list of agent's known to Identity. These are returned 30 agents to a page:
+
+```
+const response = await fetch(`/agent/admin/${page_number}`,
+  {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+#### Organization Membership
+
+A team may be added to an organization:
+
+```
+const response = await fetch(`/organization/${organization.id}/team`,
+  {
+    method: 'PUT',
+    body: JSON.stringify({
+      teamId: team.id,
+    }),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+A team may be removed from an organization:
+
+```
+const response = await fetch(`/organization/${organization.id}/team/${team.id}`,
+  {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+## Sudo Role
+
+A sudo agent has certain elevated privileges, though this is not an _all powerful_ role. Sudo control will likely expand as expectations of the Identity API evolve.
 
 
