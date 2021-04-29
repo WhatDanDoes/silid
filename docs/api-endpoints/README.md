@@ -457,11 +457,206 @@ const response = await fetch(`/organization/${organization.id}/team/${team.id}`,
 
 ## Sudo Role
 
-A sudo agent has certain elevated privileges, though this is not an _all powerful_ role. Sudo control will likely expand as expectations of the Identity API evolve.
+A sudo agent has certain elevated privileges, though this is not an _all powerful_ role. Sudo control will likely expand as expectations of the Identity API evolve. What follows is a summary of the requests a sudo agent is allowed to perform on behalf on non-privileged agents.
 
-These endpoints may be accessed by a sudo agent by appending `/admin` to the request path:
+### General
 
-- `DELETE /organization/:organization_id/team/:team_id/admin`
-- `GET /team/:team_id/admin`
+A sudo agent may set another agent's timezone:
 
-Currently, sudo is most useful in assigning roles to agents. That is, the sudo role is the only role able to assign _organizer_ status.
+```
+const response = await fetch(`/timezone/${agent_id}`,
+  {
+    method: 'PUT',
+    body: JSON.stringify({
+      timezone: 'America/Los_Angeles',
+    }),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+Change a phone number:
+
+```
+const response = await fetch(`/agent/${agent_id}`,
+  {
+    method: 'PATCH',
+    body: JSON.stringify({
+      phone_number: '+1 (403) 266-1234',
+    }),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+If an agent is User-Password authenticated, the sudo agent may update name details:
+
+```
+const response = await fetch(`/agent/${agent_id}`,
+  {
+    method: 'PATCH',
+    body: JSON.stringify({
+      name: 'Some Guy',
+      given_name: 'Some',
+      family_name: 'Guy',
+      nickname: 'Guy Lafleur'
+    }),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+### Teams
+
+Update a team:
+
+```
+const response = await fetch(`/team/${team.id}`,
+  {
+    method: 'PUT',
+    body: JSON.stringify({
+      name: 'The B Team',
+    }),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+Delete a team:
+
+```
+const response = await fetch(`/team/${team.id}`,
+  {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+### Team Membership
+
+Remove an agent from a team:
+
+```
+const response = await fetch(`/team/${team.id}/agent/${teamMember.user_id}`,
+  {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+### Organizations
+
+Update an organization:
+
+```
+const response = await fetch(`/organization/${organization.id}`,
+  {
+    method: 'PUT',
+    body: JSON.stringify({
+      name: 'General Systems',
+    }),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+Delete an organization:
+
+```
+const response = await fetch(`/organization/${organization.id}`,
+  {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+### Organization Membership
+
+Remove a team from an organization:
+
+```
+const response = await fetch(`/organization/${organization.id}/team/${team.id}`,
+  {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+## Agent Roles
+
+Sudo's most powerful privilege is the ability to assign roles to agents. That is, the sudo role is the only role able to assign _organizer_ or _sudo_ status.
+
+Retrieve a list of all roles:
+
+```
+const response = await fetch('/role',
+  {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+Assign a role:
+
+```
+const response = await fetch(`/role/${roles.id}/agent/${new_organizer_id}`,
+  {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+Divest an agent of an assigned role:
+
+```
+const response = await fetch(`/role/${roles.id}/agent/${former_organizer_id}`,
+  {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+
