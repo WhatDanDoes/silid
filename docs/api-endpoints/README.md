@@ -32,11 +32,11 @@ Identity has three levels of access constrained by its own scopes:
 - Organizer
 - Sudo
 
-The _viewer_ and _organizer_ roles are of interest here. Agents in the _sudo_ role can perform all the same operations, but with elevated permissions in many cases.
+The _viewer_ role is the default assigned to all new Identity agents. Agents in the _organizer_ and _sudo_ roles can perform all the same operations, but with elevated permissions as described below.
 
 ## General
 
-Agents may authenticate against Auth0 via a third-party identity provider like Google, or they may sign up for Auth0-managed _User-Password_ authentication. Identity allows all roles to modify their own _SIL locale_, _timezone_, and _phone number_. These may be set individually or all at once.
+Agents may authenticate against Auth0 via a third-party identity provider like Google, or they may sign up for Auth0-managed _User-Password_ authentication. Identity allows all roles to modify their own _SIL locale_, _timezone_, and _phone number_.
 
 If you are a User-Password-authenticated agent, you may also update fields like _name_, _family name_, _given name_, or _nickname_. The Auth0-stored values for these can be modified for third-party IdP agents, but any changes will be clobbered the next time they authenticate.
 
@@ -164,7 +164,7 @@ const response = await fetch(`/timezone/${agent_id}`,
 
 ### Phone Number
 
-The Identity client-side app enforces phone number formatting. Numbers submitted via the Identity API have no such validation. It is up the API consumer to ensure that phone number strings are submitted in a _recognized_ format.
+The Identity client-side app enforces phone number formatting. Numbers submitted via the Identity API have no such validation. It is up to the API consumer to ensure that phone number strings are submitted in a _recognized_ format.
 
 Execute the following to update an agent's phone number:
 
@@ -474,7 +474,7 @@ const response = await fetch(`/organization/${organization_id}/team/${team_id}`,
 
 ## Sudo Role
 
-A sudo agent has certain elevated privileges, though this is not an _all powerful_ role. Sudo control will likely expand as expectations of the Identity API evolve. What follows is a summary of the requests a sudo agent is allowed to perform on behalf on non-privileged agents.
+A sudo agent has certain elevated privileges, though this is not an _all powerful_ role. Sudo control will likely expand as expectations of the Identity API evolve. What follows is a summary of the requests a sudo agent is allowed to perform on behalf of non-privileged agents.
 
 ### General
 
@@ -570,7 +570,7 @@ const response = await fetch(`/team/${team_id}`,
 Remove an agent from a team:
 
 ```
-const response = await fetch(`/team/${team_id}/agent/${teamMember.user_id}`,
+const response = await fetch(`/team/${team_id}/agent/${team_member_id}`,
   {
     method: 'DELETE',
     headers: {
