@@ -7,7 +7,7 @@ This document describes the Identity API, which is meant to be used by SIL appli
 
 ## How do I get an Authorization Token?
 
-This depends on the type of application. Auth0 provides several template projects that demonstrate the different schemes available. You may also refer to the [API call _howto_ documentation](../api-call-howto), which provide Identity-specific examples of how to obtain a token and access an agent's full Auth0 profile.
+This depends on the type of application. Auth0 provides several template projects that demonstrate the different schemes available. You may also refer to the [API call _howto_ documentation](../api-call-howto), which provides Identity-specific examples of how to obtain a token and access an agent's full Auth0 profile.
 
 
 ## Making Authenticated Requests
