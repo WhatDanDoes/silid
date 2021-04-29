@@ -41,7 +41,7 @@ Agents may authenticate against Auth0 via a third-party identity provider like G
 If you are a User-Password-authenticated agent, you may also update fields like _name_, _family name_, _given name_, or _nickname_. The Auth0-stored values for these can be modified for third-party IdP agents, but any changes will be clobbered the next time they authenticate.
 
 ```
-const response = await fetch(`/agent/${profileData.user_id}`,
+const response = await fetch(`/agent/${agent_id}`,
   {
     method: 'PATCH',
     body: JSON.stringify({
@@ -148,7 +148,7 @@ This will return an array of objects:
 To set an agent's timezone, provide the value associated with the _name_ key (_America/Los_Angeles_, as above):
 
 ```
-const response = await fetch(`/timezone/${profileData.user_id}`,
+const response = await fetch(`/timezone/${agent_id}`,
   {
     method: 'PUT',
     body: JSON.stringify({
@@ -169,7 +169,7 @@ The Identity client-side app enforces phone number formatting. Numbers submitted
 Execute the following to update an agent's phone number:
 
 ```
-const response = await fetch(`/agent/${profileData.user_id}`,
+const response = await fetch(`/agent/${agent_id}`,
   {
     method: 'PATCH',
     body: JSON.stringify({
@@ -208,7 +208,7 @@ const response = await fetch(`/team`,
 Read a team:
 
 ```
-const response = await fetch(`/team/{team.id}`,
+const response = await fetch(`/team/{team_id}`,
   {
     method: 'GET',
     headers: {
@@ -236,7 +236,7 @@ const response = await fetch(`/team`,
 Update a team:
 
 ```
-const response = await fetch(`/team/${team.id}`,
+const response = await fetch(`/team/${team_id}`,
   {
     method: 'PUT',
     body: JSON.stringify({
@@ -253,7 +253,7 @@ const response = await fetch(`/team/${team.id}`,
 Delete a team:
 
 ```
-const response = await fetch(`/team/${team.id}`,
+const response = await fetch(`/team/${team_id}`,
   {
     method: 'DELETE',
     headers: {
@@ -269,7 +269,7 @@ const response = await fetch(`/team/${team.id}`,
 Invite an agent to join a team:
 
 ```
-const response = await fetch(`/team/${team.id}/agent`,
+const response = await fetch(`/team/${team_id}/agent`,
   {
     method: 'PUT',
     body: JSON.stringify({
@@ -283,12 +283,26 @@ const response = await fetch(`/team/${team.id}/agent`,
 );
 ```
 
-An invitation has two sides: a `pendingInvitation` registered with the team leader, and an `rsvp` given to the potential team member. These are stored in each agent's _user_metatdata_ and can be retrieved with a `GET /agent` call, as in the first example provided in this document.
+An invitation has two sides: a `pendingInvitation` registered with the team leader, and an `rsvp` given to the potential team member. These are stored in each agent's _user_metadata_ and can be retrieved with a `GET /agent` call, as in the first example provided in this document.
 
-To accept or reject an invitation:
+To accept invitation:
 
 ```
-const response = await fetch(`/team/${team.id}/invite/[accept|reject]`,
+const response = await fetch(`/team/${team_id}/invite/accept`,
+  {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+Reject an invitation:
+
+```
+const response = await fetch(`/team/${team_id}/invite/reject`,
   {
     method: 'GET',
     headers: {
@@ -302,9 +316,12 @@ const response = await fetch(`/team/${team.id}/invite/[accept|reject]`,
 A team leader may rescind a pending invitation:
 
 ```
-const response = await fetch(`/team/${team.id}/invite`,
+const response = await fetch(`/team/${team_id}/invite`,
   {
     method: 'DELETE',
+    body: JSON.stringify({
+      email: 'brandnewteammate@example.com',
+    }),
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type', 'application/json; charset=utf-8'
@@ -316,7 +333,7 @@ const response = await fetch(`/team/${team.id}/invite`,
 A team leader may revoke membership:
 
 ```
-const response = await fetch(`/team/${team.id}/agent/${teamMember.user_id}`,
+const response = await fetch(`/team/${team_id}/agent/${former_member_id}`,
   {
     method: 'DELETE',
     headers: {
@@ -352,7 +369,7 @@ const response = await fetch(`/organization`,
 Read an organization:
 
 ```
-const response = await fetch(`/organization/{organization.id}`,
+const response = await fetch(`/organization/{organization_id}`,
   {
     method: 'GET',
     headers: {
@@ -380,7 +397,7 @@ const response = await fetch(`/organization`,
 Update an organization:
 
 ```
-const response = await fetch(`/organization/${organization.id}`,
+const response = await fetch(`/organization/${organization_id}`,
   {
     method: 'PUT',
     body: JSON.stringify({
@@ -397,7 +414,7 @@ const response = await fetch(`/organization/${organization.id}`,
 Delete an organization:
 
 ```
-const response = await fetch(`/organization/${organization.id}`,
+const response = await fetch(`/organization/${organization_id}`,
   {
     method: 'DELETE',
     headers: {
@@ -408,7 +425,7 @@ const response = await fetch(`/organization/${organization.id}`,
 );
 ```
 
-An organizer agent may also retrieve a complete list of agent's known to Identity. These are returned 30 agents to a page:
+An organizer agent may also retrieve a complete list of agents known to Identity. These are returned 30 agents to a page:
 
 ```
 const response = await fetch(`/agent/admin/${page_number}`,
@@ -427,11 +444,11 @@ const response = await fetch(`/agent/admin/${page_number}`,
 A team may be added to an organization:
 
 ```
-const response = await fetch(`/organization/${organization.id}/team`,
+const response = await fetch(`/organization/${organization_id}/team`,
   {
     method: 'PUT',
     body: JSON.stringify({
-      teamId: team.id,
+      teamId: team_id,
     }),
     headers: {
       Authorization: `Bearer ${token}`,
@@ -444,7 +461,7 @@ const response = await fetch(`/organization/${organization.id}/team`,
 A team may be removed from an organization:
 
 ```
-const response = await fetch(`/organization/${organization.id}/team/${team.id}`,
+const response = await fetch(`/organization/${organization_id}/team/${team_id}`,
   {
     method: 'DELETE',
     headers: {
@@ -520,7 +537,7 @@ const response = await fetch(`/agent/${agent_id}`,
 Update a team:
 
 ```
-const response = await fetch(`/team/${team.id}`,
+const response = await fetch(`/team/${team_id}`,
   {
     method: 'PUT',
     body: JSON.stringify({
@@ -537,7 +554,7 @@ const response = await fetch(`/team/${team.id}`,
 Delete a team:
 
 ```
-const response = await fetch(`/team/${team.id}`,
+const response = await fetch(`/team/${team_id}`,
   {
     method: 'DELETE',
     headers: {
@@ -553,7 +570,7 @@ const response = await fetch(`/team/${team.id}`,
 Remove an agent from a team:
 
 ```
-const response = await fetch(`/team/${team.id}/agent/${teamMember.user_id}`,
+const response = await fetch(`/team/${team_id}/agent/${teamMember.user_id}`,
   {
     method: 'DELETE',
     headers: {
@@ -569,7 +586,7 @@ const response = await fetch(`/team/${team.id}/agent/${teamMember.user_id}`,
 Update an organization:
 
 ```
-const response = await fetch(`/organization/${organization.id}`,
+const response = await fetch(`/organization/${organization_id}`,
   {
     method: 'PUT',
     body: JSON.stringify({
@@ -586,7 +603,7 @@ const response = await fetch(`/organization/${organization.id}`,
 Delete an organization:
 
 ```
-const response = await fetch(`/organization/${organization.id}`,
+const response = await fetch(`/organization/${organization_id}`,
   {
     method: 'DELETE',
     headers: {
@@ -602,7 +619,7 @@ const response = await fetch(`/organization/${organization.id}`,
 Remove a team from an organization:
 
 ```
-const response = await fetch(`/organization/${organization.id}/team/${team.id}`,
+const response = await fetch(`/organization/${organization_id}/team/${team_id}`,
   {
     method: 'DELETE',
     headers: {
@@ -613,7 +630,7 @@ const response = await fetch(`/organization/${organization.id}/team/${team.id}`,
 );
 ```
 
-## Agent Roles
+### Agent Roles
 
 Sudo's most powerful privilege is the ability to assign roles to agents. That is, the sudo role is the only role able to assign _organizer_ or _sudo_ status.
 
@@ -634,7 +651,7 @@ const response = await fetch('/role',
 Assign a role:
 
 ```
-const response = await fetch(`/role/${roles.id}/agent/${new_organizer_id}`,
+const response = await fetch(`/role/${roles_id}/agent/${new_organizer_id}`,
   {
     method: 'PUT',
     headers: {
@@ -648,7 +665,7 @@ const response = await fetch(`/role/${roles.id}/agent/${new_organizer_id}`,
 Divest an agent of an assigned role:
 
 ```
-const response = await fetch(`/role/${roles.id}/agent/${former_organizer_id}`,
+const response = await fetch(`/role/${roles_id}/agent/${former_organizer_id}`,
   {
     method: 'DELETE',
     headers: {
@@ -658,5 +675,9 @@ const response = await fetch(`/role/${roles.id}/agent/${former_organizer_id}`,
   }
 );
 ```
+
+# Conclusion/Confession
+
+At the time of writing, third-party consumption of these endpoints has not been proven _in the wild_. There will definitely be errors and oversights in this documentation. If you've discovered such a shortcoming, please open an [issue](https://github.com/sillsdev/silid/issues).
 
 
