@@ -581,6 +581,21 @@ describe('agentEditSpec', () => {
                 done();
               });
           });
+
+          it('does not allow the agent to update his own email_verified status', done => {
+            authenticatedSession
+              .patch(`/agent/${_identity.sub}`)
+              .send({ email_verified: true })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(401)
+              .end(function(err, res) {
+                if (err) return done.fail(err);
+
+                expect(res.body.message).toEqual('Check your email to verify your account');
+                done();
+              });
+          });
         });
       });
     });
