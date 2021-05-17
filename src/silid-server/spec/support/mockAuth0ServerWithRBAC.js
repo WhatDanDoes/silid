@@ -37,7 +37,8 @@ const models =  require('../../models');
 if (process.env.NODE_ENV === 'e2e') {
   const exec = require('child_process').execSync;
 
-  models.sequelize.drop().then(() => {
+  //models.sequelize.drop().then(() => {
+  models.sequelize.sync({ force: true }).then(() => {
     console.log('Database dropped');
     exec('npx sequelize-cli db:migrate', { stdio: 'inherit' });
     console.log('Database migrated');
