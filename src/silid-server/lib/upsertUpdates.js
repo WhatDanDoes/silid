@@ -20,7 +20,21 @@ function upsertUpdates(updates, done) {
     upsertUpdates(updates, done);
   }).catch(err => {
     if (err.name === 'SequelizeUniqueConstraintError') {
-      models.Update.upsert(update, { fields: ['data', 'updatedAt'] }).then(result => {
+      // 2021-5-17
+      //
+      // This is weird... keep a close eye.
+      //
+      // Updating Sequelize caused an unexpected `SequelizeUniqueConstraintError`.
+      // It seems the optional `fields` are being exluded instead of included, as
+      // per the docs
+      //
+      // https://sequelize.org/master/class/lib/model.js~Model.html#static-method-upsert
+      //
+      // This is super weird and can be verified by looking at the generated SQL.
+      // The original call is commented. The excluded fields call follows
+      //
+      //models.Update.upsert(update, { fields: ['data', 'updatedAt'] }).then(result => {
+      models.Update.upsert(update, { fields: ['recipient', 'uuid', 'type'] }).then(result => {
         upsertUpdates(updates, done);
       }).catch(err => {
         done(err);
