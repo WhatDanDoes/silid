@@ -45,7 +45,6 @@ module.exports = function(permissions, done) {
                                prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } });
 
     const oauthTokenScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`)
-      .log(console.log)
       .post(/oauth\/token/, {
                               'grant_type': 'client_credentials',
                               //'client_id': process.env.AUTH0_CLIENT_ID,

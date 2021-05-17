@@ -30,7 +30,6 @@ module.exports = function(res, done) {
        * GET `/users`
        */
       const userQueryScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-        .log(console.log)
         .get(/api\/v2\/users/)
         .query({ search_engine: 'v3', q: /.+/ })
         .reply(200, (uri, requestBody) => {

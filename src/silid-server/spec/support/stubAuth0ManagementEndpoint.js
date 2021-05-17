@@ -36,7 +36,6 @@ module.exports = function(permissions, done) {
     let accessToken = jwt.sign({..._access, scope: permissions},
                                prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } });
     const oauthTokenScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`)
-      .log(console.log)
       .post(/oauth\/token/, {
                               'grant_type': 'client_credentials',
                               'client_id': process.env.AUTH0_M2M_CLIENT_ID,
@@ -66,7 +65,6 @@ module.exports = function(permissions, done) {
      * https://manage.auth0.com/dashboard/us/silid/connections
      */
     const userCreateScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-      .log(console.log)
       .post(/api\/v2\/users/, {
                               'email': /.+/i,
                               'connection': 'Initial-Connection',
@@ -88,7 +86,6 @@ module.exports = function(permissions, done) {
      * PATCH `/users`
      */
     const updateTeamScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-      .log(console.log)
       .patch(/api\/v2\/users\/.+/, body => {
         if (body.user_metadata) {
           for(let team of body.user_metadata.teams) {
@@ -110,7 +107,6 @@ module.exports = function(permissions, done) {
      *
      */
     const userDeleteScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-      .log(console.log)
       .delete(/api\/v2\/users\/*/)
       .reply(201, {
         "user_id": "auth0|507f1f77bcf86c0000000000",

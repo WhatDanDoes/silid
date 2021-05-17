@@ -99,7 +99,7 @@ describe('timezoneSpec', () => {
               .expect(200)
               .end((err, res) => {
                 if (err) return done.fail(err);
-                expect(Object.keys(res.body).length).toEqual(544);
+                expect(res.body.length).toEqual(543);
                 done();
               });
           });

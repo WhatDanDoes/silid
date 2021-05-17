@@ -33,7 +33,6 @@ module.exports = function(expected, done) {
          * POST `/api/v2/users/:id/roles/`
          */
         const userDeleteRolesScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-          .log(console.log)
           .delete(/api\/v2\/users\/.+\/roles/, {
                                   'roles': /.+/i,
           })
