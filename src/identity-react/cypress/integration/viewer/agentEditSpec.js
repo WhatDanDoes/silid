@@ -530,7 +530,7 @@ context('viewer/Agent edit', function() {
               cy.get('div[role="presentation"] ul li').should('not.exist');
               cy.get('#profile-table table tbody tr td #timezone-dropdown + div button:last-of-type').click();
               cy.wait(300);
-              cy.get('div[role="presentation"] ul li').its('length').should('eq', 544);
+              cy.get('div[role="presentation"] ul li').its('length').should('eq', 543);
             });
 
             it('displays a spinner when a new timezone is set', () => {
