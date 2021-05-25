@@ -1,12 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Service } from '../types/Service';
-import { Team } from '../types/Team';
-import { useAdminState } from '../auth/Admin';
 
-const useTeamInfoService = (id: number) => {
-  const admin = useAdminState();
-
-  const [result, setResult] = useState<Service<Team>>({
+const useOrganizationInfoService = (id: number) => {
+  const [result, setResult] = useState({
     status: 'loading'
   });
 
@@ -14,7 +9,7 @@ const useTeamInfoService = (id: number) => {
     const headers = new Headers();
     headers.append('Content-Type', 'application/json; charset=utf-8');
 
-    fetch(`/team/${id}${admin.isEnabled ? '/admin' : ''}`, { headers })
+    fetch(`/organization/${id}`, { headers })
       .then(response => response.json())
       .then(response => {
         if (response.message) {
@@ -25,9 +20,9 @@ const useTeamInfoService = (id: number) => {
         }
       })
       .catch(error => setResult({ status: 'error', error }));
-  }, [id, admin.isEnabled]);
+  }, [id]);
 
   return result;
 };
 
-export default useTeamInfoService;
+export default useOrganizationInfoService;

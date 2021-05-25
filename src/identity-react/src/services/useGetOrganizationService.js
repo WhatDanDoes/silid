@@ -1,17 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Service } from '../types/Service';
-import { Organization } from '../types/Organization';
 import { useAdminState } from '../auth/Admin';
-
-export interface Organizations {
-  results: Organization[];
-  error?: string;
-}
 
 const useOrganizationService = () => {
   const admin = useAdminState();
 
-  const [result, setResult] = useState<Service<Organizations>>({
+  const [result, setResult] = useState({
     status: 'loading'
   });
 

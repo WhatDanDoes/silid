@@ -1,24 +1,22 @@
 import { useState } from 'react';
-import { Service } from '../types/Service';
 
-export type PutTeamMember = Pick<any, 'id' | 'email'>;
-
-const useGetTeamInviteActionService = () => {
-  const [service, setService] = useState<Service<PutTeamMember>>({
+const usePutOrganizationService = () => {
+  const [service, setService] = useState({
     status: 'init',
   });
 
-  const respondToTeamInvitation = (teamId: any, action: any) => {
+  const publishOrganization = (organization: any) => {
     setService({ status: 'loading' });
 
     const headers = new Headers();
     headers.append('Content-Type', 'application/json; charset=utf-8');
 
     return new Promise((resolve, reject) => {
-      fetch(`/team/${teamId}/invite/${action}`,
+      fetch(`/organization/${organization.id}`,
         {
-          method: 'GET',
-          headers: headers,
+          method: 'PUT',
+          body: JSON.stringify(organization),
+          headers,
         }
       )
         .then(response => response.json())
@@ -35,8 +33,8 @@ const useGetTeamInviteActionService = () => {
 
   return {
     service,
-    respondToTeamInvitation,
+    publishOrganization,
   };
 };
 
-export default useGetTeamInviteActionService;
+export default usePutOrganizationService;

@@ -11,7 +11,7 @@ import Flash from '../components/Flash';
 // Remove this junk later
 import InboxIcon from '@material-ui/icons/MoveToInbox';
 
-import useGetTeamService, { Teams } from '../services/useGetTeamService';
+import useGetTeamService from '../services/useGetTeamService';
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -40,8 +40,8 @@ const useStyles = makeStyles((theme: Theme) =>
 );
 
 const Team = (props: any) => {
-  const [teamList, setTeamList] = useState<Teams>({ results: [] } as Teams);
-  const [flashProps, setFlashProps] = useState({} as any);
+  const [teamList, setTeamList] = useState({ results: [] });
+  const [flashProps, setFlashProps] = useState({});
 
   const classes = useStyles();
   const service = useGetTeamService();
