@@ -15,7 +15,7 @@ import OrgCreateForm from '../components/OrgCreateForm';
 // Remove this junk later
 import InboxIcon from '@material-ui/icons/MoveToInbox';
 
-import useGetOrganizationService, { Organizations } from '../services/useGetOrganizationService';
+import useGetOrganizationService from '../services/useGetOrganizationService';
 
 import { useLanguageProviderState, LPFormattedMessage as FormattedMessage} from '../components/LanguageProvider';
 
@@ -45,10 +45,10 @@ const useStyles = makeStyles((theme: Theme) =>
   }),
 );
 
-const Organization = (props: any) => {
+const Organization = (props) => {
   const [formVisible, toggleFormVisible] = useState(false);
-  const [orgList, setOrgList] = useState<Organizations>({ results: [] } as Organizations);
-  const [flashProps, setFlashProps] = useState({} as any);
+  const [orgList, setOrgList] = useState({ results: [] });
+  const [flashProps, setFlashProps] = useState({});
 
   const classes = useStyles();
   const service = useGetOrganizationService();
@@ -88,7 +88,7 @@ const Organization = (props: any) => {
                       setFlashProps({errors: results.errors, variant: 'error' });
                     }
                     else {
-                      setOrgList({ results: [results, ...orgList.results] } as Organizations);
+                      setOrgList({ results: [results, ...orgList.results] });
                     }
                   }}/>
                 <Button id="cancel-changes"

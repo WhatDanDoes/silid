@@ -1,17 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Service } from '../types/Service';
-import { Team } from '../types/Team';
 import { useAdminState } from '../auth/Admin';
-
-export interface Teams {
-  results: Team[];
-  error?: string;
-}
 
 const useTeamService = () => {
   const admin = useAdminState();
 
-  const [result, setResult] = useState<Service<Teams>>({
+  const [result, setResult] = useState({
     status: 'loading'
   });
 

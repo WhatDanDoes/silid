@@ -100,8 +100,7 @@ const Home = (props: IProps) => {
   ) => {
     if (
       event.type === 'keydown' &&
-      ((event as React.KeyboardEvent).key === 'Tab' ||
-        (event as React.KeyboardEvent).key === 'Shift')
+      (event.key === 'Tab' || event.key === 'Shift')
     ) {
       return;
     }

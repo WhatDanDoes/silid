@@ -5,9 +5,13 @@ context('root/Team edit', () => {
     cy.fixture('permissions').as('scope');
   });
 
-  afterEach(() => {
+  afterEach(function() {
     cy.task('query', 'TRUNCATE TABLE "Agents" CASCADE;');
     cy.task('query', 'TRUNCATE TABLE "Updates" CASCADE;');
+    // Stop on fail
+    //if (this.currentTest.state === 'failed') {
+    //  Cypress.runner.stop()
+    //}
   });
 
   let _profile, teamId;
@@ -28,7 +32,7 @@ context('root/Team edit', () => {
         cy.get('#teams-table button span span').contains('add_box').click();
         cy.get('#teams-table table tbody tr td div div input[placeholder="Name"]').type('The Calgary Roughnecks');
         cy.get('#teams-table table tbody tr td div button[title="Save"]').click();
-        cy.wait(200);
+        cy.wait(300);
       });
 
       describe('admin mode', () => {
@@ -81,11 +85,11 @@ context('root/Team edit', () => {
         cy.get('#teams-table button span span').contains('add_box').click();
         cy.get('#teams-table table tbody tr td div div input[placeholder="Name"]').type('The Calgary Roughnecks');
         cy.get('#teams-table table tbody tr td div button[title="Save"]').click();
-        cy.wait(200);
+        cy.wait(300);
 
         // Invite root agent to join as member
         cy.contains('The Calgary Roughnecks').click();
-        cy.wait(200);
+        cy.wait(300);
         cy.get('#members-table button span span').contains('add_box').click();
         cy.get('#members-table table tbody tr:nth-of-type(2) input[placeholder="Email"]').type('root@example.com{enter}');
 

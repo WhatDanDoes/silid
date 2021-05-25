@@ -1,24 +1,21 @@
 import { useState } from 'react';
-import { Service } from '../types/Service';
-import { Organization } from '../types/Organization';
 
-export type DeleteOrganization = Pick<Organization, 'id'>;
-
-const useDeleteOrganizationService = () => {
-  const [service, setService] = useState<Service<DeleteOrganization>>({
+const useRescindTeamInvitationService = () => {
+  const [service, setService] = useState({
     status: 'init',
   });
 
-  const deleteOrganization = (id) => {
+  const rescindTeamInvitation = (teamId, data) => {
     setService({ status: 'loading' });
 
     const headers = new Headers();
     headers.append('Content-Type', 'application/json; charset=utf-8');
 
     return new Promise((resolve, reject) => {
-      fetch(`/organization/${id}`,
+      fetch(`/team/${teamId}/invite`,
         {
           method: 'DELETE',
+          body: JSON.stringify(data),
           headers,
         }
       )
@@ -36,8 +33,8 @@ const useDeleteOrganizationService = () => {
 
   return {
     service,
-    deleteOrganization,
+    rescindTeamInvitation,
   };
 };
 
-export default useDeleteOrganizationService;
+export default useRescindTeamInvitationService;

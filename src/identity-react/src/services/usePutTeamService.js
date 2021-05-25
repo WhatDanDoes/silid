@@ -1,25 +1,21 @@
 import { useState } from 'react';
-import { Service } from '../types/Service';
-import { Organization } from '../types/Organization';
 
-export type PutOrganization = Pick<Organization, 'name' | 'id'>;
-
-const usePutOrganizationService = () => {
-  const [service, setService] = useState<Service<PutOrganization>>({
+const usePutTeamService = () => {
+  const [service, setService] = useState({
     status: 'init',
   });
 
-  const publishOrganization = (organization: any) => {
+  const publishTeam = (team) => {
     setService({ status: 'loading' });
 
     const headers = new Headers();
     headers.append('Content-Type', 'application/json; charset=utf-8');
 
     return new Promise((resolve, reject) => {
-      fetch(`/organization/${organization.id}`,
+      fetch(`/team/${team.id}`,
         {
           method: 'PUT',
-          body: JSON.stringify(organization),
+          body: JSON.stringify(team),
           headers,
         }
       )
@@ -37,8 +33,8 @@ const usePutOrganizationService = () => {
 
   return {
     service,
-    publishOrganization,
+    publishTeam,
   };
 };
 
-export default usePutOrganizationService;
+export default usePutTeamService;
