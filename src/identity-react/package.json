@@ -52,7 +52,7 @@
   },
   "devDependencies": {
     "@cypress/skip-test": "^2.6.0",
-    "cypress": "^7.3.0",
+    "cypress": "^7.4.0",
     "pg": "^8.6.0",
     "sequelize": "^6.6.2"
   },
