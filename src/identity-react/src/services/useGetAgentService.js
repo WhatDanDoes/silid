@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Service } from '../types/Service';
-import { Agent } from '../types/Agent';
 
 const useAgentService = (id: number, getCached: boolean) => {
-  const [result, setResult] = useState<Service<Agent>>({
+  const [result, setResult] = useState({
     status: 'loading'
   });
 

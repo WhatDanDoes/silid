@@ -36,10 +36,11 @@ module.exports = function(done) {
      *
      * This is called when `/login` is hit. The session is
      * created prior to redirect.
+     *
+     * Set `DEBUG=nock.*` to log
      */
     let state, nonce;
     const authorizeScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
-      .log(console.log)
       .persist()
       .get(/authorize*/)
       .reply(302, (uri, body) => {
@@ -66,7 +67,6 @@ module.exports = function(done) {
        * exchange and before the encoded id_token is delivered
        */
       const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
-        .log(console.log)
         .get(/userinfo/)
         .reply(200, idToken);
 
@@ -96,7 +96,6 @@ module.exports = function(done) {
            * `authorization_code` for access and ID tokens
            */
           const oauthTokenScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
-            .log(console.log)
             .post(/oauth\/token/, {
                                     'grant_type': 'authorization_code',
                                     'redirect_uri': /\/callback/,

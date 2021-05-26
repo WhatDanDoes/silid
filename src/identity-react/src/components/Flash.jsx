@@ -53,7 +53,7 @@ export interface Props {
   className?: string;
   message?: string;
   onClose?: () => void;
-  variant: keyof typeof variantIcon;
+  variant: keyof;
 }
 
 function Flash(props: Props) {

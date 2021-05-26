@@ -7,9 +7,9 @@
 
 The following describes how to deploy the application to your local development environment and execute tests. These steps are carried out in Ubuntu 18.04 with the latest system upgrades. At the time of writing, the main system dependencies and their versions include:
 
-- Node v10.20.1
-- NPM v6.14.5
-- Docker version 19.03.8, build afacb8b7f0
+- Node v12.18.3
+- NPM v7.10.0
+- Docker version 20.10.6, build 370c289
 - Git version 2.17.1
 
 These are not required versions, but rather the most up-to-date available for the moment.

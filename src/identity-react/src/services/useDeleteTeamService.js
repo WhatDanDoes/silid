@@ -1,25 +1,20 @@
 import { useState } from 'react';
-import { Service } from '../types/Service';
-import { Team } from '../types/Team';
 
-export type PutTeam = Pick<Team, 'name' | 'id'>;
-
-const usePutTeamService = () => {
-  const [service, setService] = useState<Service<PutTeam>>({
+const useDeleteTeamService = () => {
+  const [service, setService] = useState({
     status: 'init',
   });
 
-  const publishTeam = (team: any) => {
+  const deleteTeam = (teamId) => {
     setService({ status: 'loading' });
 
     const headers = new Headers();
     headers.append('Content-Type', 'application/json; charset=utf-8');
 
     return new Promise((resolve, reject) => {
-      fetch(`/team/${team.id}`,
+      fetch(`/team/${teamId}`,
         {
-          method: 'PUT',
-          body: JSON.stringify(team),
+          method: 'DELETE',
           headers,
         }
       )
@@ -37,8 +32,8 @@ const usePutTeamService = () => {
 
   return {
     service,
-    publishTeam,
+    deleteTeam,
   };
 };
 
-export default usePutTeamService;
+export default useDeleteTeamService;

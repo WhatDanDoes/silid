@@ -41,7 +41,6 @@ module.exports = function(profile, done, options) {
        * PATCH `/users/:id`. Get a single user by Auth0 ID
        */
       const userUpdateScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-        .log(console.log)
         .patch(/api\/v2\/users\/[\w-%]+$/)
         .reply(options.status, (uri, requestBody) => {
 

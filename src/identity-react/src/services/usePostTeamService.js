@@ -1,11 +1,7 @@
 import { useState } from 'react';
-import { Service } from '../types/Service';
-import { Team } from '../types/Team';
-
-export type PostTeam = Pick<Team, 'name'>;
 
 const usePostTeamService = () => {
-  const [service, setService] = useState<Service<PostTeam>>({
+  const [service, setService] = useState({
     status: 'init',
   });
 

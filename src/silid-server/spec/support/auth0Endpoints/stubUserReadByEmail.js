@@ -33,7 +33,6 @@ module.exports = function(res, done) {
        * GET `/users/:id`. Get a single user by Auth0 ID
        */
       const userReadByEmailScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-        .log(console.log)
         .get(/api\/v2\/users-by-email\?.+/)
         .reply(200, res);
 
