@@ -183,6 +183,25 @@ const response = await fetch(`/agent/${agent_id}`,
 );
 ```
 
+### Email Verification
+
+Most applications will ensure that an authenticated agent has a _verified_ email address before allowing full access to the app's functionality. The `POST /agent/verify` endpoint sends or _re_-sends the verification email. An email will only be sent if the agent's email is not already verified.
+
+```
+const response = await fetch(`/agent/verify`,
+  {
+    method: 'POST',
+    body: JSON.stringify({
+      id: agent_id,
+    }),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
 ## Viewer Role
 
 A viewer agent can create _teams_ and invite other agents to join.
