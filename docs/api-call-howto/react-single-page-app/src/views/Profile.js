@@ -21,7 +21,6 @@ export const ProfileComponent = () => {
   const [agent, setAgent] = React.useState(null);
 
   React.useEffect(() => {
-    console.log(config);
     (async () => {
       try {
         /**
