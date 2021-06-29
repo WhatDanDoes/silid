@@ -323,12 +323,12 @@ describe('localeSpec', () => {
                     expect(res.body.name).toEqual(_profile.name);
                     expect(res.body.email).toEqual(_profile.email);
                     expect(res.body.user_metadata.silLocale).toBeDefined();
-                    expect(res.body.user_metadata.silLocale.name).toEqual('Klingon');
-                    expect(res.body.user_metadata.silLocale.type).toEqual('constructed');
+                    expect(res.body.user_metadata.silLocale.name).toEqual('Spanish');
+                    expect(res.body.user_metadata.silLocale.type).toEqual('living');
                     expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
-                    expect(res.body.user_metadata.silLocale.iso6393).toEqual('tlh');
-                    expect(res.body.user_metadata.silLocale.iso6392B).toEqual('tlh');
-                    expect(res.body.user_metadata.silLocale.iso6392T).toEqual('tlh');
+                    expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
+                    expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
+                    expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
                     done();
                   });
               });
@@ -357,12 +357,12 @@ describe('localeSpec', () => {
                         expect(session.name).toEqual(_profile.name);
                         expect(session.email).toEqual(_profile.email);
                         expect(session.user_metadata.silLocale).toBeDefined();
-                        expect(session.user_metadata.silLocale.name).toEqual('Klingon');
-                        expect(session.user_metadata.silLocale.type).toEqual('constructed');
-                        expect(session.user_metadata.silLocale.scope).toEqual('individual');
-                        expect(session.user_metadata.silLocale.iso6393).toEqual('tlh');
-                        expect(session.user_metadata.silLocale.iso6392B).toEqual('tlh');
-                        expect(session.user_metadata.silLocale.iso6392T).toEqual('tlh');
+                        expect(res.body.user_metadata.silLocale.name).toEqual('Spanish');
+                        expect(res.body.user_metadata.silLocale.type).toEqual('living');
+                        expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
+                        expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
+                        expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
+                        expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
 
                         done();
                       }).catch(err => {
@@ -498,12 +498,12 @@ describe('localeSpec', () => {
                     expect(res.body.name).toEqual(_profile.name);
                     expect(res.body.email).toEqual(_profile.email);
                     expect(res.body.user_metadata.silLocale).toBeDefined();
-                    expect(res.body.user_metadata.silLocale.name).toEqual('Klingon');
-                    expect(res.body.user_metadata.silLocale.type).toEqual('constructed');
+                    expect(res.body.user_metadata.silLocale.name).toEqual('Spanish');
+                    expect(res.body.user_metadata.silLocale.type).toEqual('living');
                     expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
-                    expect(res.body.user_metadata.silLocale.iso6393).toEqual('tlh');
-                    expect(res.body.user_metadata.silLocale.iso6392B).toEqual('tlh');
-                    expect(res.body.user_metadata.silLocale.iso6392T).toEqual('tlh');
+                    expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
+                    expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
+                    expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
                     done();
                   });
               });
@@ -532,12 +532,12 @@ describe('localeSpec', () => {
                         expect(session.name).toEqual(_profile.name);
                         expect(session.email).toEqual(_profile.email);
                         expect(session.user_metadata.silLocale).toBeDefined();
-                        expect(session.user_metadata.silLocale.name).toEqual('Klingon');
-                        expect(session.user_metadata.silLocale.type).toEqual('constructed');
-                        expect(session.user_metadata.silLocale.scope).toEqual('individual');
-                        expect(session.user_metadata.silLocale.iso6393).toEqual('tlh');
-                        expect(session.user_metadata.silLocale.iso6392B).toEqual('tlh');
-                        expect(session.user_metadata.silLocale.iso6392T).toEqual('tlh');
+                        expect(res.body.user_metadata.silLocale.name).toEqual('Spanish');
+                        expect(res.body.user_metadata.silLocale.type).toEqual('living');
+                        expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
+                        expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
+                        expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
+                        expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
 
                         done();
                       }).catch(err => {
@@ -622,12 +622,13 @@ describe('localeSpec', () => {
                     expect(res.body.name).toEqual(_profile.name);
                     expect(res.body.email).toEqual(_profile.email);
                     expect(res.body.user_metadata.silLocale).toBeDefined();
-                    expect(res.body.user_metadata.silLocale.name).toEqual('Klingon');
-                    expect(res.body.user_metadata.silLocale.type).toEqual('constructed');
+                    expect(res.body.user_metadata.silLocale.name).toEqual('Spanish');
+                    expect(res.body.user_metadata.silLocale.type).toEqual('living');
                     expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
-                    expect(res.body.user_metadata.silLocale.iso6393).toEqual('tlh');
-                    expect(res.body.user_metadata.silLocale.iso6392B).toEqual('tlh');
-                    expect(res.body.user_metadata.silLocale.iso6392T).toEqual('tlh');
+                    expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
+                    expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
+                    expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
+
                     done();
                   });
               });
@@ -656,12 +657,12 @@ describe('localeSpec', () => {
                         expect(session.name).toEqual(_profile.name);
                         expect(session.email).toEqual(_profile.email);
                         expect(session.user_metadata.silLocale).toBeDefined();
-                        expect(session.user_metadata.silLocale.name).toEqual('Klingon');
-                        expect(session.user_metadata.silLocale.type).toEqual('constructed');
-                        expect(session.user_metadata.silLocale.scope).toEqual('individual');
-                        expect(session.user_metadata.silLocale.iso6393).toEqual('tlh');
-                        expect(session.user_metadata.silLocale.iso6392B).toEqual('tlh');
-                        expect(session.user_metadata.silLocale.iso6392T).toEqual('tlh');
+                        expect(res.body.user_metadata.silLocale.name).toEqual('Spanish');
+                        expect(res.body.user_metadata.silLocale.type).toEqual('living');
+                        expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
+                        expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
+                        expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
+                        expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
 
                         done();
                       }).catch(err => {
