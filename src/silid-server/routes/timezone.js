@@ -86,7 +86,9 @@ router.put('/:id', checkPermissions([scope.update.agents]), function(req, res, n
     }
     else {
       // Update session data
-      req.session.passport.user = {...req.user, ...result};
+      if (req.session.passport) {
+        req.session.passport.user = {...req.user, ...result};
+      }
       res.status(201).json({...req.user, ...result});
     }
   }).catch(err => {
