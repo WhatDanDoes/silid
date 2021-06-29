@@ -471,7 +471,8 @@ describe('localeSpec', () => {
                       expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
                       expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
                       expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
-                      expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
+                      expect(res.body.user_metadata.silLocale.iso6392T).toEqual('spa');
+                      expect(res.body.user_metadata.silLocale.iso6391).toEqual('es');
                       done();
                     });
                 });
@@ -505,7 +506,8 @@ describe('localeSpec', () => {
                           expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
                           expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
                           expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
-                          expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
+                          expect(res.body.user_metadata.silLocale.iso6392T).toEqual('spa');
+                          expect(res.body.user_metadata.silLocale.iso6391).toEqual('es');
 
                           done();
                         }).catch(err => {
@@ -566,9 +568,9 @@ describe('localeSpec', () => {
                     .get(/userinfo/)
                     .reply(200, _identity);
 
-//                  const userInfoScopeForAgentCall = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
-//                    .get(/userinfo/)
-//                    .reply(200, _identity);
+                  const userInfoScopeForAgentCall = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                    .get(/userinfo/)
+                    .reply(200, _identity);
                 });
 
 
@@ -591,51 +593,11 @@ describe('localeSpec', () => {
                       expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
                       expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
                       expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
-                      expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
+                      expect(res.body.user_metadata.silLocale.iso6392T).toEqual('spa');
+                      expect(res.body.user_metadata.silLocale.iso6391).toEqual('es');
+
                       done();
                     });
-                });
-
-                it('updates the user session data', done => {
-                  models.Session.findAll().then(results => {
-                    expect(results.length).toEqual(1);
-                    let session = JSON.parse(results[0].data).passport.user;
-                    expect(session.name).toEqual(_profile.name);
-                    expect(session.email).toEqual(_profile.email);
-                    expect(session.user_metadata.silLocale).toBeUndefined();
-
-                    request(app)
-                      .put('/locale/es-419')
-                      .set('Authorization', `Bearer ${accessToken}`)
-                      .set('Accept', 'application/json')
-                      .redirects(1)
-                      .expect('Content-Type', /json/)
-                      .expect(200)
-                      .end((err, res) => {
-                        if (err) return done.fail(err);
-
-                        models.Session.findAll().then(results => {
-                          expect(results.length).toEqual(1);
-                          session = JSON.parse(results[0].data).passport.user;
-
-                          expect(session.name).toEqual(_profile.name);
-                          expect(session.email).toEqual(_profile.email);
-                          expect(session.user_metadata.silLocale).toBeDefined();
-                          expect(res.body.user_metadata.silLocale.name).toEqual('Spanish');
-                          expect(res.body.user_metadata.silLocale.type).toEqual('living');
-                          expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
-                          expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
-                          expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
-                          expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
-
-                          done();
-                        }).catch(err => {
-                          done.fail(err);
-                        });
-                      });
-                  }).catch(err => {
-                    done.fail(err);
-                  });
                 });
 
                 it('redirects to the /agent route', done => {
@@ -946,19 +908,19 @@ describe('localeSpec', () => {
                       });
                   });
 
-                  it('is not called if the language is already assigned to the agent', done => {
+                  it('is called even if the language is already assigned to the agent', done => {
                     expect(_profile.user_metadata.silLocale.iso6393).toEqual('eng');
                     request(app)
                       .put('/locale/eng')
                       .set('Authorization', `Bearer ${accessToken}`)
                       .set('Accept', 'application/json')
-                      .expect('Content-Type', /json/)
-                      .expect(200)
+                      .expect('Location', '/agent')
+                      .expect(303)
                       .end(function(err, res) {
                         if (err) return done.fail(err);
 
-                        expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
-                        expect(userAppMetadataUpdateScope.isDone()).toBe(false);
+                        expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                        expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                         done();
                       });
                   });
@@ -1000,7 +962,8 @@ describe('localeSpec', () => {
                       expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
                       expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
                       expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
-                      expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
+                      expect(res.body.user_metadata.silLocale.iso6392T).toEqual('spa');
+                      expect(res.body.user_metadata.silLocale.iso6391).toEqual('es');
 
                       done();
                     });
@@ -1035,7 +998,8 @@ describe('localeSpec', () => {
                           expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
                           expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
                           expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
-                          expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
+                          expect(res.body.user_metadata.silLocale.iso6392T).toEqual('spa');
+                          expect(res.body.user_metadata.silLocale.iso6391).toEqual('es');
 
                           done();
                         }).catch(err => {
@@ -1072,22 +1036,6 @@ describe('localeSpec', () => {
 
                         expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
                         expect(userAppMetadataUpdateScope.isDone()).toBe(true);
-                        done();
-                      });
-                  });
-
-                  it('is not called if the language is already assigned to the agent', done => {
-                    expect(_profile.user_metadata.silLocale.iso6393).toEqual('eng');
-                    authenticatedSession
-                      .put('/locale/es-419')
-                      .set('Accept', 'application/json')
-                      .expect('Content-Type', /json/)
-                      .expect(200)
-                      .end(function(err, res) {
-                        if (err) return done.fail(err);
-
-                        expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
-                        expect(userAppMetadataUpdateScope.isDone()).toBe(false);
                         done();
                       });
                   });
@@ -1138,7 +1086,8 @@ describe('localeSpec', () => {
                       expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
                       expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
                       expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
-                      expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
+                      expect(res.body.user_metadata.silLocale.iso6392T).toEqual('spa');
+                      expect(res.body.user_metadata.silLocale.iso6391).toEqual('es');
 
                       done();
                     });
@@ -1171,23 +1120,6 @@ describe('localeSpec', () => {
 
                         expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
                         expect(userAppMetadataUpdateScope.isDone()).toBe(true);
-                        done();
-                      });
-                  });
-
-                  it('is not called if the language is already assigned to the agent', done => {
-                    expect(_profile.user_metadata.silLocale.iso6393).toEqual('eng');
-                    request(app)
-                      .put('/locale/es-419')
-                      .set('Authorization', `Bearer ${accessToken}`)
-                      .set('Accept', 'application/json')
-                      .expect('Content-Type', /json/)
-                      .expect(200)
-                      .end(function(err, res) {
-                        if (err) return done.fail(err);
-
-                        expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
-                        expect(userAppMetadataUpdateScope.isDone()).toBe(false);
                         done();
                       });
                   });
