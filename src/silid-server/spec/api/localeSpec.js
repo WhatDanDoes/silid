@@ -3,6 +3,7 @@ const PORT = process.env.NODE_ENV === 'production' ? 3000 : 3001;
 const request = require('supertest');
 const path = require('path');
 const fs = require('fs');
+const nock = require('nock');
 
 const app = require('../../app');
 const fixtures = require('sequelize-fixtures');
@@ -14,6 +15,7 @@ const stubUserRolesRead = require('../support/auth0Endpoints/stubUserRolesRead')
 const stubUserAppMetadataUpdate = require('../support/auth0Endpoints/stubUserAppMetadataUpdate');
 const scope = require('../../config/permissions');
 const apiScope = require('../../config/apiPermissions');
+
 
 /**
  * 2019-11-13
@@ -65,7 +67,7 @@ describe('localeSpec', () => {
     });
   });
 
-  let authenticatedSession;
+  let authenticatedSession, accessToken;
   describe('authenticated', () => {
 
     describe('authorized', () => {
@@ -77,8 +79,9 @@ describe('localeSpec', () => {
             stubAuth0ManagementApi((err, apiScopes) => {
               if (err) return done.fail();
 
-              login(_identity, [scope.read.agents], (err, session) => {
+              login(_identity, [scope.read.agents], (err, session, token) => {
                 if (err) return done.fail(err);
+                accessToken = token;
                 authenticatedSession = session;
 
                 // Cached profile doesn't match "live" data, so agent needs to be updated
@@ -92,18 +95,43 @@ describe('localeSpec', () => {
             });
           });
 
-          it('retrieves all living and constructed languages specified in the iso-639-3 spec', done => {
-            authenticatedSession
-              .get('/locale')
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(200)
-              .end((err, res) => {
-                if (err) return done.fail(err);
-                // 7027 living languages + 22 constructed
-                expect(res.body.length).toEqual(7027 + 22);
-                done();
-              });
+          describe('session access', () => {
+            it('retrieves all living and constructed languages specified in the iso-639-3 spec', done => {
+              authenticatedSession
+                .get('/locale')
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+                  // 7027 living languages + 22 constructed
+                  expect(res.body.length).toEqual(7027 + 22);
+                  done();
+                });
+            });
+          });
+
+          describe('Bearer token access', () => {
+            beforeEach(() => {
+              const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                .get(/userinfo/)
+                .reply(200, _identity);
+            });
+
+            it('retrieves all living and constructed languages specified in the iso-639-3 spec', done => {
+              request(app)
+                .get('/locale')
+                .set('Accept', 'application/json')
+                .set('Authorization', `Bearer ${accessToken}`)
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+                  // 7027 living languages + 22 constructed
+                  expect(res.body.length).toEqual(7027 + 22);
+                  done();
+                });
+            });
           });
         });
 
@@ -136,18 +164,43 @@ describe('localeSpec', () => {
             });
           });
 
-          it('retrieves all the languages for which copy exists in /public/languages', done => {
-            expect(supportedLanguages.length).toEqual(2);
-            authenticatedSession
-              .get('/locale/supported')
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(200)
-              .end((err, res) => {
-                if (err) return done.fail(err);
-                expect(res.body.length).toEqual(supportedLanguages.length);
-                done();
-              });
+          describe('session access', () => {
+            it('retrieves all the languages for which copy exists in /public/languages', done => {
+              expect(supportedLanguages.length).toEqual(2);
+              authenticatedSession
+                .get('/locale/supported')
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+                  expect(res.body.length).toEqual(supportedLanguages.length);
+                  done();
+                });
+            });
+          });
+
+          describe('Bearer token access', () => {
+            beforeEach(() => {
+              const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                .get(/userinfo/)
+                .reply(200, _identity);
+            });
+
+            it('retrieves all the languages for which copy exists in /public/languages', done => {
+              expect(supportedLanguages.length).toEqual(2);
+              request(app)
+                .get('/locale/supported')
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+                  expect(res.body.length).toEqual(supportedLanguages.length);
+                  done();
+                });
+            });
           });
         });
       });
@@ -202,97 +255,74 @@ describe('localeSpec', () => {
             });
 
             describe('iso-691-3', () => {
-              it('returns the agent\'s profile with the silLocale field', done => {
-                authenticatedSession
-                  .put('/locale/tlh')
-                  .set('Accept', 'application/json')
-                  .redirects(1)
-                  .expect('Content-Type', /json/)
-                  .expect(200)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
 
-                    expect(res.body.name).toEqual(_profile.name);
-                    expect(res.body.email).toEqual(_profile.email);
-                    expect(res.body.user_metadata.silLocale).toBeDefined();
-                    expect(res.body.user_metadata.silLocale.name).toEqual('Klingon');
-                    expect(res.body.user_metadata.silLocale.type).toEqual('constructed');
-                    expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
-                    expect(res.body.user_metadata.silLocale.iso6393).toEqual('tlh');
-                    expect(res.body.user_metadata.silLocale.iso6392B).toEqual('tlh');
-                    expect(res.body.user_metadata.silLocale.iso6392T).toEqual('tlh');
-                    done();
-                  });
-              });
+              describe('session access', () => {
 
-              it('updates the user session data', done => {
-                models.Session.findAll().then(results => {
-                  expect(results.length).toEqual(1);
-                  let session = JSON.parse(results[0].data).passport.user;
-                  expect(session.name).toEqual(_profile.name);
-                  expect(session.email).toEqual(_profile.email);
-                  expect(session.user_metadata.silLocale).toBeUndefined();
-
+                it('returns the agent\'s profile with the silLocale field', done => {
                   authenticatedSession
                     .put('/locale/tlh')
                     .set('Accept', 'application/json')
                     .redirects(1)
                     .expect('Content-Type', /json/)
                     .expect(200)
-                    .end((err, res) => {
+                    .end(function(err, res) {
                       if (err) return done.fail(err);
 
-                      models.Session.findAll().then(results => {
-                        expect(results.length).toEqual(1);
-                        session = JSON.parse(results[0].data).passport.user;
-
-                        expect(session.name).toEqual(_profile.name);
-                        expect(session.email).toEqual(_profile.email);
-                        expect(session.user_metadata.silLocale).toBeDefined();
-                        expect(session.user_metadata.silLocale.name).toEqual('Klingon');
-                        expect(session.user_metadata.silLocale.type).toEqual('constructed');
-                        expect(session.user_metadata.silLocale.scope).toEqual('individual');
-                        expect(session.user_metadata.silLocale.iso6393).toEqual('tlh');
-                        expect(session.user_metadata.silLocale.iso6392B).toEqual('tlh');
-                        expect(session.user_metadata.silLocale.iso6392T).toEqual('tlh');
-
-                        done();
-                      }).catch(err => {
-                        done.fail(err);
-                      });
+                      expect(res.body.name).toEqual(_profile.name);
+                      expect(res.body.email).toEqual(_profile.email);
+                      expect(res.body.user_metadata.silLocale).toBeDefined();
+                      expect(res.body.user_metadata.silLocale.name).toEqual('Klingon');
+                      expect(res.body.user_metadata.silLocale.type).toEqual('constructed');
+                      expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
+                      expect(res.body.user_metadata.silLocale.iso6393).toEqual('tlh');
+                      expect(res.body.user_metadata.silLocale.iso6392B).toEqual('tlh');
+                      expect(res.body.user_metadata.silLocale.iso6392T).toEqual('tlh');
+                      done();
                     });
-                }).catch(err => {
-                  done.fail(err);
                 });
-              });
 
-              it('redirects to the /agent route', done => {
-                authenticatedSession
-                  .put('/locale/tlh')
-                  .set('Accept', 'application/json')
-                  .expect('Location', '/agent')
-                  .expect(303)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-                    done();
+                it('updates the user session data', done => {
+                  models.Session.findAll().then(results => {
+                    expect(results.length).toEqual(1);
+                    let session = JSON.parse(results[0].data).passport.user;
+                    expect(session.name).toEqual(_profile.name);
+                    expect(session.email).toEqual(_profile.email);
+                    expect(session.user_metadata.silLocale).toBeUndefined();
+
+                    authenticatedSession
+                      .put('/locale/tlh')
+                      .set('Accept', 'application/json')
+                      .redirects(1)
+                      .expect('Content-Type', /json/)
+                      .expect(200)
+                      .end((err, res) => {
+                        if (err) return done.fail(err);
+
+                        models.Session.findAll().then(results => {
+                          expect(results.length).toEqual(1);
+                          session = JSON.parse(results[0].data).passport.user;
+
+                          expect(session.name).toEqual(_profile.name);
+                          expect(session.email).toEqual(_profile.email);
+                          expect(session.user_metadata.silLocale).toBeDefined();
+                          expect(session.user_metadata.silLocale.name).toEqual('Klingon');
+                          expect(session.user_metadata.silLocale.type).toEqual('constructed');
+                          expect(session.user_metadata.silLocale.scope).toEqual('individual');
+                          expect(session.user_metadata.silLocale.iso6393).toEqual('tlh');
+                          expect(session.user_metadata.silLocale.iso6392B).toEqual('tlh');
+                          expect(session.user_metadata.silLocale.iso6392T).toEqual('tlh');
+
+                          done();
+                        }).catch(err => {
+                          done.fail(err);
+                        });
+                      });
+                  }).catch(err => {
+                    done.fail(err);
                   });
-              });
+                });
 
-              it('returns a friendly message if an invalid ISO-639-3 code provided', done => {
-                authenticatedSession
-                  .put('/locale/lmnop')
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(404)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-                    expect(res.body.message).toEqual('That language does not exist');
-                    done();
-                  });
-              });
-
-              describe('Auth0', () => {
-                it('is called to update the agent user_metadata', done => {
+                it('redirects to the /agent route', done => {
                   authenticatedSession
                     .put('/locale/tlh')
                     .set('Accept', 'application/json')
@@ -300,107 +330,194 @@ describe('localeSpec', () => {
                     .expect(303)
                     .end(function(err, res) {
                       if (err) return done.fail(err);
-
-                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
-                      expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                       done();
                     });
+                });
+
+                it('returns a friendly message if an invalid ISO-639-3 code provided', done => {
+                  authenticatedSession
+                    .put('/locale/lmnop')
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(404)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(res.body.message).toEqual('That language does not exist');
+                      done();
+                    });
+                });
+
+                describe('Auth0', () => {
+                  it('is called to update the agent user_metadata', done => {
+                    authenticatedSession
+                      .put('/locale/tlh')
+                      .set('Accept', 'application/json')
+                      .expect('Location', '/agent')
+                      .expect(303)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+
+                        expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                        expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+                        done();
+                      });
+                  });
+                });
+              });
+
+              describe('Bearer token access', () => {
+
+                beforeEach(() => {
+                  const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                    .get(/userinfo/)
+                    .reply(200, _identity);
+
+                  const userInfoScopeForAgentCall = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                    .get(/userinfo/)
+                    .reply(200, _identity);
+                });
+
+
+                it('returns the agent\'s profile with the silLocale field', done => {
+                  request(app)
+                    .put('/locale/tlh')
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .redirects(1)
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+
+                      expect(res.body.name).toEqual(_profile.name);
+                      expect(res.body.email).toEqual(_profile.email);
+                      expect(res.body.user_metadata.silLocale).toBeDefined();
+                      expect(res.body.user_metadata.silLocale.name).toEqual('Klingon');
+                      expect(res.body.user_metadata.silLocale.type).toEqual('constructed');
+                      expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
+                      expect(res.body.user_metadata.silLocale.iso6393).toEqual('tlh');
+                      expect(res.body.user_metadata.silLocale.iso6392B).toEqual('tlh');
+                      expect(res.body.user_metadata.silLocale.iso6392T).toEqual('tlh');
+                      done();
+                    });
+                });
+
+                it('redirects to the /agent route', done => {
+                  request(app)
+                    .put('/locale/tlh')
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Location', '/agent')
+                    .expect(303)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      done();
+                    });
+                });
+
+                it('returns a friendly message if an invalid ISO-639-3 code provided', done => {
+                  request(app)
+                    .put('/locale/lmnop')
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(404)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(res.body.message).toEqual('That language does not exist');
+                      done();
+                    });
+                });
+
+                describe('Auth0', () => {
+                  it('is called to update the agent user_metadata', done => {
+                    request(app)
+                      .put('/locale/tlh')
+                      .set('Authorization', `Bearer ${accessToken}`)
+                      .set('Accept', 'application/json')
+                      .expect('Location', '/agent')
+                      .expect(303)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+
+                        expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                        expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+                        done();
+                      });
+                  });
                 });
               });
             });
 
             describe('bcp-47', () => {
-              it('returns the agent\'s profile with the silLocale field', done => {
-                authenticatedSession
-                  .put('/locale/es-419')
-                  .set('Accept', 'application/json')
-                  .redirects(1)
-                  .expect('Content-Type', /json/)
-                  .expect(200)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
 
-                    expect(res.body.name).toEqual(_profile.name);
-                    expect(res.body.email).toEqual(_profile.email);
-                    expect(res.body.user_metadata.silLocale).toBeDefined();
-                    expect(res.body.user_metadata.silLocale.name).toEqual('Spanish');
-                    expect(res.body.user_metadata.silLocale.type).toEqual('living');
-                    expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
-                    expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
-                    expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
-                    expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
-                    done();
-                  });
-              });
+              describe('session access', () => {
 
-              it('updates the user session data', done => {
-                models.Session.findAll().then(results => {
-                  expect(results.length).toEqual(1);
-                  let session = JSON.parse(results[0].data).passport.user;
-                  expect(session.name).toEqual(_profile.name);
-                  expect(session.email).toEqual(_profile.email);
-                  expect(session.user_metadata.silLocale).toBeUndefined();
-
+                it('returns the agent\'s profile with the silLocale field', done => {
                   authenticatedSession
                     .put('/locale/es-419')
                     .set('Accept', 'application/json')
                     .redirects(1)
                     .expect('Content-Type', /json/)
                     .expect(200)
-                    .end((err, res) => {
+                    .end(function(err, res) {
                       if (err) return done.fail(err);
 
-                      models.Session.findAll().then(results => {
-                        expect(results.length).toEqual(1);
-                        session = JSON.parse(results[0].data).passport.user;
-
-                        expect(session.name).toEqual(_profile.name);
-                        expect(session.email).toEqual(_profile.email);
-                        expect(session.user_metadata.silLocale).toBeDefined();
-                        expect(res.body.user_metadata.silLocale.name).toEqual('Spanish');
-                        expect(res.body.user_metadata.silLocale.type).toEqual('living');
-                        expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
-                        expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
-                        expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
-                        expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
-
-                        done();
-                      }).catch(err => {
-                        done.fail(err);
-                      });
+                      expect(res.body.name).toEqual(_profile.name);
+                      expect(res.body.email).toEqual(_profile.email);
+                      expect(res.body.user_metadata.silLocale).toBeDefined();
+                      expect(res.body.user_metadata.silLocale.name).toEqual('Spanish');
+                      expect(res.body.user_metadata.silLocale.type).toEqual('living');
+                      expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
+                      expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
+                      expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
+                      expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
+                      done();
                     });
-                }).catch(err => {
-                  done.fail(err);
                 });
-              });
 
-              it('redirects to the /agent route', done => {
-                authenticatedSession
-                  .put('/locale/es-419')
-                  .set('Accept', 'application/json')
-                  .expect('Location', '/agent')
-                  .expect(303)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-                    done();
+                it('updates the user session data', done => {
+                  models.Session.findAll().then(results => {
+                    expect(results.length).toEqual(1);
+                    let session = JSON.parse(results[0].data).passport.user;
+                    expect(session.name).toEqual(_profile.name);
+                    expect(session.email).toEqual(_profile.email);
+                    expect(session.user_metadata.silLocale).toBeUndefined();
+
+                    authenticatedSession
+                      .put('/locale/es-419')
+                      .set('Accept', 'application/json')
+                      .redirects(1)
+                      .expect('Content-Type', /json/)
+                      .expect(200)
+                      .end((err, res) => {
+                        if (err) return done.fail(err);
+
+                        models.Session.findAll().then(results => {
+                          expect(results.length).toEqual(1);
+                          session = JSON.parse(results[0].data).passport.user;
+
+                          expect(session.name).toEqual(_profile.name);
+                          expect(session.email).toEqual(_profile.email);
+                          expect(session.user_metadata.silLocale).toBeDefined();
+                          expect(res.body.user_metadata.silLocale.name).toEqual('Spanish');
+                          expect(res.body.user_metadata.silLocale.type).toEqual('living');
+                          expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
+                          expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
+                          expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
+                          expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
+
+                          done();
+                        }).catch(err => {
+                          done.fail(err);
+                        });
+                      });
+                  }).catch(err => {
+                    done.fail(err);
                   });
-              });
+                });
 
-              it('returns a friendly message if an invalid BCP-47 code provided', done => {
-                authenticatedSession
-                  .put('/locale/lm-CA')
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(404)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-                    expect(res.body.message).toEqual('That language does not exist');
-                    done();
-                  });
-              });
-
-              describe('Auth0', () => {
-                it('is called to update the agent user_metadata', done => {
+                it('redirects to the /agent route', done => {
                   authenticatedSession
                     .put('/locale/es-419')
                     .set('Accept', 'application/json')
@@ -408,11 +525,162 @@ describe('localeSpec', () => {
                     .expect(303)
                     .end(function(err, res) {
                       if (err) return done.fail(err);
-
-                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
-                      expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                       done();
                     });
+                });
+
+                it('returns a friendly message if an invalid BCP-47 code provided', done => {
+                  authenticatedSession
+                    .put('/locale/lm-CA')
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(404)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(res.body.message).toEqual('That language does not exist');
+                      done();
+                    });
+                });
+
+                describe('Auth0', () => {
+                  it('is called to update the agent user_metadata', done => {
+                    authenticatedSession
+                      .put('/locale/es-419')
+                      .set('Accept', 'application/json')
+                      .expect('Location', '/agent')
+                      .expect(303)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+
+                        expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                        expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+                        done();
+                      });
+                  });
+                });
+              });
+
+              describe('Bearer token access', () => {
+                beforeEach(() => {
+                  const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                    .get(/userinfo/)
+                    .reply(200, _identity);
+
+//                  const userInfoScopeForAgentCall = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+//                    .get(/userinfo/)
+//                    .reply(200, _identity);
+                });
+
+
+                it('returns the agent\'s profile with the silLocale field', done => {
+                  request(app)
+                    .put('/locale/es-419')
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .redirects(1)
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+
+                      expect(res.body.name).toEqual(_profile.name);
+                      expect(res.body.email).toEqual(_profile.email);
+                      expect(res.body.user_metadata.silLocale).toBeDefined();
+                      expect(res.body.user_metadata.silLocale.name).toEqual('Spanish');
+                      expect(res.body.user_metadata.silLocale.type).toEqual('living');
+                      expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
+                      expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
+                      expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
+                      expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
+                      done();
+                    });
+                });
+
+                it('updates the user session data', done => {
+                  models.Session.findAll().then(results => {
+                    expect(results.length).toEqual(1);
+                    let session = JSON.parse(results[0].data).passport.user;
+                    expect(session.name).toEqual(_profile.name);
+                    expect(session.email).toEqual(_profile.email);
+                    expect(session.user_metadata.silLocale).toBeUndefined();
+
+                    request(app)
+                      .put('/locale/es-419')
+                      .set('Authorization', `Bearer ${accessToken}`)
+                      .set('Accept', 'application/json')
+                      .redirects(1)
+                      .expect('Content-Type', /json/)
+                      .expect(200)
+                      .end((err, res) => {
+                        if (err) return done.fail(err);
+
+                        models.Session.findAll().then(results => {
+                          expect(results.length).toEqual(1);
+                          session = JSON.parse(results[0].data).passport.user;
+
+                          expect(session.name).toEqual(_profile.name);
+                          expect(session.email).toEqual(_profile.email);
+                          expect(session.user_metadata.silLocale).toBeDefined();
+                          expect(res.body.user_metadata.silLocale.name).toEqual('Spanish');
+                          expect(res.body.user_metadata.silLocale.type).toEqual('living');
+                          expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
+                          expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
+                          expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
+                          expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
+
+                          done();
+                        }).catch(err => {
+                          done.fail(err);
+                        });
+                      });
+                  }).catch(err => {
+                    done.fail(err);
+                  });
+                });
+
+                it('redirects to the /agent route', done => {
+                  request(app)
+                    .put('/locale/es-419')
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Location', '/agent')
+                    .expect(303)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      done();
+                    });
+                });
+
+                it('returns a friendly message if an invalid BCP-47 code provided', done => {
+                  request(app)
+                    .put('/locale/lm-CA')
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(404)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(res.body.message).toEqual('That language does not exist');
+                      done();
+                    });
+                });
+
+                describe('Auth0', () => {
+                  it('is called to update the agent user_metadata', done => {
+                    request(app)
+                      .put('/locale/es-419')
+                      .set('Authorization', `Bearer ${accessToken}`)
+                      .set('Accept', 'application/json')
+                      .expect('Location', '/agent')
+                      .expect(303)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+
+                        expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                        expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+                        done();
+                      });
+                  });
                 });
               });
             });
@@ -473,97 +741,9 @@ describe('localeSpec', () => {
             });
 
             describe('iso-691-3', () => {
-              it('redirects to the /agent route', done => {
-                authenticatedSession
-                  .put('/locale/tlh')
-                  .set('Accept', 'application/json')
-                  .expect('Location', '/agent')
-                  .expect(303)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-                    done();
-                  });
-              });
 
-              it('returns the agent\'s profile with the silLocale field', done => {
-                authenticatedSession
-                  .put('/locale/tlh')
-                  .set('Accept', 'application/json')
-                  .redirects(1)
-                  .expect('Content-Type', /json/)
-                  .expect(200)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-
-                    expect(res.body.name).toEqual(_profile.name);
-                    expect(res.body.email).toEqual(_profile.email);
-                    expect(res.body.user_metadata.silLocale).toBeDefined();
-                    expect(res.body.user_metadata.silLocale.name).toEqual('Spanish');
-                    expect(res.body.user_metadata.silLocale.type).toEqual('living');
-                    expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
-                    expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
-                    expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
-                    expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
-                    done();
-                  });
-              });
-
-              it('updates the user session data', done => {
-                models.Session.findAll().then(results => {
-                  expect(results.length).toEqual(1);
-                  let session = JSON.parse(results[0].data).passport.user;
-                  expect(session.name).toEqual(_profile.name);
-                  expect(session.email).toEqual(_profile.email);
-                  expect(session.user_metadata.silLocale).toEqual(_profile.user_metadata.silLocale);
-
-                  authenticatedSession
-                    .put('/locale/tlh')
-                    .set('Accept', 'application/json')
-                    .redirects(1)
-                    .expect('Content-Type', /json/)
-                    .expect(200)
-                    .end((err, res) => {
-                      if (err) return done.fail(err);
-
-                      models.Session.findAll().then(results => {
-                        expect(results.length).toEqual(1);
-                        session = JSON.parse(results[0].data).passport.user;
-
-                        expect(session.name).toEqual(_profile.name);
-                        expect(session.email).toEqual(_profile.email);
-                        expect(session.user_metadata.silLocale).toBeDefined();
-                        expect(res.body.user_metadata.silLocale.name).toEqual('Spanish');
-                        expect(res.body.user_metadata.silLocale.type).toEqual('living');
-                        expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
-                        expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
-                        expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
-                        expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
-
-                        done();
-                      }).catch(err => {
-                        done.fail(err);
-                      });
-                    });
-                }).catch(err => {
-                  done.fail(err);
-                });
-              });
-
-              it('returns a friendly message if an invalid ISO-639-3 code provided', done => {
-                authenticatedSession
-                  .put('/locale/lmnop')
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(404)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-                    expect(res.body.message).toEqual('That language does not exist');
-                    done();
-                  });
-              });
-
-              describe('Auth0', () => {
-                it('is called to update the agent user_metadata', done => {
+              describe('session access', () => {
+                it('redirects to the /agent route', done => {
                   authenticatedSession
                     .put('/locale/tlh')
                     .set('Accept', 'application/json')
@@ -571,124 +751,226 @@ describe('localeSpec', () => {
                     .expect(303)
                     .end(function(err, res) {
                       if (err) return done.fail(err);
-
-                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
-                      expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                       done();
                     });
                 });
 
-                it('is not called if the language is already assigned to the agent', done => {
-                  expect(_profile.user_metadata.silLocale.iso6393).toEqual('eng');
+                it('returns the agent\'s profile with the silLocale field', done => {
                   authenticatedSession
-                    .put('/locale/eng')
+                    .put('/locale/tlh')
                     .set('Accept', 'application/json')
+                    .redirects(1)
                     .expect('Content-Type', /json/)
                     .expect(200)
                     .end(function(err, res) {
                       if (err) return done.fail(err);
 
-                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
-                      expect(userAppMetadataUpdateScope.isDone()).toBe(false);
+                      expect(res.body.name).toEqual(_profile.name);
+                      expect(res.body.email).toEqual(_profile.email);
+                      expect(res.body.user_metadata.silLocale).toBeDefined();
+                      expect(res.body.user_metadata.silLocale.name).toEqual('Klingon');
+                      expect(res.body.user_metadata.silLocale.type).toEqual('constructed');
+                      expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
+                      expect(res.body.user_metadata.silLocale.iso6393).toEqual('tlh');
+                      expect(res.body.user_metadata.silLocale.iso6392B).toEqual('tlh');
+                      expect(res.body.user_metadata.silLocale.iso6392T).toEqual('tlh');
                       done();
                     });
+                });
+
+                it('updates the user session data', done => {
+                  models.Session.findAll().then(results => {
+                    expect(results.length).toEqual(1);
+                    let session = JSON.parse(results[0].data).passport.user;
+                    expect(session.name).toEqual(_profile.name);
+                    expect(session.email).toEqual(_profile.email);
+                    expect(session.user_metadata.silLocale).toEqual(_profile.user_metadata.silLocale);
+
+                    authenticatedSession
+                      .put('/locale/tlh')
+                      .set('Accept', 'application/json')
+                      .redirects(1)
+                      .expect('Content-Type', /json/)
+                      .expect(200)
+                      .end((err, res) => {
+                        if (err) return done.fail(err);
+
+                        models.Session.findAll().then(results => {
+                          expect(results.length).toEqual(1);
+                          session = JSON.parse(results[0].data).passport.user;
+
+                          expect(session.name).toEqual(_profile.name);
+                          expect(session.email).toEqual(_profile.email);
+                          expect(session.user_metadata.silLocale).toBeDefined();
+                          expect(res.body.user_metadata.silLocale.name).toEqual('Klingon');
+                          expect(res.body.user_metadata.silLocale.type).toEqual('constructed');
+                          expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
+                          expect(res.body.user_metadata.silLocale.iso6393).toEqual('tlh');
+                          expect(res.body.user_metadata.silLocale.iso6392B).toEqual('tlh');
+                          expect(res.body.user_metadata.silLocale.iso6392T).toEqual('tlh');
+
+                          done();
+                        }).catch(err => {
+                          done.fail(err);
+                        });
+                      });
+                  }).catch(err => {
+                    done.fail(err);
+                  });
+                });
+
+                it('returns a friendly message if an invalid ISO-639-3 code provided', done => {
+                  authenticatedSession
+                    .put('/locale/lmnop')
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(404)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(res.body.message).toEqual('That language does not exist');
+                      done();
+                    });
+                });
+
+                describe('Auth0', () => {
+                  it('is called to update the agent user_metadata', done => {
+                    authenticatedSession
+                      .put('/locale/tlh')
+                      .set('Accept', 'application/json')
+                      .expect('Location', '/agent')
+                      .expect(303)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+
+                        expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                        expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+                        done();
+                      });
+                  });
+
+                  it('is not called if the language is already assigned to the agent', done => {
+                    expect(_profile.user_metadata.silLocale.iso6393).toEqual('eng');
+                    authenticatedSession
+                      .put('/locale/eng')
+                      .set('Accept', 'application/json')
+                      .expect('Content-Type', /json/)
+                      .expect(200)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+
+                        expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                        expect(userAppMetadataUpdateScope.isDone()).toBe(false);
+                        done();
+                      });
+                  });
+                });
+              });
+
+              describe('Bearer token access', () => {
+
+                beforeEach(() => {
+                  const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                    .get(/userinfo/)
+                    .reply(200, _identity);
+
+                  const userInfoScopeForAgentCall = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                    .get(/userinfo/)
+                    .reply(200, _identity);
+                });
+
+                it('redirects to the /agent route', done => {
+                  request(app)
+                    .put('/locale/tlh')
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Location', '/agent')
+                    .expect(303)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      done();
+                    });
+                });
+
+                it('returns the agent\'s profile with the silLocale field', done => {
+                  request(app)
+                    .put('/locale/tlh')
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .redirects(1)
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+
+                      expect(res.body.name).toEqual(_profile.name);
+                      expect(res.body.email).toEqual(_profile.email);
+                      expect(res.body.user_metadata.silLocale).toBeDefined();
+                      expect(res.body.user_metadata.silLocale.name).toEqual('Klingon');
+                      expect(res.body.user_metadata.silLocale.type).toEqual('constructed');
+                      expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
+                      expect(res.body.user_metadata.silLocale.iso6393).toEqual('tlh');
+                      expect(res.body.user_metadata.silLocale.iso6392B).toEqual('tlh');
+                      expect(res.body.user_metadata.silLocale.iso6392T).toEqual('tlh');
+                      done();
+                    });
+                });
+
+                it('returns a friendly message if an invalid ISO-639-3 code provided', done => {
+                  request(app)
+                    .put('/locale/lmnop')
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(404)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(res.body.message).toEqual('That language does not exist');
+                      done();
+                    });
+                });
+
+                describe('Auth0', () => {
+                  it('is called to update the agent user_metadata', done => {
+                    request(app)
+                      .put('/locale/tlh')
+                      .set('Authorization', `Bearer ${accessToken}`)
+                      .set('Accept', 'application/json')
+                      .expect('Location', '/agent')
+                      .expect(303)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+
+                        expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                        expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+                        done();
+                      });
+                  });
+
+                  it('is not called if the language is already assigned to the agent', done => {
+                    expect(_profile.user_metadata.silLocale.iso6393).toEqual('eng');
+                    request(app)
+                      .put('/locale/eng')
+                      .set('Authorization', `Bearer ${accessToken}`)
+                      .set('Accept', 'application/json')
+                      .expect('Content-Type', /json/)
+                      .expect(200)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+
+                        expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                        expect(userAppMetadataUpdateScope.isDone()).toBe(false);
+                        done();
+                      });
+                  });
                 });
               });
             });
 
             describe('BCP-47', () => {
-              it('redirects to the /agent route', done => {
-                authenticatedSession
-                  .put('/locale/es-419')
-                  .set('Accept', 'application/json')
-                  .expect('Location', '/agent')
-                  .expect(303)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-                    done();
-                  });
-              });
 
-              it('returns the agent\'s profile with the silLocale field', done => {
-                authenticatedSession
-                  .put('/locale/es-419')
-                  .set('Accept', 'application/json')
-                  .redirects(1)
-                  .expect('Content-Type', /json/)
-                  .expect(200)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
+              describe('session access', () => {
 
-                    expect(res.body.name).toEqual(_profile.name);
-                    expect(res.body.email).toEqual(_profile.email);
-                    expect(res.body.user_metadata.silLocale).toBeDefined();
-                    expect(res.body.user_metadata.silLocale.name).toEqual('Spanish');
-                    expect(res.body.user_metadata.silLocale.type).toEqual('living');
-                    expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
-                    expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
-                    expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
-                    expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
-
-                    done();
-                  });
-              });
-
-              it('updates the user session data', done => {
-                models.Session.findAll().then(results => {
-                  expect(results.length).toEqual(1);
-                  let session = JSON.parse(results[0].data).passport.user;
-                  expect(session.name).toEqual(_profile.name);
-                  expect(session.email).toEqual(_profile.email);
-                  expect(session.user_metadata.silLocale).toEqual(_profile.user_metadata.silLocale);
-
-                  authenticatedSession
-                    .put('/locale/es-419')
-                    .set('Accept', 'application/json')
-                    .redirects(1)
-                    .expect('Content-Type', /json/)
-                    .expect(200)
-                    .end((err, res) => {
-                      if (err) return done.fail(err);
-
-                      models.Session.findAll().then(results => {
-                        expect(results.length).toEqual(1);
-                        session = JSON.parse(results[0].data).passport.user;
-
-                        expect(session.name).toEqual(_profile.name);
-                        expect(session.email).toEqual(_profile.email);
-                        expect(session.user_metadata.silLocale).toBeDefined();
-                        expect(res.body.user_metadata.silLocale.name).toEqual('Spanish');
-                        expect(res.body.user_metadata.silLocale.type).toEqual('living');
-                        expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
-                        expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
-                        expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
-                        expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
-
-                        done();
-                      }).catch(err => {
-                        done.fail(err);
-                      });
-                    });
-                }).catch(err => {
-                  done.fail(err);
-                });
-              });
-
-              it('returns a friendly message if an invalid BCP-47 code provided', done => {
-                authenticatedSession
-                  .put('/locale/xx-419')
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(404)
-                  .end(function(err, res) {
-                    if (err) return done.fail(err);
-                    expect(res.body.message).toEqual('That language does not exist');
-                    done();
-                  });
-              });
-
-              describe('Auth0', () => {
-                it('is called to update the agent user_metadata', done => {
+                it('redirects to the /agent route', done => {
                   authenticatedSession
                     .put('/locale/es-419')
                     .set('Accept', 'application/json')
@@ -696,31 +978,222 @@ describe('localeSpec', () => {
                     .expect(303)
                     .end(function(err, res) {
                       if (err) return done.fail(err);
-
-                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
-                      expect(userAppMetadataUpdateScope.isDone()).toBe(true);
                       done();
                     });
                 });
 
-                it('is not called if the language is already assigned to the agent', done => {
-                  expect(_profile.user_metadata.silLocale.iso6393).toEqual('eng');
+                it('returns the agent\'s profile with the silLocale field', done => {
                   authenticatedSession
                     .put('/locale/es-419')
                     .set('Accept', 'application/json')
+                    .redirects(1)
                     .expect('Content-Type', /json/)
                     .expect(200)
                     .end(function(err, res) {
                       if (err) return done.fail(err);
 
-                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
-                      expect(userAppMetadataUpdateScope.isDone()).toBe(false);
+                      expect(res.body.name).toEqual(_profile.name);
+                      expect(res.body.email).toEqual(_profile.email);
+                      expect(res.body.user_metadata.silLocale).toBeDefined();
+                      expect(res.body.user_metadata.silLocale.name).toEqual('Spanish');
+                      expect(res.body.user_metadata.silLocale.type).toEqual('living');
+                      expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
+                      expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
+                      expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
+                      expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
+
                       done();
                     });
                 });
+
+                it('updates the user session data', done => {
+                  models.Session.findAll().then(results => {
+                    expect(results.length).toEqual(1);
+                    let session = JSON.parse(results[0].data).passport.user;
+                    expect(session.name).toEqual(_profile.name);
+                    expect(session.email).toEqual(_profile.email);
+                    expect(session.user_metadata.silLocale).toEqual(_profile.user_metadata.silLocale);
+
+                    authenticatedSession
+                      .put('/locale/es-419')
+                      .set('Accept', 'application/json')
+                      .redirects(1)
+                      .expect('Content-Type', /json/)
+                      .expect(200)
+                      .end((err, res) => {
+                        if (err) return done.fail(err);
+
+                        models.Session.findAll().then(results => {
+                          expect(results.length).toEqual(1);
+                          session = JSON.parse(results[0].data).passport.user;
+
+                          expect(session.name).toEqual(_profile.name);
+                          expect(session.email).toEqual(_profile.email);
+                          expect(session.user_metadata.silLocale).toBeDefined();
+                          expect(res.body.user_metadata.silLocale.name).toEqual('Spanish');
+                          expect(res.body.user_metadata.silLocale.type).toEqual('living');
+                          expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
+                          expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
+                          expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
+                          expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
+
+                          done();
+                        }).catch(err => {
+                          done.fail(err);
+                        });
+                      });
+                  }).catch(err => {
+                    done.fail(err);
+                  });
+                });
+
+                it('returns a friendly message if an invalid BCP-47 code provided', done => {
+                  authenticatedSession
+                    .put('/locale/xx-419')
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(404)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(res.body.message).toEqual('That language does not exist');
+                      done();
+                    });
+                });
+
+                describe('Auth0', () => {
+                  it('is called to update the agent user_metadata', done => {
+                    authenticatedSession
+                      .put('/locale/es-419')
+                      .set('Accept', 'application/json')
+                      .expect('Location', '/agent')
+                      .expect(303)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+
+                        expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                        expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+                        done();
+                      });
+                  });
+
+                  it('is not called if the language is already assigned to the agent', done => {
+                    expect(_profile.user_metadata.silLocale.iso6393).toEqual('eng');
+                    authenticatedSession
+                      .put('/locale/es-419')
+                      .set('Accept', 'application/json')
+                      .expect('Content-Type', /json/)
+                      .expect(200)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+
+                        expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                        expect(userAppMetadataUpdateScope.isDone()).toBe(false);
+                        done();
+                      });
+                  });
+                });
+              });
+
+              describe('Bearer token access', () => {
+
+                beforeEach(() => {
+                  const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                    .get(/userinfo/)
+                    .reply(200, _identity);
+
+                  const userInfoScopeForAgentCall = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                    .get(/userinfo/)
+                    .reply(200, _identity);
+                });
+
+                it('redirects to the /agent route', done => {
+                  request(app)
+                    .put('/locale/es-419')
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Location', '/agent')
+                    .expect(303)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      done();
+                    });
+                });
+
+                it('returns the agent\'s profile with the silLocale field', done => {
+                  request(app)
+                    .put('/locale/es-419')
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .redirects(1)
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+
+                      expect(res.body.name).toEqual(_profile.name);
+                      expect(res.body.email).toEqual(_profile.email);
+                      expect(res.body.user_metadata.silLocale).toBeDefined();
+                      expect(res.body.user_metadata.silLocale.name).toEqual('Spanish');
+                      expect(res.body.user_metadata.silLocale.type).toEqual('living');
+                      expect(res.body.user_metadata.silLocale.scope).toEqual('individual');
+                      expect(res.body.user_metadata.silLocale.iso6393).toEqual('spa');
+                      expect(res.body.user_metadata.silLocale.iso6392B).toEqual('spa');
+                      expect(res.body.user_metadata.silLocale.iso6392T).toEqual('es');
+
+                      done();
+                    });
+                });
+
+                it('returns a friendly message if an invalid BCP-47 code provided', done => {
+                  request(app)
+                    .put('/locale/xx-419')
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(404)
+                    .end(function(err, res) {
+                      if (err) return done.fail(err);
+                      expect(res.body.message).toEqual('That language does not exist');
+                      done();
+                    });
+                });
+
+                describe('Auth0', () => {
+                  it('is called to update the agent user_metadata', done => {
+                    request(app)
+                      .put('/locale/es-419')
+                      .set('Authorization', `Bearer ${accessToken}`)
+                      .set('Accept', 'application/json')
+                      .expect('Location', '/agent')
+                      .expect(303)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+
+                        expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(true);
+                        expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+                        done();
+                      });
+                  });
+
+                  it('is not called if the language is already assigned to the agent', done => {
+                    expect(_profile.user_metadata.silLocale.iso6393).toEqual('eng');
+                    request(app)
+                      .put('/locale/es-419')
+                      .set('Authorization', `Bearer ${accessToken}`)
+                      .set('Accept', 'application/json')
+                      .expect('Content-Type', /json/)
+                      .expect(200)
+                      .end(function(err, res) {
+                        if (err) return done.fail(err);
+
+                        expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                        expect(userAppMetadataUpdateScope.isDone()).toBe(false);
+                        done();
+                      });
+                  });
+                });
               });
             });
-
           });
         });
       });
