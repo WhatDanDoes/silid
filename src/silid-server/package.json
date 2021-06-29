@@ -12,6 +12,7 @@
   "dependencies": {
     "auth0": "^2.34.2",
     "aws-sdk": "^2.907.0",
+    "bcp47": "^1.1.2",
     "connect-session-sequelize": "^7.1.1",
     "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",
