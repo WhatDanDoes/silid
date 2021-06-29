@@ -75,6 +75,7 @@ describe('teamMembershipSpec', () => {
       describe('create', () => {
 
         describe('with no parent organization', () => {
+
           let authenticatedSession, teamId;
           beforeEach(done => {
             teamId = uuid.v4();

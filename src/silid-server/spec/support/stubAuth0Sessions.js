@@ -113,7 +113,7 @@ module.exports = function(done) {
             .redirects()
             .end(function(err, res) {
               if (err) return done(err);
-              done(null, session);
+              done(null, session, signedAccessToken);
             });
         });
     };
