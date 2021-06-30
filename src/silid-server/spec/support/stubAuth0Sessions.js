@@ -76,7 +76,8 @@ module.exports = function(done) {
        */
       const session = request(app);
       session
-        .get('/login') .redirects()
+        .get('/login')
+        .redirects()
         .end(function(err, res) {
           if (err) return done(err);
 
