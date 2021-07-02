@@ -132,7 +132,7 @@ describe('agentSpec', () => {
            beforeEach(() => {
               const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
                 .get(/userinfo/)
-                .reply(200, _identity);
+                .reply(200, {..._identity, permissions: [scope.create.agents] });
             });
 
             describe('Auth0', () => {

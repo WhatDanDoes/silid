@@ -202,6 +202,8 @@ const checkAgent = function(req, res, done) {
         .then(res => res.json())
         .then(json => {
           req.user = {...json, user_id: json.sub};
+          req.user.scope = json.permissions;
+
           done();
         })
         .catch(err => {
@@ -258,6 +260,7 @@ const checkPermissions = function(permissions) {
         // Not a viewer? Assign role
         const managementClient = getManagementClient([apiScope.read.roles].join(' '));
         managementClient.getRoles().then(auth0Roles => {
+
 
           // Find viewer role ID
           const roleId = auth0Roles.find(role => role.name === 'viewer').id;
