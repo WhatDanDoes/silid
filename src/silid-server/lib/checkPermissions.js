@@ -204,6 +204,12 @@ const checkAgent = function(req, res, done) {
           req.user = {...json, user_id: json.sub};
           req.user.scope = json.permissions;
 
+          if (!req.user.email_verified &&
+              !(req.method === 'GET' && (req.baseUrl + req.path === '/agent/')) &&
+              !(req.method === 'POST' && (req.baseUrl + req.path === '/agent/verify'))) {
+            return res.status(401).json({message: 'Check your email to verify your account'});
+          }
+
           done();
         })
         .catch(err => {

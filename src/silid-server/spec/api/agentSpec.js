@@ -129,7 +129,7 @@ describe('agentSpec', () => {
 
           describe('Bearer token access', () => {
 
-           beforeEach(() => {
+            beforeEach(() => {
               const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
                 .get(/userinfo/)
                 .reply(200, {..._identity, permissions: [scope.create.agents] });
@@ -248,7 +248,7 @@ describe('agentSpec', () => {
             beforeEach(() => {
               const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
                 .get(/userinfo/)
-                .reply(200, _identity);
+                .reply(200, {..._identity, permissions: [scope.create.agents], email_verified: false });
             });
 
             it('returns 401 unauthenticated', done => {
@@ -1354,7 +1354,7 @@ describe('agentSpec', () => {
               beforeEach(() => {
                 const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
                   .get(/userinfo/)
-                  .reply(200, _identity);
+                  .reply(200, {..._identity, email_verified: false });
               });
 
               it('returns 401 unauthenticated', done => {
@@ -1492,7 +1492,7 @@ describe('agentSpec', () => {
             beforeEach(() => {
               const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
                 .get(/userinfo/)
-                .reply(200, _identity);
+                .reply(200, {..._identity, permissions: [scope.delete.agents] });
             });
 
             it('removes an existing record from the database', done => {
@@ -1634,7 +1634,7 @@ describe('agentSpec', () => {
             beforeEach(() => {
               const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
                 .get(/userinfo/)
-                .reply(200, _identity);
+                .reply(200, {..._identity, permissions: [scope.delete.agents], email_verified: false });
             });
 
             it('returns 401 unauthenticated', done => {
@@ -1833,7 +1833,7 @@ describe('agentSpec', () => {
             beforeEach(() => {
               const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
                 .get(/userinfo/)
-                .reply(200, _identity);
+                .reply(200, {..._identity, permissions: [scope.delete.agents], email_verified: false });
             });
 
             it('returns a friendly message', done => {
