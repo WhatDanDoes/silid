@@ -228,8 +228,10 @@ router.patch('/:id', checkPermissions([scope.update.agents]), function(req, res,
       });
     }
     else {
-      // Update session data
-      req.session.passport.user = {...req.user, ...agent};
+      // Update session data if it exists
+      if (req.session.passport) {
+        req.session.passport.user = {...req.user, ...agent};
+      }
 
       res.status(201).json({...req.user, ...agent});
     }
