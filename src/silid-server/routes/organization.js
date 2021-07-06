@@ -303,6 +303,7 @@ router.delete('/:id', checkPermissions([scope.delete.organizations]), function(r
 });
 
 router.put('/:id/team', checkPermissions([scope.add.organizationMembers]), function(req, res, next) {
+
   if (!req.body.teamId || !req.body.teamId.trim()) {
     return res.status(400).json({ message: 'No team provided' });
   }
