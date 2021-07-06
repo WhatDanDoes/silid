@@ -382,7 +382,7 @@ describe('agentEditSpec', () => {
                   .end(function(err, res) {
                     if (err) return done.fail(err);
 
-                    expect(res.body.user_metadata).toBeUndefined();
+                    expect(res.body.user_metadata).toEqual({});
                     expect(res.body.email_verified).toEqual(_profile.email_verified);
                     expect(res.body.family_name).toEqual(_profile.family_name);
                     expect(res.body.given_name).toEqual(_profile.given_name);
