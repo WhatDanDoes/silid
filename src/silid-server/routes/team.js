@@ -285,8 +285,10 @@ router.put('/:id', checkPermissions([scope.update.teams]), function(req, res, ne
 
       // Update user_metadata at Auth0
       managementClient.updateUserMetadata({id: teamLeader.user_id}, teamLeader.user_metadata).then(agent => {
-        // Update session data
-        req.session.passport.user.user_metadata = agent.user_metadata;
+        // Update session data if it exists
+        if (req.session.passport) {
+          req.session.passport.user.user_metadata = agent.user_metadata;
+        }
 
         // Update retrieved team membership list
         const replaceIndex = agents.findIndex(agent => agent.user_id === teamLeader.user_id);
@@ -361,8 +363,10 @@ router.delete('/:id', checkPermissions([scope.delete.teams]), function(req, res,
       }
       agent.user_metadata.teams.splice(teamIndex, 1);
       managementClient.updateUserMetadata({id: agent.user_id}, agent.user_metadata).then(agent => {
-        // Update session data. Very important!
-        req.session.passport.user.user_metadata = agent.user_metadata;
+        // Update session data if it exists. Very important!
+        if (req.session.passport) {
+          req.session.passport.user.user_metadata = agent.user_metadata;
+        }
 
         res.status(201).json({ message: 'Team deleted', agent: agent });
       }).catch(err => {
@@ -555,6 +559,7 @@ router.get('/:id/invite/:action', checkPermissions([scope.create.teamMembers]), 
      */
     if (agents.length) {
       let inviteIndex;
+
       const teamLeader = agents.find(a => {
         if (a.user_metadata && a.user_metadata.pendingInvitations) {
           inviteIndex = a.user_metadata.pendingInvitations.findIndex(i => i.uuid === req.params.id && i.type === 'team' && i.recipient === req.user.email);
@@ -613,6 +618,7 @@ router.get('/:id/invite/:action', checkPermissions([scope.create.teamMembers]), 
 router.delete('/:id/invite', checkPermissions([scope.delete.teamMembers]), function(req, res, next) {
   const inviteIndex = req.user.user_metadata.pendingInvitations.findIndex(invite =>
                                                                           invite.uuid === req.params.id && invite.type === 'team' && invite.recipient === req.body.email);
+
   if (inviteIndex < 0) {
     return res.status(404).json({ message: 'No such invitation' });
   }

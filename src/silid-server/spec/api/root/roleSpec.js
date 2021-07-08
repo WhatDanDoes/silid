@@ -1,4 +1,6 @@
 const PORT = process.env.NODE_ENV === 'production' ? 3000 : 3001;
+const nock = require('nock');
+const request = require('supertest');
 const app = require('../../../app');
 const models = require('../../../models');
 const uuid = require('uuid');
@@ -63,7 +65,8 @@ describe('root/roleSpec', () => {
         userAssignRolesScope, userAssignRolesOauthTokenScope,
         rolesReadScope, rolesReadOauthTokenScope,
         userAppMetadataReadScope, userAppMetadataReadOauthTokenScope,
-        userRolesReadScope, userRolesReadOauthTokenScope;
+        userRolesReadScope, userRolesReadOauthTokenScope,
+        accessToken;
 
     beforeEach(done => {
       _profile.email = process.env.ROOT_AGENT;
@@ -71,8 +74,9 @@ describe('root/roleSpec', () => {
       stubAuth0ManagementApi((err, apiScopes) => {
         if (err) return done.fail();
 
-        login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, (err, session) => {
+        login({..._identity, email: process.env.ROOT_AGENT, name: 'Professor Fresh'}, (err, session, token) => {
           if (err) return done.fail(err);
+          accessToken = token;
           rootSession = session;
 
           done();
@@ -91,22 +95,9 @@ describe('root/roleSpec', () => {
         });
       });
 
-      it('returns a list of all the roles', done => {
-        rootSession
-          .get('/role')
-          .set('Accept', 'application/json')
-          .expect('Content-Type', /json/)
-          .expect(200)
-          .end((err, res) => {
-            if (err) return done.fail(err);
+      describe('session access', () => {
 
-            expect(res.body).toEqual(_roles);
-            done();
-          });
-      });
-
-      describe('Auth0', () => {
-        it('calls Auth0 to retrieve all assignable roles', done => {
+        it('returns a list of all the roles', done => {
           rootSession
             .get('/role')
             .set('Accept', 'application/json')
@@ -115,10 +106,68 @@ describe('root/roleSpec', () => {
             .end((err, res) => {
               if (err) return done.fail(err);
 
-              expect(rolesReadOauthTokenScope.isDone()).toBe(true);
-              expect(rolesReadScope.isDone()).toBe(true);
+              expect(res.body).toEqual(_roles);
               done();
             });
+        });
+
+        describe('Auth0', () => {
+          it('calls Auth0 to retrieve all assignable roles', done => {
+            rootSession
+              .get('/role')
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end((err, res) => {
+                if (err) return done.fail(err);
+
+                expect(rolesReadOauthTokenScope.isDone()).toBe(true);
+                expect(rolesReadScope.isDone()).toBe(true);
+                done();
+              });
+          });
+        });
+      });
+
+      describe('Bearer token access', () => {
+
+        beforeEach(() => {
+          const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+            .get(/userinfo/)
+            .reply(200, {..._identity, email: process.env.ROOT_AGENT });
+        });
+
+        it('returns a list of all the roles', done => {
+          request(app)
+            .get('/role')
+            .set('Authorization', `Bearer ${accessToken}`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(200)
+            .end((err, res) => {
+              if (err) return done.fail(err);
+
+              expect(res.body).toEqual(_roles);
+              done();
+            });
+        });
+
+        describe('Auth0', () => {
+          it('calls Auth0 to retrieve all assignable roles', done => {
+            request(app)
+              .get('/role')
+              .set('Authorization', `Bearer ${accessToken}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(200)
+              .end((err, res) => {
+                if (err) return done.fail(err);
+
+                expect(rolesReadOauthTokenScope.isDone()).toBe(true);
+                expect(rolesReadScope.isDone()).toBe(true);
+                done();
+              });
+          });
         });
       });
     });
@@ -155,84 +204,182 @@ describe('root/roleSpec', () => {
           });
         });
 
-        it('returns the agent profile', done => {
-          rootSession
-            .put(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(201)
-            .end((err, res) => {
-              if (err) return done.fail(err);
-              expect(res.body.email).toEqual(organizerProfile.email);
-              expect(res.body.roles.length).toEqual(2);
-              expect(res.body.roles[0]).toEqual(_roles[0]);
-              expect(res.body.roles[1]).toEqual(_roles[2]);
-              done();
+        describe('session access', () => {
+
+          it('returns the agent profile', done => {
+            rootSession
+              .put(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end((err, res) => {
+                if (err) return done.fail(err);
+                expect(res.body.email).toEqual(organizerProfile.email);
+                expect(res.body.roles.length).toEqual(2);
+                expect(res.body.roles[0]).toEqual(_roles[0]);
+                expect(res.body.roles[1]).toEqual(_roles[2]);
+                done();
+              });
+          });
+
+          describe('Auth0', () => {
+            it('is called to retrieve the agent user_metadata', done => {
+              rootSession
+                .put(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(true);
+                  expect(userAppMetadataReadScope.isDone()).toBe(true);
+                  done();
+                });
             });
+
+            it('is called to retrieve the agent\'s assigned roles', done => {
+              rootSession
+                .put(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  // 2020-6-23 Reuse token from above? This needs to be confirmed in production
+                  expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
+                  expect(userRolesReadScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+
+            it('is called to retrieve all assignable roles', done => {
+              rootSession
+                .put(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  // 2020-6-23 Reuse token from above? This needs to be confirmed in production
+                  expect(rolesReadOauthTokenScope.isDone()).toBe(false);
+                  expect(rolesReadScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+
+            it('is called to assign the role to the agent', done => {
+              rootSession
+                .put(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  // 2020-6-23 Reuse token from above? This needs to be confirmed in production
+                  expect(userAssignRolesOauthTokenScope.isDone()).toBe(false);
+                  expect(userAssignRolesScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+          });
         });
 
-        describe('Auth0', () => {
-          it('is called to retrieve the agent user_metadata', done => {
-            rootSession
+        describe('Bearer token access', () => {
+
+          beforeEach(() => {
+            const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+              .get(/userinfo/)
+              .reply(200, {..._identity, email: process.env.ROOT_AGENT });
+          });
+
+          it('returns the agent profile', done => {
+            request(app)
               .put(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+              .set('Authorization', `Bearer ${accessToken}`)
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
               .end((err, res) => {
                 if (err) return done.fail(err);
-
-                expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(true);
-                expect(userAppMetadataReadScope.isDone()).toBe(true);
+                expect(res.body.email).toEqual(organizerProfile.email);
+                expect(res.body.roles.length).toEqual(2);
+                expect(res.body.roles[0]).toEqual(_roles[0]);
+                expect(res.body.roles[1]).toEqual(_roles[2]);
                 done();
               });
           });
 
-          it('is called to retrieve the agent\'s assigned roles', done => {
-            rootSession
-              .put(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(201)
-              .end((err, res) => {
-                if (err) return done.fail(err);
+          describe('Auth0', () => {
+            it('is called to retrieve the agent user_metadata', done => {
+              request(app)
+                .put(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
 
-                // 2020-6-23 Reuse token from above? This needs to be confirmed in production
-                expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
-                expect(userRolesReadScope.isDone()).toBe(true);
-                done();
-              });
-          });
+                  expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(true);
+                  expect(userAppMetadataReadScope.isDone()).toBe(true);
+                  done();
+                });
+            });
 
-          it('is called to retrieve all assignable roles', done => {
-            rootSession
-              .put(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(201)
-              .end((err, res) => {
-                if (err) return done.fail(err);
+            it('is called to retrieve the agent\'s assigned roles', done => {
+              request(app)
+                .put(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
 
-                // 2020-6-23 Reuse token from above? This needs to be confirmed in production
-                expect(rolesReadOauthTokenScope.isDone()).toBe(false);
-                expect(rolesReadScope.isDone()).toBe(true);
-                done();
-              });
-          });
+                  // 2020-6-23 Reuse token from above? This needs to be confirmed in production
+                  expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
+                  expect(userRolesReadScope.isDone()).toBe(true);
+                  done();
+                });
+            });
 
-          it('is called to assign the role to the agent', done => {
-            rootSession
-              .put(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(201)
-              .end((err, res) => {
-                if (err) return done.fail(err);
+            it('is called to retrieve all assignable roles', done => {
+              request(app)
+                .put(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
 
-                // 2020-6-23 Reuse token from above? This needs to be confirmed in production
-                expect(userAssignRolesOauthTokenScope.isDone()).toBe(false);
-                expect(userAssignRolesScope.isDone()).toBe(true);
-                done();
-              });
+                  // 2020-6-23 Reuse token from above? This needs to be confirmed in production
+                  expect(rolesReadOauthTokenScope.isDone()).toBe(false);
+                  expect(rolesReadScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+
+            it('is called to assign the role to the agent', done => {
+              request(app)
+                .put(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  // 2020-6-23 Reuse token from above? This needs to be confirmed in production
+                  expect(userAssignRolesOauthTokenScope.isDone()).toBe(false);
+                  expect(userAssignRolesScope.isDone()).toBe(true);
+                  done();
+                });
+            });
           });
         });
       });
@@ -272,18 +419,44 @@ describe('root/roleSpec', () => {
             });
           });
 
-          it('doesn\'t barf if the role doesn\'t exist', done => {
-            rootSession
-              .put(`/role/333/agent/${organizerProfile.user_id}`)
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(404)
-              .end((err, res) => {
-                if (err) return done.fail(err);
-                expect(res.body.message).toEqual('No such role');
-                done();
-              });
+          describe('session access', () => {
+
+            it('doesn\'t barf if the role doesn\'t exist', done => {
+              rootSession
+                .put(`/role/333/agent/${organizerProfile.user_id}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(404)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+                  expect(res.body.message).toEqual('No such role');
+                  done();
+                });
+            });
           });
+
+          describe('Bearer token access', () => {
+            beforeEach(() => {
+              const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                .get(/userinfo/)
+                .reply(200, {..._identity, email: process.env.ROOT_AGENT });
+            });
+
+            it('doesn\'t barf if the role doesn\'t exist', done => {
+              request(app)
+                .put(`/role/333/agent/${organizerProfile.user_id}`)
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(404)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+                  expect(res.body.message).toEqual('No such role');
+                  done();
+                });
+            });
+          });
+
         });
 
         describe('agent doesn\'t exist', () => {
@@ -297,18 +470,44 @@ describe('root/roleSpec', () => {
             }, { status: 404 });
           });
 
-          it('doesn\'t barf if the agent doesn\'t exist', done => {
-            rootSession
-              .put(`/role/${_roles[0].id}/agent/333`)
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(404)
-              .end((err, res) => {
-                if (err) return done.fail(err);
-                expect(res.body.message).toEqual('No such agent');
-                done();
-              });
+          describe('session access', () => {
+
+            it('doesn\'t barf if the agent doesn\'t exist', done => {
+              rootSession
+                .put(`/role/${_roles[0].id}/agent/333`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(404)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+                  expect(res.body.message).toEqual('No such agent');
+                  done();
+                });
+            });
           });
+
+          describe('Bearer token access', () => {
+            beforeEach(() => {
+              const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                .get(/userinfo/)
+                .reply(200, {..._identity, email: process.env.ROOT_AGENT });
+            });
+
+            it('doesn\'t barf if the agent doesn\'t exist', done => {
+              request(app)
+                .put(`/role/${_roles[0].id}/agent/333`)
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(404)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+                  expect(res.body.message).toEqual('No such agent');
+                  done();
+                });
+            });
+          });
+
         });
 
         describe('role already assigned', () => {
@@ -330,18 +529,45 @@ describe('root/roleSpec', () => {
             });
           });
 
-          it('doesn\'t barf if the agent is already assigned to the role', done => {
-            assignedRoles.push(_roles[0]);
-            rootSession
-              .put(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(200)
-              .end((err, res) => {
-                if (err) return done.fail(err);
-                expect(res.body.message).toEqual('Role already assigned');
-                done();
-              });
+          describe('session access', () => {
+
+            it('doesn\'t barf if the agent is already assigned to the role', done => {
+              assignedRoles.push(_roles[0]);
+              rootSession
+                .put(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+                  expect(res.body.message).toEqual('Role already assigned');
+                  done();
+                });
+            });
+          });
+
+          describe('Bearer token access', () => {
+
+            beforeEach(() => {
+              const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                .get(/userinfo/)
+                .reply(200, {..._identity, email: process.env.ROOT_AGENT });
+            });
+
+            it('doesn\'t barf if the agent is already assigned to the role', done => {
+              assignedRoles.push(_roles[0]);
+              request(app)
+                .put(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+                  expect(res.body.message).toEqual('Role already assigned');
+                  done();
+                });
+            });
           });
         });
       });
@@ -375,67 +601,147 @@ describe('root/roleSpec', () => {
           });
         });
 
-        it('returns the agent profile', done => {
-          rootSession
-            .delete(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(201)
-            .end((err, res) => {
-              if (err) return done.fail(err);
-              expect(res.body.email).toEqual(organizerProfile.email);
-              expect(res.body.roles.length).toEqual(1);
-              expect(res.body.roles[0]).toEqual(_roles[2]);
-              done();
+        describe('session access', () => {
+
+          it('returns the agent profile', done => {
+            rootSession
+              .delete(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end((err, res) => {
+                if (err) return done.fail(err);
+                expect(res.body.email).toEqual(organizerProfile.email);
+                expect(res.body.roles.length).toEqual(1);
+                expect(res.body.roles[0]).toEqual(_roles[2]);
+                done();
+              });
+          });
+
+          describe('Auth0', () => {
+            it('is called to retrieve the agent user_metadata', done => {
+              rootSession
+                .delete(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(true);
+                  expect(userAppMetadataReadScope.isDone()).toBe(true);
+                  done();
+                });
             });
+
+            it('is called to retrieve the agent\'s assigned roles', done => {
+              rootSession
+                .delete(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  // 2020-6-23 Reuse token from above? This needs to be confirmed in production
+                  expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
+                  expect(userRolesReadScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+
+            it('is called to remove the role from the agent', done => {
+              rootSession
+                .delete(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  // 2020-6-23 Reuse token from above? This needs to be confirmed in production
+                  expect(userDeleteRolesOauthTokenScope.isDone()).toBe(false);
+                  expect(userDeleteRolesScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+          });
         });
 
-        describe('Auth0', () => {
-          it('is called to retrieve the agent user_metadata', done => {
-            rootSession
+        describe('Bearer token access', () => {
+
+          beforeEach(() => {
+            const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+              .get(/userinfo/)
+              .reply(200, {..._identity, email: process.env.ROOT_AGENT });
+          });
+
+          it('returns the agent profile', done => {
+            request(app)
               .delete(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+              .set('Authorization', `Bearer ${accessToken}`)
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
               .end((err, res) => {
                 if (err) return done.fail(err);
-
-                expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(true);
-                expect(userAppMetadataReadScope.isDone()).toBe(true);
+                expect(res.body.email).toEqual(organizerProfile.email);
+                expect(res.body.roles.length).toEqual(1);
+                expect(res.body.roles[0]).toEqual(_roles[2]);
                 done();
               });
           });
 
-          it('is called to retrieve the agent\'s assigned roles', done => {
-            rootSession
-              .delete(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(201)
-              .end((err, res) => {
-                if (err) return done.fail(err);
+          describe('Auth0', () => {
+            it('is called to retrieve the agent user_metadata', done => {
+              request(app)
+                .delete(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
 
-                // 2020-6-23 Reuse token from above? This needs to be confirmed in production
-                expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
-                expect(userRolesReadScope.isDone()).toBe(true);
-                done();
-              });
-          });
+                  expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(true);
+                  expect(userAppMetadataReadScope.isDone()).toBe(true);
+                  done();
+                });
+            });
 
-          it('is called to remove the role from the agent', done => {
-            rootSession
-              .delete(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(201)
-              .end((err, res) => {
-                if (err) return done.fail(err);
+            it('is called to retrieve the agent\'s assigned roles', done => {
+              request(app)
+                .delete(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
 
-                // 2020-6-23 Reuse token from above? This needs to be confirmed in production
-                expect(userDeleteRolesOauthTokenScope.isDone()).toBe(false);
-                expect(userDeleteRolesScope.isDone()).toBe(true);
-                done();
-              });
+                  // 2020-6-23 Reuse token from above? This needs to be confirmed in production
+                  expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
+                  expect(userRolesReadScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+
+            it('is called to remove the role from the agent', done => {
+              request(app)
+                .delete(`/role/${_roles[0].id}/agent/${organizerProfile.user_id}`)
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  // 2020-6-23 Reuse token from above? This needs to be confirmed in production
+                  expect(userDeleteRolesOauthTokenScope.isDone()).toBe(false);
+                  expect(userDeleteRolesScope.isDone()).toBe(true);
+                  done();
+                });
+            });
           });
         });
       });
@@ -491,21 +797,48 @@ describe('root/roleSpec', () => {
             }, { status: 404 });
           });
 
-          it('doesn\'t barf if the agent doesn\'t exist', done => {
-            rootSession
-              .delete(`/role/${_roles[0].id}/agent/333`)
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(404)
-              .end((err, res) => {
-                if (err) return done.fail(err);
-                expect(res.body.message).toEqual('No such agent');
-                done();
-              });
+          describe('session access', () => {
+
+            it('doesn\'t barf if the agent doesn\'t exist', done => {
+              rootSession
+                .delete(`/role/${_roles[0].id}/agent/333`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(404)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+                  expect(res.body.message).toEqual('No such agent');
+                  done();
+                });
+            });
+          });
+
+          describe('Bearer token access', () => {
+
+            beforeEach(() => {
+              const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                .get(/userinfo/)
+                .reply(200, {..._identity, email: process.env.ROOT_AGENT });
+            });
+
+            it('doesn\'t barf if the agent doesn\'t exist', done => {
+              request(app)
+                .delete(`/role/${_roles[0].id}/agent/333`)
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(404)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+                  expect(res.body.message).toEqual('No such agent');
+                  done();
+                });
+            });
           });
         });
 
         describe('agent is not assigned role', () => {
+
           beforeEach(done => {
             // Get the agent formerly assigned to the role
             stubUserAppMetadataRead(organizerProfile, (err, apiScopes) => {
@@ -522,18 +855,45 @@ describe('root/roleSpec', () => {
             });
           });
 
-          it('doesn\'t barf if the agent is not assigned to the role', done => {
-            expect(_roles[1].name).toEqual('sudo');
-            rootSession
-              .delete(`/role/${_roles[1].id}/agent/${organizerProfile.user_id}`)
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(404)
-              .end((err, res) => {
-                if (err) return done.fail(err);
-                expect(res.body.message).toEqual('Role not assigned');
-                done();
-              });
+          describe('session access', () => {
+
+            it('doesn\'t barf if the agent is not assigned to the role', done => {
+              expect(_roles[1].name).toEqual('sudo');
+              rootSession
+                .delete(`/role/${_roles[1].id}/agent/${organizerProfile.user_id}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(404)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+                  expect(res.body.message).toEqual('Role not assigned');
+                  done();
+                });
+            });
+          });
+
+          describe('Bearer token access', () => {
+
+            beforeEach(() => {
+              const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                .get(/userinfo/)
+                .reply(200, {..._identity, email: process.env.ROOT_AGENT });
+            });
+
+            it('doesn\'t barf if the agent is not assigned to the role', done => {
+              expect(_roles[1].name).toEqual('sudo');
+              request(app)
+                .delete(`/role/${_roles[1].id}/agent/${organizerProfile.user_id}`)
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(404)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+                  expect(res.body.message).toEqual('Role not assigned');
+                  done();
+                });
+            });
           });
         });
       });
@@ -546,8 +906,9 @@ describe('root/roleSpec', () => {
       stubAuth0ManagementApi({ userRead: unauthorizedProfile }, (err, apiScopes) => {
         if (err) return done.fail();
 
-        login({..._identity, email: unauthorizedProfile.email, name: unauthorizedProfile.name}, (err, session) => {
+        login({..._identity, email: unauthorizedProfile.email, name: unauthorizedProfile.name}, (err, session, token) => {
           if (err) return done.fail(err);
+          accessToken = token;
           unauthorizedSession = session;
 
           done();
@@ -555,51 +916,114 @@ describe('root/roleSpec', () => {
       });
     });
 
-    describe('read', () => {
-      it('returns 403', done => {
-        unauthorizedSession
-          .get('/role')
-          .set('Accept', 'application/json')
-          .expect('Content-Type', /json/)
-          .expect(403)
-          .end((err, res) => {
-            if (err) return done.fail(err);
+    describe('session access', () => {
 
-            expect(res.body.message).toEqual('Insufficient scope');
-            done();
-          });
+      describe('read', () => {
+        it('returns 403', done => {
+          unauthorizedSession
+            .get('/role')
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(403)
+            .end((err, res) => {
+              if (err) return done.fail(err);
+
+              expect(res.body.message).toEqual('Insufficient scope');
+              done();
+            });
+        });
+      });
+
+      describe('assign', () => {
+        it('returns 403', done => {
+          unauthorizedSession
+            .put(`/role/${_roles[0].id}/agent/${unauthorizedProfile.user_id}`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(403)
+            .end((err, res) => {
+              if (err) return done.fail(err);
+
+              expect(res.body.message).toEqual('Insufficient scope');
+              done();
+            });
+        });
+      });
+
+      describe('divest', () => {
+        it('returns 403', done => {
+          unauthorizedSession
+            .delete(`/role/${_roles[0].id}/agent/${unauthorizedProfile.user_id}`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(403)
+            .end((err, res) => {
+              if (err) return done.fail(err);
+
+              expect(res.body.message).toEqual('Insufficient scope');
+              done();
+            });
+        });
       });
     });
 
-    describe('assign', () => {
-      it('returns 403', done => {
-        unauthorizedSession
-          .put(`/role/${_roles[0].id}/agent/${unauthorizedProfile.user_id}`)
-          .set('Accept', 'application/json')
-          .expect('Content-Type', /json/)
-          .expect(403)
-          .end((err, res) => {
-            if (err) return done.fail(err);
+    describe('Bearer token access', () => {
 
-            expect(res.body.message).toEqual('Insufficient scope');
-            done();
-          });
+      beforeEach(() => {
+        const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+          .get(/userinfo/)
+          .reply(200, {..._identity });
       });
-    });
 
-    describe('divest', () => {
-      it('returns 403', done => {
-        unauthorizedSession
-          .delete(`/role/${_roles[0].id}/agent/${unauthorizedProfile.user_id}`)
-          .set('Accept', 'application/json')
-          .expect('Content-Type', /json/)
-          .expect(403)
-          .end((err, res) => {
-            if (err) return done.fail(err);
+      describe('read', () => {
+        it('returns 403', done => {
+          request(app)
+            .get('/role')
+            .set('Authorization', `Bearer ${accessToken}`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(403)
+            .end((err, res) => {
+              if (err) return done.fail(err);
 
-            expect(res.body.message).toEqual('Insufficient scope');
-            done();
-          });
+              expect(res.body.message).toEqual('Insufficient scope');
+              done();
+            });
+        });
+      });
+
+      describe('assign', () => {
+        it('returns 403', done => {
+          request(app)
+            .put(`/role/${_roles[0].id}/agent/${unauthorizedProfile.user_id}`)
+            .set('Authorization', `Bearer ${accessToken}`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(403)
+            .end((err, res) => {
+              if (err) return done.fail(err);
+
+              expect(res.body.message).toEqual('Insufficient scope');
+              done();
+            });
+        });
+      });
+
+      describe('divest', () => {
+        it('returns 403', done => {
+          request(app)
+            .delete(`/role/${_roles[0].id}/agent/${unauthorizedProfile.user_id}`)
+            .set('Authorization', `Bearer ${accessToken}`)
+            .set('Accept', 'application/json')
+            .expect('Content-Type', /json/)
+            .expect(403)
+            .end((err, res) => {
+              if (err) return done.fail(err);
+
+              expect(res.body.message).toEqual('Insufficient scope');
+              done();
+            });
+        });
       });
     });
   });

@@ -64,6 +64,7 @@ describe('organizationSpec', () => {
     _profile.name = originalProfile.name;
   });
 
+  let accessToken;
   describe('authenticated', () => {
 
     describe('authorized', () => {
@@ -75,8 +76,10 @@ describe('organizationSpec', () => {
             stubAuth0ManagementApi((err, apiScopes) => {
               if (err) return done.fail();
 
-              login(_identity, [scope.create.organizations], (err, session) => {
+              login(_identity, [scope.create.organizations], (err, session, token) => {
                 if (err) return done.fail(err);
+
+                accessToken = token;
                 authenticatedSession = session;
 
                 // Search for existing organization name
@@ -100,29 +103,9 @@ describe('organizationSpec', () => {
             });
           });
 
-          it('returns the agent profile', done => {
-            authenticatedSession
-              .post('/organization')
-              .send({
-                name: 'One Book Canada'
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(201)
-              .end((err, res) => {
-                if (err) return done.fail(err);
-                expect(res.body.email).toEqual(_profile.email);
-                expect(res.body.user_metadata.organizations.length).toEqual(1);
-                done();
-              });
-          });
+          describe('session access', () => {
 
-          it('updates the user session data', done => {
-            models.Session.findAll().then(results => {
-              expect(results.length).toEqual(1);
-              let session = JSON.parse(results[0].data).passport.user;
-              expect(session.user_metadata.organizations).toBeUndefined();
-
+            it('returns the agent profile', done => {
               authenticatedSession
                 .post('/organization')
                 .send({
@@ -133,77 +116,193 @@ describe('organizationSpec', () => {
                 .expect(201)
                 .end((err, res) => {
                   if (err) return done.fail(err);
+                  expect(res.body.email).toEqual(_profile.email);
+                  expect(res.body.user_metadata.organizations.length).toEqual(1);
+                  done();
+                });
+            });
 
-                  models.Session.findAll().then(results => {
-                    expect(results.length).toEqual(1);
-                    session = JSON.parse(results[0].data).passport.user;
-                    expect(session.user_metadata.organizations.length).toEqual(1);
+            it('updates the user session data', done => {
+              models.Session.findAll().then(results => {
+                expect(results.length).toEqual(1);
+                let session = JSON.parse(results[0].data).passport.user;
+                expect(session.user_metadata.organizations).toBeUndefined();
 
-                    done();
-                  }).catch(err => {
-                    done.fail(err);
+                authenticatedSession
+                  .post('/organization')
+                  .send({
+                    name: 'One Book Canada'
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+
+                    models.Session.findAll().then(results => {
+                      expect(results.length).toEqual(1);
+                      session = JSON.parse(results[0].data).passport.user;
+                      expect(session.user_metadata.organizations.length).toEqual(1);
+
+                      done();
+                    }).catch(err => {
+                      done.fail(err);
+                    });
                   });
-                });
-            }).catch(err => {
-              done.fail(err);
+              }).catch(err => {
+                done.fail(err);
+              });
+            });
+
+            describe('Auth0', () => {
+
+              it('is called to see if organization name is already registered', done => {
+                authenticatedSession
+                  .post('/organization')
+                  .send({
+                    name: 'One Book Canada'
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+
+                    expect(organizationReadOauthTokenScope.isDone()).toBe(true);
+                    expect(organizationReadScope.isDone()).toBe(true);
+                    done();
+                  });
+              });
+
+              it('calls Auth0 to retrieve the agent user_metadata', done => {
+                authenticatedSession
+                  .post('/organization')
+                  .send({
+                    name: 'One Book Canada'
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+
+                    // 2020-6-17 Reuse token from above? This needs to be confirmed in production
+                    expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(false);
+                    expect(userAppMetadataReadScope.isDone()).toBe(true);
+                    done();
+                  });
+              });
+
+              it('calls Auth0 to update the agent', done => {
+                authenticatedSession
+                  .post('/organization')
+                  .send({
+                    name: 'One Book Canada'
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+
+                    // 2020-6-17 Reuse token from above? This needs to be confirmed in production
+                    expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                    expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+                    done();
+                  });
+              });
             });
           });
 
-          describe('Auth0', () => {
-            it('is called to see if organization name is already registered', done => {
-              authenticatedSession
+          describe('Bearer token access', () => {
+
+            beforeEach(() => {
+              const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                .get(/userinfo/)
+                .reply(200, {
+                  ..._identity,
+                  permissions: [scope.create.organizations],
+                });
+            });
+
+            it('returns the agent profile', done => {
+              request(app)
                 .post('/organization')
                 .send({
                   name: 'One Book Canada'
                 })
+                .set('Authorization', `Bearer ${accessToken}`)
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
                 .expect(201)
                 .end((err, res) => {
                   if (err) return done.fail(err);
-
-                  expect(organizationReadOauthTokenScope.isDone()).toBe(true);
-                  expect(organizationReadScope.isDone()).toBe(true);
+                  expect(res.body.email).toEqual(_profile.email);
+                  expect(res.body.user_metadata.organizations.length).toEqual(1);
                   done();
                 });
             });
 
-            it('calls Auth0 to retrieve the agent user_metadata', done => {
-              authenticatedSession
-                .post('/organization')
-                .send({
-                  name: 'One Book Canada'
-                })
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(201)
-                .end((err, res) => {
-                  if (err) return done.fail(err);
+            describe('Auth0', () => {
 
-                  // 2020-6-17 Reuse token from above? This needs to be confirmed in production
-                  expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(false);
-                  expect(userAppMetadataReadScope.isDone()).toBe(true);
-                  done();
-                });
-            });
+              it('is called to see if organization name is already registered', done => {
+                request(app)
+                  .post('/organization')
+                  .send({
+                    name: 'One Book Canada'
+                  })
+                  .set('Authorization', `Bearer ${accessToken}`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
 
-            it('calls Auth0 to update the agent', done => {
-              authenticatedSession
-                .post('/organization')
-                .send({
-                  name: 'One Book Canada'
-                })
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(201)
-                .end((err, res) => {
-                  if (err) return done.fail(err);
+                    expect(organizationReadOauthTokenScope.isDone()).toBe(true);
+                    expect(organizationReadScope.isDone()).toBe(true);
+                    done();
+                  });
+              });
 
-                  // 2020-6-17 Reuse token from above? This needs to be confirmed in production
-                  expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
-                  expect(userAppMetadataUpdateScope.isDone()).toBe(true);
-                  done();
-                });
+              it('calls Auth0 to retrieve the agent user_metadata', done => {
+                request(app)
+                  .post('/organization')
+                  .send({
+                    name: 'One Book Canada'
+                  })
+                  .set('Authorization', `Bearer ${accessToken}`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+
+                    // 2020-6-17 Reuse token from above? This needs to be confirmed in production
+                    expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(false);
+                    expect(userAppMetadataReadScope.isDone()).toBe(true);
+                    done();
+                  });
+              });
+
+              it('calls Auth0 to update the agent', done => {
+                request(app)
+                  .post('/organization')
+                  .send({
+                    name: 'One Book Canada'
+                  })
+                  .set('Authorization', `Bearer ${accessToken}`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(201)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+
+                    // 2020-6-17 Reuse token from above? This needs to be confirmed in production
+                    expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                    expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+                    done();
+                  });
+              });
             });
           });
         });
@@ -241,11 +340,181 @@ describe('organizationSpec', () => {
           });
 
           describe('add a duplicate organization name', () => {
-            it('returns an error if record already exists', done => {
+
+            describe('session access', () => {
+
+              it('returns an error if record already exists', done => {
+                authenticatedSession
+                  .post('/organization')
+                  .send({
+                    name: 'One Book Canada'
+                  })
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(400)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+                    expect(res.body.errors.length).toEqual(1);
+                    expect(res.body.errors[0].message).toEqual('That organization is already registered');
+                    done();
+                  });
+              });
+
+              describe('Auth0', () => {
+                it('is called to see if organization name is already registered', done => {
+                  authenticatedSession
+                    .post('/organization')
+                    .send({
+                      name: 'One Book Canada'
+                    })
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(400)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+
+                      expect(organizationReadOauthTokenScope.isDone()).toBe(true);
+                      expect(organizationReadScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
+
+                it('does not call Auth0 to retrieve the agent user_metadata', done => {
+                  authenticatedSession
+                    .post('/organization')
+                    .send({
+                      name: 'One Book Canada'
+                    })
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(400)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+
+                      expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(false);
+                      expect(userAppMetadataReadScope.isDone()).toBe(false);
+                      done();
+                    });
+                });
+
+                it('does not call Auth0 to update the agent user_metadata', done => {
+                  authenticatedSession
+                    .post('/organization')
+                    .send({
+                      name: 'One Book Canada'
+                    })
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(400)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+
+                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                      expect(userAppMetadataUpdateScope.isDone()).toBe(false);
+                      done();
+                    });
+                });
+              });
+            });
+
+            describe('Bearer token access', () => {
+
+              beforeEach(() => {
+                const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                  .get(/userinfo/)
+                  .reply(200, {
+                    ..._identity,
+                    permissions: [scope.create.organizations],
+                  });
+              });
+
+              it('returns an error if record already exists', done => {
+                request(app)
+                  .post('/organization')
+                  .send({
+                    name: 'One Book Canada'
+                  })
+                  .set('Authorization', `Bearer ${accessToken}`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(400)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+                    expect(res.body.errors.length).toEqual(1);
+                    expect(res.body.errors[0].message).toEqual('That organization is already registered');
+                    done();
+                  });
+              });
+
+              describe('Auth0', () => {
+
+                it('is called to see if organization name is already registered', done => {
+                  request(app)
+                    .post('/organization')
+                    .send({
+                      name: 'One Book Canada'
+                    })
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(400)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+
+                      expect(organizationReadOauthTokenScope.isDone()).toBe(true);
+                      expect(organizationReadScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
+
+                it('does not call Auth0 to retrieve the agent user_metadata', done => {
+                  request(app)
+                    .post('/organization')
+                    .send({
+                      name: 'One Book Canada'
+                    })
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(400)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+
+                      expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(false);
+                      expect(userAppMetadataReadScope.isDone()).toBe(false);
+                      done();
+                    });
+                });
+
+                it('does not call Auth0 to update the agent user_metadata', done => {
+                  request(app)
+                    .post('/organization')
+                    .send({
+                      name: 'One Book Canada'
+                    })
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(400)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+
+                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                      expect(userAppMetadataUpdateScope.isDone()).toBe(false);
+                      done();
+                    });
+                });
+              });
+            });
+          });
+
+          describe('session access', () => {
+
+            it('returns an error if empty organization name provided', done => {
               authenticatedSession
                 .post('/organization')
                 .send({
-                  name: 'One Book Canada'
+                  name: '   '
                 })
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
@@ -253,115 +522,106 @@ describe('organizationSpec', () => {
                 .end((err, res) => {
                   if (err) return done.fail(err);
                   expect(res.body.errors.length).toEqual(1);
-                  expect(res.body.errors[0].message).toEqual('That organization is already registered');
+                  expect(res.body.errors[0].message).toEqual('Organization requires a name');
                   done();
                 });
             });
 
-            describe('Auth0', () => {
-              it('is called to see if organization name is already registered', done => {
-                authenticatedSession
-                  .post('/organization')
-                  .send({
-                    name: 'One Book Canada'
-                  })
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(400)
-                  .end((err, res) => {
-                    if (err) return done.fail(err);
+            it('returns an error if no organization name provided', done => {
+              authenticatedSession
+                .post('/organization')
+                .send({})
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(400)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+                  expect(res.body.errors.length).toEqual(1);
+                  expect(res.body.errors[0].message).toEqual('Organization requires a name');
+                  done();
+                });
+            });
 
-                    expect(organizationReadOauthTokenScope.isDone()).toBe(true);
-                    expect(organizationReadScope.isDone()).toBe(true);
-                    done();
-                  });
-              });
-
-              it('does not call Auth0 to retrieve the agent user_metadata', done => {
-                authenticatedSession
-                  .post('/organization')
-                  .send({
-                    name: 'One Book Canada'
-                  })
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(400)
-                  .end((err, res) => {
-                    if (err) return done.fail(err);
-
-                    expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(false);
-                    expect(userAppMetadataReadScope.isDone()).toBe(false);
-                    done();
-                  });
-              });
-
-              it('does not call Auth0 to update the agent user_metadata', done => {
-                authenticatedSession
-                  .post('/organization')
-                  .send({
-                    name: 'One Book Canada'
-                  })
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(400)
-                  .end((err, res) => {
-                    if (err) return done.fail(err);
-
-                    expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
-                    expect(userAppMetadataUpdateScope.isDone()).toBe(false);
-                    done();
-                  });
-              });
+            it('returns an error if organization name is over 128 characters long', done => {
+              authenticatedSession
+                .post('/organization')
+                .send({
+                  name: '!'.repeat(129)
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(400)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+                  expect(res.body.errors.length).toEqual(1);
+                  expect(res.body.errors[0].message).toEqual('Organization name is too long');
+                  done();
+                });
             });
           });
 
-          it('returns an error if empty organization name provided', done => {
-            authenticatedSession
-              .post('/organization')
-              .send({
-                name: '   '
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(400)
-              .end((err, res) => {
-                if (err) return done.fail(err);
-                expect(res.body.errors.length).toEqual(1);
-                expect(res.body.errors[0].message).toEqual('Organization requires a name');
-                done();
-              });
-          });
+          describe('Bearer token access', () => {
 
-          it('returns an error if no organization name provided', done => {
-            authenticatedSession
-              .post('/organization')
-              .send({})
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(400)
-              .end((err, res) => {
-                if (err) return done.fail(err);
-                expect(res.body.errors.length).toEqual(1);
-                expect(res.body.errors[0].message).toEqual('Organization requires a name');
-                done();
-              });
-          });
+            beforeEach(() => {
+              const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                .get(/userinfo/)
+                .reply(200, {
+                  ..._identity,
+                  permissions: [scope.create.organizations],
+                });
+            });
 
-          it('returns an error if organization name is over 128 characters long', done => {
-            authenticatedSession
-              .post('/organization')
-              .send({
-                name: '!'.repeat(129)
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(400)
-              .end((err, res) => {
-                if (err) return done.fail(err);
-                expect(res.body.errors.length).toEqual(1);
-                expect(res.body.errors[0].message).toEqual('Organization name is too long');
-                done();
-              });
+            it('returns an error if empty organization name provided', done => {
+              request(app)
+                .post('/organization')
+                .send({
+                  name: '   '
+                })
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(400)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+                  expect(res.body.errors.length).toEqual(1);
+                  expect(res.body.errors[0].message).toEqual('Organization requires a name');
+                  done();
+                });
+            });
+
+            it('returns an error if no organization name provided', done => {
+              request(app)
+                .post('/organization')
+                .send({})
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(400)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+                  expect(res.body.errors.length).toEqual(1);
+                  expect(res.body.errors[0].message).toEqual('Organization requires a name');
+                  done();
+                });
+            });
+
+            it('returns an error if organization name is over 128 characters long', done => {
+              request(app)
+                .post('/organization')
+                .send({
+                  name: '!'.repeat(129)
+                })
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(400)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+                  expect(res.body.errors.length).toEqual(1);
+                  expect(res.body.errors[0].message).toEqual('Organization name is too long');
+                  done();
+                });
+            });
           });
         });
       });
@@ -396,9 +656,10 @@ describe('organizationSpec', () => {
           stubAuth0ManagementApi((err, apiScopes) => {
             if (err) return done.fail();
 
-            login(_identity, [scope.update.organizations], (err, session) => {
-
+            login(_identity, [scope.update.organizations], (err, session, token) => {
               if (err) return done.fail(err);
+
+              accessToken = token;
               authenticatedSession = session;
 
               // See if organization name is already registered
@@ -445,36 +706,9 @@ describe('organizationSpec', () => {
           rsvpList.length = 0;
         });
 
-        it('allows a team creator to update an existing record', done => {
-          authenticatedSession
-            .put(`/organization/${organizationId}`)
-            .send({
-              name: 'Two Testaments Bolivia'
-            })
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(201)
-            .end((err, res) => {
-              if (err) return done.fail(err);
+        describe('session access', () => {
 
-              expect(res.body.name).toEqual('Two Testaments Bolivia');
-              expect(res.body.organizer).toEqual(_profile.email);
-              expect(res.body.id).toEqual(organizationId);
-              expect(res.body.teams.length).toEqual(2);
-              expect(res.body.teams[0]).toEqual({ name: 'Asia Sensitive', leader: 'teamleader@example.com', id: team1Id, organizationId: organizationId });
-              expect(res.body.teams[1]).toEqual({ name: 'Guinea-Bissau', leader: 'yetanotherguy@example.com', id: team2Id, organizationId: organizationId });
-
-              done();
-            });
-        });
-
-        it('updates the user session data', done => {
-          models.Session.findAll().then(results => {
-            expect(results.length).toEqual(1);
-            let session = JSON.parse(results[0].data).passport.user;
-            expect(session.user_metadata.organizations.length).toEqual(1);
-            expect(session.user_metadata.organizations[0].name).toEqual('One Book Canada');
-
+          it('allows a team creator to update an existing record', done => {
             authenticatedSession
               .put(`/organization/${organizationId}`)
               .send({
@@ -486,146 +720,347 @@ describe('organizationSpec', () => {
               .end((err, res) => {
                 if (err) return done.fail(err);
 
-                models.Session.findAll().then(results => {
-                  expect(results.length).toEqual(1);
-                  session = JSON.parse(results[0].data).passport.user;
-                  expect(session.user_metadata.organizations.length).toEqual(1);
-                  expect(session.user_metadata.organizations[0].name).toEqual('Two Testaments Bolivia');
+                expect(res.body.name).toEqual('Two Testaments Bolivia');
+                expect(res.body.organizer).toEqual(_profile.email);
+                expect(res.body.id).toEqual(organizationId);
+                expect(res.body.teams.length).toEqual(2);
+                expect(res.body.teams[0]).toEqual({ name: 'Asia Sensitive', leader: 'teamleader@example.com', id: team1Id, organizationId: organizationId });
+                expect(res.body.teams[1]).toEqual({ name: 'Guinea-Bissau', leader: 'yetanotherguy@example.com', id: team2Id, organizationId: organizationId });
 
-                  done();
-                }).catch(err => {
-                  done.fail(err);
+                done();
+              });
+          });
+
+          it('updates the user session data', done => {
+            models.Session.findAll().then(results => {
+              expect(results.length).toEqual(1);
+              let session = JSON.parse(results[0].data).passport.user;
+              expect(session.user_metadata.organizations.length).toEqual(1);
+              expect(session.user_metadata.organizations[0].name).toEqual('One Book Canada');
+
+              authenticatedSession
+                .put(`/organization/${organizationId}`)
+                .send({
+                  name: 'Two Testaments Bolivia'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  models.Session.findAll().then(results => {
+                    expect(results.length).toEqual(1);
+                    session = JSON.parse(results[0].data).passport.user;
+                    expect(session.user_metadata.organizations.length).toEqual(1);
+                    expect(session.user_metadata.organizations[0].name).toEqual('Two Testaments Bolivia');
+
+                    done();
+                  }).catch(err => {
+                    done.fail(err);
+                  });
                 });
-              });
-          }).catch(err => {
-            done.fail(err);
-          });
-        });
-
-        it('returns an error if empty organization name provided', done => {
-          authenticatedSession
-            .put(`/organization/${organizationId}`)
-            .send({
-              name: '   '
-            })
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(400)
-            .end((err, res) => {
-              if (err) return done.fail(err);
-              expect(res.body.errors.length).toEqual(1);
-              expect(res.body.errors[0].message).toEqual('Organization requires a name');
-              done();
+            }).catch(err => {
+              done.fail(err);
             });
-        });
+          });
 
-        it('returns an error if record already exists', done => {
-          authenticatedSession
-            .put(`/organization/${organizationId}`)
-            .send({
-              name: 'One Book Canada'
-            })
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(400)
-            .end((err, res) => {
-              if (err) return done.fail(err);
-              expect(res.body.errors.length).toEqual(1);
-              expect(res.body.errors[0].message).toEqual('That organization is already registered');
-              done();
+          it('returns an error if empty organization name provided', done => {
+            authenticatedSession
+              .put(`/organization/${organizationId}`)
+              .send({
+                name: '   '
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(400)
+              .end((err, res) => {
+                if (err) return done.fail(err);
+                expect(res.body.errors.length).toEqual(1);
+                expect(res.body.errors[0].message).toEqual('Organization requires a name');
+                done();
+              });
+          });
+
+          it('returns an error if record already exists', done => {
+            authenticatedSession
+              .put(`/organization/${organizationId}`)
+              .send({
+                name: 'One Book Canada'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(400)
+              .end((err, res) => {
+                if (err) return done.fail(err);
+                expect(res.body.errors.length).toEqual(1);
+                expect(res.body.errors[0].message).toEqual('That organization is already registered');
+                done();
+              });
+          });
+
+          it('doesn\'t barf if team doesn\'t exist', done => {
+            authenticatedSession
+              .put('/organization/333')
+              .send({
+                name: 'Two Testaments Bolivia'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(404)
+              .end((err, res) => {
+                if (err) return done.fail(err);
+                expect(res.body.message).toEqual('No such organization');
+                done();
+              });
+          });
+
+          describe('Auth0', () => {
+            it('is called to see if organization name is already registered', done => {
+              authenticatedSession
+                .put(`/organization/${organizationId}`)
+                .send({
+                  name: 'Two Testaments Bolivia'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  expect(organizationReadByNameOauthTokenScope.isDone()).toBe(true);
+                  expect(organizationReadByNameScope.isDone()).toBe(true);
+                  done();
+                });
             });
-        });
 
-        it('doesn\'t barf if team doesn\'t exist', done => {
-          authenticatedSession
-            .put('/organization/333')
-            .send({
-              name: 'Two Testaments Bolivia'
-            })
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(404)
-            .end((err, res) => {
-              if (err) return done.fail(err);
-              expect(res.body.message).toEqual('No such organization');
-              done();
+            it('is called to retrieve organization leadership', done => {
+              authenticatedSession
+                .put(`/organization/${organizationId}`)
+                .send({
+                  name: 'Two Testaments Bolivia'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  // Token re-used from first call
+                  expect(organizationReadByIdOauthTokenScope.isDone()).toBe(false);
+                  expect(organizationReadByIdScope.isDone()).toBe(true);
+                  done();
+                });
             });
+
+            it('is called to retrieve team membership', done => {
+              authenticatedSession
+                .put(`/organization/${organizationId}`)
+                .send({
+                  name: 'Two Testaments Bolivia'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  // 2020-6-17 Reuse token from above? This needs to be confirmed in production
+                  expect(teamMembershipReadOauthTokenScope.isDone()).toBe(false);
+                  expect(teamMembershipReadScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+
+            it('is called to update the agent user_metadata', done => {
+              authenticatedSession
+                .put(`/organization/${organizationId}`)
+                .send({
+                  name: 'Two Testaments Bolivia'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  // 2020-6-17 Reuse token from above? This needs to be confirmed in production
+                  expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                  expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+          });
         });
 
-        describe('Auth0', () => {
-          it('is called to see if organization name is already registered', done => {
-            authenticatedSession
+        describe('Bearer token access', () => {
+
+          beforeEach(() => {
+            const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+              .get(/userinfo/)
+              .reply(200, {
+                ..._identity,
+                permissions: [scope.update.organizations],
+              });
+          });
+
+          it('allows a team creator to update an existing record', done => {
+            request(app)
               .put(`/organization/${organizationId}`)
               .send({
                 name: 'Two Testaments Bolivia'
               })
+              .set('Authorization', `Bearer ${accessToken}`)
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(201)
               .end((err, res) => {
                 if (err) return done.fail(err);
 
-                expect(organizationReadByNameOauthTokenScope.isDone()).toBe(true);
-                expect(organizationReadByNameScope.isDone()).toBe(true);
+                expect(res.body.name).toEqual('Two Testaments Bolivia');
+                expect(res.body.organizer).toEqual(_profile.email);
+                expect(res.body.id).toEqual(organizationId);
+                expect(res.body.teams.length).toEqual(2);
+                expect(res.body.teams[0]).toEqual({ name: 'Asia Sensitive', leader: 'teamleader@example.com', id: team1Id, organizationId: organizationId });
+                expect(res.body.teams[1]).toEqual({ name: 'Guinea-Bissau', leader: 'yetanotherguy@example.com', id: team2Id, organizationId: organizationId });
+
                 done();
               });
           });
 
-          it('is called to retrieve organization leadership', done => {
-            authenticatedSession
+          it('returns an error if empty organization name provided', done => {
+            request(app)
               .put(`/organization/${organizationId}`)
               .send({
-                name: 'Two Testaments Bolivia'
+                name: '   '
               })
+              .set('Authorization', `Bearer ${accessToken}`)
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
-              .expect(201)
+              .expect(400)
               .end((err, res) => {
                 if (err) return done.fail(err);
-
-                // Token re-used from first call
-                expect(organizationReadByIdOauthTokenScope.isDone()).toBe(false);
-                expect(organizationReadByIdScope.isDone()).toBe(true);
+                expect(res.body.errors.length).toEqual(1);
+                expect(res.body.errors[0].message).toEqual('Organization requires a name');
                 done();
               });
           });
 
-          it('is called to retrieve team membership', done => {
-            authenticatedSession
+          it('returns an error if record already exists', done => {
+            request(app)
               .put(`/organization/${organizationId}`)
               .send({
-                name: 'Two Testaments Bolivia'
+                name: 'One Book Canada'
               })
+              .set('Authorization', `Bearer ${accessToken}`)
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
-              .expect(201)
+              .expect(400)
               .end((err, res) => {
                 if (err) return done.fail(err);
-
-                // 2020-6-17 Reuse token from above? This needs to be confirmed in production
-                expect(teamMembershipReadOauthTokenScope.isDone()).toBe(false);
-                expect(teamMembershipReadScope.isDone()).toBe(true);
+                expect(res.body.errors.length).toEqual(1);
+                expect(res.body.errors[0].message).toEqual('That organization is already registered');
                 done();
               });
           });
 
-          it('is called to update the agent user_metadata', done => {
-            authenticatedSession
-              .put(`/organization/${organizationId}`)
+          it('doesn\'t barf if team doesn\'t exist', done => {
+            request(app)
+              .put('/organization/333')
               .send({
                 name: 'Two Testaments Bolivia'
               })
+              .set('Authorization', `Bearer ${accessToken}`)
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
-              .expect(201)
+              .expect(404)
               .end((err, res) => {
                 if (err) return done.fail(err);
-
-                // 2020-6-17 Reuse token from above? This needs to be confirmed in production
-                expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
-                expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+                expect(res.body.message).toEqual('No such organization');
                 done();
               });
+          });
+
+          describe('Auth0', () => {
+
+            it('is called to see if organization name is already registered', done => {
+              request(app)
+                .put(`/organization/${organizationId}`)
+                .send({
+                  name: 'Two Testaments Bolivia'
+                })
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  expect(organizationReadByNameOauthTokenScope.isDone()).toBe(true);
+                  expect(organizationReadByNameScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+
+            it('is called to retrieve organization leadership', done => {
+              request(app)
+                .put(`/organization/${organizationId}`)
+                .send({
+                  name: 'Two Testaments Bolivia'
+                })
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  // Token re-used from first call
+                  expect(organizationReadByIdOauthTokenScope.isDone()).toBe(false);
+                  expect(organizationReadByIdScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+
+            it('is called to retrieve team membership', done => {
+              request(app)
+                .put(`/organization/${organizationId}`)
+                .send({
+                  name: 'Two Testaments Bolivia'
+                })
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  // 2020-6-17 Reuse token from above? This needs to be confirmed in production
+                  expect(teamMembershipReadOauthTokenScope.isDone()).toBe(false);
+                  expect(teamMembershipReadScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+
+            it('is called to update the agent user_metadata', done => {
+              request(app)
+                .put(`/organization/${organizationId}`)
+                .send({
+                  name: 'Two Testaments Bolivia'
+                })
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(201)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  // 2020-6-17 Reuse token from above? This needs to be confirmed in production
+                  expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                  expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+                  done();
+                });
+            });
           });
         });
       });
@@ -638,7 +1073,9 @@ describe('organizationSpec', () => {
         });
 
         describe('by organizer', () => {
+
           describe('successfully', () => {
+
             beforeEach(done => {
 
               _profile.user_metadata = {
@@ -674,28 +1111,10 @@ describe('organizationSpec', () => {
               });
             });
 
-            it('removes organization from Auth0', done => {
-              expect(_profile.user_metadata.organizations.length).toEqual(1);
-              authenticatedSession
-                .delete(`/organization/${organizationId}`)
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(201)
-                .end((err, res) => {
-                  if (err) return done.fail(err);
-                  expect(res.body.message).toEqual('Organization deleted');
-                  expect(_profile.user_metadata.organizations.length).toEqual(0);
-                  done();
-                });
-            });
+            describe('session access', () => {
 
-            it('updates the user session data', done => {
-              models.Session.findAll().then(results => {
-                expect(results.length).toEqual(1);
-                let session = JSON.parse(results[0].data).passport.user;
-                expect(session.user_metadata.organizations.length).toEqual(1);
-                expect(session.user_metadata.organizations[0].name).toEqual('One Book Canada');
-
+              it('removes organization from Auth0', done => {
+                expect(_profile.user_metadata.organizations.length).toEqual(1);
                 authenticatedSession
                   .delete(`/organization/${organizationId}`)
                   .set('Accept', 'application/json')
@@ -703,68 +1122,170 @@ describe('organizationSpec', () => {
                   .expect(201)
                   .end((err, res) => {
                     if (err) return done.fail(err);
+                    expect(res.body.message).toEqual('Organization deleted');
+                    expect(_profile.user_metadata.organizations.length).toEqual(0);
+                    done();
+                  });
+              });
 
-                    models.Session.findAll().then(results => {
-                      expect(results.length).toEqual(1);
-                      session = JSON.parse(results[0].data).passport.user;
-                      expect(session.user_metadata.organizations.length).toEqual(0);
+              it('updates the user session data', done => {
+                models.Session.findAll().then(results => {
+                  expect(results.length).toEqual(1);
+                  let session = JSON.parse(results[0].data).passport.user;
+                  expect(session.user_metadata.organizations.length).toEqual(1);
+                  expect(session.user_metadata.organizations[0].name).toEqual('One Book Canada');
 
-                      done();
-                    }).catch(err => {
-                      done.fail(err);
+                  authenticatedSession
+                    .delete(`/organization/${organizationId}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(201)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+
+                      models.Session.findAll().then(results => {
+                        expect(results.length).toEqual(1);
+                        session = JSON.parse(results[0].data).passport.user;
+                        expect(session.user_metadata.organizations.length).toEqual(0);
+
+                        done();
+                      }).catch(err => {
+                        done.fail(err);
+                      });
                     });
-                  });
-              }).catch(err => {
-                done.fail(err);
+                }).catch(err => {
+                  done.fail(err);
+                });
+              });
+
+              describe('Auth0', () => {
+                it('is called to retrieve any existing member teams', done => {
+                  authenticatedSession
+                    .delete(`/organization/${organizationId}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(201)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+
+                      expect(teamReadOauthTokenScope.isDone()).toBe(true);
+                      expect(teamReadScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
+
+                it('is called to retrieve the organizer\'s profile', done => {
+                  authenticatedSession
+                    .delete(`/organization/${organizationId}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(201)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+
+                      // 2020-6-18 Reuse token from above? This needs to be confirmed in production
+                      expect(organizationReadOauthTokenScope.isDone()).toBe(false);
+                      expect(organizationReadScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
+
+                it('is called to update the former organizer agent', done => {
+                  authenticatedSession
+                    .delete(`/organization/${organizationId}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(201)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+
+                      // 2020-6-18 Reuse token from above? This needs to be confirmed in production
+                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                      expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
               });
             });
 
-            describe('Auth0', () => {
-              it('is called to retrieve any existing member teams', done => {
-                authenticatedSession
+            describe('Bearer token access', () => {
+
+              beforeEach(() => {
+                const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                  .get(/userinfo/)
+                  .reply(200, {
+                    ..._identity,
+                    permissions: [scope.delete.organizations],
+                  });
+              });
+
+              it('removes organization from Auth0', done => {
+                expect(_profile.user_metadata.organizations.length).toEqual(1);
+                request(app)
                   .delete(`/organization/${organizationId}`)
+                  .set('Authorization', `Bearer ${accessToken}`)
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(201)
                   .end((err, res) => {
                     if (err) return done.fail(err);
-
-                    expect(teamReadOauthTokenScope.isDone()).toBe(true);
-                    expect(teamReadScope.isDone()).toBe(true);
+                    expect(res.body.message).toEqual('Organization deleted');
+                    expect(_profile.user_metadata.organizations.length).toEqual(0);
                     done();
                   });
               });
 
-              it('is called to retrieve the organizer\'s profile', done => {
-                authenticatedSession
-                  .delete(`/organization/${organizationId}`)
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(201)
-                  .end((err, res) => {
-                    if (err) return done.fail(err);
+              describe('Auth0', () => {
 
-                    // 2020-6-18 Reuse token from above? This needs to be confirmed in production
-                    expect(organizationReadOauthTokenScope.isDone()).toBe(false);
-                    expect(organizationReadScope.isDone()).toBe(true);
-                    done();
-                  });
-              });
+                it('is called to retrieve any existing member teams', done => {
+                  request(app)
+                    .delete(`/organization/${organizationId}`)
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(201)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
 
-              it('is called to update the former organizer agent', done => {
-                authenticatedSession
-                  .delete(`/organization/${organizationId}`)
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(201)
-                  .end((err, res) => {
-                    if (err) return done.fail(err);
+                      expect(teamReadOauthTokenScope.isDone()).toBe(true);
+                      expect(teamReadScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
 
-                    // 2020-6-18 Reuse token from above? This needs to be confirmed in production
-                    expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
-                    expect(userAppMetadataUpdateScope.isDone()).toBe(true);
-                    done();
-                  });
+                it('is called to retrieve the organizer\'s profile', done => {
+                  request(app)
+                    .delete(`/organization/${organizationId}`)
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(201)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+
+                      // 2020-6-18 Reuse token from above? This needs to be confirmed in production
+                      expect(organizationReadOauthTokenScope.isDone()).toBe(false);
+                      expect(organizationReadScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
+
+                it('is called to update the former organizer agent', done => {
+                  request(app)
+                    .delete(`/organization/${organizationId}`)
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(201)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+
+                      // 2020-6-18 Reuse token from above? This needs to be confirmed in production
+                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                      expect(userAppMetadataUpdateScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
               });
             });
           });
@@ -827,66 +1348,24 @@ describe('organizationSpec', () => {
               memberTeams.length = 0;
             });
 
-            it('doesn\'t barf if organization doesn\'t exist', done => {
-              authenticatedSession
-                .delete('/organization/333')
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(404)
-                .end((err, res) => {
-                  if (err) return done.fail(err);
-                  expect(res.body.message).toEqual('No such organization');
-                  done();
-                });
-            });
+            describe('session access', () => {
 
-            it('doesn\'t delete if there are pending invitations', done => {
-              memberTeams.length = 0;
-              expect(_profile.user_metadata.pendingInvitations.length).toEqual(2);
-              authenticatedSession
-                .delete(`/organization/${organizationId}`)
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(400)
-                .end((err, res) => {
-                  if (err) return done.fail(err);
-
-                  expect(res.body.message).toEqual('Organization has invitations pending. Cannot delete');
-                  done();
-                });
-            });
-
-            it('doesn\'t delete if there are member teams', done => {
-              authenticatedSession
-                .delete(`/organization/${organizationId}`)
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(400)
-                .end((err, res) => {
-                  if (err) return done.fail(err);
-
-                  expect(res.body.message).toEqual('Organization has member teams. Cannot delete');
-                  done();
-                });
-            });
-
-            describe('Auth0', () => {
-              it('is called to retrieve any existing member teams', done => {
+              it('doesn\'t barf if organization doesn\'t exist', done => {
                 authenticatedSession
-                  .delete(`/organization/${organizationId}`)
+                  .delete('/organization/333')
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
-                  .expect(400)
+                  .expect(404)
                   .end((err, res) => {
                     if (err) return done.fail(err);
-
-                    expect(teamReadOauthTokenScope.isDone()).toBe(true);
-                    expect(teamReadScope.isDone()).toBe(true);
+                    expect(res.body.message).toEqual('No such organization');
                     done();
                   });
               });
 
-              it('is not called to retrieve the organizer\'s profile', done => {
+              it('doesn\'t delete if there are pending invitations', done => {
+                memberTeams.length = 0;
+                expect(_profile.user_metadata.pendingInvitations.length).toEqual(2);
                 authenticatedSession
                   .delete(`/organization/${organizationId}`)
                   .set('Accept', 'application/json')
@@ -895,13 +1374,12 @@ describe('organizationSpec', () => {
                   .end((err, res) => {
                     if (err) return done.fail(err);
 
-                    expect(organizationReadOauthTokenScope.isDone()).toBe(false);
-                    expect(organizationReadScope.isDone()).toBe(false);
+                    expect(res.body.message).toEqual('Organization has invitations pending. Cannot delete');
                     done();
                   });
               });
 
-              it('is not called to update the former organizer agent', done => {
+              it('doesn\'t delete if there are member teams', done => {
                 authenticatedSession
                   .delete(`/organization/${organizationId}`)
                   .set('Accept', 'application/json')
@@ -910,10 +1388,165 @@ describe('organizationSpec', () => {
                   .end((err, res) => {
                     if (err) return done.fail(err);
 
-                    expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
-                    expect(userAppMetadataUpdateScope.isDone()).toBe(false);
+                    expect(res.body.message).toEqual('Organization has member teams. Cannot delete');
                     done();
                   });
+              });
+
+              describe('Auth0', () => {
+                it('is called to retrieve any existing member teams', done => {
+                  authenticatedSession
+                    .delete(`/organization/${organizationId}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(400)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+
+                      expect(teamReadOauthTokenScope.isDone()).toBe(true);
+                      expect(teamReadScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
+
+                it('is not called to retrieve the organizer\'s profile', done => {
+                  authenticatedSession
+                    .delete(`/organization/${organizationId}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(400)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+
+                      expect(organizationReadOauthTokenScope.isDone()).toBe(false);
+                      expect(organizationReadScope.isDone()).toBe(false);
+                      done();
+                    });
+                });
+
+                it('is not called to update the former organizer agent', done => {
+                  authenticatedSession
+                    .delete(`/organization/${organizationId}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(400)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+
+                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                      expect(userAppMetadataUpdateScope.isDone()).toBe(false);
+                      done();
+                    });
+                });
+              });
+            });
+
+            describe('Bearer token access', () => {
+
+              beforeEach(() => {
+                const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                  .get(/userinfo/)
+                  .reply(200, {
+                    ..._identity,
+                    permissions: [scope.delete.organizations],
+                  });
+              });
+
+              it('doesn\'t barf if organization doesn\'t exist', done => {
+                request(app)
+                  .delete('/organization/333')
+                  .set('Authorization', `Bearer ${accessToken}`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(404)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+                    expect(res.body.message).toEqual('No such organization');
+                    done();
+                  });
+              });
+
+              it('doesn\'t delete if there are pending invitations', done => {
+                memberTeams.length = 0;
+                expect(_profile.user_metadata.pendingInvitations.length).toEqual(2);
+                request(app)
+                  .delete(`/organization/${organizationId}`)
+                  .set('Authorization', `Bearer ${accessToken}`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(400)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+
+                    expect(res.body.message).toEqual('Organization has invitations pending. Cannot delete');
+                    done();
+                  });
+              });
+
+              it('doesn\'t delete if there are member teams', done => {
+                request(app)
+                  .delete(`/organization/${organizationId}`)
+                  .set('Authorization', `Bearer ${accessToken}`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(400)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+
+                    expect(res.body.message).toEqual('Organization has member teams. Cannot delete');
+                    done();
+                  });
+              });
+
+              describe('Auth0', () => {
+
+                it('is called to retrieve any existing member teams', done => {
+                  request(app)
+                    .delete(`/organization/${organizationId}`)
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(400)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+
+                      expect(teamReadOauthTokenScope.isDone()).toBe(true);
+                      expect(teamReadScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
+
+                it('is not called to retrieve the organizer\'s profile', done => {
+                  request(app)
+                    .delete(`/organization/${organizationId}`)
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(400)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+
+                      expect(organizationReadOauthTokenScope.isDone()).toBe(false);
+                      expect(organizationReadScope.isDone()).toBe(false);
+                      done();
+                    });
+                });
+
+                it('is not called to update the former organizer agent', done => {
+                  request(app)
+                    .delete(`/organization/${organizationId}`)
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(400)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+
+                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                      expect(userAppMetadataUpdateScope.isDone()).toBe(false);
+                      done();
+                    });
+                });
               });
             });
           });
@@ -950,8 +1583,9 @@ describe('organizationSpec', () => {
             stubAuth0ManagementApi((err, apiScopes) => {
               if (err) return done.fail(err);
 
-              login({ ..._identity, email: invitedAgent.email }, [scope.update.organizations], (err, session) => {
+              login({ ..._identity, email: invitedAgent.email }, [scope.update.organizations], (err, session, token) => {
                 if (err) return done.fail(err);
+                accessToken = token;
                 unverifiedSession = session;
 
                 // See if organization name is already registered
@@ -975,20 +1609,53 @@ describe('organizationSpec', () => {
             });
           });
 
-          it('returns 403', done => {
-            unverifiedSession
-              .put(`/organization/${organizationId}`)
-              .send({
-                name: 'Two Testaments Bolivia'
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(403)
-              .end((err, res) => {
-                if (err) done.fail(err);
-                expect(res.body.message).toEqual('You are not an organizer');
-                done();
-              });
+          describe('session access', () => {
+
+            it('returns 403', done => {
+              unverifiedSession
+                .put(`/organization/${organizationId}`)
+                .send({
+                  name: 'Two Testaments Bolivia'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(403)
+                .end((err, res) => {
+                  if (err) done.fail(err);
+                  expect(res.body.message).toEqual('You are not an organizer');
+                  done();
+                });
+            });
+          });
+
+          describe('Bearer token access', () => {
+
+            beforeEach(() => {
+              const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                .get(/userinfo/)
+                .reply(200, {
+                  ..._identity,
+                  email: _profile.email,
+                  permissions: [scope.update.organizations],
+                });
+            });
+
+            it('returns 403', done => {
+              request(app)
+                .put(`/organization/${organizationId}`)
+                .send({
+                  name: 'Two Testaments Bolivia'
+                })
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(403)
+                .end((err, res) => {
+                  if (err) done.fail(err);
+                  expect(res.body.message).toEqual('You are not an organizer');
+                  done();
+                });
+            });
           });
         });
       });
@@ -1019,6 +1686,7 @@ describe('organizationSpec', () => {
       });
 
       describe('update', () => {
+
         describe('PUT', () => {
 
           let organizationId,
@@ -1047,20 +1715,52 @@ describe('organizationSpec', () => {
             });
           });
 
-          it('returns 403', done => {
-            unauthorizedSession
-              .put(`/organization/${organizationId}`)
-              .send({
-                name: 'Two Testaments Bolivia'
-              })
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(403)
-              .end((err, res) => {
-                if (err) done.fail(err);
-                expect(res.body.message).toEqual('You are not an organizer');
-                done();
-              });
+          describe('session access', () => {
+
+            it('returns 403', done => {
+              unauthorizedSession
+                .put(`/organization/${organizationId}`)
+                .send({
+                  name: 'Two Testaments Bolivia'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(403)
+                .end((err, res) => {
+                  if (err) done.fail(err);
+                  expect(res.body.message).toEqual('You are not an organizer');
+                  done();
+                });
+            });
+          });
+
+          describe('Bearer token access', () => {
+
+            beforeEach(() => {
+              const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                .get(/userinfo/)
+                .reply(200, {
+                  ..._identity,
+                  email: _profile.email,
+                  permissions: [scope.update.organizations],
+                });
+            });
+
+            it('returns 403', done => {
+              unauthorizedSession
+                .put(`/organization/${organizationId}`)
+                .send({
+                  name: 'Two Testaments Bolivia'
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(403)
+                .end((err, res) => {
+                  if (err) done.fail(err);
+                  expect(res.body.message).toEqual('You are not an organizer');
+                  done();
+                });
+            });
           });
         });
       });
@@ -1098,63 +1798,145 @@ describe('organizationSpec', () => {
           });
         });
 
-        it('returns 403', done => {
-          unauthorizedSession
-            .delete(`/organization/${organizationId}`)
-            .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
-            .expect(403)
-            .end((err, res) => {
-              if (err) return done.fail(err);
-              expect(res.body.message).toEqual('You are not the organizer');
-              done();
+        describe('session access', () => {
+
+          it('returns 403', done => {
+            unauthorizedSession
+              .delete(`/organization/${organizationId}`)
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(403)
+              .end((err, res) => {
+                if (err) return done.fail(err);
+                expect(res.body.message).toEqual('You are not the organizer');
+                done();
+              });
+          });
+
+          describe('Auth0', () => {
+
+            it('is called to retrieve any existing member teams', done => {
+              unauthorizedSession
+                .delete(`/organization/${organizationId}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(403)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  expect(teamReadOauthTokenScope.isDone()).toBe(true);
+                  expect(teamReadScope.isDone()).toBe(true);
+                  done();
+                });
             });
+
+            it('is called to retrieve the organizer\'s profile', done => {
+              unauthorizedSession
+                .delete(`/organization/${organizationId}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(403)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  expect(organizationReadOauthTokenScope.isDone()).toBe(false);
+                  expect(organizationReadScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+
+            it('is not called to update the former organizer agent', done => {
+              unauthorizedSession
+                .delete(`/organization/${organizationId}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(403)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                  expect(userAppMetadataUpdateScope.isDone()).toBe(false);
+                  done();
+                });
+            });
+          });
         });
 
-        describe('Auth0', () => {
-          it('is called to retrieve any existing member teams', done => {
-            unauthorizedSession
+        describe('Bearer token access', () => {
+
+          beforeEach(() => {
+            const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+              .get(/userinfo/)
+              .reply(200, {
+                ..._identity,
+                email: _profile.email,
+                permissions: [scope.delete.organizations],
+              });
+          });
+
+          it('returns 403', done => {
+            request(app)
               .delete(`/organization/${organizationId}`)
+              .set('Authorization', `Bearer ${accessToken}`)
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(403)
               .end((err, res) => {
                 if (err) return done.fail(err);
-
-                expect(teamReadOauthTokenScope.isDone()).toBe(true);
-                expect(teamReadScope.isDone()).toBe(true);
+                expect(res.body.message).toEqual('You are not the organizer');
                 done();
               });
           });
 
-          it('is called to retrieve the organizer\'s profile', done => {
-            unauthorizedSession
-              .delete(`/organization/${organizationId}`)
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(403)
-              .end((err, res) => {
-                if (err) return done.fail(err);
+          describe('Auth0', () => {
 
-                expect(organizationReadOauthTokenScope.isDone()).toBe(false);
-                expect(organizationReadScope.isDone()).toBe(true);
-                done();
-              });
-          });
+            it('is called to retrieve any existing member teams', done => {
+              request(app)
+                .delete(`/organization/${organizationId}`)
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(403)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
 
-          it('is not called to update the former organizer agent', done => {
-            unauthorizedSession
-              .delete(`/organization/${organizationId}`)
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(403)
-              .end((err, res) => {
-                if (err) return done.fail(err);
+                  expect(teamReadOauthTokenScope.isDone()).toBe(true);
+                  expect(teamReadScope.isDone()).toBe(true);
+                  done();
+                });
+            });
 
-                expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
-                expect(userAppMetadataUpdateScope.isDone()).toBe(false);
-                done();
-              });
+            it('is called to retrieve the organizer\'s profile', done => {
+              request(app)
+                .delete(`/organization/${organizationId}`)
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(403)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  expect(organizationReadOauthTokenScope.isDone()).toBe(false);
+                  expect(organizationReadScope.isDone()).toBe(true);
+                  done();
+                });
+            });
+
+            it('is not called to update the former organizer agent', done => {
+              request(app)
+                .delete(`/organization/${organizationId}`)
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(403)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
+                  expect(userAppMetadataUpdateScope.isDone()).toBe(false);
+                  done();
+                });
+            });
           });
         });
       });
