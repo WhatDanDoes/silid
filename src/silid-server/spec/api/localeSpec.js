@@ -166,7 +166,7 @@ describe('localeSpec', () => {
 
           describe('session access', () => {
             it('retrieves all the languages for which copy exists in /public/languages', done => {
-              expect(supportedLanguages.length).toEqual(2);
+              expect(supportedLanguages.length).toEqual(8);
               authenticatedSession
                 .get('/locale/supported')
                 .set('Accept', 'application/json')
@@ -188,7 +188,7 @@ describe('localeSpec', () => {
             });
 
             it('retrieves all the languages for which copy exists in /public/languages', done => {
-              expect(supportedLanguages.length).toEqual(2);
+              expect(supportedLanguages.length).toEqual(8);
               request(app)
                 .get('/locale/supported')
                 .set('Authorization', `Bearer ${accessToken}`)

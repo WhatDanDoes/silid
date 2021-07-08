@@ -181,7 +181,9 @@ function updateDbAndVerify(permissions, req, res, next) {
  * Authorization header and hit Auth0 `/userinfo` endpoint to validate.
  */
 const checkAgent = function(req, res, done) {
+
   if (!req.user) {
+
     const authorization = req.header('authorization');
     if (authorization) {
       const authParts = authorization.split(' ');
@@ -202,6 +204,18 @@ const checkAgent = function(req, res, done) {
         .then(res => res.json())
         .then(json => {
           req.user = {...json, user_id: json.sub};
+          req.user.scope = json.permissions;
+
+          if (!req.user.user_metadata) {
+            req.user.user_metadata = {};
+          }
+
+          if (!req.user.email_verified &&
+              !(req.method === 'GET' && (req.baseUrl + req.path === '/agent/')) &&
+              !(req.method === 'POST' && (req.baseUrl + req.path === '/agent/verify'))) {
+            return res.status(401).json({message: 'Check your email to verify your account'});
+          }
+
           done();
         })
         .catch(err => {
@@ -232,7 +246,9 @@ const checkPermissions = function(permissions) {
   return (req, res, next) => {
 
     checkAgent(req, res, (err) => {
-      if (err) return res.status(403).json({ message: err.message });
+      if (err) {
+        return res.status(403).json({ message: err.message });
+      }
       // Make sure agent has basic viewing permissions
       let isViewer = true;
       if (!req.user.scope) {
