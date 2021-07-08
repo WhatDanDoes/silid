@@ -20,7 +20,7 @@ const ct = require('countries-and-timezones')
  *
  * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
  */
-const _identity = require('../../fixtures/sample-auth0-identity-token');
+const _identity = { ...require('../../fixtures/sample-auth0-identity-token'), iss: `https://${process.env.AUTH0_CUSTOM_DOMAIN}/`};
 const _profile = require('../../fixtures/sample-auth0-profile-response');
 const _roles = require('../../fixtures/roles');
 
@@ -109,7 +109,7 @@ describe('root/timezoneSpec', () => {
               .expect(200)
               .end((err, res) => {
                 if (err) return done.fail(err);
-                expect(Object.keys(res.body).length).toEqual(544);
+                expect(res.body.length).toEqual(543);
                 done();
               });
           });

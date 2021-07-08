@@ -85,6 +85,15 @@ context('root/Agent Index', function() {
       cy.login('someotherguy@example.com', { ..._profile, name: 'Some Other Guy' }, [this.scope.read.agents]);
     });
 
+    /**
+     * 2021-3-3
+     *
+     * This test fails if a function dependency is declared in the `src/routes/AgentDirectory` useEffect.
+     *
+     * If set, there is a max-depth-exceeded error
+     *
+     * Keep an eye on this....
+     */
     it('displays a friendly message', () => {
       cy.visit(`/#/agent/admin`);
       cy.wait(500);

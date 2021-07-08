@@ -23,25 +23,22 @@ module.exports = function(roles, done) {
     stubOauthToken([apiScope.read.users, apiScope.read.roles], (err, oauthScopes) => {
       if (err) return done(err);
 
-      ({accessToken, oauthTokenScope} = oauthScopes);
+      const {accessToken, oauthTokenScope: userRolesReadOauthTokenScope} = oauthScopes;
 
-        const userRolesReadOauthTokenScope = oauthTokenScope;
+      /**
+       * GET `/roles`
+       */
+      const userRolesReadScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
+        .get(/api\/v2\/users\/.+\/roles/)
+        .reply(200, roles || [
+          {
+            "id": "345",
+            "name": "viewer",
+            "description": "Basic agent, organization, and team viewing permissions"
+          }
+        ]);
 
-        /**
-         * GET `/roles`
-         */
-        const userRolesReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-          .log(console.log)
-          .get(/api\/v2\/users\/.+\/roles/)
-          .reply(200, roles || [
-            {
-              "id": "345",
-              "name": "viewer",
-              "description": "Basic agent, organization, and team viewing permissions"
-            }
-          ]);
-
-        done(null, {userRolesReadScope, userRolesReadOauthTokenScope});
+      done(null, {userRolesReadScope, userRolesReadOauthTokenScope});
     });
   });
 };

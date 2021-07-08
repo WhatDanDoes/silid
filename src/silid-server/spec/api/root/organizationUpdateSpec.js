@@ -17,7 +17,7 @@ const scope = require('../../../config/permissions');
  *
  * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
  */
-const _identity = require('../../fixtures/sample-auth0-identity-token');
+const _identity = { ...require('../../fixtures/sample-auth0-identity-token'), iss: `https://${process.env.AUTH0_CUSTOM_DOMAIN}/`};
 const _profile = require('../../fixtures/sample-auth0-profile-response');
 
 describe('root/organizationUpdateSpec', () => {
@@ -131,39 +131,11 @@ describe('root/organizationUpdateSpec', () => {
                   if (err) return done.fail();
                   ({teamReadScope: teamMembershipReadScope, teamReadOauthTokenScope: teamMembershipReadOauthTokenScope} = apiScopes);
 
-                  // Get RSVPs
-//                  rsvpList.push({
-//                                  ..._profile,
-//                                  name: 'Some Other Guy',
-//                                  email: 'someotherguy@example.com',
-//                                  user_id: _profile.user_id + 2,
-//                                  user_metadata: {
-//                                    rsvps: [
-//                                      { name: 'One Book Canada', recipient: 'someotherguy@example.com', uuid: organizationId, type: 'organization', teamId: teamId }
-//                                    ]
-//                                  }
-//                                });
-//                  rsvpList.push({
-//                                  ..._profile,
-//                                  name: 'Yet Another Guy',
-//                                  email: 'yetanotherguy@example.com',
-//                                  user_id: _profile.user_id + 3,
-//                                  user_metadata: {
-//                                    rsvps: [
-//                                      { name: 'One Book Canada', recipient: 'yetanotherguy@example.com', uuid: organizationId, type: 'organization', teamId: team2Id }
-//                                    ]
-//                                  }
-//                                });
-//                  stubTeamRead(rsvpList, (err, apiScopes) => {
-//                    if (err) return done.fail();
-//                    ({teamReadScope: teamReadRsvpsScope, teamReadOauthTokenScope: teamReadRsvpsOauthTokenScope} = apiScopes);
-
-                    stubUserAppMetadataUpdate((err, apiScopes) => {
-                      if (err) return done.fail();
-                      ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                      done();
-                    });
-//                  });
+                  stubUserAppMetadataUpdate((err, apiScopes) => {
+                    if (err) return done.fail();
+                    ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                    done();
+                  });
                 });
               });
             });
@@ -199,85 +171,41 @@ describe('root/organizationUpdateSpec', () => {
             });
         });
 
- //       it('updates any pending invitations', done => {
- //         expect(_profile.user_metadata.pendingInvitations.length).toEqual(2);
- //         expect(_profile.user_metadata.pendingInvitations[0].name).toEqual('One Book Canada');
- //         expect(_profile.user_metadata.pendingInvitations[1].name).toEqual('One Book Canada');
+        it('updates the user session data', done => {
+          models.Session.findAll().then(results => {
+            expect(results.length).toEqual(1);
+            let session = JSON.parse(results[0].data).passport.user;
+            // This is a little hokey. Though it should be defined, there isn't any
+            // route hit that actually sets the session data. I don't want to set up
+            // a bunch of new mocks
+            expect(session.user_metadata.organizations).toBeUndefined();
 
- //         rootSession
- //           .put(`/organization/${organizationId}`)
- //           .send({
- //             name: 'Two Testaments Bolivia'
- //           })
- //           .set('Accept', 'application/json')
- //           .expect('Content-Type', /json/)
- //           .expect(201)
- //           .end(function(err, res) {
- //             if (err) return done.fail(err);
+            rootSession
+              .put(`/organization/${organizationId}`)
+              .send({
+                name: 'Two Testaments Bolivia'
+              })
+              .set('Accept', 'application/json')
+              .expect('Content-Type', /json/)
+              .expect(201)
+              .end((err, res) => {
+                if (err) return done.fail(err);
 
- //             expect(_profile.user_metadata.pendingInvitations.length).toEqual(2);
- //             expect(_profile.user_metadata.pendingInvitations[0].name).toEqual('Two Testaments Bolivia');
- //             expect(_profile.user_metadata.pendingInvitations[1].name).toEqual('Two Testaments Bolivia');
- //             done();
- //           });
- //       });
+                models.Session.findAll().then(results => {
+                  expect(results.length).toEqual(1);
+                  session = JSON.parse(results[0].data).passport.user;
+                  expect(session.user_metadata.organizations.length).toEqual(1);
+                  expect(session.user_metadata.organizations[0].name).toEqual('Two Testaments Bolivia');
 
- //       it('updates any database updates', done => {
- //         models.Update.create({ name: 'One Book Canada', recipient: 'onecooldude@example.com', uuid: organizationId, type: 'organization', teamId: teamId }).then(results => {
- //           rootSession
- //             .put(`/organization/${organizationId}`)
- //             .send({
- //               name: 'Two Testaments Bolivia'
- //             })
- //             .set('Accept', 'application/json')
- //             .expect('Content-Type', /json/)
- //             .expect(201)
- //             .end(function(err, res) {
- //               if (err) return done.fail(err);
-
- //               models.Update.findByPk(results.id).then(updates => {
- //                 expect(updates.name).toEqual('Two Testaments Bolivia');
- //                 expect(updates.recipient).toEqual('onecooldude@example.com');
- //                 expect(updates.uuid).toEqual(organizationId);
- //                 expect(updates.teamId).toEqual(teamId);
- //                 done();
- //               }).catch(err => {
- //                 done.fail(err);
- //               });
- //             });
- //         }).catch(err => {
- //           done.fail(err);
- //         });
- //       });
-
- //       it('create update in DB to updates any RSVPs on next login', done => {
- //         models.Update.findAll().then(updates => {
- //           expect(updates.length).toEqual(0);
-
- //           rootSession
- //             .put(`/organization/${organizationId}`)
- //             .send({
- //               name: 'Two Testaments Bolivia'
- //             })
- //             .set('Accept', 'application/json')
- //             .expect('Content-Type', /json/)
- //             .expect(201)
- //             .end(function(err, res) {
- //               if (err) return done.fail(err);
-
- //               models.Update.findAll().then(updates => {
- //                 expect(updates.length).toEqual(2);
- //                 expect(updates[0].name).toEqual('Two Testaments Bolivia');
- //                 expect(updates[1].name).toEqual('Two Testaments Bolivia');
- //                 done();
- //               }).catch(err => {
- //                 done.fail(err);
- //               });
- //             });
- //         }).catch(err => {
- //           done.fail(err);
- //         });
- //       });
+                  done();
+                }).catch(err => {
+                  done.fail(err);
+                });
+              });
+          }).catch(err => {
+            done.fail(err);
+          });
+        });
 
         it('returns an error if empty organization name provided', done => {
           rootSession
@@ -385,25 +313,6 @@ describe('root/organizationUpdateSpec', () => {
                 done();
               });
           });
-
-//          it('is called to retrieve outstanding RSVPs', done => {
-//            rootSession
-//              .put(`/organization/${organizationId}`)
-//              .send({
-//                name: 'Two Testaments Bolivia'
-//              })
-//              .set('Accept', 'application/json')
-//              .expect('Content-Type', /json/)
-//              .expect(201)
-//              .end(function(err, res) {
-//                if (err) return done.fail(err);
-//
-//                // 2020-6-17 Reuse token from above? This needs to be confirmed in production
-//                expect(teamReadRsvpsOauthTokenScope.isDone()).toBe(false);
-//                expect(teamReadRsvpsScope.isDone()).toBe(true);
-//                done();
-//              });
-//          });
 
           it('is called to update the agent user_metadata', done => {
             rootSession
@@ -551,86 +460,6 @@ describe('root/organizationUpdateSpec', () => {
             });
         });
 
-//        it('updates any pending invitations', done => {
-//          expect(organizerProfile.user_metadata.pendingInvitations.length).toEqual(2);
-//          expect(organizerProfile.user_metadata.pendingInvitations[0].name).toEqual('One Book Canada');
-//          expect(organizerProfile.user_metadata.pendingInvitations[1].name).toEqual('One Book Canada');
-//
-//          rootSession
-//            .put(`/organization/${organizationId}`)
-//            .send({
-//              name: 'Two Testaments Bolivia'
-//            })
-//            .set('Accept', 'application/json')
-//            .expect('Content-Type', /json/)
-//            .expect(201)
-//            .end(function(err, res) {
-//              if (err) return done.fail(err);
-//
-//              expect(organizerProfile.user_metadata.pendingInvitations.length).toEqual(2);
-//              expect(organizerProfile.user_metadata.pendingInvitations[0].name).toEqual('Two Testaments Bolivia');
-//              expect(organizerProfile.user_metadata.pendingInvitations[1].name).toEqual('Two Testaments Bolivia');
-//              done();
-//            });
-//        });
-
-//        it('updates any database updates', done => {
-//          models.Update.create({ name: 'One Book Canada', recipient: 'onecooldude@example.com', uuid: organizationId, type: 'organization', teamId: teamId }).then(results => {
-//            rootSession
-//              .put(`/organization/${organizationId}`)
-//              .send({
-//                name: 'Two Testaments Bolivia'
-//              })
-//              .set('Accept', 'application/json')
-//              .expect('Content-Type', /json/)
-//              .expect(201)
-//              .end(function(err, res) {
-//                if (err) return done.fail(err);
-//
-//                models.Update.findByPk(results.id).then(updates => {
-//                  expect(updates.name).toEqual('Two Testaments Bolivia');
-//                  expect(updates.recipient).toEqual('onecooldude@example.com');
-//                  expect(updates.uuid).toEqual(organizationId);
-//                  expect(updates.teamId).toEqual(teamId);
-//                  done();
-//                }).catch(err => {
-//                  done.fail(err);
-//                });
-//              });
-//          }).catch(err => {
-//            done.fail(err);
-//          });
-//        });
-
-//        it('create update in DB to updates any RSVPs on next login', done => {
-//          models.Update.findAll().then(updates => {
-//            expect(updates.length).toEqual(0);
-//
-//            rootSession
-//              .put(`/organization/${organizationId}`)
-//              .send({
-//                name: 'Two Testaments Bolivia'
-//              })
-//              .set('Accept', 'application/json')
-//              .expect('Content-Type', /json/)
-//              .expect(201)
-//              .end(function(err, res) {
-//                if (err) return done.fail(err);
-//
-//                models.Update.findAll().then(updates => {
-//                  expect(updates.length).toEqual(2);
-//                  expect(updates[0].name).toEqual('Two Testaments Bolivia');
-//                  expect(updates[1].name).toEqual('Two Testaments Bolivia');
-//                  done();
-//                }).catch(err => {
-//                  done.fail(err);
-//                });
-//              });
-//          }).catch(err => {
-//            done.fail(err);
-//          });
-//        });
-
         it('returns an error if empty organization name provided', done => {
           rootSession
             .put(`/organization/${organizationId}`)
@@ -738,25 +567,6 @@ describe('root/organizationUpdateSpec', () => {
                 done();
               });
           });
-
-//          it('is called to retrieve outstanding RSVPs', done => {
-//            rootSession
-//              .put(`/organization/${organizationId}`)
-//              .send({
-//                name: 'Two Testaments Bolivia'
-//              })
-//              .set('Accept', 'application/json')
-//              .expect('Content-Type', /json/)
-//              .expect(201)
-//              .end(function(err, res) {
-//                if (err) return done.fail(err);
-//
-//                // 2020-6-17 Reuse token from above? This needs to be confirmed in production
-//                expect(teamReadRsvpsOauthTokenScope.isDone()).toBe(false);
-//                expect(teamReadRsvpsScope.isDone()).toBe(true);
-//                done();
-//              });
-//          });
 
           it('is called to update the agent user_metadata', done => {
             rootSession

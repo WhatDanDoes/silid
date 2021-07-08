@@ -13,8 +13,7 @@ const roles = require('../../config/roles');
  * For the moment, it doesn't seem to matter that all authenticated
  * agents are using the same access token for testing purposes.
  */
-const _access = require('../fixtures/sample-auth0-access-token');
-_access.iss = `http://${process.env.AUTH0_DOMAIN}/`;
+const _access = { ...require('../fixtures/sample-auth0-access-token'), iss: `http://${process.env.AUTH0_CUSTOM_DOMAIN}/`};
 
 const jwt = require('jsonwebtoken');
 const jose = require('node-jose');
@@ -37,10 +36,11 @@ module.exports = function(done) {
      *
      * This is called when `/login` is hit. The session is
      * created prior to redirect.
+     *
+     * Set `DEBUG=nock.*` to log
      */
     let state, nonce;
-    const authorizeScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
-      .log(console.log)
+    const authorizeScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
       .persist()
       .get(/authorize*/)
       .reply(302, (uri, body) => {
@@ -66,8 +66,7 @@ module.exports = function(done) {
        * Strangley, this seems to be called before the token
        * exchange and before the encoded id_token is delivered
        */
-      const userInfoScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
-        .log(console.log)
+      const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
         .get(/userinfo/)
         .reply(200, idToken);
 
@@ -77,7 +76,8 @@ module.exports = function(done) {
        */
       const session = request(app);
       session
-        .get('/login') .redirects()
+        .get('/login')
+        .redirects()
         .end(function(err, res) {
           if (err) return done(err);
 
@@ -96,8 +96,7 @@ module.exports = function(done) {
            * Called on `/callback` when the client exchanges the
            * `authorization_code` for access and ID tokens
            */
-          const oauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
-            .log(console.log)
+          const oauthTokenScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
             .post(/oauth\/token/, {
                                     'grant_type': 'authorization_code',
                                     'redirect_uri': /\/callback/,
@@ -115,7 +114,7 @@ module.exports = function(done) {
             .redirects()
             .end(function(err, res) {
               if (err) return done(err);
-              done(null, session);
+              done(null, session, signedAccessToken);
             });
         });
     };

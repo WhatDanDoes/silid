@@ -33,17 +33,14 @@ module.exports = function(profile, done, options) {
     stubOauthToken([apiScope.read.users, apiScope.read.usersAppMetadata, apiScope.update.usersAppMetadata], (err, oauthScopes) => {
       if (err) return done(err);
 
-      ({accessToken, oauthTokenScope} = oauthScopes);
-
-      const userAppMetadataUpdateOauthTokenScope = oauthTokenScope;
+      ({accessToken, oauthTokenScope: userAppMetadataUpdateOauthTokenScope} = oauthScopes);
 
       /**
        * General user_metadata update endpoint stub
        *
        * PATCH `/users`
        */
-      const userAppMetadataUpdateScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-        .log(console.log)
+      const userAppMetadataUpdateScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
         .patch(/api\/v2\/users\/.+/)
         .reply(options.status, (uri, requestBody) => {
 

@@ -20,21 +20,37 @@ const nock = require('nock');
  *
  * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
  */
-const _identity = require('../../fixtures/sample-auth0-identity-token');
+const _identity = { ...require('../../fixtures/sample-auth0-identity-token'), iss: `https://${process.env.AUTH0_CUSTOM_DOMAIN}/`};
 const _profile = require('../../fixtures/sample-auth0-profile-response');
 const _roles = require('../../fixtures/roles');
 
 describe('organizer/agentSpec', () => {
-  let originalProfile;
 
-  let login, pub, prv, keystore;
+  let login, pub, prv, keystore,
+      agent, originalProfile;
   beforeEach(done => {
     originalProfile = {..._profile};
 
     stubAuth0Sessions((err, sessionStuff) => {
       if (err) return done.fail(err);
       ({ login, pub, prv, keystore } = sessionStuff);
-      done();
+
+      models.sequelize.sync({force: true}).then(() => {
+        fixtures.loadFile(`${__dirname}/../../fixtures/agents.json`, models).then(() => {
+          models.Agent.findAll().then(results => {
+            agent = results[0];
+            expect(agent.isSuper).toBe(false);
+
+            done();
+          }).catch(err => {
+            done.fail(err);
+          });
+        }).catch(err => {
+          done.fail(err);
+        });
+      }).catch(err => {
+        done.fail(err);
+      });
     });
   });
 
@@ -42,31 +58,6 @@ describe('organizer/agentSpec', () => {
     // Through the magic of node I am able to adjust the profile data returned.
     // This resets the default values
     _profile.email = originalProfile.email;
-  });
-
-  let agent;
-  beforeEach(done => {
-    models.sequelize.sync({force: true}).then(() => {
-
-      fixtures.loadFile(`${__dirname}/../../fixtures/agents.json`, models).then(() => {
-        models.Agent.findAll().then(results => {
-          agent = results[0];
-          expect(agent.isSuper).toBe(false);
-
-          done();
-        }).catch(err => {
-          done.fail(err);
-        });
-      }).catch(err => {
-        done.fail(err);
-      });
-    }).catch(err => {
-      done.fail(err);
-    });
-  });
-
-  afterEach(() => {
-    nock.cleanAll();
   });
 
   describe('authorized', () => {
@@ -88,18 +79,30 @@ describe('organizer/agentSpec', () => {
 
       describe('/agent', () => {
 
-        let oauthTokenScope, userReadScope,
-            userRolesReadScope, userRolesReadOauthTokenScope;
         beforeEach(done => {
-          stubUserRead((err, apiScopes) => {
+          /**
+           * There are always a lot of unused mocks hanging around. This
+           * ensures the route itself is being called. Without clearing
+           * the mocks, you would never be able to tell which mock is
+           * called upon.
+           */
+          nock.cleanAll();
+
+          // For the initial check permission stuff
+          stubUserRolesRead([_roles[0], _roles[2]], (err, apiScopes) => {
             if (err) return done.fail(err);
-            ({userReadScope, oauthTokenScope} = apiScopes);
 
-            stubUserRolesRead([_roles[0], _roles[2]], (err, apiScopes) => {
+            // For the route
+            stubUserRead((err, apiScopes) => {
               if (err) return done.fail(err);
-              ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+              ({userReadScope, userReadOauthTokenScope} = apiScopes);
 
-              done();
+              stubUserRolesRead([_roles[0], _roles[2]], (err, apiScopes) => {
+                if (err) return done.fail(err);
+                ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+                done();
+              });
             });
           });
         });
@@ -110,7 +113,7 @@ describe('organizer/agentSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(200)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
 
               expect(res.body.email).toEqual(_profile.email);
@@ -126,9 +129,11 @@ describe('organizer/agentSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(200)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
-                expect(oauthTokenScope.isDone()).toBe(true);
+
+                // Note: the OAuth token request is being satisfied by an existing mock
+                expect(userReadOauthTokenScope.isDone()).toBe(true);
                 expect(userReadScope.isDone()).toBe(true);
                 done();
               });
@@ -140,7 +145,7 @@ describe('organizer/agentSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(200)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
@@ -153,13 +158,12 @@ describe('organizer/agentSpec', () => {
       });
 
       describe('/agent/admin', () => {
-        let oauthTokenScope, userListScope;
         beforeEach(done => {
           const stubUserList = require('../../support/auth0Endpoints/stubUserList');
 
           stubUserList((err, apiScopes) => {
             if (err) return done.fail(err);
-            ({userListScope, oauthTokenScope} = apiScopes);
+            ({userListScope, userListOauthTokenScope} = apiScopes);
             done();
           });
         });
@@ -170,7 +174,7 @@ describe('organizer/agentSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(200)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
 
               /**
@@ -188,28 +192,17 @@ describe('organizer/agentSpec', () => {
         });
 
         describe('Auth0', () => {
-          it('calls the /oauth/token endpoint to retrieve a machine-to-machine access token', done => {
-            organizerSession
-              .get('/agent/admin')
-              .set('Accept', 'application/json')
-              .expect('Content-Type', /json/)
-              .expect(200)
-              .end(function(err, res) {
-                if (err) return done.fail(err);
-                expect(oauthTokenScope.isDone()).toBe(true);
-                done();
-              });
-          });
-
           it('calls Auth0 to read the agent at the Auth0-defined connection', done => {
             organizerSession
               .get('/agent/admin')
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(200)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
+                // Note: the OAuth token request is being satisfied by an existing mock
+                expect(userListOauthTokenScope.isDone()).toBe(false);
                 expect(userListScope.isDone()).toBe(true);
                 done();
               });
@@ -218,13 +211,13 @@ describe('organizer/agentSpec', () => {
       });
 
       describe('/agent/admin/:page', () => {
-        let oauthTokenScope, userListScope;
         beforeEach(done => {
           const stubUserList = require('../../support/auth0Endpoints/stubUserList');
 
           stubUserList((err, apiScopes) => {
             if (err) return done.fail(err);
-            ({userListScope, oauthTokenScope} = apiScopes);
+            ({userListScope, userListOauthTokenScope} = apiScopes);
+
             done();
           });
         });
@@ -235,7 +228,7 @@ describe('organizer/agentSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(200)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
 
               /**
@@ -258,11 +251,12 @@ describe('organizer/agentSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(200)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
+                // Note: the OAuth token request is being satisfied by an existing mock
+                expect(userListOauthTokenScope.isDone()).toBe(false);
                 expect(userListScope.isDone()).toBe(true);
-                expect(oauthTokenScope.isDone()).toBe(true);
                 done();
               });
           });
@@ -271,20 +265,30 @@ describe('organizer/agentSpec', () => {
 
 
       describe('/agent/:id', () => {
-
-        let oauthTokenScope, userReadScope,
-            userRolesReadScope, userRolesReadOauthTokenScope;
-
         beforeEach(done => {
-          stubUserRead((err, apiScopes) => {
+          /**
+           * There are always a lot of unused mocks hanging around. This
+           * ensures the route itself is being called. Without clearing
+           * the mocks, you would never be able to tell which mock is
+           * called upon.
+           */
+          nock.cleanAll();
+
+          // For the initial check permission stuff
+          stubUserRolesRead([_roles[0], _roles[2]], (err, apiScopes) => {
             if (err) return done.fail(err);
-            ({userReadScope, oauthTokenScope} = apiScopes);
 
-            stubUserRolesRead([_roles[0], _roles[2]], (err, apiScopes) => {
+            // For the route
+            stubUserRead((err, apiScopes) => {
               if (err) return done.fail(err);
-              ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+              ({userReadScope, userReadOauthTokenScope} = apiScopes);
 
-              done();
+              stubUserRolesRead([_roles[0], _roles[2]], (err, apiScopes) => {
+                if (err) return done.fail(err);
+                ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+                done();
+              });
             });
           });
         });
@@ -295,7 +299,7 @@ describe('organizer/agentSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(200)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
 
               expect(res.body.email).toBeDefined();
@@ -310,11 +314,11 @@ describe('organizer/agentSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(200)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
+                expect(userReadOauthTokenScope.isDone()).toBe(true);
                 expect(userReadScope.isDone()).toBe(true);
-                expect(oauthTokenScope.isDone()).toBe(true);
                 done();
               });
           });
@@ -325,7 +329,7 @@ describe('organizer/agentSpec', () => {
               .set('Accept', 'application/json')
               .expect('Content-Type', /json/)
               .expect(200)
-              .end(function(err, res) {
+              .end((err, res) => {
                 if (err) return done.fail(err);
 
                 expect(userRolesReadOauthTokenScope.isDone()).toBe(false);
@@ -340,13 +344,11 @@ describe('organizer/agentSpec', () => {
 
     describe('delete', () => {
 
-      let oauthTokenScope, userReadScope,
-          userRolesReadScope, userRolesReadOauthTokenScope;
       let anotherAgent;
       beforeEach(done => {
         stubUserRead((err, apiScopes) => {
           if (err) return done.fail(err);
-          ({userReadScope, oauthTokenScope} = apiScopes);
+          ({userReadScope, userReadOauthTokenScope} = apiScopes);
 
           stubUserRolesRead([_roles[0], _roles[2]], (err, apiScopes) => {
             if (err) return done.fail(err);
@@ -371,7 +373,7 @@ describe('organizer/agentSpec', () => {
           .set('Accept', 'application/json')
           .expect('Content-Type', /json/)
           .expect(403)
-          .end(function(err, res) {
+          .end((err, res) => {
             if (err) return done.fail(err);
             done();
           });
@@ -391,13 +393,7 @@ describe('organizer/agentSpec', () => {
           if (err) return done.fail(err);
           unauthorizedSession = session;
 
-          // Cached profile doesn't match "live" data, so agent needs to be updated
-          // with a call to Auth0
-          stubUserRead((err, apiScopes) => {
-            if (err) return done.fail();
-
-            done();
-          });
+          done();
         });
       });
     });
@@ -410,7 +406,7 @@ describe('organizer/agentSpec', () => {
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(403)
-            .end(function(err, res) {
+            .end((err, res) => {
               if (err) return done.fail(err);
               expect(res.body.message).toEqual('Insufficient scope');
               done();

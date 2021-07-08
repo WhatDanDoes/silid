@@ -1,18 +1,6 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
   const Update = sequelize.define('Update', {
-//    name: {
-//      type: DataTypes.STRING,
-//      allowNull: false,
-//      validate: {
-//        notNull: {
-//          msg: 'Update requires a name'
-//        },
-//        notEmpty: {
-//          msg: 'Update requires a name'
-//        },
-//      }
-//    },
     type: {
       type: DataTypes.ENUM('team', 'organization'),
       allowNull: false,
@@ -39,24 +27,6 @@ module.exports = (sequelize, DataTypes) => {
         }
       },
     },
-//    teamId: {
-//      type: DataTypes.UUID,
-//      allowNull: true,
-//      validate: {
-//        isUUID: {
-//          args: 4,
-//          msg: 'Organization update requires a valid version 4 team uuid'
-//        },
-//        isOrganization(value) {
-//          if (value && this.type !== 'organization') {
-//            throw new Error('Team uuid only applies to organization updates');
-//          }
-//          else if (this.type === 'organization' && !value) {
-//            throw new Error('Organization update requires a team uuid');
-//          }
-//        }
-//      },
-//    },
     recipient: {
       type: DataTypes.STRING,
       allowNull: false,

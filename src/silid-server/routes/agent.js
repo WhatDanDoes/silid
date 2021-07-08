@@ -179,11 +179,9 @@ router.post('/verify', checkPermissions([scope.update.agents]), function(req, re
 });
 
 router.patch('/:id', checkPermissions([scope.update.agents]), function(req, res, next) {
-
   if (req.params.id !== req.user.user_id && !req.user.isSuper) {
     return res.status(403).json({ message: 'Forbidden' });
   }
-
 
   /**
    * 2020-8-19 As per: https://auth0.com/docs/users/user-profile-structure (some omitted)
@@ -213,7 +211,6 @@ router.patch('/:id', checkPermissions([scope.update.agents]), function(req, res,
     }
   });
 
-
   if (!Object.keys(filteredRootClaims).length && !Object.keys(filteredPseudoRootClaims).length) {
     return res.status(200).json({ message: 'No relevant data supplied' });
   }
@@ -231,6 +228,11 @@ router.patch('/:id', checkPermissions([scope.update.agents]), function(req, res,
       });
     }
     else {
+      // Update session data if it exists
+      if (req.session.passport) {
+        req.session.passport.user = {...req.user, ...agent};
+      }
+
       res.status(201).json({...req.user, ...agent});
     }
   }).catch(err => {

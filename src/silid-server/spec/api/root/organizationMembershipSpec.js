@@ -17,7 +17,7 @@ const uuid = require('uuid');
  *
  * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
  */
-const _identity = require('../../fixtures/sample-auth0-identity-token');
+const _identity = { ...require('../../fixtures/sample-auth0-identity-token'), iss: `https://${process.env.AUTH0_CUSTOM_DOMAIN}/`};
 const _profile = require('../../fixtures/sample-auth0-profile-response');
 
 describe('root/organizationMembershipSpec', () => {
@@ -60,7 +60,7 @@ describe('root/organizationMembershipSpec', () => {
 
     describe('create', () => {
 
-      describe('for root\'s own team', () => {
+      describe('for root\'s own organization', () => {
 
         let rootSession, organizationId, teamId,
             teamReadScope, teamReadOauthTokenScope,

@@ -10,8 +10,8 @@ const querystring = require('querystring');
  * For the moment, it doesn't seem to matter that all authenticated
  * agents are using the same access token for testing purposes.
  */
-const _access = require('../fixtures/sample-auth0-access-token');
-_access.iss = `http://${process.env.AUTH0_DOMAIN}/`;
+const _access = { ...require('../fixtures/sample-auth0-access-token'), iss: `http://${process.env.AUTH0_CUSTOM_DOMAIN}/`};
+
 const _profile = require('../fixtures/sample-auth0-profile-response');
 
 const jwt = require('jsonwebtoken');
@@ -35,13 +35,20 @@ module.exports = function(permissions, done) {
      */
     let accessToken = jwt.sign({..._access, scope: permissions},
                                prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } });
-    const oauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
-      .log(console.log)
+    const oauthTokenScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`)
       .post(/oauth\/token/, {
                               'grant_type': 'client_credentials',
-                              'client_id': process.env.AUTH0_CLIENT_ID,
-                              'client_secret': process.env.AUTH0_CLIENT_SECRET,
-                              'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                              'client_id': process.env.AUTH0_M2M_CLIENT_ID,
+                              'client_secret': process.env.AUTH0_M2M_CLIENT_SECRET,
+                              /**
+                               * 2020-12-17
+                               *
+                               * Set as such because we have a custom domain.
+                               *
+                               * https://auth0.com/docs/custom-domains/configure-features-to-use-custom-domains#apis
+                               */
+                              //'audience': `https://${process.env.AUTH0_CUSTOM_DOMAIN}/api/v2/`,
+                              'audience': process.env.AUTH0_M2M_AUDIENCE,
                               'scope': permissions.join(' ')
                             })
       .reply(200, {
@@ -57,8 +64,7 @@ module.exports = function(permissions, done) {
      *
      * https://manage.auth0.com/dashboard/us/silid/connections
      */
-    const userCreateScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-      .log(console.log)
+    const userCreateScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .post(/api\/v2\/users/, {
                               'email': /.+/i,
                               'connection': 'Initial-Connection',
@@ -79,8 +85,7 @@ module.exports = function(permissions, done) {
      *
      * PATCH `/users`
      */
-    const updateTeamScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-      .log(console.log)
+    const updateTeamScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .patch(/api\/v2\/users\/.+/, body => {
         if (body.user_metadata) {
           for(let team of body.user_metadata.teams) {
@@ -101,8 +106,7 @@ module.exports = function(permissions, done) {
      * DELETE `/users`
      *
      */
-    const userDeleteScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-      .log(console.log)
+    const userDeleteScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
       .delete(/api\/v2\/users\/*/)
       .reply(201, {
         "user_id": "auth0|507f1f77bcf86c0000000000",

@@ -40,15 +40,12 @@ module.exports = function(profile, done, options) {
     stubOauthToken([apiScope.read.users, apiScope.read.usersAppMetadata], (err, oauthScopes) => {
       if (err) return done(err);
 
-      ({accessToken, oauthTokenScope} = oauthScopes);
-
-      const userAppMetadataReadOauthTokenScope = oauthTokenScope;
+      ({accessToken, oauthTokenScope: userAppMetadataReadOauthTokenScope} = oauthScopes);
 
       /**
        * GET `/users/:id`. Get a single user by Auth0 ID
        */
-      const userAppMetadataReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-        .log(console.log)
+      const userAppMetadataReadScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
         .get(/api\/v2\/users\/.+/)
         .query({})
         .reply(options.status, profile || _profile);

@@ -6,5 +6,6 @@
     "https://id.example.com/"
   ],
   "azp": "FbIjoilGxXgDXe2a0000000000000000",
-  "scope": "openid profile email"
+  "scope": "openid profile email",
+  "iat": 1606929800
 }

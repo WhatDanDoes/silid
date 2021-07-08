@@ -1,4 +1,5 @@
 const PORT = process.env.NODE_ENV === 'production' ? 3000 : 3001;
+const nock = require('nock');
 const app = require('../../app');
 const models = require('../../models');
 const request = require('supertest');
@@ -19,29 +20,26 @@ const scope = require('../../config/permissions');
  *
  * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
  */
-const _identity = require('../fixtures/sample-auth0-identity-token');
+const _identity = { ...require('../fixtures/sample-auth0-identity-token'), iss: `https://${process.env.AUTH0_CUSTOM_DOMAIN}/`};
 const _profile = require('../fixtures/sample-auth0-profile-response');
 
 describe('organizationSpec', () => {
 
-  let login, pub, prv, keystore;
-  beforeEach(done => {
-    stubAuth0Sessions((err, sessionStuff) => {
-      if (err) return done.fail(err);
-      ({ login, pub, prv, keystore } = sessionStuff);
-      done();
-    });
-  });
+  let login, pub, prv, keystore,
+      originalProfile, organization, agent;
 
-  let originalProfile;
-  let organization, agent;
   beforeEach(done => {
     originalProfile = {..._profile};
 
-    models.sequelize.sync({force: true}).then(() => {
-      done();
-    }).catch(err => {
-      done.fail(err);
+    stubAuth0Sessions((err, sessionStuff) => {
+      if (err) return done.fail(err);
+      ({ login, pub, prv, keystore } = sessionStuff);
+
+      models.sequelize.sync({force: true}).then(() => {
+        done();
+      }).catch(err => {
+        done.fail(err);
+      });
     });
   });
 
@@ -54,21 +52,21 @@ describe('organizationSpec', () => {
     _profile.name = originalProfile.name;
   });
 
-  let oauthTokenScope, authenticatedSession,
-      userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope,
-      userAppMetadataReadScope, userAppMetadataReadOauthTokenScope,
-      teamReadScope, teamReadOauthTokenScope,
-      organizationReadScope, organizationReadOauthTokenScope;
 
   describe('authenticated', () => {
+
+    let authenticatedSession;
 
     describe('authorized', () => {
 
       describe('read', () => {
 
+        let accessToken;
+
         describe('GET /organization/:id', () => {
 
           describe('as organizer', () => {
+
             let organizationId, team1Id, team2Id;
             beforeEach(done => {
               organizationId = uuid.v4();
@@ -79,47 +77,42 @@ describe('organizationSpec', () => {
               stubAuth0ManagementApi((err, apiScopes) => {
                 if (err) return done.fail();
 
-                login(_identity, [scope.read.organizations], (err, session) => {
-
+                login(_identity, [scope.read.organizations], (err, session, token) => {
                   if (err) return done.fail(err);
+
+                  accessToken = token;
                   authenticatedSession = session;
 
-                  // Cached profile doesn't match "live" data, so agent needs to be updated
-                  // with a call to Auth0
-                  stubUserRead((err, apiScopes) => {
+                  stubOrganizationRead((err, apiScopes) => {
                     if (err) return done.fail();
+                    ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
 
-                    stubOrganizationRead((err, apiScopes) => {
-                      if (err) return done.fail();
-                      ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
+                    stubTeamRead([{..._profile,
+                                    user_metadata: {
+                                      ..._profile.user_metadata,
+                                      teams: [
+                                        { name: 'Guinea-Bissau', leader: 'squadleader@example.com', id: team2Id, organizationId: organizationId },
+                                        { name: 'Mystery Incorporated', leader: 'thelma@example.com', id: uuid.v4(), organizationId: uuid.v4() }
+                                      ]
+                                    }
+                                  },
+                                  {..._profile,
+                                    name: 'A Aaronson',
+                                    email: 'aaaronson@example.com',
+                                    user_id: _profile.user_id + 1,
+                                    user_metadata: {
+                                      teams: [
+                                        { name: 'Asia Sensitive', leader: 'teamleader@example.com', id: team1Id, organizationId: organizationId },
+                                        { name: 'The A-Team', leader: 'babaracus@example.com', id: uuid.v4(), organizationId: uuid.v4() }
+                                      ]
+                                    }
+                                  }], (err, apiScopes) => {
+                      ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
 
-                      stubTeamRead([{..._profile,
-                                      user_metadata: {
-                                        ..._profile.user_metadata,
-                                        teams: [
-                                          { name: 'Guinea-Bissau', leader: 'squadleader@example.com', id: team2Id, organizationId: organizationId },
-                                          { name: 'Mystery Incorporated', leader: 'thelma@example.com', id: uuid.v4(), organizationId: uuid.v4() }
-                                        ]
-                                      }
-                                    },
-                                    {..._profile,
-                                      name: 'A Aaronson',
-                                      email: 'aaaronson@example.com',
-                                      user_id: _profile.user_id + 1,
-                                      user_metadata: {
-                                        teams: [
-                                          { name: 'Asia Sensitive', leader: 'teamleader@example.com', id: team1Id, organizationId: organizationId },
-                                          { name: 'The A-Team', leader: 'babaracus@example.com', id: uuid.v4(), organizationId: uuid.v4() }
-                                        ]
-                                      }
-                                    }], (err, apiScopes) => {
-                        ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
-
-                        stubUserAppMetadataUpdate((err, apiScopes) => {
-                          if (err) return done.fail();
-                          ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                          done();
-                        });
+                      stubUserAppMetadataUpdate((err, apiScopes) => {
+                        if (err) return done.fail();
+                        ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                        done();
                       });
                     });
                   });
@@ -127,72 +120,160 @@ describe('organizationSpec', () => {
               });
             });
 
-            it('collates agent data into organization data', done => {
-              authenticatedSession
-                .get(`/organization/${organizationId}`)
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(200)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-                  expect(res.body.name).toEqual('One Book Canada');
-                  expect(res.body.organizer).toEqual(_profile.email);
-                  expect(res.body.id).toEqual(organizationId);
-                  // Alphabetical according to name
-                  expect(res.body.teams.length).toEqual(2);
-                  expect(res.body.teams[0]).toEqual({ name: 'Asia Sensitive', leader: 'teamleader@example.com', id: team1Id, organizationId: organizationId });
-                  expect(res.body.teams[1]).toEqual({ name: 'Guinea-Bissau', leader: 'squadleader@example.com', id: team2Id, organizationId: organizationId });
+            describe('session access', () => {
 
-                  done();
-                });
-            });
-
-            it('doesn\'t barf if record doesn\'t exist', done => {
-              authenticatedSession
-                .get('/organization/333')
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(404)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-                  expect(res.body.message).toEqual('No such organization');
-                  done();
-                });
-            });
-
-            describe('Auth0', () => {
-              it('is called to retrieve organization data', done => {
+              it('collates agent data into organization data', done => {
                 authenticatedSession
                   .get(`/organization/${organizationId}`)
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(200)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
-                    expect(organizationReadOauthTokenScope.isDone()).toBe(true);
-                    expect(organizationReadScope.isDone()).toBe(true);
+                    expect(res.body.name).toEqual('One Book Canada');
+                    expect(res.body.organizer).toEqual(_profile.email);
+                    expect(res.body.id).toEqual(organizationId);
+                    // Alphabetical according to name
+                    expect(res.body.teams.length).toEqual(2);
+                    expect(res.body.teams[0]).toEqual({ name: 'Asia Sensitive', leader: 'teamleader@example.com', id: team1Id, organizationId: organizationId });
+                    expect(res.body.teams[1]).toEqual({ name: 'Guinea-Bissau', leader: 'squadleader@example.com', id: team2Id, organizationId: organizationId });
+
                     done();
                   });
               });
 
-              it('is called to retrieve team data', done => {
+              it('doesn\'t barf if record doesn\'t exist', done => {
                 authenticatedSession
+                  .get('/organization/333')
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(404)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+                    expect(res.body.message).toEqual('No such organization');
+                    done();
+                  });
+              });
+
+              describe('Auth0', () => {
+                it('is called to retrieve organization data', done => {
+                  authenticatedSession
+                    .get(`/organization/${organizationId}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+                      expect(organizationReadOauthTokenScope.isDone()).toBe(true);
+                      expect(organizationReadScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
+
+                it('is called to retrieve team data', done => {
+                  authenticatedSession
+                    .get(`/organization/${organizationId}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+                      // Token re-used from first request
+                      expect(teamReadOauthTokenScope.isDone()).toBe(false);
+                      expect(teamReadScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
+              });
+            });
+
+            describe('Bearer token access', () => {
+
+              beforeEach(() => {
+                const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                  .get(/userinfo/)
+                  .reply(200, {
+                    ..._identity,
+                    permissions: [scope.read.organizationMembers],
+                    user_metadata: {
+                      organizations: [ { name: 'One Book Canada', organizer: _profile.email, id: organizationId } ]
+                    }
+                  });
+              });
+
+              it('collates agent data into organization data', done => {
+                request(app)
                   .get(`/organization/${organizationId}`)
+                  .set('Authorization', `Bearer ${accessToken}`)
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(200)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
-                    // Token re-used from first request
-                    expect(teamReadOauthTokenScope.isDone()).toBe(false);
-                    expect(teamReadScope.isDone()).toBe(true);
+                    expect(res.body.name).toEqual('One Book Canada');
+                    expect(res.body.organizer).toEqual(_profile.email);
+                    expect(res.body.id).toEqual(organizationId);
+                    // Alphabetical according to name
+                    expect(res.body.teams.length).toEqual(2);
+                    expect(res.body.teams[0]).toEqual({ name: 'Asia Sensitive', leader: 'teamleader@example.com', id: team1Id, organizationId: organizationId });
+                    expect(res.body.teams[1]).toEqual({ name: 'Guinea-Bissau', leader: 'squadleader@example.com', id: team2Id, organizationId: organizationId });
+
                     done();
                   });
+              });
+
+              it('doesn\'t barf if record doesn\'t exist', done => {
+                request(app)
+                  .get('/organization/333')
+                  .set('Authorization', `Bearer ${accessToken}`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(404)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+                    expect(res.body.message).toEqual('No such organization');
+                    done();
+                  });
+              });
+
+              describe('Auth0', () => {
+
+                it('is called to retrieve organization data', done => {
+                  request(app)
+                    .get(`/organization/${organizationId}`)
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+                      expect(organizationReadOauthTokenScope.isDone()).toBe(true);
+                      expect(organizationReadScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
+
+                it('is called to retrieve team data', done => {
+                  request(app)
+                    .get(`/organization/${organizationId}`)
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+                      // Token re-used from first request
+                      expect(teamReadOauthTokenScope.isDone()).toBe(false);
+                      expect(teamReadScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
               });
             });
           });
 
           describe('as affiliated team member', () => {
+
             let organizationId, team1Id, team2Id;
             beforeEach(done => {
               organizationId = uuid.v4();
@@ -203,63 +284,58 @@ describe('organizationSpec', () => {
               stubAuth0ManagementApi((err, apiScopes) => {
                 if (err) return done.fail();
 
-                login(_identity, [scope.read.organizations], (err, session) => {
-
+                login(_identity, [scope.read.organizations], (err, session, token) => {
                   if (err) return done.fail(err);
+
+                  accessToken = token;
                   authenticatedSession = session;
 
-                  // Cached profile doesn't match "live" data, so agent needs to be updated
-                  // with a call to Auth0
-                  stubUserRead((err, apiScopes) => {
+                  stubOrganizationRead([{
+                    ..._profile,
+                    name: 'A Aaronson',
+                    email: 'aaaronson@example.com',
+                    user_id: _profile.user_id + 1,
+                    user_metadata: {
+                      organizations: [{ name: 'One Book Canada', organizer: 'aaaronson@example.com', id: organizationId }],
+                      teams: [
+                        { name: 'Asia Sensitive', leader: 'teamleader@example.com', id: team1Id, organizationId: organizationId },
+                        { name: 'The A-Team', leader: 'babaracus@example.com', id: uuid.v4(), organizationId: uuid.v4() }
+                      ]
+                    }
+                  }], (err, apiScopes) => {
                     if (err) return done.fail();
+                    ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
 
-                    stubOrganizationRead([{
-                      ..._profile,
-                      name: 'A Aaronson',
-                      email: 'aaaronson@example.com',
-                      user_id: _profile.user_id + 1,
-                      user_metadata: {
-                        organizations: [{ name: 'One Book Canada', organizer: 'aaaronson@example.com', id: organizationId }],
-                        teams: [
-                          { name: 'Asia Sensitive', leader: 'teamleader@example.com', id: team1Id, organizationId: organizationId },
-                          { name: 'The A-Team', leader: 'babaracus@example.com', id: uuid.v4(), organizationId: uuid.v4() }
-                        ]
-                      }
-                    }], (err, apiScopes) => {
-                      if (err) return done.fail();
-                      ({organizationReadScope, organizationReadOauthTokenScope} = apiScopes);
-
-                      stubTeamRead([
-                        {
-                          ..._profile,
-                          user_metadata: {
-                            ..._profile.user_metadata,
-                            teams: [
-                              { name: 'Guinea-Bissau', leader: 'squadleader@example.com', id: team2Id, organizationId: organizationId },
-                              { name: 'Mystery Incorporated', leader: 'thelma@example.com', id: uuid.v4(), organizationId: uuid.v4() }
-                            ]
-                          }
-                        },
-                        {
-                          ..._profile,
-                          name: 'A Aaronson',
-                          email: 'aaaronson@example.com',
-                          user_id: _profile.user_id + 1,
-                          user_metadata: {
-                            teams: [
-                              { name: 'Asia Sensitive', leader: 'teamleader@example.com', id: team1Id, organizationId: organizationId },
-                              { name: 'The A-Team', leader: 'babaracus@example.com', id: uuid.v4(), organizationId: uuid.v4() }
-                            ]
-                          }
+                    stubTeamRead([
+                      {
+                        ..._profile,
+                        user_metadata: {
+                          ..._profile.user_metadata,
+                          teams: [
+                            { name: 'Guinea-Bissau', leader: 'squadleader@example.com', id: team2Id, organizationId: organizationId },
+                            { name: 'Mystery Incorporated', leader: 'thelma@example.com', id: uuid.v4(), organizationId: uuid.v4() }
+                          ]
                         }
-                      ], (err, apiScopes) => {
-                        ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
+                      },
+                      {
+                        ..._profile,
+                        name: 'A Aaronson',
+                        email: 'aaaronson@example.com',
+                        user_id: _profile.user_id + 1,
+                        user_metadata: {
+                          teams: [
+                            { name: 'Asia Sensitive', leader: 'teamleader@example.com', id: team1Id, organizationId: organizationId },
+                            { name: 'The A-Team', leader: 'babaracus@example.com', id: uuid.v4(), organizationId: uuid.v4() }
+                          ]
+                        }
+                      }
+                    ], (err, apiScopes) => {
+                      ({teamReadScope, teamReadOauthTokenScope} = apiScopes);
 
-                        stubUserAppMetadataUpdate((err, apiScopes) => {
-                          if (err) return done.fail();
-                          ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-                          done();
-                        });
+                      stubUserAppMetadataUpdate((err, apiScopes) => {
+                        if (err) return done.fail();
+                        ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+                        done();
                       });
                     });
                   });
@@ -267,67 +343,153 @@ describe('organizationSpec', () => {
               });
             });
 
-            it('collates agent data into organization data', done => {
-              authenticatedSession
-                .get(`/organization/${organizationId}`)
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(200)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-                  expect(res.body.name).toEqual('One Book Canada');
-                  expect(res.body.organizer).toEqual('aaaronson@example.com');
-                  expect(res.body.id).toEqual(organizationId);
-                  // Alphabetical according to name
-                  expect(res.body.teams.length).toEqual(2);
-                  expect(res.body.teams[0]).toEqual({ name: 'Asia Sensitive', leader: 'teamleader@example.com', id: team1Id, organizationId: organizationId });
-                  expect(res.body.teams[1]).toEqual({ name: 'Guinea-Bissau', leader: 'squadleader@example.com', id: team2Id, organizationId: organizationId });
+            describe('session access', () => {
 
-                  done();
-                });
-            });
-
-            it('doesn\'t barf if record doesn\'t exist', done => {
-              authenticatedSession
-                .get('/organization/333')
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(404)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-                  expect(res.body.message).toEqual('No such organization');
-                  done();
-                });
-            });
-
-            describe('Auth0', () => {
-              it('is called to retrieve organization data', done => {
+              it('collates agent data into organization data', done => {
                 authenticatedSession
                   .get(`/organization/${organizationId}`)
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(200)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
-                    expect(organizationReadOauthTokenScope.isDone()).toBe(true);
-                    expect(organizationReadScope.isDone()).toBe(true);
+                    expect(res.body.name).toEqual('One Book Canada');
+                    expect(res.body.organizer).toEqual('aaaronson@example.com');
+                    expect(res.body.id).toEqual(organizationId);
+                    // Alphabetical according to name
+                    expect(res.body.teams.length).toEqual(2);
+                    expect(res.body.teams[0]).toEqual({ name: 'Asia Sensitive', leader: 'teamleader@example.com', id: team1Id, organizationId: organizationId });
+                    expect(res.body.teams[1]).toEqual({ name: 'Guinea-Bissau', leader: 'squadleader@example.com', id: team2Id, organizationId: organizationId });
+
                     done();
                   });
               });
 
-              it('is called to retrieve team data', done => {
+              it('doesn\'t barf if record doesn\'t exist', done => {
                 authenticatedSession
+                  .get('/organization/333')
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(404)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+                    expect(res.body.message).toEqual('No such organization');
+                    done();
+                  });
+              });
+
+              describe('Auth0', () => {
+                it('is called to retrieve organization data', done => {
+                  authenticatedSession
+                    .get(`/organization/${organizationId}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+                      expect(organizationReadOauthTokenScope.isDone()).toBe(true);
+                      expect(organizationReadScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
+
+                it('is called to retrieve team data', done => {
+                  authenticatedSession
+                    .get(`/organization/${organizationId}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+                      // Token re-used from first request
+                      expect(teamReadOauthTokenScope.isDone()).toBe(false);
+                      expect(teamReadScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
+              });
+            });
+
+            describe('Bearer token access', () => {
+
+              beforeEach(() => {
+                const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                  .get(/userinfo/)
+                  .reply(200, {
+                    ..._identity,
+                    permissions: [scope.read.organizationMembers],
+                    user_metadata: {
+                      organizations: [ { name: 'One Book Canada', organizer: _profile.email, id: organizationId } ]
+                    }
+                  });
+              });
+
+              it('collates agent data into organization data', done => {
+                request(app)
                   .get(`/organization/${organizationId}`)
+                  .set('Authorization', `Bearer ${accessToken}`)
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(200)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
-                    // Token re-used from first request
-                    expect(teamReadOauthTokenScope.isDone()).toBe(false);
-                    expect(teamReadScope.isDone()).toBe(true);
+                    expect(res.body.name).toEqual('One Book Canada');
+                    expect(res.body.organizer).toEqual('aaaronson@example.com');
+                    expect(res.body.id).toEqual(organizationId);
+                    // Alphabetical according to name
+                    expect(res.body.teams.length).toEqual(2);
+                    expect(res.body.teams[0]).toEqual({ name: 'Asia Sensitive', leader: 'teamleader@example.com', id: team1Id, organizationId: organizationId });
+                    expect(res.body.teams[1]).toEqual({ name: 'Guinea-Bissau', leader: 'squadleader@example.com', id: team2Id, organizationId: organizationId });
+
                     done();
                   });
+              });
+
+              it('doesn\'t barf if record doesn\'t exist', done => {
+                request(app)
+                  .get('/organization/333')
+                  .set('Authorization', `Bearer ${accessToken}`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(404)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+                    expect(res.body.message).toEqual('No such organization');
+                    done();
+                  });
+              });
+
+              describe('Auth0', () => {
+                it('is called to retrieve organization data', done => {
+                  request(app)
+                    .get(`/organization/${organizationId}`)
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+                      expect(organizationReadOauthTokenScope.isDone()).toBe(true);
+                      expect(organizationReadScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
+
+                it('is called to retrieve team data', done => {
+                  request(app)
+                    .get(`/organization/${organizationId}`)
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+                      // Token re-used from first request
+                      expect(teamReadOauthTokenScope.isDone()).toBe(false);
+                      expect(teamReadScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
               });
             });
           });
@@ -348,23 +510,20 @@ describe('organizationSpec', () => {
             });
           });
 
-          it('retrieves all organizations for which this agent is organizer in alphabetical order', done => {
-            _profile.user_metadata = {
-              organizations: [
-                {name: 'The National Lacrosse League', organizer: _profile.email, id: anotherOrganizationId },
-                {name: 'One Book Canada', organizer: _profile.email, id: organizationId }
-              ]
-            };
+          describe('session access', () => {
 
-            login(_identity, [scope.create.teams], (err, session) => {
+            it('retrieves all organizations for which this agent is organizer in alphabetical order', done => {
+              _profile.user_metadata = {
+                organizations: [
+                  {name: 'The National Lacrosse League', organizer: _profile.email, id: anotherOrganizationId },
+                  {name: 'One Book Canada', organizer: _profile.email, id: organizationId }
+                ]
+              };
 
-              if (err) return done.fail(err);
-              authenticatedSession = session;
+              login(_identity, [scope.create.teams], (err, session) => {
 
-              // Cached profile doesn't match "live" data, so agent needs to be updated
-              // with a call to Auth0
-              stubUserRead((err, apiScopes) => {
-                if (err) return done.fail();
+                if (err) return done.fail(err);
+                authenticatedSession = session;
 
                 stubUserAppMetadataRead((err, apiScopes) => {
                   if (err) return done.fail();
@@ -376,7 +535,7 @@ describe('organizationSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(200)
-                    .end(function(err, res) {
+                    .end((err, res) => {
                       if (err) return done.fail(err);
                       expect(res.body.length).toEqual(2);
 
@@ -392,18 +551,12 @@ describe('organizationSpec', () => {
                 });
               });
             });
-          });
 
-          it('returns 404 and empty array if agent is not an organizer', done => {
-            login(_identity, [scope.create.teams], (err, session) => {
+            it('returns 404 and empty array if agent is not an organizer', done => {
+              login(_identity, [scope.create.teams], (err, session) => {
 
-              if (err) return done.fail(err);
-              authenticatedSession = session;
-
-              // Cached profile doesn't match "live" data, so agent needs to be updated
-              // with a call to Auth0
-              stubUserRead((err, apiScopes) => {
-                if (err) return done.fail();
+                if (err) return done.fail(err);
+                authenticatedSession = session;
 
                 // For the Auth0 call on the route
                 stubUserAppMetadataRead((err, apiScopes) => {
@@ -416,7 +569,94 @@ describe('organizationSpec', () => {
                     .set('Accept', 'application/json')
                     .expect('Content-Type', /json/)
                     .expect(404)
-                    .end(function(err, res) {
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+                      expect(res.body.length).toEqual(0);
+
+                      // Auth0 is the souce
+                      expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(true);
+                      expect(userAppMetadataReadScope.isDone()).toBe(true);
+
+                      done();
+                    });
+                });
+              });
+            });
+          });
+
+          describe('Bearer token access', () => {
+
+            it('retrieves all organizations for which this agent is organizer in alphabetical order', done => {
+              _profile.user_metadata = {
+                organizations: [
+                  {name: 'The National Lacrosse League', organizer: _profile.email, id: anotherOrganizationId },
+                  {name: 'One Book Canada', organizer: _profile.email, id: organizationId }
+                ]
+              };
+
+              login(_identity, [scope.create.teams], (err, session, token) => {
+                if (err) return done.fail(err);
+
+                accessToken = token;
+                authenticatedSession = session;
+
+                stubUserAppMetadataRead((err, apiScopes) => {
+                  if (err) return done.fail();
+                  let {userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes;
+
+                  const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                    .get(/userinfo/)
+                    .reply(200, { ..._identity });
+
+
+                  expect(_profile.user_metadata.organizations.length).toEqual(2);
+                  request(app)
+                    .get(`/organization`)
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(200)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+                      expect(res.body.length).toEqual(2);
+
+                      expect(res.body[0]).toEqual({name: 'One Book Canada', organizer: _profile.email, id: organizationId });
+                      expect(res.body[1]).toEqual({name: 'The National Lacrosse League', organizer: _profile.email, id: anotherOrganizationId });
+
+                      // Auth0 is the souce
+                      expect(userAppMetadataReadOauthTokenScope.isDone()).toBe(true);
+                      expect(userAppMetadataReadScope.isDone()).toBe(true);
+
+                      done();
+                    });
+                });
+              });
+            });
+
+            it('returns 404 and empty array if agent is not an organizer', done => {
+              login(_identity, [scope.create.teams], (err, session, token) => {
+                if (err) return done.fail(err);
+
+                accessToken = token;
+                authenticatedSession = session;
+
+                // For the Auth0 call on the route
+                stubUserAppMetadataRead((err, apiScopes) => {
+                  if (err) return done.fail();
+                  let {userAppMetadataReadScope, userAppMetadataReadOauthTokenScope} = apiScopes;
+
+                  const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                    .get(/userinfo/)
+                    .reply(200, { ..._identity });
+
+                  expect(_profile.user_metadata).toBeUndefined();
+                  request(app)
+                    .get(`/organization`)
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(404)
+                    .end((err, res) => {
                       if (err) return done.fail(err);
                       expect(res.body.length).toEqual(0);
 
@@ -436,7 +676,7 @@ describe('organizationSpec', () => {
 
     describe('forbidden', () => {
 
-      let unauthorizedSession;
+      let unauthorizedSession, accessToken;
       beforeEach(done => {
         models.Agent.create({ email: 'suspiciousagent@example.com', name: 'Suspicious Guy' }).then(a => {
 
@@ -446,17 +686,13 @@ describe('organizationSpec', () => {
           stubAuth0ManagementApi((err, apiScopes) => {
             if (err) return done.fail();
 
-            login({..._identity, email: a.email}, [scope.read.organizations], (err, session) => {
+            login({..._identity, email: a.email}, [scope.read.organizations], (err, session, token) => {
               if (err) return done.fail(err);
+
+              accessToken = token;
               unauthorizedSession = session;
 
-              // Cached profile doesn't match "live" data, so agent needs to be updated
-              // with a call to Auth0
-              stubUserRead((err, apiScopes) => {
-                if (err) return done.fail();
-
-                done();
-              });
+              done();
             });
           });
         }).catch(err => {
@@ -469,6 +705,7 @@ describe('organizationSpec', () => {
         describe('with no organizational affliation', () => {
 
           describe('GET /organization/:id', () => {
+
             let organizationId, team1Id, team2Id;
             beforeEach(done => {
               organizationId = uuid.v4();
@@ -525,61 +762,141 @@ describe('organizationSpec', () => {
               });
             });
 
-            it('returns 403', done => {
-              unauthorizedSession
-                .get(`/organization/${organizationId}`)
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(403)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-                  expect(res.body.message).toEqual('You are not a member of that organization');
+            describe('session access', () => {
 
-                  done();
-                });
-            });
-
-            it('doesn\'t barf if record doesn\'t exist', done => {
-              unauthorizedSession
-                .get('/organization/333')
-                .set('Accept', 'application/json')
-                .expect('Content-Type', /json/)
-                .expect(404)
-                .end(function(err, res) {
-                  if (err) return done.fail(err);
-                  expect(res.body.message).toEqual('No such organization');
-                  done();
-                });
-            });
-
-            describe('Auth0', () => {
-              it('is called to retrieve organization data', done => {
+              it('returns 403', done => {
                 unauthorizedSession
                   .get(`/organization/${organizationId}`)
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(403)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
-                    expect(organizationReadOauthTokenScope.isDone()).toBe(true);
-                    expect(organizationReadScope.isDone()).toBe(true);
+                    expect(res.body.message).toEqual('You are not a member of that organization');
+
                     done();
                   });
               });
 
-              it('is called to retrieve team data', done => {
+              it('doesn\'t barf if record doesn\'t exist', done => {
                 unauthorizedSession
+                  .get('/organization/333')
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(404)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+                    expect(res.body.message).toEqual('No such organization');
+                    done();
+                  });
+              });
+
+              describe('Auth0', () => {
+
+                it('is called to retrieve organization data', done => {
+                  unauthorizedSession
+                    .get(`/organization/${organizationId}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(403)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+                      expect(organizationReadOauthTokenScope.isDone()).toBe(true);
+                      expect(organizationReadScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
+
+                it('is called to retrieve team data', done => {
+                  unauthorizedSession
+                    .get(`/organization/${organizationId}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(403)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+                      // Token re-used from first request
+                      expect(teamReadOauthTokenScope.isDone()).toBe(false);
+                      expect(teamReadScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
+              });
+            });
+
+            describe('Bearer token access', () => {
+
+              beforeEach(() => {
+                const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                  .get(/userinfo/)
+                  .reply(200, {
+                    ..._identity,
+                    email: _profile.email
+                  });
+              });
+
+
+              it('returns 403', done => {
+                request(app)
                   .get(`/organization/${organizationId}`)
+                  .set('Authorization', `Bearer ${accessToken}`)
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
                   .expect(403)
-                  .end(function(err, res) {
+                  .end((err, res) => {
                     if (err) return done.fail(err);
-                    // Token re-used from first request
-                    expect(teamReadOauthTokenScope.isDone()).toBe(false);
-                    expect(teamReadScope.isDone()).toBe(true);
+                    expect(res.body.message).toEqual('You are not a member of that organization');
+
                     done();
                   });
+              });
+
+              it('doesn\'t barf if record doesn\'t exist', done => {
+                request(app)
+                  .get('/organization/333')
+                  .set('Authorization', `Bearer ${accessToken}`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(404)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+                    expect(res.body.message).toEqual('No such organization');
+                    done();
+                  });
+              });
+
+              describe('Auth0', () => {
+
+                it('is called to retrieve organization data', done => {
+                  request(app)
+                    .get(`/organization/${organizationId}`)
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(403)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+                      expect(organizationReadOauthTokenScope.isDone()).toBe(true);
+                      expect(organizationReadScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
+
+                it('is called to retrieve team data', done => {
+                  request(app)
+                    .get(`/organization/${organizationId}`)
+                    .set('Authorization', `Bearer ${accessToken}`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(403)
+                    .end((err, res) => {
+                      if (err) return done.fail(err);
+                      // Token re-used from first request
+                      expect(teamReadOauthTokenScope.isDone()).toBe(false);
+                      expect(teamReadScope.isDone()).toBe(true);
+                      done();
+                    });
+                });
               });
             });
           });
@@ -595,7 +912,7 @@ describe('organizationSpec', () => {
         .send({ name: 'Some org' })
         .set('Accept', 'application/json')
         .expect(302)
-        .end(function(err, res) {
+        .end((err, res) => {
           if (err) return done.fail(err);
           expect(res.headers.location).toEqual('/login');
           done();

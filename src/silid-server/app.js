@@ -25,8 +25,11 @@ const localeRouter = require('./routes/locale');
 const timezoneRouter = require('./routes/timezone');
 
 const app = express();
+
 // Cookies won't be set in production unless you trust the proxy behind which this software runs
-app.set('trust proxy', 1);
+if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
+  app.set('trust proxy', 1);
+}
 
 /**
  * view engine setup
@@ -57,20 +60,24 @@ const store = new SequelizeStore({ db: db.sequelize });
  * sent to each application's `/logout` endpoint from an `iframe`. Cookies only
  * accompany these requests if `SameSite=None; Secure`.
  */
-app.use(
-  session({
-    name: 'silid-server',
-    secret: process.env.AUTH0_CLIENT_SECRET, // This seemed convenient
-    store: store,
-    resave: false,
-    cookie: {
-      maxAge: 1000 * 60 * 60,
-      sameSite: process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging' ? 'none' : undefined,
-      secure: process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging'
-    },
-    saveUninitialized: true
-  })
-);
+const sessionConfig = {
+  name: 'silid-server',
+  secret: process.env.AUTH0_CLIENT_SECRET, // This seemed convenient
+  store: store,
+  resave: false,
+  cookie: {
+    maxAge: 1000 * 60 * 60,
+  },
+  saveUninitialized: true
+};
+
+if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
+  sessionConfig.cookie.httpOnly = false;
+  sessionConfig.cookie.sameSite = 'none';
+  sessionConfig.cookie.secure = true;
+}
+
+app.use(session(sessionConfig));
 
 /**
  * SPA client route
@@ -87,7 +94,8 @@ if (process.env.NODE_ENV === 'e2e') {
 
 if (
   process.env.NODE_ENV === 'production' ||
-  process.env.NODE_ENV === 'staging'
+  process.env.NODE_ENV === 'staging' ||
+  process.env.TEST_BUILD
 ) {
   app.use(express.static(path.join(__dirname, 'build')));
   app.use(express.static(path.join(__dirname, 'public')));
@@ -103,7 +111,7 @@ const passport = require('passport');
 
 const strategy = new Auth0Strategy(
   {
-    domain: process.env.AUTH0_DOMAIN,
+    domain: process.env.AUTH0_CUSTOM_DOMAIN,
     clientID: process.env.AUTH0_CLIENT_ID,
     clientSecret: process.env.AUTH0_CLIENT_SECRET,
     callbackURL: process.env.CALLBACK_URL
@@ -165,7 +173,7 @@ app.use(function(req, res, next) {
 // error handler
 app.use(function(err, req, res, next) {
   console.error('ERROR', err);
-  res.status(err.status || 500).json(err);
+  res.status(err.statusCode || 500).json(err);
 });
 
 module.exports = app;

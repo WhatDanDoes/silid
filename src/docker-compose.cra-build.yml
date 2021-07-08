@@ -1,0 +1,69 @@
+#### docker-compose.cra-build.yml
+# all containers required for cypress create-react-app build tests
+#
+# TODO:
+#   * add more documentation and use-case details
+#   * consider how to coalesce DB service ENV vars with other services
+#   * see if it makes sense to connect cypress test container here
+#
+version: "3"
+services:
+  # silid server app serving the primary UI
+  app:
+    depends_on:
+      - auth0
+      - postgres
+    build: ./silid-server
+    network_mode: host
+    command: npm run dev
+    volumes:
+      - ./silid-server:/app/
+      - app-node_modules:/app/node_modules
+    env_file:
+      - ./silid-server/.env.e2e
+    environment:
+      NODE_ENV: e2e
+      PORT: 3001
+      DATABASE_URL: 'postgres://user:pass@localhost:5432/postgres'
+      # Needs to be a string, number, or null
+      TEST_BUILD: 'true'
+
+  # mock identity server for local-only testing
+  auth0:
+    depends_on:
+      - postgres
+    build:
+      context: ./silid-server
+      dockerfile: ./spec/support/mockAuth0Server-Dockerfile
+    network_mode: host
+    # convenience script will check if db is ready before executing commands
+    command: ["./wait-for-postgres.sh",                   # script name
+              "localhost",                                # db hostname
+              "node",                                     # command after check
+              "spec/support/mockAuth0ServerWithRBAC.js"   # command arg
+             ]
+    volumes:
+      - ./silid-server:/app
+      - auth0-node_modules:/app/node_modules
+    env_file:
+      - ./silid-server/.env.e2e
+    environment:
+      NODE_ENV: e2e
+      PORT: 3002
+
+  # supporting data base for the application
+  postgres:
+    image: postgres:10.12
+    network_mode: host
+    volumes:
+      - silid-postgres-data:/var/lib/postgresql/data
+    # for now, need to make sure these ENV vars match ENV files (see top TODO)
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: postgres
+
+volumes:
+  app-node_modules:
+  auth0-node_modules:
+  silid-postgres-data:

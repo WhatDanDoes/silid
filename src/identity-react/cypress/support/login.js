@@ -14,8 +14,7 @@ Cypress.Commands.add('login', function(email, profile, permissions = []) {
   cy.request({ url: 'https://localhost:3002/register', method: 'POST',
              body: { token: { ...profile,
                                  email: email,
-                                 iss: `https://${Cypress.env('REACT_APP_DOMAIN')}/`,
-                                 aud: Cypress.env('REACT_APP_CLIENT_ID') },
+                            },
                      permissions: permissions }
             }).then(function(res) {
     cy.visit('/');

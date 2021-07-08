@@ -34,17 +34,14 @@ module.exports = function(profiles, done, options) {
     stubOauthToken([apiScope.read.usersAppMetadata], (err, oauthScopes) => {
       if (err) return done(err);
 
-      ({accessToken, oauthTokenScope} = oauthScopes);
-
-      const teamReadOauthTokenScope = oauthTokenScope;
+      ({accessToken, oauthTokenScope: teamReadOauthTokenScope} = oauthScopes);
 
       /**
        * Search for a team by ID
        *
        * GET `/users`
        */
-      const teamReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-        .log(console.log)
+      const teamReadScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
         .get(/api\/v2\/users/)
         .query({ search_engine: 'v3', q: /.+/ })
         .reply(options.status, (uri, requestBody) => {

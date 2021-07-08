@@ -157,10 +157,10 @@ context('viewer/Team add agent', function() {
                 });
               });
 
-              it('clears input field', () => {
+              it('closes the input field', () => {
                 cy.get('#members-table table tbody tr:nth-of-type(2) input[placeholder="Email"]').type('somenewguy@example.com{enter}');
                 cy.wait(300);
-                cy.get('#members-table table tbody tr:nth-of-type(2) input[placeholder="Email"]').should('have.value', '');
+                cy.get('#members-table table tbody tr:nth-of-type(2) input[placeholder="Email"]').should('not.exist');
               });
             });
 
@@ -448,20 +448,18 @@ context('viewer/Team add agent', function() {
                       });
 
                       it('displays the team invite', () => {
-                        cy.get('#rsvps-table table tbody').find('tr').its('length').should('eq', 1);
-
                         cy.get('#rsvps-table').should('exist');
+
+                        cy.get('#rsvps-table table tbody').find('tr').its('length').should('eq', 1);
                         cy.get('#rsvps-table table thead tr th').should('not.contain', 'Actions');
-                        cy.get('#rsvps-table table tbody tr td button span').should('not.contain', 'delete_outline');
-                        cy.get('#rsvps-table table tbody tr td button span').should('not.contain', 'check');
+                        // Can't accept or reject until email is verified
+                        cy.get('#rsvps-table table tbody tr td button').should('not.exist');
                         cy.get('#rsvps-table table thead tr th').contains('Name');
                         cy.get('#rsvps-table table tbody tr td').contains('The A-Team');
                         cy.get('#rsvps-table table thead tr th').contains('Type');
                         cy.get('#rsvps-table table tbody tr td').contains('team');
                       });
                     });
-
-
                   });
                 });
               });
@@ -507,6 +505,7 @@ context('viewer/Team add agent', function() {
                   it('doesn\'t add a new pending invitation to the table', () => {
                     cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 1);
 
+                    cy.get('#flash-message #close-flash').click();
                     cy.get('#pending-invitations-table button span span').contains('refresh').click();
                     cy.wait(300);
 
@@ -514,6 +513,7 @@ context('viewer/Team add agent', function() {
                   });
 
                   it('displays a message', () => {
+                    cy.get('#flash-message #close-flash').click();
                     cy.get('#pending-invitations-table button span span').contains('refresh').click();
                     cy.wait(300);
 
@@ -532,6 +532,7 @@ context('viewer/Team add agent', function() {
                     });
                     cy.get('div[role="progressbar"] svg circle').should('not.exist');
 
+                    cy.get('#flash-message #close-flash').click();
                     cy.get('#pending-invitations-table button span span').contains('refresh').click();
                     // 2020-5-26
                     // Cypress goes too fast for this. Cypress also cannot intercept
@@ -559,6 +560,7 @@ context('viewer/Team add agent', function() {
                     expect(results.length).to.eq(1);
 
                     cy.get('#pending-invitations-table button[title="Delete"]').click();
+                    cy.get('#flash-message #close-flash').click();
                     // Are you sure?
                     cy.get('#pending-invitations-table button[title="Save"]').contains('check').click();
 
@@ -573,6 +575,7 @@ context('viewer/Team add agent', function() {
                 it('displays a message', () => {
                   cy.get('#pending-invitations-table button[title="Delete"]').click();
                   cy.wait(300);
+                  cy.get('#flash-message #close-flash').click();
                   // Are you sure?
                   cy.get('#pending-invitations-table h6').contains('Are you sure you want to revoke this invitation?');
                   cy.get('#pending-invitations-table button[title="Save"]').contains('check').click();
@@ -734,6 +737,7 @@ context('viewer/Team add agent', function() {
                   it('doesn\'t add a new pending invitation to the table', () => {
                     cy.get('#pending-invitations-table table tbody').find('tr').its('length').should('eq', 1);
 
+                    cy.get('#flash-message #close-flash').click();
                     cy.get('#pending-invitations-table button span span').contains('refresh').click();
                     cy.wait(300);
 
@@ -741,6 +745,7 @@ context('viewer/Team add agent', function() {
                   });
 
                   it('displays a message', () => {
+                    cy.get('#flash-message #close-flash').click();
                     cy.get('#pending-invitations-table button span span').contains('refresh').click();
                     cy.wait(300);
 
@@ -767,6 +772,7 @@ context('viewer/Team add agent', function() {
                     expect(results.length).to.eq(0);
 
                     cy.get('#pending-invitations-table button[title="Delete"]').click();
+                    cy.get('#flash-message #close-flash').click();
                     // Are you sure?
                     cy.get('#pending-invitations-table button[title="Save"]').contains('check').click();
 
@@ -781,6 +787,7 @@ context('viewer/Team add agent', function() {
                 it('displays a message', () => {
                   cy.get('#pending-invitations-table button[title="Delete"]').click();
                   cy.wait(300);
+                  cy.get('#flash-message #close-flash').click();
                   // Are you sure?
                   cy.get('#pending-invitations-table button[title="Save"]').contains('check').click();
 

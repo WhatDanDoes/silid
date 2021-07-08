@@ -33,20 +33,19 @@ module.exports = function(profile, done, options) {
     stubOauthToken([apiScope.read.users], (err, oauthScopes) => {
       if (err) return done(err);
 
-      ({accessToken, oauthTokenScope} = oauthScopes);
+      const {accessToken, oauthTokenScope: userReadOauthTokenScope} = oauthScopes;
 
       /**
        * GET `/users/:id`. Get a single user by Auth0 ID
        */
-      const userReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-        .log(console.log)
+      const userReadScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
         .get(/api\/v2\/users\/[\w-%]+$/)
         .query({})
         .reply(options.status, (uri, requestBody) => {
           return profile || _profile;
         });
 
-      done(null, {userReadScope, oauthTokenScope});
+      done(null, {userReadScope, userReadOauthTokenScope});
 
     });
   });

@@ -2,6 +2,8 @@
 // Can't import regular Javascript as a fixture
 import rolePermissions from '../../fixtures/roles-with-permissions.js';
 
+import npmPackage from '../../../package.json';
+
 context('organizer/Agent Index', function() {
 
   before(function() {
@@ -69,6 +71,21 @@ context('organizer/Agent Index', function() {
         cy.url().should('contain', '/#/agent');
       });
 
+      it('sets app build version metadata', done => {
+        // Build version is only set when the app is built and bundled...
+        if (Cypress.env('TEST_BUILD')) {
+          cy.exec('git rev-parse --short HEAD').then(commit => {
+            cy.get('html head meta[name="generator"]').contains(`${npmPackage.version}-${commit.stdout}`);
+            done();
+          });
+        }
+        // ... otherwise it just shows the variable placeholders
+        else {
+          cy.get('html head meta[name="build"]').should('have.attr', 'content', '%REACT_APP_VERSION%-%REACT_APP_COMMIT%');
+          done();
+        }
+      });
+
       describe('hamburger menu', () => {
         beforeEach(() => {
           cy.get('#app-menu-button').click();
@@ -92,7 +109,7 @@ context('organizer/Agent Index', function() {
           cy.get('h3').contains('Profile');
           cy.get('#profile-table table tbody tr th').contains('Name:');
           cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', this.profile.name);
-          cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
+          cy.get('#profile-table table tbody tr td input#agent-name-field').should('be.disabled');
 
           cy.get('#profile-table table tbody tr th').contains('Email:');
           cy.get('#profile-table table tbody tr td').contains(this.profile.email);

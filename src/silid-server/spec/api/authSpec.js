@@ -8,7 +8,6 @@ const models = require('../../models');
 const url = require('url');
 const cheerio = require('cheerio');
 
-
 describe('authSpec', () => {
 
   /**
@@ -17,7 +16,7 @@ describe('authSpec', () => {
    *
    * https://auth0.com/docs/api-auth/tutorials/adoption/api-tokens
    */
-  const _identity = require('../fixtures/sample-auth0-identity-token');
+  const _identity = { ...require('../fixtures/sample-auth0-identity-token'), iss: `https://${process.env.AUTH0_CUSTOM_DOMAIN}/`};
   const _access = require('../fixtures/sample-auth0-access-token');
   const _profile = require('../fixtures/sample-auth0-profile-response');
 
@@ -44,8 +43,7 @@ describe('authSpec', () => {
      * This is called when `/login` is hit. The session is
      * created prior to redirect.
      */
-    auth0Scope = nock(`https://${process.env.AUTH0_DOMAIN}`)
-      .log(console.log)
+    auth0Scope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
       .get(/authorize*/)
       .reply(302, (uri, body) => {
         uri = uri.replace('/authorize?', '');
@@ -73,7 +71,7 @@ describe('authSpec', () => {
         .expect(302)
         .end(function(err, res) {
           if (err) return done.fail(err);
-          expect(res.headers.location).toMatch(process.env.AUTH0_DOMAIN);
+          expect(res.headers.location).toMatch(process.env.AUTH0_CUSTOM_DOMAIN);
           done();
         });
     });
@@ -138,6 +136,29 @@ describe('authSpec', () => {
           done();
         });
     });
+
+    /**
+     * The `audience` param is required in order to get a JWT access token from
+     * Auth0. Without `audience`, you will receive an _opaque_ token, which
+     * contains no information.
+     *
+     * Think twice before thinking this unnecessary. So far the mocks have not
+     * caught this param as a _match_ requirement. Haven't found precisely
+     * where it is being released into the wild.
+     */
+    it('calls passport.authenticate with the correct options', done => {
+      expect(process.env.AUTH0_API_AUDIENCE).toBeDefined();
+      const passport = require('passport');
+      spyOn(passport, 'authenticate').and.callThrough();
+      request(app)
+        .get('/login')
+        .redirects()
+        .end(function(err, res) {
+          if (err) return done.fail(err);
+          expect(passport.authenticate).toHaveBeenCalledWith('auth0', { scope: 'openid email profile', audience: process.env.AUTH0_API_AUDIENCE });
+          done();
+        });
+    });
   });
 
   /**
@@ -147,7 +168,7 @@ describe('authSpec', () => {
    */
   describe('/callback', () => {
 
-    let session, oauthTokenScope, userInfoScope, auth0UserAssignRolesScope, auth0GetRolesScope;
+    let session, oauthTokenScope, userInfoScope;
     // Added for when agent info is requested immediately after authentication
     let anotherOauthTokenScope, userReadScope;
     beforeEach(done => {
@@ -155,8 +176,7 @@ describe('authSpec', () => {
       /**
        * `/userinfo` mock
        */
-      userInfoScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
-        .log(console.log)
+      userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
         .get(/userinfo/)
         .reply(200, _identity);
 
@@ -176,8 +196,7 @@ describe('authSpec', () => {
            *
            * This is called when first authenticating
            */
-          oauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
-            .log(console.log)
+          oauthTokenScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
             .post(/oauth\/token/, {
                                     'grant_type': 'authorization_code',
                                     'redirect_uri': /\/callback/,
@@ -203,13 +222,20 @@ describe('authSpec', () => {
            */
           const accessToken = jwt.sign({..._access, scope: [apiScope.read.users]},
                                         prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
-          anotherOauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
-            .log(console.log)
+          anotherOauthTokenScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`)
             .post(/oauth\/token/, {
                                     'grant_type': 'client_credentials',
-                                    'client_id': process.env.AUTH0_CLIENT_ID,
-                                    'client_secret': process.env.AUTH0_CLIENT_SECRET,
-                                    'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                                    'client_id': process.env.AUTH0_M2M_CLIENT_ID,
+                                    'client_secret': process.env.AUTH0_M2M_CLIENT_SECRET,
+                                    /**
+                                     * 2020-12-17
+                                     *
+                                     * Set as such because we have a custom domain.
+                                     *
+                                     * https://auth0.com/docs/custom-domains/configure-features-to-use-custom-domains#apis
+                                     */
+                                    //'audience': `https://${process.env.AUTH0_CUSTOM_DOMAIN}/api/v2/`,
+                                    'audience': process.env.AUTH0_M2M_AUDIENCE,
                                     'scope': apiScope.read.users
                                   })
             .reply(200, {
@@ -221,8 +247,7 @@ describe('authSpec', () => {
            * The token retrieved above is used to get the
            * non-OIDC-compliant metadata, etc.
            */
-          userReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-            .log(console.log)
+          userReadScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
             .get(/api\/v2\/users\/.+/)
             .query({})
             .reply(200, _profile);
@@ -249,7 +274,7 @@ describe('authSpec', () => {
         .expect(302)
         .end(function(err, res) {
           if (err) return done.fail(err);
-          userInfoScope.done();
+          expect(userInfoScope.isDone()).toBe(true);
           done();
         });
     });
@@ -342,8 +367,7 @@ describe('authSpec', () => {
                      * All these mocks need to be set up again for another
                      * login.
                      */
-                    let newAuth0Scope = nock(`https://${process.env.AUTH0_DOMAIN}`)
-                      .log(console.log)
+                    let newAuth0Scope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
                       .get(/authorize*/)
                       .reply(302, (uri, body) => {
                         uri = uri.replace('/authorize?', '');
@@ -362,8 +386,7 @@ describe('authSpec', () => {
                         /**
                          * `/oauth/token` mock
                          */
-                        let newOauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
-                          .log(console.log)
+                        let newOauthTokenScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
                           .post(/oauth\/token/, {
                                                   'grant_type': 'authorization_code',
                                                   'redirect_uri': /\/callback/,
@@ -383,8 +406,7 @@ describe('authSpec', () => {
                                                  prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
                           });
 
-                        let newUserInfoScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
-                          .log(console.log)
+                        let newUserInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
                           .get(/userinfo/)
                           .reply(200, _identity);
 
@@ -397,13 +419,20 @@ describe('authSpec', () => {
                          */
                         const accessToken = jwt.sign({..._access, scope: [apiScope.read.users]},
                                                       prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
-                        let anotherOauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
-                          .log(console.log)
+                        let anotherOauthTokenScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`)
                           .post(/oauth\/token/, {
                                                   'grant_type': 'client_credentials',
-                                                  'client_id': process.env.AUTH0_CLIENT_ID,
-                                                  'client_secret': process.env.AUTH0_CLIENT_SECRET,
-                                                  'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                                                  'client_id': process.env.AUTH0_M2M_CLIENT_ID,
+                                                  'client_secret': process.env.AUTH0_M2M_CLIENT_SECRET,
+                                                  /**
+                                                   * 2020-12-17
+                                                   *
+                                                   * Set as such because we have a custom domain.
+                                                   *
+                                                   * https://auth0.com/docs/custom-domains/configure-features-to-use-custom-domains#apis
+                                                   */
+                                                  //'audience': `https://${process.env.AUTH0_CUSTOM_DOMAIN}/api/v2/`,
+                                                  'audience': process.env.AUTH0_M2M_AUDIENCE,
                                                   'scope': apiScope.read.users
                                                 })
                           .reply(200, {
@@ -415,8 +444,7 @@ describe('authSpec', () => {
                          * The token retrieved above is used to get the
                          * non-OIDC-compliant metadata, etc.
                          */
-                        let userReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-                          .log(console.log)
+                        let userReadScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
                           .get(/api\/v2\/users\/.+/)
                           .query({})
                           .reply(200, _profile);
@@ -458,8 +486,7 @@ describe('authSpec', () => {
         /**
          * Redirect client to Auth0 `/logout` after silid session is cleared
          */
-        logoutScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
-          .log(console.log)
+        logoutScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
           .get('/v2/logout')
           .query({
             client_id: process.env.AUTH0_CLIENT_ID,
@@ -488,8 +515,8 @@ describe('authSpec', () => {
           .end(function(err, res) {
             if (err) return done.fail(err);
             const loc = new URL(res.header.location);
-            expect(loc.origin).toMatch(`https://${process.env.AUTH0_DOMAIN}`);
-            expect(loc.hostname).toMatch(process.env.AUTH0_DOMAIN);
+            expect(loc.origin).toMatch(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`);
+            expect(loc.hostname).toMatch(process.env.AUTH0_CUSTOM_DOMAIN);
             expect(loc.pathname).toMatch('/v2/logout');
             expect(loc.searchParams.get('client_id')).toMatch(process.env.AUTH0_CLIENT_ID);
             expect(loc.searchParams.get('returnTo')).toMatch(process.env.SERVER_DOMAIN);
@@ -517,13 +544,20 @@ describe('authSpec', () => {
         const accessToken = jwt.sign({..._access, scope: [apiScope.read.clients]},
                                       prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
 
-        const getClientsOauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
-          .log(console.log)
+        const getClientsOauthTokenScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`)
           .post(/oauth\/token/, {
                                   'grant_type': 'client_credentials',
-                                  'client_id': process.env.AUTH0_CLIENT_ID,
-                                  'client_secret': process.env.AUTH0_CLIENT_SECRET,
-                                  'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                                  'client_id': process.env.AUTH0_M2M_CLIENT_ID,
+                                  'client_secret': process.env.AUTH0_M2M_CLIENT_SECRET,
+                                  /**
+                                   * 2020-12-17
+                                   *
+                                   * Set as such because we have a custom domain.
+                                   *
+                                   * https://auth0.com/docs/custom-domains/configure-features-to-use-custom-domains#apis
+                                   */
+                                  //'audience': `https://${process.env.AUTH0_CUSTOM_DOMAIN}/api/v2/`,
+                                  'audience': process.env.AUTH0_M2M_AUDIENCE,
                                   'scope': apiScope.read.clients
                                 })
           .reply(200, {
@@ -532,7 +566,6 @@ describe('authSpec', () => {
           });
 
         redirectScope = nock('http://example.com')
-          .log(console.log)
           .get('/')
           .reply(200);
 
@@ -557,12 +590,13 @@ describe('authSpec', () => {
             "name": "Misconfigured. No callbacks"
           }
         ];
-        getClientsScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
-          .log(console.log)
+        getClientsScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`)
           .get(/api\/v2\/clients/)
           .query({
             fields: 'client_id,name,callbacks',
             include_fields: true,
+            page: 0,
+            per_page: 50,
           })
           .reply(200, clientCallbacks);
 
@@ -572,7 +606,6 @@ describe('authSpec', () => {
           for (let callback of client.callbacks) {
             let urlObj = new url.URL(callback);
             clientLogoutScopes.push(nock(urlObj.origin)
-                                     .log(console.log)
                                      .get('/logout')
                                      .reply(302, {})
                                    );
@@ -646,8 +679,7 @@ describe('authSpec', () => {
          * This is called when `/login` is hit.
          */
         let identity, identityToken;
-        auth0Scope = nock(`https://${process.env.AUTH0_DOMAIN}`)
-          .log(console.log)
+        auth0Scope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
           .get(/authorize*/)
           .reply((uri, body, next) => {
             uri = uri.replace('/authorize?', '');
@@ -664,16 +696,14 @@ describe('authSpec', () => {
             /**
              * `/userinfo` mock
              */
-            userInfoScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
-              .log(console.log)
+            userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
               .get(/userinfo/)
               .reply(200, identity);
 
             /**
              * `/oauth/token` mock
              */
-            oauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
-              .log(console.log)
+            oauthTokenScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
               .post(/oauth\/token/, {
                                       'grant_type': 'authorization_code',
                                       'redirect_uri': /\/callback/,
@@ -695,13 +725,20 @@ describe('authSpec', () => {
              */
             const accessToken = jwt.sign({..._access, scope: [apiScope.read.users]},
                                           prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
-            const anotherOauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
-              .log(console.log)
+            const anotherOauthTokenScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`)
               .post(/oauth\/token/, {
                                       'grant_type': 'client_credentials',
-                                      'client_id': process.env.AUTH0_CLIENT_ID,
-                                      'client_secret': process.env.AUTH0_CLIENT_SECRET,
-                                      'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+                                      'client_id': process.env.AUTH0_M2M_CLIENT_ID,
+                                      'client_secret': process.env.AUTH0_M2M_CLIENT_SECRET,
+                                      /**
+                                       * 2020-12-17
+                                       *
+                                       * Set as such because we have a custom domain.
+                                       *
+                                       * https://auth0.com/docs/custom-domains/configure-features-to-use-custom-domains#apis
+                                       */
+                                      //'audience': `https://${process.env.AUTH0_CUSTOM_DOMAIN}/api/v2/`,
+                                      'audience': process.env.AUTH0_M2M_AUDIENCE,
                                       'scope': apiScope.read.users
                                     })
               .reply(200, {
@@ -713,21 +750,19 @@ describe('authSpec', () => {
              * The token retrieved above is used to get the
              * non-OIDC-compliant metadata, etc.
              */
-            const userReadScope = nock(`https://${process.env.AUTH0_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
-              .log(console.log)
+            const userReadScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`, { reqheaders: { authorization: `Bearer ${accessToken}`} })
               .get(/api\/v2\/users\/.+/)
               .query({})
               .reply(200, _profile);
 
 
-            next(null, [302, {}, { 'Location': `https://${process.env.AUTH0_DOMAIN}/login` }]);
+            next(null, [302, {}, { 'Location': `https://${process.env.AUTH0_CUSTOM_DOMAIN}/login` }]);
           });
 
         /**
          * `/login` mock
          */
-        loginScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
-          .log(console.log)
+        loginScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
           .get(/login/)
           .reply((uri, body, next) => {
             next(null, [302, {}, { 'Location': `http://localhost:${PORT}/callback?code=AUTHORIZATION_CODE&state=${state}` }]);
@@ -751,124 +786,479 @@ describe('authSpec', () => {
       // This is not testing the client side app
       describe('Logout', () => {
 
-        let logoutScope, getClientsScope, clientLogoutScopes, clientCallbacks;
-        beforeEach(done => {
-          /**
-           * This is called when the agent has authenticated and silid
-           * needs to retreive the non-OIDC-compliant metadata, etc.
-           */
-          const accessToken = jwt.sign({..._access, scope: [apiScope.read.clients]},
-                                        prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
-          const anotherOauthTokenScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
-            .log(console.log)
-            .post(/oauth\/token/, {
-                                    'grant_type': 'client_credentials',
-                                    'client_id': process.env.AUTH0_CLIENT_ID,
-                                    'client_secret': process.env.AUTH0_CLIENT_SECRET,
-                                    'audience': `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
-                                    'scope': apiScope.read.clients
-                                  })
-            .reply(200, {
-              'access_token': accessToken,
-              'token_type': 'Bearer',
+        describe('<50 unpaginated', () => {
+          let logoutScope, getClientsScope, clientLogoutScopes, clientCallbacks;
+          beforeEach(done => {
+            /**
+             * This is called when the agent has authenticated and silid
+             * needs to retreive the non-OIDC-compliant metadata, etc.
+             */
+            const accessToken = jwt.sign({..._access, scope: [apiScope.read.clients]},
+                                          prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
+            const anotherOauthTokenScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`)
+              .post(/oauth\/token/, {
+                                      'grant_type': 'client_credentials',
+                                      'client_id': process.env.AUTH0_M2M_CLIENT_ID,
+                                      'client_secret': process.env.AUTH0_M2M_CLIENT_SECRET,
+                                      'audience': `https://${process.env.AUTH0_CUSTOM_DOMAIN}/api/v2/`,
+                                      'scope': apiScope.read.clients
+                                    })
+              .reply(200, {
+                'access_token': accessToken,
+                'token_type': 'Bearer',
+              });
+
+
+            // Clear Auth0 SSO session cookies
+            logoutScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+              .get('/v2/logout')
+              .query({
+                client_id: process.env.AUTH0_CLIENT_ID,
+                returnTo: process.env.SERVER_DOMAIN + '/cheerio',
+              })
+              .reply(302, {}, { 'Location': `${process.env.SERVER_DOMAIN}/cheerio?returnTo=${process.env.SERVER_DOMAIN}` });
+
+
+            clientCallbacks = [
+              {
+                "client_id": "SILIdentitysoKnqjj8HJqRn4T5titww",
+                "name": "SIL Identity",
+                "callbacks": ['http://xyz.io/callback', 'https://abc.com/some-callback']
+              },
+              {
+                "client_id": "TranscribersoKnqjj8HJqRn4T5titww",
+                "name": "Transcriber",
+                "callbacks": [ "http://example.com/callback" ],
+              },
+              {
+                "client_id": "ScriptureForgenqjj8HJqRn4T5titww",
+                "name": "Scripture Forge",
+                "callbacks": ['https://sub.example.com/callback', 'http://dev.example.com/dev'],
+              },
+              {
+                "client_id": "NoCallbacksrgenqjj8HJqRn4T5titww",
+                "name": "Misconfigured. No callbacks"
+              }
+            ];
+            getClientsScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`)
+              .get(/api\/v2\/clients/)
+              .query({
+                fields: 'client_id,name,callbacks',
+                include_fields: true,
+                page: 0,
+                per_page: 50
+              })
+              .reply(200, clientCallbacks);
+
+            clientLogoutScopes = [];
+            for (let client of clientCallbacks) {
+              if (!client.callbacks) continue;
+              for (let callback of client.callbacks) {
+                let urlObj = new url.URL(callback);
+                clientLogoutScopes.push(nock(urlObj.origin)
+                                         .get('/logout')
+                                         .reply(302, {})
+                                       );
+              }
+            }
+
+            browser.clickLink('Login', (err) => {
+              if (err) return done.fail(err);
+              browser.assert.success();
+              done();
             });
+          });
 
+          it('lands in the right place', done => {
+            browser.clickLink('Logout', (err) => {
+              if (err) return done.fail(err);
+              browser.assert.url('/');
+              done();
+            });
+          });
 
-          // Clear Auth0 SSO session cookies
-          logoutScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
-            .log(console.log)
-            .get('/v2/logout')
-            .query({
-              client_id: process.env.AUTH0_CLIENT_ID,
-              returnTo: process.env.SERVER_DOMAIN + '/cheerio',
-            })
-            .reply(302, {}, { 'Location': `${process.env.SERVER_DOMAIN}/cheerio?returnTo=${process.env.SERVER_DOMAIN}` });
+          it('calls the Auth0 logout endpoint', done => {
+            browser.clickLink('Logout', (err) => {
+              if (err) return done.fail(err);
+              expect(logoutScope.isDone()).toBe(true);
+              done();
+            });
+          });
 
+          it('calls the Auth0 Get Clients endpoint', done => {
+            browser.clickLink('Logout', (err) => {
+              if (err) return done.fail(err);
+              expect(getClientsScope.isDone()).toBe(true);
+              done();
+            });
+          });
 
-          clientCallbacks = [
-            {
-              "client_id": "SILIdentitysoKnqjj8HJqRn4T5titww",
-              "name": "SIL Identity",
-              "callbacks": ['http://xyz.io/callback', 'https://abc.com/some-callback']
-            },
-            {
-              "client_id": "TranscribersoKnqjj8HJqRn4T5titww",
-              "name": "Transcriber",
-              "callbacks": [ "http://example.com/callback" ],
-            },
-            {
-              "client_id": "ScriptureForgenqjj8HJqRn4T5titww",
-              "name": "Scripture Forge",
-              "callbacks": ['https://sub.example.com/callback', 'http://dev.example.com/dev'],
-            },
-            {
-              "client_id": "NoCallbacksrgenqjj8HJqRn4T5titww",
-              "name": "Misconfigured. No callbacks"
+          // This assumes that all SIL apps have a /logout endpoint
+          it('calls all the client apps\' logout endpoints', done => {
+            browser.clickLink('Logout', (err) => {
+              if (err) return done.fail(err);
+              for (let scope of clientLogoutScopes) {
+                expect(scope.isDone()).toBe(true);
+              }
+              done();
+            });
+          });
+        });
+
+        describe('>50 paginated', () => {
+          let logoutScope, getClientsScopes, clientLogoutScopes, clientCallbacks;
+          beforeEach(done => {
+            /**
+             * This is called when the agent has authenticated and silid
+             * needs to retreive the non-OIDC-compliant metadata, etc.
+             */
+            const accessToken = jwt.sign({..._access, scope: [apiScope.read.clients]},
+                                          prv, { algorithm: 'RS256', header: { kid: keystore.all()[0].kid } })
+            const anotherOauthTokenScope = nock(`https://${process.env.AUTH0_M2M_DOMAIN}`)
+              .post(/oauth\/token/, {
+                                      'grant_type': 'client_credentials',
+                                      'client_id': process.env.AUTH0_M2M_CLIENT_ID,
+                                      'client_secret': process.env.AUTH0_M2M_CLIENT_SECRET,
+                                      'audience': `https://${process.env.AUTH0_CUSTOM_DOMAIN}/api/v2/`,
+                                      'scope': apiScope.read.clients
+                                    })
+              .reply(200, {
+                'access_token': accessToken,
+                'token_type': 'Bearer',
+              });
+
+            // Clear Auth0 SSO session cookies
+            logoutScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+              .get('/v2/logout')
+              .query({
+                client_id: process.env.AUTH0_CLIENT_ID,
+                returnTo: process.env.SERVER_DOMAIN + '/cheerio',
+              })
+              .reply(302, {}, { 'Location': `${process.env.SERVER_DOMAIN}/cheerio?returnTo=${process.env.SERVER_DOMAIN}` });
+
+            // 151 applications in the SIL ecosystem
+            clientCallbacks = [];
+            for (let i = 0; i < 151; i++) {
+              clientCallbacks.push({
+                "client_id": `SomeAwesomeSILAppj8HJqRn4T5titww${i}`,
+                "name": `SomeAwesomeSILApp${i}`,
+                "callbacks": [ `http://example${i}.com/callback` ],
+              });
             }
-          ];
-          getClientsScope = nock(`https://${process.env.AUTH0_DOMAIN}`)
-            .log(console.log)
-            .get(/api\/v2\/clients/)
-            .query({
-              fields: 'client_id,name,callbacks',
-              include_fields: true,
-            })
-            .reply(200, clientCallbacks);
 
-          clientLogoutScopes = [];
-          for (let client of clientCallbacks) {
-            if (!client.callbacks) continue;
-            for (let callback of client.callbacks) {
-              let urlObj = new url.URL(callback);
-              clientLogoutScopes.push(nock(urlObj.origin)
-                                       .log(console.log)
-                                       .get('/logout')
-                                       .reply(302, {})
-                                     );
+            getClientsScopes = [];
+            for (let i = 0; i < 151; i += 50) {
+              getClientsScopes.push(
+                nock(`https://${process.env.AUTH0_M2M_DOMAIN}`)
+                  .get(/api\/v2\/clients/)
+                  .query({
+                    fields: 'client_id,name,callbacks',
+                    include_fields: true,
+                    page: i / 50,
+                    per_page: 50
+                  })
+                  .reply(200, clientCallbacks.slice(i, i + 50))
+              );
             }
-          }
 
-          browser.clickLink('Login', (err) => {
-            if (err) return done.fail(err);
-            browser.assert.success();
-            done();
-          });
-        });
-
-        it('lands in the right place', done => {
-          browser.clickLink('Logout', (err) => {
-            if (err) return done.fail(err);
-            browser.assert.url('/');
-            done();
-          });
-        });
-
-        it('calls the Auth0 logout endpoint', done => {
-          browser.clickLink('Logout', (err) => {
-            if (err) return done.fail(err);
-            expect(logoutScope.isDone()).toBe(true);
-            done();
-          });
-        });
-
-        it('calls the Auth0 Get Clients endpoint', done => {
-          browser.clickLink('Logout', (err) => {
-            if (err) return done.fail(err);
-            expect(getClientsScope.isDone()).toBe(true);
-            done();
-          });
-        });
-
-        // This assumes that all SIL apps have a /logout endpoint
-        it('calls all the client apps\' logout endpoints', done => {
-          browser.clickLink('Logout', (err) => {
-            if (err) return done.fail(err);
-            for (let scope of clientLogoutScopes) {
-              expect(scope.isDone()).toBe(true);
+            clientLogoutScopes = [];
+            for (let client of clientCallbacks) {
+              if (!client.callbacks) continue;
+              for (let callback of client.callbacks) {
+                let urlObj = new url.URL(callback);
+                clientLogoutScopes.push(nock(urlObj.origin)
+                                         .get('/logout')
+                                         .reply(302, {})
+                                       );
+              }
             }
-            done();
+
+            browser.clickLink('Login', (err) => {
+              if (err) return done.fail(err);
+              browser.assert.success();
+              done();
+            });
+          });
+
+          it('lands in the right place', done => {
+            browser.clickLink('Logout', (err) => {
+              if (err) return done.fail(err);
+              browser.assert.url('/');
+              done();
+            });
+          });
+
+          it('calls the Auth0 logout endpoint', done => {
+            browser.clickLink('Logout', (err) => {
+              if (err) return done.fail(err);
+              expect(logoutScope.isDone()).toBe(true);
+              done();
+            });
+          });
+
+          it('calls the Auth0 Get Clients endpoint', done => {
+            browser.clickLink('Logout', (err) => {
+              if (err) return done.fail(err);
+              for (let scope of getClientsScopes) {
+                expect(scope.isDone()).toBe(true);
+              }
+              done();
+            });
+          });
+
+          // This assumes that all SIL apps have a /logout endpoint
+          it('calls all the client apps\' logout endpoints', done => {
+            browser.clickLink('Logout', (err) => {
+              if (err) return done.fail(err);
+              for (let scope of clientLogoutScopes) {
+                expect(scope.isDone()).toBe(true);
+              }
+              done();
+            });
           });
         });
+      });
+    });
+  });
+
+  describe('Bearer token API access', () => {
+    const stubOauthToken = require('../support/auth0Endpoints/stubOauthToken');
+    const stubRolesRead = require('../support/auth0Endpoints/stubRolesRead');
+    const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
+    const stubUserAssignRoles = require('../support/auth0Endpoints/stubUserAssignRoles');
+    const stubUserRolesRead = require('../support/auth0Endpoints/stubUserRolesRead');
+    const stubUserAppMetadataUpdate = require('../support/auth0Endpoints/stubUserAppMetadataUpdate');
+
+    describe('with no token', () => {
+      beforeEach(() => {
+        /**
+         * `/userinfo` mock
+         */
+        userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+          .get(/userinfo/)
+          .reply(200, _identity);
+      });
+
+      it('return 401 error with message', done => {
+        request(app)
+          .get('/agent')
+          .set('Accept', 'application/json')
+          .expect(302)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(res.headers.location).toEqual('/login');
+            done();
+          });
+      });
+
+      it('does not call Auth0 /userinfo', done => {
+        request(app)
+          .get('/agent')
+          .set('Accept', 'application/json')
+          .expect(302)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(userInfoScope.isDone()).toBe(false);
+            done();
+          });
+      });
+    });
+
+    describe('with mangled token', () => {
+      beforeEach(() => {
+        /**
+         * `/userinfo` mock
+         */
+        userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+          .get(/userinfo/)
+          .reply(200, _identity);
+      });
+
+      it('return 401 error with message', done => {
+        request(app)
+          .get('/agent')
+          .set('Accept', 'application/json')
+          .set('Authorization', 'Not-proper-Bearer some-made-up-bearer-token')
+          .expect(401)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(res.body.message).toEqual('Token could not be verified');
+            done();
+          });
+      });
+
+      it('does not call Auth0 /userinfo', done => {
+        request(app)
+          .get('/agent')
+          .set('Accept', 'application/json')
+          .set('Authorization', 'Not-proper-Bearer some-made-up-bearer-token')
+          .expect(401)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(userInfoScope.isDone()).toBe(false);
+            done();
+          });
+      });
+    });
+
+    describe('with invalid token', () => {
+      let userInfoScope;
+
+      beforeEach(()=> {
+        /**
+         * `/userinfo` mock
+         */
+        userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+          .get(/userinfo/)
+          .reply(401, { message: 'Token expired or something. I don\'t know what actually happens here' });
+      });
+
+      it('return 401 error with message', done => {
+        request(app)
+          .get('/agent')
+          .set('Accept', 'application/json')
+          .set('Authorization', 'Bearer some-made-up-bearer-token')
+          .expect(401)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(res.body.message).toEqual('Unauthorized');
+            done();
+          });
+      });
+
+      it('calls Auth0 /userinfo', done => {
+        request(app)
+          .get('/agent')
+          .set('Accept', 'application/json')
+          .set('Authorization', 'Bearer some-made-up-bearer-token')
+          .expect(401)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(userInfoScope.isDone()).toBe(true);
+            done();
+          });
+      });
+    });
+
+    describe('with valid token', () => {
+      let userInfoScope,
+          rolesReadScope, rolesReadOauthTokenScope,
+          userReadScope, userReadOauthTokenScope,
+          userRolesReadScope, userRolesReadOauthTokenScope,
+          userAssignRolesScope, userAssignRolesOauthTokenScope,
+          secondUserReadScope, secondUserReadOauthTokenScope,
+          secondUserRolesReadScope, secondUserRolesReadOauthTokenScope;
+
+      /**
+       * 2021-4-12
+       *
+       * The following test prove and document the Auth0 endpoints hit when a
+       * client comes bearing a `Bearer` `Authorization` token.
+       */
+      beforeEach(done => {
+        /**
+         * `/userinfo` mock
+         *
+         * I'm leaving it to Auth0 to validate the `Bearer` `Authorization`
+         * token. This happens when I request `GET /userinfo`.
+         */
+        userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+          .get(/userinfo/)
+          .reply(200, _identity);
+
+        // Immediately upon token verification (i.e., a successful return from
+        // `GET /userinfo`, Identity retrieves the agent\'s roles and
+        // `user_metadata`
+        stubRolesRead((err, apiScopes) => {
+          if (err) return done.fail(err);
+          ({rolesReadScope, rolesReadOauthTokenScope} = apiScopes);
+
+          stubUserRead((err, apiScopes) => {
+            if (err) return done.fail(err);
+            ({userReadScope, userReadOauthTokenScope} = apiScopes);
+
+            stubUserRolesRead((err, apiScopes) => {
+              if (err) return done.fail(err);
+              ({userRolesReadScope, userRolesReadOauthTokenScope} = apiScopes);
+
+              stubUserAssignRoles((err, apiScopes) => {
+                if (err) return done.fail(err);
+                ({userAssignRolesScope, userAssignRolesOauthTokenScope} = apiScopes);
+
+                // This stubs the Auth0 calls for `GET /agent`. As you can see,
+                // there is some redundancy...
+                //
+                // Are API sessions a viable option for reducing Auth0 calls
+                // on subsequent requests?
+                //
+                stubUserRead((err, apiScopes) => {
+                  if (err) return done.fail(err);
+                  ({userReadScope: secondUserReadScope, userReadOauthTokenScope: secondUserReadOauthTokenScope} = apiScopes);
+
+                  stubUserRolesRead((err, apiScopes) => {
+                    if (err) return done.fail(err);
+                    ({userRolesReadScope: secondUserRolesReadScope, userRolesReadOauthTokenScope: secondUserRolesReadOauthTokenScope} = apiScopes);
+
+                    done();
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
+
+      it('allows access to the requested resource', done => {
+        request(app)
+          .get('/agent')
+          .set('Accept', 'application/json')
+          .set('Authorization', 'Bearer some-made-up-bearer-token')
+          .expect(200)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+
+            expect(res.body.email).toEqual(_profile.email);
+            expect(res.body.name).toEqual(_profile.name);
+            expect(res.body.user_id).toEqual(_profile.user_id);
+            expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
+            expect(res.body.user_metadata).toEqual({});
+            expect(res.body.isSuper).toBe(false);
+            expect(res.body.scope).toEqual(roles.viewer);
+
+            done();
+          });
+      });
+
+      it('calls Auth0 /userinfo and the appropriate endpoints', done => {
+        request(app)
+          .get('/agent')
+          .set('Accept', 'application/json')
+          .set('Authorization', 'Bearer some-made-up-bearer-token')
+          .expect(200)
+          .end(function(err, res) {
+            if (err) return done.fail(err);
+            expect(userInfoScope.isDone()).toBe(true);
+
+            expect(rolesReadScope.isDone()).toBe(true);
+            expect(rolesReadOauthTokenScope.isDone()).toBe(true);
+
+            expect(userReadScope.isDone()).toBe(true);
+            expect(userReadOauthTokenScope.isDone()).toBe(true);
+
+            expect(userRolesReadScope.isDone()).toBe(true);
+            expect(userRolesReadOauthTokenScope.isDone()).toBe(true);
+
+            expect(userRolesReadScope.isDone()).toBe(true);
+            expect(userAssignRolesOauthTokenScope.isDone()).toBe(false);
+
+            expect(secondUserReadScope.isDone()).toBe(true);
+            expect(secondUserReadOauthTokenScope.isDone()).toBe(false);
+
+            expect(secondUserRolesReadScope.isDone()).toBe(true);
+            expect(secondUserRolesReadOauthTokenScope.isDone()).toBe(false);
+
+            done();
+          });
       });
     });
   });

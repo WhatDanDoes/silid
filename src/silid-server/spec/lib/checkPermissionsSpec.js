@@ -45,7 +45,7 @@ describe('checkPermissions', function() {
      */
     stubAuth0ManagementApi((err, apiScopes) => {
       if (err) return done.fail(err);
-      ({rolesReadScope, userAssignRolesScope, userReadScope, userRolesReadScope} = apiScopes);
+      ({rolesReadScope, userAssignRolesScope, userReadScope, userRolesReadScope, checkPermissionsUserReadScope} = apiScopes);
 
       done();
     });
@@ -288,7 +288,6 @@ describe('checkPermissions', function() {
      */
     describe('Auth0 caching', () => {
 
-      let newReadScope;
       beforeEach(done => {
         request = httpMocks.createRequest({
           method: 'POST',
@@ -296,20 +295,22 @@ describe('checkPermissions', function() {
           user: _profile
         });
 
+        // Sanity check
+        expect(userReadScope.isDone()).toBe(false);
+
         checkPermissions([scope.read.agents])(request, response, err => {
+          if (err) return done.fail(err);
+
+          expect(userReadScope.isDone()).toBe(true);
+
           models.Agent.findOne({ where: { email: _identity.email }}).then(results => {
             agent = results;
 
-            stubUserRead((err, apiScopes) => {
-              if (err) return done.fail(err);
-              ({userReadScope: newReadScope} = apiScopes);
+            stubUserRolesRead((err, apiScopes) => {
+              if (err) return done(err);
+              ({userRolesReadScope} = apiScopes);
 
-              stubUserRolesRead((err, apiScopes) => {
-                if (err) return done(err);
-                ({userRolesReadScope} = apiScopes);
-
-                done();
-              });
+              done();
             });
           }).catch(err => {
             done.fail(err);
@@ -331,7 +332,8 @@ describe('checkPermissions', function() {
           checkPermissions([scope.read.agents])(request, response, err => {
             if (err) return done.fail(err);
 
-            expect(newReadScope.isDone()).toBe(false);
+            // This is not satisfied because the cached record matches the Auth0
+            expect(checkPermissionsUserReadScope.isDone()).toBe(false);
 
             done();
           });
@@ -341,24 +343,44 @@ describe('checkPermissions', function() {
       });
 
       it('calls the management API if there is inconsistency between Auth0 and the local cache', done => {
+        // This is satisfied by the initial authorization call
+        expect(userReadScope.isDone()).toBe(true);
+        expect(checkPermissionsUserReadScope.isDone()).toBe(false);
+
         request = httpMocks.createRequest({
           method: 'POST',
           url: '/agent',
           user: _profile
         });
 
-        agent.socialProfile = {..._profile, user_metadata: { teams: [] }};
+        expect(agent.socialProfile).toEqual(_profile);
+        checkPermissions([scope.read.agents])(request, response, err => {
+          if (err) return done.fail(err);
 
-        agent.save().then(() => {
-          checkPermissions([scope.read.agents])(request, response, err => {
-            if (err) return done.fail(err);
+          // This is not satisfied because the cached record matches the Auth0
+          expect(checkPermissionsUserReadScope.isDone()).toBe(false);
 
-            expect(newReadScope.isDone()).toBe(true);
+          stubUserRolesRead((err, apiScopes) => {
+            if (err) return done(err);
 
-            done();
+            // A weird situation to be sure, but one that needs attention
+            agent.socialProfile = {..._profile, user_metadata: { teams: [] }};
+            agent.save().then(() => {
+              expect(agent.socialProfile).not.toEqual(_profile);
+
+              // Cached profile doesn't match Auth0
+              checkPermissions([scope.read.agents])(request, response, err => {
+                if (err) return done.fail(err);
+
+                expect(userReadScope.isDone()).toBe(true);
+                expect(checkPermissionsUserReadScope.isDone()).toBe(true);
+
+                done();
+              });
+            }).catch(err => {
+              done.fail(err);
+            });
           });
-        }).catch(err => {
-          done.fail(err);
         });
       });
     });
@@ -367,7 +389,7 @@ describe('checkPermissions', function() {
   describe('first visit', () => {
 
     let profile, userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope;
-    beforeEach(function(done) {
+    beforeEach(done => {
       response = httpMocks.createResponse();
 
       models.sequelize.sync({force: true}).then(() => {
@@ -1128,19 +1150,13 @@ describe('checkPermissions', function() {
 
       expect(response.statusCode).toEqual(200);
 
-      // This may prove a bit flaky...
-      // The status code stuff happens outside anything asynchronous
       checkPermissions([scope.create.agents])(request, response, err => {
-        done.fail('Should not get here');
-      });
-
-      setTimeout(() => {
-        let data = JSON.parse(response._getData());
-        expect(data.statusCode).toEqual(403);
-        expect(data.error).toEqual('Forbidden');
-        expect(data.message).toEqual('Insufficient scope');
+        if (!err) return done.fail('There should have been an error');
+        expect(err.error).toEqual('Forbidden');
+        expect(err.message).toEqual('Insufficient scope');
+        expect(err.statusCode).toEqual(403);
         done();
-      }, 100); // Flaky!
+      });
     });
   });
 
