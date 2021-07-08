@@ -979,7 +979,7 @@ describe('root/roleSpec', () => {
         it('returns 403', done => {
           request(app)
             .get('/role')
-
+            .set('Authorization', `Bearer ${accessToken}`)
             .set('Accept', 'application/json')
             .expect('Content-Type', /json/)
             .expect(403)
