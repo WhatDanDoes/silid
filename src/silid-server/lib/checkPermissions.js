@@ -249,7 +249,6 @@ const checkPermissions = function(permissions) {
       if (err) {
         return res.status(403).json({ message: err.message });
       }
-
       // Make sure agent has basic viewing permissions
       let isViewer = true;
       if (!req.user.scope) {

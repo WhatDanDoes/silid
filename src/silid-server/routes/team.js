@@ -555,6 +555,7 @@ router.get('/:id/invite/:action', checkPermissions([scope.create.teamMembers]), 
      */
     if (agents.length) {
       let inviteIndex;
+
       const teamLeader = agents.find(a => {
         if (a.user_metadata && a.user_metadata.pendingInvitations) {
           inviteIndex = a.user_metadata.pendingInvitations.findIndex(i => i.uuid === req.params.id && i.type === 'team' && i.recipient === req.user.email);
@@ -613,6 +614,7 @@ router.get('/:id/invite/:action', checkPermissions([scope.create.teamMembers]), 
 router.delete('/:id/invite', checkPermissions([scope.delete.teamMembers]), function(req, res, next) {
   const inviteIndex = req.user.user_metadata.pendingInvitations.findIndex(invite =>
                                                                           invite.uuid === req.params.id && invite.type === 'team' && invite.recipient === req.body.email);
+
   if (inviteIndex < 0) {
     return res.status(404).json({ message: 'No such invitation' });
   }
