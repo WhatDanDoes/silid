@@ -240,15 +240,9 @@ crowdin download
 
 At the moment, a `viewer` role with the permissions listed below must be configured for the `silid-sever` machine-to-machine application at Auth0:
 
-- create:team-member
-- create:teams
-- delete:team-member
-- delete:teams
 - read:agents
-- read:organizations
 - read:teams
 - update:agents
-- update:teams
 
 The role and the permissions defined therein are subject to change without notice. These may eventually be eliminated entirely.
 
