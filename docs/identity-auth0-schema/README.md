@@ -1,8 +1,8 @@
-# Auth0-Supported Agent-Profile Schema for Team-Organization Modelling
+# Auth0-Supported Agent-Profile Schema
 
 One of Auth0's critical core offerings is the [normalization](https://auth0.com/docs/users/user-profiles#data-normalization) of the agent profile data offered by third-party _Identity Providers_ (e.g. Facebook, Google, et al). Another core offering is the ability to [customize an agent's profile](https://auth0.com/docs/users/user-profiles#custom-user-profile-data).
 
-It is through this _profile customization_ that the Identity application enables the creation and management of _Organizations_, _Teams_, and the agent memberships therein.
+It is through this _profile customization_ that the Identity application enables the creation of custom agent data.
 
 This document is accompanied by a [formal schema definition](https://json-schema.org/). It was inferred using [this tool](https://www.liquid-technologies.com/online-json-to-schema-converter) and can be obtained [here](schema.json).
 
@@ -35,17 +35,17 @@ This document is accompanied by a [formal schema definition](https://json-schema
 
 Find other samples [here](https://auth0.com/docs/users/sample-user-profiles).
 
-Auth0 allows another property in this structure called `user_metadata`. Identity manipulates the structured data within `user_metadata` when managing teams and organizations. What follows documents how each Identity-defined agent role _customizes_ Auth0 data.
+Auth0 allows another property in this structure called `user_metadata`. Identity manipulates the structured data within `user_metadata`. What follows documents how each Identity-defined agent role _customizes_ Auth0 data.
 
 ## Identity Roles
 
-Identity has three levels of access constrained by its own scopes:
+Currently, Identity has three levels of access constrained by its own scopes:
 
 - Viewer (the default)
 - Organizer
 - Sudo
 
-The _viewer_ and _organizer_ roles are of interest here. Agents in the _sudo_ role can perform all the same operations, but with elevated permissions in many cases.
+The _viewer_ and _organizer_ roles are of interest here, though their distinction is currently only relevant for the old team-organization management feature, which has been removed in this version. Agents in the _sudo_ role can perform all the same operations, but with elevated permissions in many cases.
 
 ### General
 
@@ -130,128 +130,6 @@ user_metadata: {
     "aliasOf": NULL,
   },
   "phone_number": "+1 (403) 266-1234"
-}
-```
-
-### Viewer Role
-
-A viewer agent can create _teams_ and invite other agents to join.
-
-Creating a team produces this change:
-
-```
-user_metadata: {
-  "teams": [
-    0: {
-      "id":"4e149bd1-ea1c-4d95-b8f2-8caf50ffeced",
-      "name": "The A Team",
-      "leader": "coach@example.com",
-      "tableData": {
-        "id": 0
-      }
-    }
-  ]
-}
-```
-
-#### Invitations
-
-Before an agent joins a team, an _invitation_ is sent. This invite is tracked in both the team leader's and potential team member's `user_metadata`. The team leader has a `pendingInvitation`:
-
-```
-user_metadata: {
-  "pendingInvitations": [
-    0: {
-      "uuid": "4e149bd1-ea1c-4d95-b8f2-8caf50ffeced",
-      "recipient": "manager@example.com"
-      "type": "team",
-      "data": {
-        "name": "The A Team",
-        "id": "4e149bd1-ea1c-4d95-b8f2-8caf50ffeced",
-        "leader": "coach@example.com",
-        "organizationId": "28de5c65-e0b9-46cb-a6f7-3c9cf8d8c0e9"
-      }
-    }
-  ]
-}
-```
-
-The invited agent gets an `rsvp`:
-
-```
-user_metadata: {
-  "rsvps":[
-    0:{
-      "uuid": "4e149bd1-ea1c-4d95-b8f2-8caf50ffeced"
-      "recipient": "manager@example.com"
-      "type": "team"
-      "data": {
-        "name": "The A Team"
-        "id": "4e149bd1-ea1c-4d95-b8f2-8caf50ffeced"
-        "leader": "coach@example.com"
-        "organizationId": "28de5c65-e0b9-46cb-a6f7-3c9cf8d8c0e9"
-      }
-      "tableData": {
-        "id": 0
-      }
-    }
-  ]
-}
-```
-
-When the agent accepts the invitation, the record is added to the new team member's `user_metadata`:
-
-```
-user_metadata: {
-  "teams": [
-    0: {
-      "id":"4e149bd1-ea1c-4d95-b8f2-8caf50ffeced",
-      "name": "The A Team",
-      "leader": "coach@example.com",
-      "tableData": {
-        "id": 0
-      }
-    }
-  ]
-}
-```
-
-### Organizer Role
-
-An organizer agent can create _organizations_ and invite _teams_ to join.
-
-Creating a organization:
-
-```
-user_metadata: {
-  "organizations": [
-    0: {
-      "id": "28de5c65-e0b9-46cb-a6f7-3c9cf8d8c0e9",
-      "name": "The Umbrella Corporation",
-      "organizer": "manager@example.com",
-      "tableData": {
-        "id": 0
-      }
-    }
-  ]
-}
-```
-
-When a team joins an organization, all corresponding team `user_metadata` is modified:
-
-```
-user_metadata: {
-  "teams": [
-    0: {
-      "id":"4e149bd1-ea1c-4d95-b8f2-8caf50ffeced",
-      "name": "The A Team",
-      "leader": "coach@example.com",
-      "organizationId": "28de5c65-e0b9-46cb-a6f7-3c9cf8d8c0e9",
-      "tableData": {
-        "id": 0
-      }
-    }
-  ]
 }
 ```
 
