@@ -138,75 +138,6 @@ context('viewer/Agent locale', function() {
               cy.wait(300);
               cy.get('#profile-table table tbody tr td input#sil-local-dropdown').should('have.attr', 'value').and('equal', 'Klingon');
             });
-
-            describe('interface language', () => {
-              describe('#teams-table', () => {
-                beforeEach(() => {
-                  // Identity
-                  cy.contains('vIchIDmeH, Qatlh Qu\'').click();
-                  cy.wait(300);
-                });
-
-                it('displays translated copy', () => {
-                  // Teams table
-                  cy.get('#teams-table h6').contains('Ghom');
-                  // No records to display
-                  cy.get('#teams-table table tbody tr td').contains('Pagh ta');
-                  // Name
-                  cy.get('#teams-table table thead tr th').contains('Pong');
-                  // Leader
-                  cy.get('#teams-table table thead tr th').contains('DevwI\'');
-                });
-              });
-            });
-
-            // 2021-2-24
-            //
-            // Bug discovered during manual service worker testing...
-            //
-            // Recreate error: Create a team -> switch languages -> delete team -> switch language back... the team still exists!!!!!
-            //
-            // Solution: It used to be that the req.session.passport.user value
-            //           would linger after a team deletion on `silid-server`.
-            //           The problem was solved by updating the session value.
-            //
-            //           This also means that basically any operation has the
-            //           potential to resurrect altered details.
-            //
-            //           In all likelihood, if you are reading this, this hole
-            //           was already filled through backend testing
-            //
-            describe('team deletion/resurrection on language switching bug', () => {
-
-              it('does not resurrect the team', () => {
-                // Add team as Klingonese speaker
-                cy.get('table tbody tr td').contains('Team Zombie').should('not.exist');
-                cy.get('button span span').contains('add_box').click();
-                cy.get('div div div div div div table tbody tr td div div input[placeholder="Pong"]').type('Team Zombie');
-                cy.get('div div div div div div table tbody tr td div button[title="Save"]').click();
-                cy.wait(300);
-                cy.get('table tbody tr td').contains('Team Zombie');
-
-                // Switch to English locale preference
-                cy.get('#profile-table table tbody tr td #sil-local-dropdown').type('engl{downarrow}{enter}');
-                cy.wait(300);
-
-                // Delete the team
-                cy.contains('Team Zombie').click();
-                cy.wait(300);
-                cy.on('window:confirm', (str) => {
-                  return true;
-                });
-                cy.get('#delete-team').click();
-                cy.wait(300);
-                cy.url().should('contain', '/#/agent');
-
-                // Switch to Klingon locale preference
-                cy.get('#profile-table table tbody tr td #sil-local-dropdown').type('kling{downarrow}{enter}');
-                cy.wait(300);
-                cy.get('table tbody tr td').contains('Team Zombie').should('not.exist');
-              });
-            });
           });
 
           context('non-existent language selected', () => {
@@ -250,58 +181,6 @@ context('viewer/Agent locale', function() {
               cy.get('#profile-table table tbody tr td label[for="sil-local-dropdown"]').contains('Set SIL language preference');
             });
           });
-
-          /**
-           * 2020-9-15
-           *
-           * Cf. with dated note above....
-           *
-           * There once was a time when all living/constructed languages would be retrieved from the
-           * server. This functionality still exists, but has been supplanted in favour of only
-           * retrieving languages that are currently supported.
-           *
-           * You cannot currently select a language without translated copy.
-           */
-          //context('language with no translated copy selected', () => {
-          //  beforeEach(() => {
-          //    cy.get('#profile-table table tbody tr td #sil-local-dropdown + div button:last-of-type').click();
-          //    cy.wait(300);
-          //    cy.get('#profile-table table tbody tr td #sil-local-dropdown').type('Chinook{downarrow}{enter}');
-          //    cy.wait(300);
-          //  });
-
-          //  it('displays agent\'s info', () => {
-          //    cy.get('h3').contains('Profile');
-          //    cy.get('#profile-table table tbody tr th').contains('Name:');
-          //    cy.get('#profile-table table tbody tr td input#agent-name-field').should('have.value', agent.socialProfile.name);
-          //    cy.get('#profile-table table tbody tr td input#agent-name-field').should('not.be.disabled');
-
-          //    cy.get('#profile-table table tbody tr th').contains('Email:');
-          //    cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.email);
-
-          //    cy.get('#profile-table table tbody tr th').contains('Provider Locale:');
-          //    cy.get('#profile-table table tbody tr td').contains(agent.socialProfile.locale);
-
-          //    cy.get('#profile-table table tbody tr th').contains('SIL Locale:');
-          //    cy.get('#profile-table table tbody tr td #sil-local-dropdown').should('not.be.disabled');
-
-          //    cy.get('#profile-table table tbody tr td label[for="sil-local-dropdown"]').contains('Set SIL language preference');
-          //    cy.get('#profile-table table tbody tr td input#sil-local-dropdown').should('have.attr', 'value').and('equal', 'Chinook jargon');
-          //    cy.get('#profile-table table tbody tr:last-of-type th').contains('Roles:');
-          //    cy.get('#profile-table table tbody tr:last-of-type div').its('length').should('eq', 1);
-          //    cy.get('#profile-table table tbody tr:last-of-type div').contains('viewer');
-          //    cy.get('#profile-table table tbody tr:last-of-type div#assign-role').should('not.exist');
-          //  });
-
-          //  it('persists in having not changed', () => {
-          //    cy.get('#profile-table table tbody tr td label[for="sil-local-dropdown"]').contains('Set SIL language preference');
-          //    cy.get('#profile-table table tbody tr td input#sil-local-dropdown').should('have.attr', 'value').and('equal', 'Chinook jargon');
-          //    cy.reload();
-          //    cy.wait(300);
-          //    cy.get('#profile-table table tbody tr td input#sil-local-dropdown').should('have.attr', 'value').and('equal', 'Chinook jargon');
-          //    cy.get('#profile-table table tbody tr td label[for="sil-local-dropdown"]').contains('Set SIL language preference');
-          //  });
-          //});
         });
       });
     });

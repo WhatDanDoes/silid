@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { createStyles, makeStyles } from '@material-ui/core/styles';
 import Chip from '@material-ui/core/Chip';
 import Typography from '@material-ui/core/Typography';
-import Link from '@material-ui/core/Link';
 import { green, red } from '@material-ui/core/colors';
 import Icon from '@material-ui/core/Icon';
 import Button from '@material-ui/core/Button';
@@ -23,15 +22,11 @@ import TableCell from '@material-ui/core/TableCell';
 import TableContainer from '@material-ui/core/TableContainer';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
-import MaterialTable, { MTableEditField } from 'material-table';
 import Box from '@material-ui/core/Box';
 import MuiPhoneInput from 'material-ui-phone-number';
 import isMobilePhone from 'validator/lib/isMobilePhone';
 
 import useGetAgentService from '../services/useGetAgentService';
-import usePostTeamService from '../services/usePostTeamService';
-import useGetTeamInviteActionService from '../services/useGetTeamInviteActionService';
-import usePostOrganizationService from '../services/usePostOrganizationService';
 
 /**
  * For SIL Locale selection
@@ -120,9 +115,6 @@ const Agent = (props) => {
 
   const classes = useStyles();
   const service = useGetAgentService(props.match.params.id, admin.viewingCached);
-  const { publishTeam } = usePostTeamService();
-  const { publishOrganization } = usePostOrganizationService();
-  const { respondToTeamInvitation } = useGetTeamInviteActionService();
 
   const [prevAgentInputState, setPrevAgentInputState] = useState({});
 
@@ -199,69 +191,6 @@ const Agent = (props) => {
       active = false;
     };
   }, [loadingTimezone]);
-
-  /**
-   * Create a new team
-   */
-  const createTeam = (newData) => {
-    return new Promise((resolve, reject) => {
-      newData.name = newData.name.trim();
-      if (!newData.name.length) {
-        setFlashProps({ message: getFormattedMessage('Team name can\'t be blank'), variant: 'error' });
-        reject();
-      }
-      else {
-        setIsWaiting(true);
-        publishTeam(newData).then(profile => {;
-          if (profile.statusCode) {
-            setFlashProps({ message: profile.message, variant: 'error' });
-          }
-          else if (profile.errors) {
-            setFlashProps({ errors: profile.errors, variant: 'error' });
-          }
-          else {
-            setProfileData(profile);
-          }
-          resolve();
-        }).catch(reject)
-        .finally(() => {
-          setIsWaiting(false);
-        });
-      }
-    })
-  };
-
-  /**
-   * Create a new organization
-   */
-  const createOrganization = (newData) => {
-    return new Promise((resolve, reject) => {
-      newData.name = newData.name.trim();
-      if (!newData.name.length) {
-        setFlashProps({ message: getFormattedMessage('Organization name can\'t be blank'), variant: 'error' });
-        reject();
-      }
-      else {
-        setIsWaiting(true);
-        publishOrganization(newData).then(profile => {;
-          if (profile.statusCode) {
-            setFlashProps({ message: profile.message, variant: 'error' });
-          }
-          else if (profile.errors) {
-            setFlashProps({ errors: profile.errors, variant: 'error' });
-          }
-          else {
-            setProfileData(profile);
-          }
-          resolve();
-        }).catch(reject)
-        .finally(() => {
-          setIsWaiting(false);
-        });
-      }
-    });
-  };
-
 
   return (
     <div className={classes.root}>
@@ -794,141 +723,6 @@ const Agent = (props) => {
                 </TableContainer>
               </Grid>
             : ''}
-            {profileData.user_metadata &&
-             profileData.user_metadata.rsvps &&
-             profileData.user_metadata.rsvps.length ?
-              <>
-                <Grid id="rsvps-table" item className={classes.grid}>
-                  <MaterialTable
-                    title={getFormattedMessage('RSVPs')}
-                    isLoading={isWaiting}
-                    columns={[
-                      { title: getFormattedMessage('Name'), field: 'data.name', editable: 'never' },
-                      { title: getFormattedMessage('Type'), field: 'type', editable: 'never' },
-                    ]}
-                    data={profileData.user_metadata ? profileData.user_metadata.rsvps : []}
-                    options={{ search: false, paging: false }}
-                    localization={{
-                      body: {
-                        editRow: {
-                          deleteText: getFormattedMessage('Are you sure you want to ignore this invitation?')
-                        }
-                      }
-                    }}
-                    editable={profileData.email_verified ? {
-                      onRowDelete: (oldData) => new Promise((resolve, reject) => {
-                        respondToTeamInvitation(oldData.uuid, 'reject').then(results => {
-                          if (results.error) {
-                            setFlashProps({ message: results.message, variant: 'error' });
-                            return reject(results);
-                          }
-                          setFlashProps({ message: getFormattedMessage('Invitation ignored'), variant: 'warning' });
-                          setProfileData(results);
-                          resolve();
-                        }).catch(err => {
-                          reject(err);
-                        });
-                      }),
-                    } : undefined}
-                    actions={profileData.email_verified ? [
-                      {
-                        icon: 'check',
-                        tooltip: getFormattedMessage('Accept invitation'),
-                        onClick: (event, rowData) =>
-                          new Promise((resolve, reject) => {
-                            setIsWaiting(true);
-                            respondToTeamInvitation(rowData.uuid, 'accept').then(results => {
-                              if (results.error) {
-                                setFlashProps({ message: results.message, variant: 'error' });
-                                return reject(results);
-                              }
-                              setFlashProps({ message: getFormattedMessage('Welcome to the team'), variant: 'success' });
-                              setProfileData(results);
-                              resolve();
-                            }).catch(err => {
-                              reject(err);
-                            }).finally(() => {
-                              setIsWaiting(false);
-                            });
-                          })
-                      }
-                    ]: []}
-                  />
-                </Grid>
-                <br />
-              </>
-            : '' }
-            {profileData.roles && profileData.roles.find(r => r.name === 'organizer') ?
-              <Grid id="organizations-table" item className={classes.grid}>
-                <MaterialTable
-                  title={getFormattedMessage('Organizations')}
-                  isLoading={isWaiting}
-                  columns={[
-                    {
-                      title: getFormattedMessage('Name'),
-                      field: 'name',
-                      render: rowData => <Link href={`#organization/${rowData.id}`}>{rowData.name}</Link>,
-                      editComponent: (props) => {
-                        return (
-                          <MTableEditField
-                            autoFocus={true}
-                            type="text"
-                            maxLength="128"
-                            placeholder={getFormattedMessage('Name')}
-                            columnDef={props.columnDef}
-                            value={props.value ? props.value : ''}
-                            onChange={value => props.onChange(value) }
-                          />
-                        );
-                      }
-                    },
-                    { title: getFormattedMessage('Organizer'), field: 'organizer', editable: 'never' }
-                  ]}
-                  data={profileData.user_metadata ? profileData.user_metadata.organizations : []}
-                  options={{ search: false, paging: false }}
-                  editable={ profileData.email === agent.email ? { onRowAdd: createOrganization }: undefined}
-                />
-              </Grid>
-            : '' }
-            <Grid id="teams-table" item className={classes.grid}>
-              <MaterialTable
-                title={getFormattedMessage('Teams')}
-                isLoading={isWaiting}
-                columns={[
-                  {
-                    title: getFormattedMessage('Name'),
-                    field: 'name',
-                    render: rowData => {return profileData.email_verified ? <Link href={`#team/${rowData.id}`}>{rowData.name}</Link> : rowData.name},
-                    editComponent: (props) => {
-                      return (
-                        <MTableEditField
-                          autoFocus={true}
-                          type="text"
-                          maxLength="128"
-                          placeholder={getFormattedMessage('Name')}
-                          columnDef={props.columnDef}
-                          value={props.value ? props.value : ''}
-                          onChange={value => props.onChange(value) }
-                        />
-                      );
-                    }
-                  },
-                  { title: getFormattedMessage('Leader'), field: 'leader', editable: 'never' }
-                ]}
-                data={profileData.user_metadata ? profileData.user_metadata.teams : []}
-                options={{ search: false, paging: false }}
-                editable={ (profileData.email === agent.email && profileData.email_verified) ? { onRowAdd: createTeam }: undefined}
-                localization={{
-                  header: {
-                    name: getFormattedMessage('Name'),
-                    leader: getFormattedMessage('Leader')
-                  },
-                  body: {
-                    emptyDataSourceMessage: getFormattedMessage('No records to display'),
-                  }
-                }}
-              />
-            </Grid>
             <Grid item>
               <Typography className={classes.header} variant="h5" component="h3">
                 <FormattedMessage id='Social Data' />
