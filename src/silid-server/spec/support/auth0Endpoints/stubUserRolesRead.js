@@ -34,7 +34,7 @@ module.exports = function(roles, done) {
           {
             "id": "345",
             "name": "viewer",
-            "description": "Basic agent, organization, and team viewing permissions"
+            "description": "Basic agent viewing/updating permissions"
           }
         ]);
 

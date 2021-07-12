@@ -18,8 +18,6 @@ const apiScope = require('./config/apiPermissions');
 const authRouter = require('./routes/auth');
 const indexRouter = require('./routes/index');
 const agentRouter = require('./routes/agent');
-const organizationRouter = require('./routes/organization');
-const teamRouter = require('./routes/team');
 const roleRouter = require('./routes/role');
 const localeRouter = require('./routes/locale');
 const timezoneRouter = require('./routes/timezone');
@@ -159,8 +157,6 @@ app.use(passport.session());
  */
 app.use('/', authRouter);
 app.use('/agent', agentRouter);
-app.use('/organization', organizationRouter);
-app.use('/team', teamRouter);
 app.use('/role', roleRouter);
 app.use('/locale', localeRouter);
 app.use('/timezone', timezoneRouter);

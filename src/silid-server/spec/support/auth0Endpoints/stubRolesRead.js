@@ -39,7 +39,7 @@ module.exports = function(roles, done) {
           {
             "id": "123",
             "name": "organizer",
-            "description": "Manage organizations and team memberships therein"
+            "description": "View all agents"
           },
           {
             "id": "234",
@@ -49,7 +49,7 @@ module.exports = function(roles, done) {
           {
             "id": "345",
             "name": "viewer",
-            "description": "Basic agent, organization, and team viewing permissions"
+            "description": "Basic agent viewing/updating permissions"
           }
         ]);
 
