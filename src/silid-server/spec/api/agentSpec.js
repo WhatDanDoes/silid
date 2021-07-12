@@ -350,7 +350,7 @@ describe('agentSpec', () => {
                       expect(res.body.email).toEqual(_identity.email);
                       expect(res.body.name).toEqual(_identity.name);
                       expect(res.body.user_id).toEqual(_identity.sub);
-                      expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
+                      expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent viewing/updating permissions" }]);
                       done();
                     });
                 });
@@ -452,7 +452,7 @@ describe('agentSpec', () => {
                       expect(res.body.email).toEqual(_identity.email);
                       expect(res.body.name).toEqual(_identity.name);
                       expect(res.body.user_id).toEqual(_identity.sub);
-                      expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
+                      expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent viewing/updating permissions" }]);
                       done();
                     });
                 });
@@ -594,7 +594,7 @@ describe('agentSpec', () => {
                       expect(res.body.email).toEqual(_identity.email);
                       expect(res.body.name).toEqual(_identity.name);
                       expect(res.body.user_id).toEqual(_identity.sub);
-                      expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
+                      expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent viewing/updating permissions" }]);
                       done();
                     });
                 });
@@ -699,7 +699,7 @@ describe('agentSpec', () => {
                       expect(res.body.email).toEqual(_identity.email);
                       expect(res.body.name).toEqual(_identity.name);
                       expect(res.body.user_id).toEqual(_identity.sub);
-                      expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
+                      expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent viewing/updating permissions" }]);
                       done();
                     });
                 });
@@ -836,7 +836,7 @@ describe('agentSpec', () => {
                     expect(res.body.email).toEqual(_identity.email);
                     expect(res.body.name).toEqual(_identity.name);
                     expect(res.body.user_id).toEqual(_identity.sub);
-                    expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
+                    expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent viewing/updating permissions" }]);
                     done();
                   });
               });
@@ -863,7 +863,7 @@ describe('agentSpec', () => {
                     expect(res.body.email).toEqual(_identity.email);
                     expect(res.body.name).toEqual(_identity.name);
                     expect(res.body.user_id).toEqual(_identity.sub);
-                    expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
+                    expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent viewing/updating permissions" }]);
                     done();
                   });
               });
@@ -921,7 +921,7 @@ describe('agentSpec', () => {
                       expect(res.body.email).toEqual(_identity.email);
                       expect(res.body.name).toEqual(_identity.name);
                       expect(res.body.user_id).toEqual(_identity.sub);
-                      expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
+                      expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent viewing/updating permissions" }]);
                       done();
                     });
                 });
@@ -1009,7 +1009,7 @@ describe('agentSpec', () => {
                       expect(res.body.email).toEqual(_identity.email);
                       expect(res.body.name).toEqual(_identity.name);
                       expect(res.body.user_id).toEqual(_identity.sub);
-                      expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
+                      expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent viewing/updating permissions" }]);
                       done();
                     });
                 });
@@ -1136,7 +1136,7 @@ describe('agentSpec', () => {
                       expect(res.body.email).toEqual(_identity.email);
                       expect(res.body.name).toEqual(_identity.name);
                       expect(res.body.user_id).toEqual(_identity.sub);
-                      expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
+                      expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent viewing/updating permissions" }]);
                       done();
                     });
                 });
@@ -1225,7 +1225,7 @@ describe('agentSpec', () => {
                       expect(res.body.email).toEqual(_identity.email);
                       expect(res.body.name).toEqual(_identity.name);
                       expect(res.body.user_id).toEqual(_identity.sub);
-                      expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
+                      expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent viewing/updating permissions" }]);
                       done();
                     });
                 });
