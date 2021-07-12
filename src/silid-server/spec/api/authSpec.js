@@ -1220,7 +1220,7 @@ describe('authSpec', () => {
             expect(res.body.email).toEqual(_profile.email);
             expect(res.body.name).toEqual(_profile.name);
             expect(res.body.user_id).toEqual(_profile.user_id);
-            expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent, organization, and team viewing permissions" }]);
+            expect(res.body.roles).toEqual([{ "id": "345", "name": "viewer", "description": "Basic agent viewing/updating permissions" }]);
             expect(res.body.user_metadata).toEqual({});
             expect(res.body.isSuper).toBe(false);
             expect(res.body.scope).toEqual(roles.viewer);
