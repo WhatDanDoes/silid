@@ -15,6 +15,11 @@ const getManagementClient = require('../lib/getManagementClient');
 
 /* GET agent listing. */
 router.get('/admin/:page?', checkPermissions(roles.organizer), function(req, res, next) {
+
+  if (!req.user.isSuper && !req.user.isOrganizer) {
+    return res.status(403).json({ message: 'Insufficient scope' });
+  }
+
   let page = 0;
   if (req.params.page) {
     page = parseInt(req.params.page);

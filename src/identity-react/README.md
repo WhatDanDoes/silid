@@ -1,7 +1,7 @@
 identity-react
 ==============
 
-`create-react-app`-bootstrapped application to administer agent identity within a dynamic organizational structure.
+`create-react-app`-bootstrapped application to administer agent identity.
 
 
 ## Setup
@@ -56,7 +56,7 @@ Some helpful (but not entirely applicable) info can be found here: https://www.c
 To run a single test file:
 
 ```
-npm run test:headless -- --spec cypress/integration/organizationIndexSpec.js
+npm run test:headless -- --spec cypress/integration/viewer/agentIndexSpec.js
 ```
 
 Note the extra `--`.

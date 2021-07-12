@@ -89,55 +89,6 @@ context('viewer/Agent Index', () => {
         });
       });
 
-      describe('organizations', () => {
-        it('does not display the organizations table', () => {
-          cy.get('#organizations-table').should('not.exist');
-        });
-      });
-
-      describe('teams', () => {
-        describe('none created', () => {
-          it('displays teams table', () => {
-            cy.get('#teams-table h6').contains('Teams');
-            cy.get('#teams-table table tbody tr td').contains('No records to display');
-          });
-        });
-
-        describe('some created', () => {
-          let agent;
-          beforeEach(() => {
-            cy.login(_profile.email, {..._profile, user_metadata: {
-                                                     teams: [
-                                                       {
-                                                         id: 'some-uuid-v4',
-                                                         name: 'The Calgary Roughnecks',
-                                                         leader: 'someguy@example.com',
-                                                         members: ['someguy@example.com']
-                                                       }
-                                                     ]
-                                                   } });
-
-            cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
-              agent = results[0];
-              cy.reload(true);
-              cy.wait(300);
-            });
-          });
-
-          it('displays teams in a table', () => {
-            cy.get('#teams-table h6').contains('Teams');
-            cy.get('#teams-table table tbody tr td').contains('No records to display').should('not.exist');
-            cy.get('#teams-table button span span').contains('add_box');
-            cy.get('#teams-table table thead tr th').contains('Name');
-            cy.get('#teams-table table tbody tr td').contains(agent.socialProfile.user_metadata.teams[0].name);
-            cy.get('#teams-table table tbody tr td a').should('contain', agent.socialProfile.user_metadata.teams[0].name).
-              and('have.attr', 'href').and('equal', `#team/${agent.socialProfile.user_metadata.teams[0].id}`);
-            cy.get('#teams-table table thead tr th').contains('Leader');
-            cy.get('#teams-table table tbody tr td').contains(agent.socialProfile.user_metadata.teams[0].leader);
-          });
-        });
-      });
-
       describe('social profile data', () => {
         it('toggles JSON display', () => {
           cy.get('.react-json-view').its('length').should('eq', 1);
