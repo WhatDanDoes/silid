@@ -1,12 +1,22 @@
 'use strict';
 
 /**
+ * 2021-7-12
+ *
+ * Much of the functionality subject to testing here has been deprecated. I
+ * preserved what I could so that the code and tests can be repurposed once
+ * updates (or perhaps inter-app message) functionality is decided.
+ */
+
+/**
  * 2020-7-10
  *
  * Most of this modules functionality is tested in
  * `spec/lib/checkPermissionsSpec`. The `checkForUpdates` module was
- * isolated when the time came to test team's organizational membership.
+ * isolated when the time came to test team's organizational membership
+ * (now deprecated 2021-7-12).
  */
+
 
 require('dotenv').config();
 
@@ -76,22 +86,25 @@ describe('checkForUpdates', function() {
         });
       });
 
-      it('adds organizationId to the team record', done => {
-        request = httpMocks.createRequest({
-          method: 'GET',
-          url: '/agent',
-          user: player,
-        });
+      /**
+       * No more organizations. Preserved as a _how-to_ for the future
+       */
+      //it('adds organizationId to the team record', done => {
+      //  request = httpMocks.createRequest({
+      //    method: 'GET',
+      //    url: '/agent',
+      //    user: player,
+      //  });
 
-        expect(player.user_metadata.teams[0].organizationId).toBeUndefined();
+      //  expect(player.user_metadata.teams[0].organizationId).toBeUndefined();
 
-        checkForUpdates(request, err => {
-          if (err) return done.fail(err);
+      //  checkForUpdates(request, err => {
+      //    if (err) return done.fail(err);
 
-          expect(player.user_metadata.teams[0].organizationId).toEqual(organizationId);
-          done();
-        });
-      });
+      //    expect(player.user_metadata.teams[0].organizationId).toEqual(organizationId);
+      //    done();
+      //  });
+      //});
 
       it('deletes the update from the database', done => {
         request = httpMocks.createRequest({
@@ -150,23 +163,26 @@ describe('checkForUpdates', function() {
         });
       });
 
-      it('deletes organizationId from the team record', done => {
-        request = httpMocks.createRequest({
-          method: 'GET',
-          url: '/agent',
-          user: player,
-        });
+      /**
+       * No more organizations. Preserved as a _how-to_ for the future
+       */
+      //it('deletes organizationId from the team record', done => {
+      //  request = httpMocks.createRequest({
+      //    method: 'GET',
+      //    url: '/agent',
+      //    user: player,
+      //  });
 
-        expect(player.user_metadata.teams[0].organizationId).toEqual(organizationId);
+      //  expect(player.user_metadata.teams[0].organizationId).toEqual(organizationId);
 
-        checkForUpdates(request, err => {
-          if (err) return done.fail(err);
+      //  checkForUpdates(request, err => {
+      //    if (err) return done.fail(err);
 
-          expect(player.user_metadata.teams[0].organizationId).toBeUndefined();
+      //    expect(player.user_metadata.teams[0].organizationId).toBeUndefined();
 
-          done();
-        });
-      });
+      //    done();
+      //  });
+      //});
 
       describe('Auth0', () => {
         it('is called to update agent\'s user_metadata', done => {
