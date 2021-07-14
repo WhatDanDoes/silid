@@ -734,96 +734,172 @@ describe('agentLinkSpec', () => {
             });
           });
         });
+
+        describe('email not verified', () => {
+
+          beforeEach(done => {
+            stubAuth0ManagementApi({userRead: {..._profile, email_verified: false}}, (err, apiScopes) => {
+              if (err) return done.fail(err);
+
+              login(_identity, [scope.read.agents], (err, session, token) => {
+                if (err) return done.fail(err);
+                accessToken = token;
+                authenticatedSession = session;
+
+                stubUserLinkAccount({..._profile}, {
+                  ..._profile,
+                  email: 'thesameguy@example.com',
+                  identities: [{
+                    connection: 'twitter',
+                    user_id: 'abc-123',
+                    provider: 'twitter',
+                  }]
+                }, (err, apiScopes) => {
+                  if (err) return done.fail(err);
+                  ({userLinkAccountScope, userLinkAccountOauthTokenScope} = apiScopes);
+
+                  done();
+                });
+              });
+            });
+          });
+
+          describe('session access', () => {
+
+            it('returns an error', done => {
+              authenticatedSession
+                .put('/agent/link')
+                .send({
+                  connection: 'twitter',
+                  user_id: 'abc-123',
+                  provider: 'twitter',
+                })
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(401)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  expect(res.body.message).toEqual('Check your email to verify your account');
+                  done();
+                });
+            });
+
+            describe('Auth0', () => {
+
+              it('is not called link the secondary account to the primary account', done => {
+                authenticatedSession
+                 .put('/agent/link')
+                 .send({
+                   connection: 'twitter',
+                   user_id: 'abc-123',
+                   provider: 'twitter',
+                 })
+                 .set('Accept', 'application/json')
+                 .expect('Content-Type', /json/)
+                 .expect(401)
+                 .end((err, res) => {
+                   if (err) return done.fail(err);
+                   expect(userLinkAccountScope.isDone()).toBe(false);
+                   expect(userLinkAccountOauthTokenScope.isDone()).toBe(false);
+                   done();
+                 });
+              });
+            });
+          });
+
+          describe('Bearer token access', () => {
+
+            beforeEach(() => {
+              const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                .get(/userinfo/)
+                .reply(200, {..._identity, permissions: [scope.update.agents], email_verified: false });
+            });
+
+            it('returns an error', done => {
+              request(app)
+                .put('/agent/link')
+                .send({
+                  connection: 'twitter',
+                  user_id: 'abc-123',
+                  provider: 'twitter',
+                })
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(401)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  expect(res.body.message).toEqual('Check your email to verify your account');
+                  done();
+                });
+            });
+
+            describe('Auth0', () => {
+
+              it('is called to attempt linking the secondary account to the primary account', done => {
+                request(app)
+                  .put('/agent/link')
+                  .send({
+                    connection: 'twitter',
+                    user_id: 'abc-123',
+                    provider: 'twitter',
+                  })
+                  .set('Authorization', `Bearer ${accessToken}`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(401)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+                    expect(userLinkAccountScope.isDone()).toBe(false);
+                    expect(userLinkAccountOauthTokenScope.isDone()).toBe(false);
+
+                    done();
+                  });
+              });
+            });
+          });
+        });
       });
-    });
-
-    describe('forbidden', () => {
-
-//      let originalProfile, forbiddenSession;
-//      beforeEach(done => {
-//        originalProfile = {..._profile};
-//        _profile.email = 'someotherguy@example.com';
-//        _profile.name = 'Some Other Guy';
-//
-//        stubAuth0ManagementApi((err, apiScopes) => {
-//          if (err) return done.fail(err);
-//
-//         login({ ..._identity, email: 'someotherguy@example.com', name: 'Some Other Guy' }, (err, session) => {
-//            if (err) return done.fail(err);
-//            forbiddenSession = session;
-//
-//            done();
-//          });
-//        });
-//      });
-//
-//      afterEach(() => {
-//        // Through the magic of node I am able to adjust the profile data returned.
-//        // This resets the default values
-//        _profile.email = originalProfile.email;
-//        _profile.name = originalProfile.name;
-//      });
-//
-//      describe('delete', () => {
-//
-//        it('returns 403', done => {
-//          forbiddenSession
-//            .delete('/agent')
-//            .send({
-//              id: agent.id
-//            })
-//            .set('Accept', 'application/json')
-//            .expect('Content-Type', /json/)
-//            .expect(403)
-//            .end((err, res) => {
-//              if (err) done.fail(err);
-//              expect(res.body.message).toEqual('Insufficient scope');
-//              done();
-//            });
-//        });
-//
-//        it('does not remove the record from the database', done => {
-//          models.Agent.findAll().then(results => {
-//            // 2 because the unauthorized agent is in the database
-//            expect(results.length).toEqual(2);
-//
-//            forbiddenSession
-//              .delete('/agent')
-//              .send({
-//                id: agent.id
-//              })
-//              .set('Accept', 'application/json')
-//              .expect('Content-Type', /json/)
-//              .expect(403)
-//              .end((err, res) => {
-//                if (err) done.fail(err);
-//                models.Agent.findAll().then(results => {
-//                  expect(results.length).toEqual(2);
-//                  done();
-//                }).catch(err => {
-//                  done.fail(err);
-//                });
-//              });
-//          }).catch(err => {
-//            done.fail(err);
-//          });
-//        });
-//      });
     });
   });
 
   describe('unauthenticated', () => {
 
-//    it('redirects to login', done => {
-//      request(app)
-//        .get('/agent')
-//        .set('Accept', 'application/json')
-//        .expect(302)
-//        .end((err, res) => {
-//          if (err) return done.fail(err);
-//          expect(res.headers.location).toEqual('/login');
-//          done();
-//        });
-//    });
+    describe('/agent/profiles', () => {
+
+      it('redirects to login', done => {
+        request(app)
+          .get('/agent/profiles')
+          .set('Accept', 'application/json')
+          .expect(302)
+          .end((err, res) => {
+            if (err) return done.fail(err);
+            expect(res.headers.location).toEqual('/login');
+            done();
+          });
+      });
+    });
+
+    describe('/agent/link', () => {
+
+      it('redirects to login', done => {
+        request(app)
+          .put('/agent/link')
+          .send({
+            connection: 'twitter',
+            user_id: 'abc-123',
+            provider: 'twitter',
+          })
+          .set('Accept', 'application/json')
+          .expect(302)
+          .end((err, res) => {
+            if (err) return done.fail(err);
+            expect(res.headers.location).toEqual('/login');
+            done();
+          });
+      });
+    });
   });
 });
