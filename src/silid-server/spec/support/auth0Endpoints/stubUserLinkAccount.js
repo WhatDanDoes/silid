@@ -32,7 +32,7 @@ module.exports = function(primary, secondary, options, done) {
       // Assumes only a single identity in the secondary account
       const body = {
         'provider': secondary.identities[0].provider,
-        // 2021-7-14 Docs say this should be `connction_id`: https://auth0.github.io/node-auth0/module-management.ManagementClient.html#linkUsers
+        // 2021-7-14 Docs say this should be `connection_id`: https://auth0.github.io/node-auth0/module-management.ManagementClient.html#linkUsers
         'connection': secondary.identities[0].connection,
         'user_id': secondary.identities[0].user_id,
       };
