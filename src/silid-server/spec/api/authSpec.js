@@ -152,10 +152,35 @@ describe('authSpec', () => {
       spyOn(passport, 'authenticate').and.callThrough();
       request(app)
         .get('/login')
+        .set('Accept-Language', 'ru')
         .redirects()
         .end(function(err, res) {
           if (err) return done.fail(err);
-          expect(passport.authenticate).toHaveBeenCalledWith('auth0', { scope: 'openid email profile', audience: process.env.AUTH0_API_AUDIENCE });
+          expect(passport.authenticate).toHaveBeenCalledWith('auth0', {
+            scope: 'openid email profile',
+            audience: process.env.AUTH0_API_AUDIENCE,
+            ui_locales: 'ru'
+          });
+          done();
+        });
+    });
+
+    it('cleans the client languages for localizing the Auth0 Universal Login', done => {
+      expect(process.env.AUTH0_API_AUDIENCE).toBeDefined();
+      const passport = require('passport');
+      spyOn(passport, 'authenticate').and.callThrough();
+      request(app)
+        .get('/login')
+        // These language codes with quality values were taken as-is from my Chrome client
+        .set('Accept-Language', 'en-GB;q=0.9,en-US;q=0.8,en;q=0.7')
+        .redirects()
+        .end(function(err, res) {
+          if (err) return done.fail(err);
+          expect(passport.authenticate).toHaveBeenCalledWith('auth0', {
+            scope: 'openid email profile',
+            audience: process.env.AUTH0_API_AUDIENCE,
+            ui_locales: 'en-GB'
+          });
           done();
         });
     });

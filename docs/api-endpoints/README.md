@@ -202,6 +202,116 @@ const response = await fetch(`/agent/verify`,
 );
 ```
 
+### Account Linking and Unlinking
+
+Identity offers endpoints to link and unlink Auth0-managed accounts registered with the same email address.
+
+To search for [_linkable_](https://auth0.com/docs/api/management/v2#!/Users_By_Email/get_users_by_email) accounts:
+
+```
+const response = await fetch(`/agent/profiles`,
+  {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+This returns an array of Auth0 profiles registered with a matching email address. Each profile object in the array will contain an `identities` property, which is an array of linked Auth0 accounts. See the Auth0 documentation for [how this works](https://auth0.com/docs/users/user-account-linking#how-it-works). A sample `identities` array is included here for convenience:
+
+```
+{
+  ...
+  "identities": [
+    {
+      "user_id": "560ebaeef609ee1adaa7c551",
+      "provider": "sms",
+      "connection": "sms",
+      "isSocial": false
+    }
+  ],
+  ...
+}
+```
+
+An agent may link the currently authenticated account (i.e., the _primary_ account) by providing properties from one of these _secondary_ account _identity_ objects:
+
+```
+const response = await fetch(`/agent/link`,
+  {
+    method: 'PUT',
+    body: JSON.stringify({
+      connection: 'sms',
+      user_id: '560ebaeef609ee1adaa7c551',
+      provider: 'sms',
+    }),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+Executed successfully, the above call will combine the accounts managed by Auth0 and return a new `identities` array with the _secondary_ profile properties stored in `profileData`:
+
+```
+[
+  {
+    "provider": "google-oauth2",
+    "user_id": "115015401343387192604",
+    "connection": "google-oauth2",
+    "isSocial": true
+  },
+  {
+    "profileData": {
+      "phone_number": "+14258831929",
+      "phone_verified": true,
+      "name": "+14258831929"
+    },
+    "user_id": "560ebaeef609ee1adaa7c551",
+    "provider": "sms",
+    "connection": "sms",
+    "isSocial": false
+  }
+]
+```
+
+To unlink this account:
+
+```
+const response = await fetch(`/agent/link/${secondary_provider}/${secondary_user_id}`,
+  {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type', 'application/json; charset=utf-8'
+    },
+  }
+);
+```
+
+This de-couples the accounts at Auth0 and returns an array with the `identity` object just removed:
+
+```
+[
+  {
+    "profileData": {
+      "phone_number": "+14258831929",
+      "phone_verified": true,
+      "name": "+14258831929"
+    },
+    "user_id": "560ebaeef609ee1adaa7c551",
+    "provider": "sms",
+    "connection": "sms",
+    "isSocial": false
+  }
+]
+```
+
 ## Viewer Role
 
 This is the default role assigned immediately upon first authentication.
