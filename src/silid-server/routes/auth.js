@@ -16,9 +16,10 @@ const roles = require('../config/roles');
 router.get('/login', (req, res, next) => {
 
   const languages = parser.parse(req.get('Accept-Language'));
-  let locales = '';
-  for (let l of languages) {
-    locales += `${l.code}${l.region ? '-' + l.region + ' ' : ' '}`;
+
+  let locales = 'en';
+  if (languages.length) {
+    locales = `${languages[0].code}${languages[0].region ? '-' + languages[0].region : ''}`;
   }
 
   const authenticator = passport.authenticate('auth0', {

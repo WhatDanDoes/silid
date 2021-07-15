@@ -179,7 +179,7 @@ describe('authSpec', () => {
           expect(passport.authenticate).toHaveBeenCalledWith('auth0', {
             scope: 'openid email profile',
             audience: process.env.AUTH0_API_AUDIENCE,
-            ui_locales: 'en-GB en-US en'
+            ui_locales: 'en-GB'
           });
           done();
         });
