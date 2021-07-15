@@ -27,7 +27,7 @@ module.exports = function(res, done) {
 
       ({accessToken, oauthTokenScope} = oauthScopes);
 
-      const userReadByEmailOauthTokenScope = oauthScopes;
+      const userReadByEmailOauthTokenScope = oauthTokenScope;
 
       /**
        * GET `/users/:id`. Get a single user by Auth0 ID

@@ -4,6 +4,7 @@ const path = require('path');
 const passport = require('passport');
 const models = require('../models');
 const request = require('request');
+const parser = require('accept-language-parser');
 const util = require('util');
 const querystring = require('querystring');
 const url = require('url');
@@ -13,9 +14,18 @@ const apiScope = require('../config/apiPermissions');
 const roles = require('../config/roles');
 
 router.get('/login', (req, res, next) => {
+
+  const languages = parser.parse(req.get('Accept-Language'));
+
+  let locales = 'en';
+  if (languages.length) {
+    locales = `${languages[0].code}${languages[0].region ? '-' + languages[0].region : ''}`;
+  }
+
   const authenticator = passport.authenticate('auth0', {
     scope: 'openid email profile',
-    audience: process.env.AUTH0_API_AUDIENCE
+    audience: process.env.AUTH0_API_AUDIENCE,
+    ui_locales: locales
   });
   return authenticator(req, res, next);
 });

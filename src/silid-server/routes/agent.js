@@ -101,6 +101,41 @@ router.get('/', checkPermissions([scope.read.agents]), function(req, res, next) 
   });
 });
 
+router.get('/profiles', checkPermissions([scope.read.agents]), function(req, res, next) {
+  const managementClient = getManagementClient(apiScope.read.users);
+  managementClient.getUsersByEmail(req.user.email).then(agents => {
+
+    // You can only link verified accounts
+    agents = agents.filter(a => a.email_verified);
+
+    res.status(200).json(agents);
+  }).catch(err => {
+    res.status(err.statusCode).json(err.message.error_description);
+  });
+});
+
+router.put('/link', checkPermissions([scope.update.agents]), function(req, res, next) {
+  const managementClient = getManagementClient(apiScope.update.users);
+  managementClient.linkUsers(req.user.user_id, req.body).then(identities => {
+
+    res.status(201).json(identities);
+  }).catch(err => {
+    res.status(err.statusCode).json({ message: JSON.parse(err.message).error_description });
+  });
+});
+
+router.delete('/link/:provider/:user_id', checkPermissions([scope.update.agents]), function(req, res, next) {
+  const managementClient = getManagementClient(apiScope.update.users);
+  managementClient.unlinkUsers({...req.params, id: req.user.user_id }).then(identity => {
+
+    res.status(200).json(identity);
+  }).catch(err => {
+    res.status(err.statusCode).json({ message: JSON.parse(err.message).error_description });
+  });
+});
+
+
+
 router.get('/:id', checkPermissions([scope.read.agents]), function(req, res, next) {
   const managementClient = getManagementClient(apiScope.read.users);
   managementClient.getUser({id: req.params.id}).then(agent => {
@@ -141,7 +176,7 @@ router.post('/', checkPermissions([scope.create.agents]), function(req, res, nex
 router.delete('/', checkPermissions([scope.delete.agents]), function(req, res, next) {
   models.Agent.findOne({ where: { id: req.body.id } }).then(agent => {
     if (!agent) {
-      return res.status(404).json( { message: 'No such agent' });
+      return res.status(404).json({ message: 'No such agent' });
     }
 
     if (!req.user.isSuper && req.user.email !== agent.email) {
