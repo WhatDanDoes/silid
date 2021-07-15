@@ -6,17 +6,11 @@ const request = require('supertest');
 const nock = require('nock');
 const stubAuth0Sessions = require('../support/stubAuth0Sessions');
 const stubAuth0ManagementApi = require('../support/stubAuth0ManagementApi');
-const stubAuth0ManagementEndpoint = require('../support/stubAuth0ManagementEndpoint');
-const stubUserAppMetadataUpdate = require('../support/auth0Endpoints/stubUserAppMetadataUpdate');
-const stubUserRead = require('../support/auth0Endpoints/stubUserRead');
-const stubUserCreate = require('../support/auth0Endpoints/stubUserCreate');
-const stubUserRolesRead = require('../support/auth0Endpoints/stubUserRolesRead');
-const stubEmailVerification = require('../support/auth0Endpoints/stubEmailVerification');
 const stubUserReadByEmail = require('../support/auth0Endpoints/stubUserReadByEmail');
 const stubUserLinkAccount = require('../support/auth0Endpoints/stubUserLinkAccount');
+const stubUserUnlinkAccount = require('../support/auth0Endpoints/stubUserUnlinkAccount');
 const scope = require('../../config/permissions');
 const apiScope = require('../../config/apiPermissions');
-const jwt = require('jsonwebtoken');
 
 const _profile = require('../fixtures/sample-auth0-profile-response');
 
@@ -551,8 +545,8 @@ describe('agentLinkSpec', () => {
                    .expect(400)
                    .end((err, res) => {
                      if (err) return done.fail(err);
-                     expect(userReadByEmailScope.isDone()).toBe(true);
-                     expect(userReadByEmailOauthTokenScope.isDone()).toBe(true);
+                     expect(userLinkAccountScope.isDone()).toBe(true);
+                     expect(userLinkAccountOauthTokenScope.isDone()).toBe(true);
                      done();
                    });
                 });
@@ -603,8 +597,8 @@ describe('agentLinkSpec', () => {
                     .expect(400)
                     .end((err, res) => {
                       if (err) return done.fail(err);
-                      expect(userReadByEmailScope.isDone()).toBe(true);
-                      expect(userReadByEmailOauthTokenScope.isDone()).toBe(true);
+                      expect(userLinkAccountScope.isDone()).toBe(true);
+                      expect(userLinkAccountOauthTokenScope.isDone()).toBe(true);
                       done();
                     });
                 });
@@ -725,8 +719,8 @@ describe('agentLinkSpec', () => {
                     .expect(201)
                     .end((err, res) => {
                       if (err) return done.fail(err);
-                      expect(userReadByEmailScope.isDone()).toBe(true);
-                      expect(userReadByEmailOauthTokenScope.isDone()).toBe(true);
+                      expect(userLinkAccountScope.isDone()).toBe(true);
+                      expect(userLinkAccountOauthTokenScope.isDone()).toBe(true);
                       done();
                     });
                 });
@@ -855,6 +849,229 @@ describe('agentLinkSpec', () => {
                     expect(userLinkAccountScope.isDone()).toBe(false);
                     expect(userLinkAccountOauthTokenScope.isDone()).toBe(false);
 
+                    done();
+                  });
+              });
+            });
+          });
+        });
+      });
+
+      describe('/agent/unlink', () => {
+
+        const _identities = [
+          {
+            provider: 'google-oauth2',
+            user_id: '117550400000000000000',
+            connection: 'google-oauth2',
+            isSocial: true
+          },
+          {
+            connection: 'twitter',
+            user_id: 'abc-123',
+            provider: 'twitter',
+            profileData: {
+              email: 'thesameguy@example.com',
+              email_verified: true,
+              name: 'Some Guy',
+              given_name: 'Some',
+              family_name: 'Guy'
+            }
+          }
+        ];
+
+        beforeEach(done => {
+          stubAuth0ManagementApi({userRead: {..._profile, identities: _identities}}, (err, apiScopes) => {
+            if (err) return done.fail(err);
+
+            login(_identity, [scope.update.agents], (err, session, token) => {
+              if (err) return done.fail(err);
+
+              accessToken = token;
+              authenticatedSession = session;
+
+              done();
+            });
+          });
+        });
+
+        describe('general error handling (e.g., secondary account does not exist)', () => {
+
+          beforeEach(done => {
+            // No accounts with matching email
+            stubUserUnlinkAccount({..._profile, identities: _identities}, { status: 400 }, (err, apiScopes) => {
+              if (err) return done.fail(err);
+              ({userUnlinkAccountScope, userUnlinkAccountOauthTokenScope} = apiScopes);
+
+              done();
+            });
+          });
+
+          describe('session access', () => {
+
+            it('returns an error', done => {
+              authenticatedSession
+                .delete(`/agent/link/twitter/abc-123`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(400)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  expect(res.body.message).toEqual('Some error occurred');
+                  done();
+                });
+            });
+
+            describe('Auth0', () => {
+
+              it('is called to attempt unlinking the secondary account from the primary account', done => {
+                authenticatedSession
+                 .delete(`/agent/link/twitter/abc-123`)
+                 .set('Accept', 'application/json')
+                 .expect('Content-Type', /json/)
+                 .expect(400)
+                 .end((err, res) => {
+                   if (err) return done.fail(err);
+                   expect(userUnlinkAccountScope.isDone()).toBe(true);
+                   expect(userUnlinkAccountOauthTokenScope.isDone()).toBe(true);
+                   done();
+                 });
+              });
+            });
+          });
+
+          describe('Bearer token access', () => {
+
+            beforeEach(() => {
+              const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                .get(/userinfo/)
+                .reply(200, {..._identity, permissions: [scope.update.agents] });
+            });
+
+            it('returns an error', done => {
+              request(app)
+                .delete(`/agent/link/twitter/abc-123`)
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(400)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  expect(res.body.message).toEqual('Some error occurred');
+                  done();
+                });
+            });
+
+            describe('Auth0', () => {
+
+              it('is called to attempt unlinking the secondary account from the primary account', done => {
+                request(app)
+                  .delete(`/agent/link/twitter/abc-123`)
+                  .set('Authorization', `Bearer ${accessToken}`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(400)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+                    expect(userUnlinkAccountScope.isDone()).toBe(true);
+                    expect(userUnlinkAccountOauthTokenScope.isDone()).toBe(true);
+                    done();
+                  });
+              });
+            });
+          });
+        });
+
+        describe('successfully', () => {
+
+          beforeEach(done => {
+            // No accounts with matching email
+            stubUserUnlinkAccount({..._profile, identities: _identities}, (err, apiScopes) => {
+              if (err) return done.fail(err);
+              ({userUnlinkAccountScope, userUnlinkAccountOauthTokenScope} = apiScopes);
+
+              done();
+            });
+          });
+
+          describe('session access', () => {
+
+            it('returns the new unlinked identity array', done => {
+              authenticatedSession
+                .delete(`/agent/link/twitter/abc-123`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  expect(res.body.length).toEqual(1);
+                  expect(res.body[0].connection).toEqual(_identities[1].connection);
+                  expect(res.body[0].profileData.email).toEqual(_identities[1].profileData.email);
+
+                  done();
+                });
+            });
+
+            describe('Auth0', () => {
+
+              it('is called to link the secondary account to the primary', done => {
+                authenticatedSession
+                  .delete(`/agent/link/twitter/abc-123`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(200)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+                    expect(userUnlinkAccountScope.isDone()).toBe(true);
+                    expect(userUnlinkAccountOauthTokenScope.isDone()).toBe(true);
+                    done();
+                  });
+              });
+            });
+          });
+
+          describe('Bearer token access', () => {
+
+            beforeEach(() => {
+              const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
+                .get(/userinfo/)
+                .reply(200, {..._identity, permissions: [scope.update.agents] });
+            });
+
+            it('returns the identities array', done => {
+              request(app)
+                .delete(`/agent/link/twitter/abc-123`)
+                .set('Authorization', `Bearer ${accessToken}`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(200)
+                .end((err, res) => {
+                  if (err) return done.fail(err);
+
+                  expect(res.body.length).toEqual(1);
+                  expect(res.body[0].connection).toEqual(_identities[1].connection);
+                  expect(res.body[0].profileData.email).toEqual(_identities[1].profileData.email);
+
+                  done();
+                });
+            });
+
+            describe('Auth0', () => {
+
+              it('is called to link the secondary account to the primary', done => {
+                request(app)
+                  .delete(`/agent/link/twitter/abc-123`)
+                  .set('Authorization', `Bearer ${accessToken}`)
+                  .set('Accept', 'application/json')
+                  .expect('Content-Type', /json/)
+                  .expect(200)
+                  .end((err, res) => {
+                    if (err) return done.fail(err);
+                    expect(userUnlinkAccountScope.isDone()).toBe(true);
+                    expect(userUnlinkAccountOauthTokenScope.isDone()).toBe(true);
                     done();
                   });
               });

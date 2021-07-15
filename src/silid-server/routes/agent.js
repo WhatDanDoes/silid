@@ -124,6 +124,16 @@ router.put('/link', checkPermissions([scope.update.agents]), function(req, res, 
   });
 });
 
+router.delete('/link/:provider/:user_id', checkPermissions([scope.update.agents]), function(req, res, next) {
+  const managementClient = getManagementClient(apiScope.update.users);
+  managementClient.unlinkUsers({...req.params, id: req.user.user_id }).then(identity => {
+
+    res.status(200).json(identity);
+  }).catch(err => {
+    res.status(err.statusCode).json({ message: JSON.parse(err.message).error_description });
+  });
+});
+
 
 
 router.get('/:id', checkPermissions([scope.read.agents]), function(req, res, next) {
