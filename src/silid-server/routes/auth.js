@@ -25,7 +25,7 @@ router.get('/login', (req, res, next) => {
   const authenticator = passport.authenticate('auth0', {
     scope: 'openid email profile',
     audience: process.env.AUTH0_API_AUDIENCE,
-    ui_locales: locales.trim()
+    ui_locales: locales
   });
   return authenticator(req, res, next);
 });
