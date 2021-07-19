@@ -673,6 +673,59 @@ const Agent = (props) => {
                 </Table>
               </TableContainer>
             </Grid>
+
+
+
+            {profileData.email_verified && profileData.email === agent.email ?
+              <Grid item className={classes.grid}>
+                <Typography className={classes.header} variant="h5" component="h3">
+                  <Button
+                    id="find-linkable-accounts"
+                    variant="contained"
+                    color="primary"
+                    onClick={() => {
+//                      const headers = new Headers();
+//                      headers.append('Content-Type', 'application/json; charset=utf-8');
+//                      fetch('/agent/verify',
+//                        {
+//                          method: 'POST',
+//                          body: JSON.stringify({ id: profileData.user_id }),
+//                          headers,
+//                        }
+//                      )
+//                      .then(response => response.json())
+//                      .then(response => {
+//                        if (response.message) {
+//                          setFlashProps({ message: getFormattedMessage(response.message), variant: 'success' });
+//                        }
+//                        else {
+//                          setFlashProps({ message: getFormattedMessage('Could not verify email was sent'), variant: 'warning' });
+//                        }
+//                      })
+//                      .catch(error => {
+//                        setFlashProps({ message: error.message, variant: 'error' });
+//                      });
+                    }}
+                  >
+                    <FormattedMessage id='Find Linkable Accounts' />
+                  </Button>
+                </Typography>
+                {profileData.identities && profileData.identities.length > 1 ?
+                  <TableContainer>
+                    <Table id="linkable-accounts" className={classes.table} aria-label={getFormattedMessage('Accounts with same email')}>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell align="center">
+
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                </TableContainer>
+                : '' }
+              </Grid>
+            : ''}
+
             {!profileData.email_verified ?
               <Grid item className={classes.grid}>
                 <TableContainer>
@@ -754,4 +807,41 @@ const Agent = (props) => {
 };
 
 export default Agent;
+
+//                          {profileData.email === agent.email ?
+//                            <Button
+//                              id="resend-verification-email-button"
+//                              variant="contained"
+//                              color="secondary"
+//                              onClick={() => {
+//                                const headers = new Headers();
+//                                headers.append('Content-Type', 'application/json; charset=utf-8');
+//                                fetch('/agent/verify',
+//                                  {
+//                                    method: 'POST',
+//                                    body: JSON.stringify({ id: profileData.user_id }),
+//                                    headers,
+//                                  }
+//                                )
+//                                .then(response => response.json())
+//                                .then(response => {
+//                                  if (response.message) {
+//                                    setFlashProps({ message: getFormattedMessage(response.message), variant: 'success' });
+//                                  }
+//                                  else {
+//                                    setFlashProps({ message: getFormattedMessage('Could not verify email was sent'), variant: 'warning' });
+//                                  }
+//                                })
+//                                .catch(error => {
+//                                  setFlashProps({ message: error.message, variant: 'error' });
+//                                });
+//                              }}
+//                            >
+//                              <FormattedMessage id='Resend Verification Email' />
+//                            </Button>
+//                          :
+//                            <div id='verification-status' style={{ color: 'red' }}>
+//                              <FormattedMessage id='This is an unverified account' />
+//                            </div>
+//                          }
 

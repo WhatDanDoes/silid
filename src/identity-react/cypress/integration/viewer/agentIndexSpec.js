@@ -90,23 +90,43 @@ context('viewer/Agent Index', () => {
       });
 
       describe('account linking', () => {
-        it("displays a 'Find Linkable Accounts' button", (done) => {
-            done.fail(); 
+        it("displays a 'Find Linkable Accounts' button", () => {
+          cy.get('button#find-linkable-accounts').should('exist');
+          cy.get('button#find-linkable-accounts').contains('Find Linkable Accounts');
         });
 
         describe('no linked account', () => {
-          it('does not display a linked-accounts table', (done) => {
-            done.fail(); 
+          it('does not display a linked-accounts table', () => {
+            cy.get('#linkable-accounts').should('not.exist');
           });
         });
 
         describe('linked accounts', () => {
-          it('displays a linked-accounts table', (done) => {
-            done.fail(); 
+          it('displays a linked-accounts table', () => {
+            cy.login(_profile.email, {..._profile,
+              identities: [
+                {
+                  "provider": "google-oauth2",
+                  "access_token": "ya29.abc-12e",
+                  "expires_in": 3599,
+                  "user_id": "117550400000000000000",
+                  "connection": "google-oauth2",
+                  "isSocial": true
+                },
+                {
+                  "user_id": "60eda0000000000000000000",
+                  "provider": "auth0",
+                  "connection": "Username-Password-Authentication",
+                  "isSocial": false
+                }
+              ]
+            });
+            cy.url().should('contain', '/#/agent');
+
+            cy.get('#linkable-accounts').should('exist');
           });
         });
       });
-
 
       describe('social profile data', () => {
         it('toggles JSON display', () => {
