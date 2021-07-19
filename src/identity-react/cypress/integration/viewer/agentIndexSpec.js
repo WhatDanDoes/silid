@@ -89,6 +89,25 @@ context('viewer/Agent Index', () => {
         });
       });
 
+      describe('account linking', () => {
+        it("displays a 'Find Linkable Accounts' button", (done) => {
+            done.fail(); 
+        });
+
+        describe('no linked account', () => {
+          it('does not display a linked-accounts table', (done) => {
+            done.fail(); 
+          });
+        });
+
+        describe('linked accounts', () => {
+          it('displays a linked-accounts table', (done) => {
+            done.fail(); 
+          });
+        });
+      });
+
+
       describe('social profile data', () => {
         it('toggles JSON display', () => {
           cy.get('.react-json-view').its('length').should('eq', 1);

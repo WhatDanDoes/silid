@@ -89,6 +89,24 @@ context('viewer/Agent show', () => {
           cy.get('#profile-table table tbody tr ul li:last-of-type #assign-role').should('not.exist');
         });
 
+        describe('account linking', () => {
+          it("displays a 'Find Linkable Accounts' button", (done) => {
+            done.fail(); 
+          });
+
+          describe('no linked account', () => {
+            it('does not display a linked-accounts table', (done) => {
+              done.fail(); 
+            });
+          });
+
+          describe('linked accounts', () => {
+            it('displays a linked-accounts table', (done) => {
+              done.fail(); 
+            });
+          });
+        });
+
         describe('social profile data', () => {
           it('toggles JSON display', () => {
             cy.get('.react-json-view').its('length').should('eq', 1);
@@ -246,6 +264,24 @@ context('viewer/Agent show', () => {
 
           cy.get('button#save-agent').should('not.exist');
           cy.get('button#cancel-agent-changes').should('not.exist');
+        });
+
+        describe('account linking', () => {
+          it("does not display a 'Find Linkable Accounts' button", (done) => {
+            done.fail(); 
+          });
+
+          describe('no linked account', () => {
+            it('does not display a linked-accounts table', (done) => {
+              done.fail(); 
+            });
+          });
+
+          describe('linked accounts', () => {
+            it('does not display a linked-accounts table', (done) => {
+              done.fail(); 
+            });
+          });
         });
 
         describe('social profile data', () => {
