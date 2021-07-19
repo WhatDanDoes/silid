@@ -626,7 +626,7 @@ require('../support/setupKeystore').then(keyStuff => {
         path: '/api/v2/users-by-email',
         handler: (request, h) => {
           console.log('/api/v2/users-by-email');
-          return h.response({});
+          return h.response([]);
         }
       });
 
@@ -742,7 +742,6 @@ require('../support/setupKeystore').then(keyStuff => {
           });
         }
       });
-
 
       await server.start();
       console.log('Server running on %s', server.info.uri);
