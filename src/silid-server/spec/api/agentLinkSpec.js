@@ -88,7 +88,7 @@ describe('agentLinkSpec', () => {
 
             describe('session access', () => {
 
-              it('returns the lone agent profile', done => {
+              it('returns the lone profile (in real life)', done => {
                 authenticatedSession
                   .get('/agent/profiles')
                   .set('Accept', 'application/json')
@@ -128,7 +128,7 @@ describe('agentLinkSpec', () => {
                   .reply(200, {..._identity, permissions: [scope.read.agents] });
               });
 
-              it('returns the lone agent profile', done => {
+              it('returns the lone profile (in real life)', done => {
                 request(app)
                   .get('/agent/profiles')
                   .set('Authorization', `Bearer ${accessToken}`)
@@ -163,10 +163,18 @@ describe('agentLinkSpec', () => {
             });
           });
 
-          describe('linkable accounts exist', () => {
+          describe('linkable account exists', () => {
 
             beforeEach(done => {
-              stubUserReadByEmail([_profile, {..._profile, email: 'someotherguy@example.com' }], (err, apiScopes) => {
+              stubUserReadByEmail([
+                {
+                  ..._profile,
+                },
+                {
+                  ..._profile,
+                  email: 'pretendthisisthesameemail@example.com'
+                }
+              ], (err, apiScopes) => {
                 if (err) return done.fail(err);
                 ({userReadByEmailScope, userReadByEmailOauthTokenScope} = apiScopes);
 
@@ -176,7 +184,7 @@ describe('agentLinkSpec', () => {
 
             describe('session access', () => {
 
-              it('returns the lone agent profile', done => {
+              it('returns all matching agent profiles (in real life)', done => {
                 authenticatedSession
                   .get('/agent/profiles')
                   .set('Accept', 'application/json')
@@ -188,7 +196,7 @@ describe('agentLinkSpec', () => {
                     expect(res.body.length).toEqual(2);
                     expect(res.body[0].email).toEqual(_profile.email);
                     expect(res.body[0].email_verified).toBe(true);
-                    expect(res.body[1].email).toEqual('someotherguy@example.com');
+                    expect(res.body[1].email).toEqual('pretendthisisthesameemail@example.com');
                     expect(res.body[1].email_verified).toBe(true);
 
                     done();
@@ -221,7 +229,7 @@ describe('agentLinkSpec', () => {
                   .reply(200, {..._identity, permissions: [scope.read.agents] });
               });
 
-              it('returns the lone agent profile', done => {
+              it('returns all matching agent profiles (in real life)', done => {
                 request(app)
                   .get('/agent/profiles')
                   .set('Authorization', `Bearer ${accessToken}`)
@@ -234,7 +242,7 @@ describe('agentLinkSpec', () => {
                     expect(res.body.length).toEqual(2);
                     expect(res.body[0].email).toEqual(_profile.email);
                     expect(res.body[0].email_verified).toBe(true);
-                    expect(res.body[1].email).toEqual('someotherguy@example.com');
+                    expect(res.body[1].email).toEqual('pretendthisisthesameemail@example.com');
                     expect(res.body[1].email_verified).toBe(true);
 
                     done();
@@ -278,7 +286,7 @@ describe('agentLinkSpec', () => {
 
             describe('session access', () => {
 
-              it('returns the lone agent profile', done => {
+              it('returns all matching agent profiles (in real life)', done => {
                 authenticatedSession
                   .get('/agent/profiles')
                   .set('Accept', 'application/json')
@@ -323,7 +331,7 @@ describe('agentLinkSpec', () => {
                   .reply(200, {..._identity, permissions: [scope.read.agents] });
               });
 
-              it('returns the lone agent profile', done => {
+              it('returns all matching agent profiles (in real life)', done => {
                 request(app)
                   .get('/agent/profiles')
                   .set('Authorization', `Bearer ${accessToken}`)
