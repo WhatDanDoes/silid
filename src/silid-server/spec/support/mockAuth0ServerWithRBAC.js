@@ -689,12 +689,15 @@ require('../support/setupKeystore').then(keyStuff => {
         handler: async (request, h) => {
           console.log(`/api/v2/users/${request.params.primary_id}/identities/${request.params.provider}/${request.params.user_id}`);
 
-          let results = await models.Agent.findOne({ where: {'socialProfile.user_id': `${request.params.provider}|${request.params.user_id}` } });
+          let allAgents = await models.Agent.findAll({});
 
-          let response = results.socialProfile.identities.find(r =>
-            r.provider === request.params.provider &&
-            r.user_id === request.params.user_id
-          );
+          // Auth0 returns the primary account identity
+          let results = await models.Agent.findOne({ where: {'socialProfile.user_id': request.params.primary_id } });
+
+
+          let provider, primary_id;
+          [provider, primary_id] = request.params.primary_id.split('|');
+          let response = results.socialProfile.identities.find(r => r.user_id === primary_id);
 
           response.profileData = {
             email: results.email,
