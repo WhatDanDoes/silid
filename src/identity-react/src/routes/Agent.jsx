@@ -944,7 +944,7 @@ const Agent = (props) => {
                                     });
                                   }}
                                 >
-                                  <FormattedMessage id={accountsAreLinked(account.connection, account.provider, account.user_id) ? 'Unlink' : 'Link'} />
+                                  <FormattedMessage id="Link" />
                                   <React.Fragment>
                                     {isLinkingAccounts ? <CircularProgress className="link-account-spinner" color="inherit" size={20} /> : null}
                                   </React.Fragment>
