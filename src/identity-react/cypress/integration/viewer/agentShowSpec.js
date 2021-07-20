@@ -96,7 +96,7 @@ context('viewer/Agent show', () => {
 
           describe('no linked account', () => {
             it('does not display a linked-accounts table', () => {
-              cy.get('#linkable-accounts').should('not.exist');
+              cy.get('#linked-accounts').should('not.exist');
             });
           });
 
@@ -126,7 +126,7 @@ context('viewer/Agent show', () => {
               cy.wait(300);
               cy.url().should('contain', `/#/agent/${memberAgent.socialProfile.user_id}`);
 
-              cy.get('#linkable-accounts').should('not.exist');
+              cy.get('#linked-accounts').should('not.exist');
             });
           });
         });
@@ -205,7 +205,7 @@ context('viewer/Agent show', () => {
 
           describe('no linked account', () => {
             it('does not display a linked-accounts table', () => {
-              cy.get('#linkable-accounts').should('not.exist');
+              cy.get('#linked-accounts').should('not.exist');
             });
           });
 
@@ -235,7 +235,7 @@ context('viewer/Agent show', () => {
               cy.wait(300);
               cy.url().should('contain', `/#/agent/${agent.socialProfile.user_id}`);
 
-              cy.get('#linkable-accounts').should('exist');
+              cy.get('#linked-accounts').should('exist');
             });
           });
         });
@@ -339,7 +339,7 @@ context('viewer/Agent show', () => {
 
           describe('no linked account', () => {
             it('does not display a linked-accounts table', () => {
-              cy.get('#linkable-accounts').should('not.exist');
+              cy.get('#linked-accounts').should('not.exist');
             });
           });
 
@@ -369,7 +369,7 @@ context('viewer/Agent show', () => {
               cy.wait(300);
               cy.url().should('contain', `/#/agent/${agent.socialProfile.user_id}`);
 
-              cy.get('#linkable-accounts').should('not.exist');
+              cy.get('#linked-accounts').should('not.exist');
             });
           });
         });

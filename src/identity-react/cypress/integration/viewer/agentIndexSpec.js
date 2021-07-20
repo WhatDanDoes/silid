@@ -123,7 +123,7 @@ context('viewer/Agent Index', () => {
             });
             cy.url().should('contain', '/#/agent');
 
-            cy.get('#linkable-accounts').should('exist');
+            cy.get('#linked-accounts').should('exist');
           });
         });
       });
