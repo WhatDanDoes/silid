@@ -706,6 +706,10 @@ const Agent = (props) => {
                         }
                         else {
                           let identities = [];
+
+                          // No need to link the current profile
+                          response = response.filter(r => r.email !== profileData.email);
+
                           for (let r of response) {
                             let provider, id;
                             [provider, id] = r.user_id.split('|');
@@ -717,6 +721,7 @@ const Agent = (props) => {
                               }
                             }
                           }
+
                           setLinkableAccounts(identities);
                         }
                       })
