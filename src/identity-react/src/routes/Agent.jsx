@@ -707,7 +707,6 @@ const Agent = (props) => {
                         else {
                           let identities = [];
                           for (let r of response) {
-                            console.log(JSON.stringify(r));
                             let provider, id;
                             [provider, id] = r.user_id.split('|');
 
