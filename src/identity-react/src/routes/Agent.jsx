@@ -17,6 +17,7 @@ import Grid from '@material-ui/core/Grid';
  * For profile data display
  */
 import Table from '@material-ui/core/Table';
+import TableHead from '@material-ui/core/TableHead';
 import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';
 import TableContainer from '@material-ui/core/TableContainer';
@@ -140,6 +141,12 @@ const Agent = (props) => {
   const [isSettingLocale, setIsSettingLocale] = React.useState(false);
   const loadingLocale = localeIsOpen && localeOptions.length === 0;
   const { setLangCode, getFormattedMessage } = useLanguageProviderState();
+
+  /**
+   * For linkable accounts
+   */
+  const [isLoadingAccounts, setIsLoadingAccounts] = React.useState(false);
+  const [linkableAccounts, setLinkableAccounts] = React.useState([]);
 
   React.useEffect(() => {
     let active = true;
@@ -674,8 +681,6 @@ const Agent = (props) => {
               </TableContainer>
             </Grid>
 
-
-
             {profileData.email_verified && profileData.email === agent.email ?
               <Grid item className={classes.grid}>
                 <Typography className={classes.header} variant="h5" component="h3">
@@ -684,41 +689,106 @@ const Agent = (props) => {
                     variant="contained"
                     color="primary"
                     onClick={() => {
-//                      const headers = new Headers();
-//                      headers.append('Content-Type', 'application/json; charset=utf-8');
-//                      fetch('/agent/verify',
-//                        {
-//                          method: 'POST',
-//                          body: JSON.stringify({ id: profileData.user_id }),
-//                          headers,
-//                        }
-//                      )
-//                      .then(response => response.json())
-//                      .then(response => {
-//                        if (response.message) {
-//                          setFlashProps({ message: getFormattedMessage(response.message), variant: 'success' });
-//                        }
-//                        else {
-//                          setFlashProps({ message: getFormattedMessage('Could not verify email was sent'), variant: 'warning' });
-//                        }
-//                      })
-//                      .catch(error => {
-//                        setFlashProps({ message: error.message, variant: 'error' });
-//                      });
+                      setIsLoadingAccounts(true);
+
+                      const headers = new Headers();
+                      headers.append('Content-Type', 'application/json; charset=utf-8');
+                      fetch('/agent/profiles',
+                        {
+                          method: 'GET',
+                          headers,
+                        }
+                      )
+                      .then(response => response.json())
+                      .then(response => {
+                        if (!response.length) {
+                          setFlashProps({ message: getFormattedMessage('No linkable accounts'), variant: 'success' });
+                        }
+                        else {
+                          let identities = [];
+                          for (let r of response) {
+                            console.log(JSON.stringify(r));
+                            let provider, id;
+                            [provider, id] = r.user_id.split('|');
+
+
+                            for (let i of r.identities) {
+                              if (i.provider === provider && i.user_id === id) {
+                                identities.push(i);
+                              }
+                            }
+                          }
+                          setLinkableAccounts(identities);
+                        }
+                      })
+                      .catch(error => {
+                        setFlashProps({ message: error.message, variant: 'error' });
+                      })
+                      .finally(() => {
+                        setIsLoadingAccounts(false);
+                      });
                     }}
                   >
                     <FormattedMessage id='Find Linkable Accounts' />
+                    <React.Fragment>
+                      {isLoadingAccounts ? <CircularProgress id="load-linkable-spinner" color="inherit" size={20} /> : null}
+                    </React.Fragment>
                   </Button>
                 </Typography>
-                {profileData.identities && profileData.identities.length > 1 ?
+                {(profileData.identities && profileData.identities.length > 1) || linkableAccounts.length  ?
                   <TableContainer>
-                    <Table id="linkable-accounts" className={classes.table} aria-label={getFormattedMessage('Accounts with same email')}>
-                      <TableBody>
+                    <Table id="linkable-accounts" className={classes.table} aria-label={getFormattedMessage('Linkable Accounts')}>
+                      <TableHead>
                         <TableRow>
                           <TableCell align="center">
-
+                            connection
+                          </TableCell>
+                          <TableCell align="center">
+                            isSocial
+                          </TableCell>
+                          <TableCell align="center">
+                            provider
+                          </TableCell>
+                          <TableCell align="center">
+                            user_id
+                          </TableCell>
+                          <TableCell align="center">
+                            actions
                           </TableCell>
                         </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        { linkableAccounts.map(account => (
+
+                          <TableRow key={account.user_id}>
+                            <TableCell className="connection" align="center">
+                              {account.connection}
+                            </TableCell>
+                            <TableCell className="is-social" align="center">
+                              {`${account.isSocial}`}
+                            </TableCell>
+                            <TableCell className="provider" align="center">
+                              {account.provider}
+                            </TableCell>
+                            <TableCell className="user-id" align="center">
+                              {account.user_id}
+                            </TableCell>
+                            <TableCell className="action" align="center">
+                              <Button
+                                id="link-accounts"
+                                variant="contained"
+                                color="primary"
+                                onClick={() => {
+                                }}
+                              >
+                                <FormattedMessage id='Link' />
+                                <React.Fragment>
+                                  {isLoadingAccounts ? <CircularProgress id="link-account-spinner" color="inherit" size={20} /> : null}
+                                </React.Fragment>
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
                       </TableBody>
                     </Table>
                 </TableContainer>
@@ -807,41 +877,3 @@ const Agent = (props) => {
 };
 
 export default Agent;
-
-//                          {profileData.email === agent.email ?
-//                            <Button
-//                              id="resend-verification-email-button"
-//                              variant="contained"
-//                              color="secondary"
-//                              onClick={() => {
-//                                const headers = new Headers();
-//                                headers.append('Content-Type', 'application/json; charset=utf-8');
-//                                fetch('/agent/verify',
-//                                  {
-//                                    method: 'POST',
-//                                    body: JSON.stringify({ id: profileData.user_id }),
-//                                    headers,
-//                                  }
-//                                )
-//                                .then(response => response.json())
-//                                .then(response => {
-//                                  if (response.message) {
-//                                    setFlashProps({ message: getFormattedMessage(response.message), variant: 'success' });
-//                                  }
-//                                  else {
-//                                    setFlashProps({ message: getFormattedMessage('Could not verify email was sent'), variant: 'warning' });
-//                                  }
-//                                })
-//                                .catch(error => {
-//                                  setFlashProps({ message: error.message, variant: 'error' });
-//                                });
-//                              }}
-//                            >
-//                              <FormattedMessage id='Resend Verification Email' />
-//                            </Button>
-//                          :
-//                            <div id='verification-status' style={{ color: 'red' }}>
-//                              <FormattedMessage id='This is an unverified account' />
-//                            </div>
-//                          }
-
