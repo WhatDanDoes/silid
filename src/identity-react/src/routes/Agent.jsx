@@ -828,7 +828,7 @@ const Agent = (props) => {
                                       {
                                         method: 'PUT',
                                         body: JSON.stringify({
-                                          connection: account.connection,
+                                          connection_id: account.connection,
                                           user_id: account.user_id,
                                           provider: account.provider,
                                         }),
