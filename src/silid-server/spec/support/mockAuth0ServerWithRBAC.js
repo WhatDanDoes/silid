@@ -142,10 +142,14 @@ require('../support/setupKeystore').then(keyStuff => {
           else {
             console.log('No agent found. Creating...');
             let userId = request.payload.token.sub + ++subIndex;
+
             socialProfile._json.sub = userId;
             delete socialProfile._json.user_id;
             socialProfile.user_id = userId;
             delete socialProfile.sub;
+
+            // Make identity user_id matches that of root object
+            socialProfile.identities[0].user_id = userId.split('|')[1];
 
             agent = await models.Agent.create({
               email: request.payload.token.email,
@@ -620,13 +624,30 @@ require('../support/setupKeystore').then(keyStuff => {
 
       /**
        * GET `/users-by-email`
+       *
+       * 2021-7-19
+       *
+       * I find myself in a weird position. Account merging is a given, but my
+       * local cache uses an agent's email as its primary key. Is this going to
+       * work in practice?
+       *
+       * This endpoint does not mimic _real_ functionality. Rather than change
+       * the database models, it's going to simply return all the agents
+       * currently stored in the DB.
+       *
+       * In all likelihood, this will change soon...
        */
       server.route({
         method: 'GET',
         path: '/api/v2/users-by-email',
-        handler: (request, h) => {
+        handler: async (request, h) => {
           console.log('/api/v2/users-by-email');
-          return h.response([]);
+          console.log(request.query);
+
+          let results = await models.Agent.findAll({ });
+          results = results.map(r => r.socialProfile);
+          results = results.filter(r => r.email !== request.query.email);
+          return h.response(results);
         }
       });
 
