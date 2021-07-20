@@ -36,7 +36,10 @@ module.exports = function(primary, options, done) {
 
             // For convenience, and at my peril, I am assuming there's only one
             // other identity in the account to be unlinked
-            return [ { ...primary.identities[1] } ];
+            //
+            // 2021-7-20 Crazier still... real-world testing shows this endpoint
+            // returns the primary account
+            return [ { ...primary.identities[0] } ];
           }
 
           return { message: { error_description: 'Some error occurred' } };

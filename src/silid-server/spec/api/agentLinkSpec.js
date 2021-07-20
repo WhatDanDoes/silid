@@ -1029,8 +1029,8 @@ describe('agentLinkSpec', () => {
                   if (err) return done.fail(err);
 
                   expect(res.body.length).toEqual(1);
-                  expect(res.body[0].connection).toEqual(_identities[1].connection);
-                  expect(res.body[0].profileData.email).toEqual(_identities[1].profileData.email);
+                  expect(res.body[0].connection).toEqual(_identities[0].connection);
+                  expect(res.body[0].provider).toEqual('google-oauth2');
 
                   done();
                 });
@@ -1073,8 +1073,8 @@ describe('agentLinkSpec', () => {
                   if (err) return done.fail(err);
 
                   expect(res.body.length).toEqual(1);
-                  expect(res.body[0].connection).toEqual(_identities[1].connection);
-                  expect(res.body[0].profileData.email).toEqual(_identities[1].profileData.email);
+                  expect(res.body[0].connection).toEqual(_identities[0].connection);
+                  expect(res.body[0].provider).toEqual('google-oauth2');
 
                   done();
                 });
