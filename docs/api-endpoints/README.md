@@ -244,7 +244,6 @@ const response = await fetch(`/agent/link`,
   {
     method: 'PUT',
     body: JSON.stringify({
-      connection: 'sms',
       user_id: '560ebaeef609ee1adaa7c551',
       provider: 'sms',
     }),
