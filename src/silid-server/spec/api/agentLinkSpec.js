@@ -523,7 +523,7 @@ describe('agentLinkSpec', () => {
                 authenticatedSession
                   .put('/agent/link')
                   .send({
-                    connection: 'twitter',
+                    connection_id: 'twitter',
                     user_id: 'abc-123',
                     provider: 'twitter',
                   })
@@ -544,7 +544,7 @@ describe('agentLinkSpec', () => {
                   authenticatedSession
                    .put('/agent/link')
                    .send({
-                     connection: 'twitter',
+                     connection_id: 'twitter',
                      user_id: 'abc-123',
                      provider: 'twitter',
                    })
@@ -573,7 +573,7 @@ describe('agentLinkSpec', () => {
                 request(app)
                   .put('/agent/link')
                   .send({
-                    connection: 'twitter',
+                    connection_id: 'twitter',
                     user_id: 'abc-123',
                     provider: 'twitter',
                   })
@@ -595,7 +595,7 @@ describe('agentLinkSpec', () => {
                   request(app)
                     .put('/agent/link')
                     .send({
-                      connection: 'twitter',
+                      connection_id: 'twitter',
                       user_id: 'abc-123',
                       provider: 'twitter',
                     })
@@ -639,7 +639,7 @@ describe('agentLinkSpec', () => {
                 authenticatedSession
                   .put('/agent/link')
                   .send({
-                    connection: 'twitter',
+                    connection_id: 'twitter',
                     user_id: 'abc-123',
                     provider: 'twitter',
                   })
@@ -663,7 +663,7 @@ describe('agentLinkSpec', () => {
                   authenticatedSession
                     .put('/agent/link')
                     .send({
-                      connection: 'twitter',
+                      connection_id: 'twitter',
                       user_id: 'abc-123',
                       provider: 'twitter',
                     })
@@ -692,7 +692,7 @@ describe('agentLinkSpec', () => {
                 request(app)
                   .put('/agent/link')
                   .send({
-                    connection: 'twitter',
+                    connection_id: 'twitter',
                     user_id: 'abc-123',
                     provider: 'twitter',
                   })
@@ -717,7 +717,7 @@ describe('agentLinkSpec', () => {
                   request(app)
                     .put('/agent/link')
                     .send({
-                      connection: 'twitter',
+                      connection_id: 'twitter',
                       user_id: 'abc-123',
                       provider: 'twitter',
                     })
@@ -752,7 +752,7 @@ describe('agentLinkSpec', () => {
                   ..._profile,
                   email: 'thesameguy@example.com',
                   identities: [{
-                    connection: 'twitter',
+                    connection_id: 'twitter',
                     user_id: 'abc-123',
                     provider: 'twitter',
                   }]
@@ -772,7 +772,7 @@ describe('agentLinkSpec', () => {
               authenticatedSession
                 .put('/agent/link')
                 .send({
-                  connection: 'twitter',
+                  connection_id: 'twitter',
                   user_id: 'abc-123',
                   provider: 'twitter',
                 })
@@ -793,7 +793,7 @@ describe('agentLinkSpec', () => {
                 authenticatedSession
                  .put('/agent/link')
                  .send({
-                   connection: 'twitter',
+                   connection_id: 'twitter',
                    user_id: 'abc-123',
                    provider: 'twitter',
                  })
@@ -822,7 +822,7 @@ describe('agentLinkSpec', () => {
               request(app)
                 .put('/agent/link')
                 .send({
-                  connection: 'twitter',
+                  connection_id: 'twitter',
                   user_id: 'abc-123',
                   provider: 'twitter',
                 })
@@ -844,7 +844,7 @@ describe('agentLinkSpec', () => {
                 request(app)
                   .put('/agent/link')
                   .send({
-                    connection: 'twitter',
+                    connection_id: 'twitter',
                     user_id: 'abc-123',
                     provider: 'twitter',
                   })
@@ -871,11 +871,11 @@ describe('agentLinkSpec', () => {
           {
             provider: 'google-oauth2',
             user_id: '117550400000000000000',
-            connection: 'google-oauth2',
+            connection_id: 'google-oauth2',
             isSocial: true
           },
           {
-            connection: 'twitter',
+            connection_id: 'twitter',
             user_id: 'abc-123',
             provider: 'twitter',
             profileData: {
@@ -1113,7 +1113,7 @@ describe('agentLinkSpec', () => {
         request(app)
           .put('/agent/link')
           .send({
-            connection: 'twitter',
+            connection_id: 'twitter',
             user_id: 'abc-123',
             provider: 'twitter',
           })
