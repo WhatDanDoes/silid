@@ -32,7 +32,8 @@ module.exports = function(primary, secondary, options, done) {
       // Assumes only a single identity in the secondary account
       const body = {
         'provider': secondary.identities[0].provider,
-        'connection_id': secondary.identities[0].connection,
+        // From where do I get connection_id?
+        //'connection_id': secondary.identities[0].connection,
         'user_id': secondary.identities[0].user_id,
       };
 
