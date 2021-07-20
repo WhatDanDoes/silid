@@ -622,6 +622,10 @@ require('../support/setupKeystore').then(keyStuff => {
         }
       });
 
+      /**************************/
+      /**       LINKING        **/
+      /**************************/
+
       /**
        * GET `/users-by-email`
        *
@@ -647,6 +651,60 @@ require('../support/setupKeystore').then(keyStuff => {
           let results = await models.Agent.findAll({ });
           results = results.map(r => r.socialProfile);
           return h.response(results);
+        }
+      });
+
+      server.route({
+        method: 'POST',
+        path: '/api/v2/users/{primary_id}/identities',
+        handler: async (request, h) => {
+          console.log(`/api/v2/users/${request.params.primary_id}/identities`);
+          console.log(request.payload);
+
+          let results = await models.Agent.findOne({ where: {'socialProfile.user_id': `${request.payload.provider}|${request.payload.user_id}` } });
+
+          let response = results.socialProfile.identities.find(r =>
+            r.connection === request.payload.connection &&
+            r.provider === request.payload.provider &&
+            r.user_id === request.payload.user_id
+          );
+
+          response.profileData = {
+            email: results.email,
+            email_verified: results.socialProfile.email_verified,
+            name: results.socialProfile.name,
+            username: results.socialProfile.username,
+            given_name: results.socialProfile.given_name,
+            family_name: results.socialProfile.family_name
+          };
+
+          return h.response([response]);
+        }
+      });
+
+      server.route({
+        method: 'DELETE',
+        path: '/api/v2/users/{primary_id}/identities/{provider}/{user_id}',
+        handler: async (request, h) => {
+          console.log(`/api/v2/users/${request.params.primary_id}/identities/${request.params.provider}/${request.params.user_id}`);
+
+          let results = await models.Agent.findOne({ where: {'socialProfile.user_id': `${request.params.provider}|${request.params.user_id}` } });
+
+          let response = results.socialProfile.identities.find(r =>
+            r.provider === request.params.provider &&
+            r.user_id === request.params.user_id
+          );
+
+          response.profileData = {
+            email: results.email,
+            email_verified: results.socialProfile.email_verified,
+            name: results.socialProfile.name,
+            username: results.socialProfile.username,
+            given_name: results.socialProfile.given_name,
+            family_name: results.socialProfile.family_name
+          };
+
+          return h.response([response]);
         }
       });
 
