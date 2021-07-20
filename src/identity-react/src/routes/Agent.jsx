@@ -147,7 +147,15 @@ const Agent = (props) => {
    */
   const [isLoadingAccounts, setIsLoadingAccounts] = React.useState(false);
   const [linkableAccounts, setLinkableAccounts] = React.useState([]);
+  const [isLinkingAccounts, setIsLinkingAccounts] = React.useState(false);
 
+  function accountsAreLinked(connection, provider, user_id) {
+    return !!profileData.identities.find(i => i.connection === connection && i.provider === provider && i.user_id === user_id);
+  };
+
+  /**
+   * SIL Locales
+   */
   React.useEffect(() => {
     let active = true;
 
@@ -701,14 +709,14 @@ const Agent = (props) => {
                       )
                       .then(response => response.json())
                       .then(response => {
+                        // No need to link the current profile
+                        response = response.filter(r => r.email !== profileData.email);
+
                         if (!response.length) {
                           setFlashProps({ message: getFormattedMessage('No linkable accounts'), variant: 'success' });
                         }
                         else {
                           let identities = [];
-
-                          // No need to link the current profile
-                          response = response.filter(r => r.email !== profileData.email);
 
                           for (let r of response) {
                             let provider, id;
@@ -779,15 +787,76 @@ const Agent = (props) => {
                             </TableCell>
                             <TableCell className="action" align="center">
                               <Button
-                                id="link-accounts"
+                                className={accountsAreLinked(account.connection, account.provider, account.user_id) ? 'unlink-accounts' : 'link-accounts'}
                                 variant="contained"
                                 color="primary"
                                 onClick={() => {
+                                  setIsLinkingAccounts(true);
+                                  const headers = new Headers();
+                                  headers.append('Content-Type', 'application/json; charset=utf-8');
+
+                                  if (accountsAreLinked(account.connection, account.provider, account.user_id)) {
+                                    fetch(`/agent/link/${account.provider}/${account.user_id}`,
+                                      {
+                                        method: 'DELETE',
+                                        headers,
+                                      }
+                                    )
+                                    .then(response => response.json())
+                                    .then(response => {
+                                      if (response.length) {
+                                        profileData.identities = profileData.identities.filter(r =>
+                                          response.connection === r.connection &&
+                                          response.provider === r.provider &&
+                                          response.user_id === r.user_id
+                                        );
+                                        setFlashProps({ message: getFormattedMessage('Accounts unlinked'), variant: 'success' });
+                                      }
+                                      else {
+                                        setFlashProps({ message: getFormattedMessage('Could not verify accounts were unlinked'), variant: 'warning' });
+                                      }
+                                    })
+                                    .catch(error => {
+                                      setFlashProps({ message: error.message, variant: 'error' });
+                                    })
+                                    .finally(() => {
+                                      setIsLinkingAccounts(false);
+                                    });
+                                  }
+                                  else {
+                                    fetch('/agent/link',
+                                      {
+                                        method: 'PUT',
+                                        body: JSON.stringify({
+                                          connection: account.connection,
+                                          user_id: account.user_id,
+                                          provider: account.provider,
+                                        }),
+                                        headers,
+                                      }
+                                    )
+                                    .then(response => response.json())
+                                    .then(response => {
+                                      if (response.length) {
+                                        profileData.identities = profileData.identities.concat(response);
+                                        setFlashProps({ message: getFormattedMessage('Accounts linked'), variant: 'success' });
+                                      }
+                                      else {
+                                        setFlashProps({ message: getFormattedMessage('Could not verify accounts were linked'), variant: 'warning' });
+                                      }
+                                    })
+                                    .catch(error => {
+                                      setFlashProps({ message: error.message, variant: 'error' });
+                                    })
+                                    .finally(() => {
+                                      setIsLinkingAccounts(false);
+                                    });
+                                  }
                                 }}
                               >
-                                <FormattedMessage id='Link' />
+                                <FormattedMessage id={accountsAreLinked(account.connection, account.provider, account.user_id) ? 'Unlink' : 'Link'} />
                                 <React.Fragment>
-                                  {isLoadingAccounts ? <CircularProgress id="link-account-spinner" color="inherit" size={20} /> : null}
+                                  {isLinkingAccounts ? <CircularProgress className="link-account-spinner" color="inherit" size={20} /> : null}
                                 </React.Fragment>
                               </Button>
                             </TableCell>
