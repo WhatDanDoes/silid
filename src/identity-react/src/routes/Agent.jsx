@@ -106,6 +106,7 @@ const useStyles = makeStyles(theme =>
 const Agent = (props) => {
 
   const [profileData, setProfileData] = useState({});
+  const [linkedAccounts, setLinkedAccounts] = useState([]);
   const [flashProps, setFlashProps] = useState({});
   const [isWaiting, setIsWaiting] = useState(false);
   const [unassignedRoles, setUnassignedRoles] = useState([]);
@@ -126,10 +127,15 @@ const Agent = (props) => {
       }
       else {
         setProfileData(service.payload);
+        let provider, id;
+        [provider, id] = service.payload.user_id.split('|');
+        setLinkedAccounts(service.payload.identities.filter(i => i.provider !== provider && i.user_id !== id));
+
         setIsIdpAuthenticated(!/^auth0\|*/.test(service.payload.user_id));
       }
     }
   }, [service]);
+  //});
 
   /**
    * For SIL Locale selection
@@ -691,6 +697,105 @@ const Agent = (props) => {
 
             {profileData.email_verified && profileData.email === agent.email ?
               <Grid item className={classes.grid}>
+                {linkedAccounts.length ?
+                  <>
+                    <Grid item>
+                      <Typography className={classes.header} variant="h5" component="h3">
+                        <FormattedMessage id='Linked Accounts' />
+                      </Typography>
+                    </Grid>
+                    <TableContainer>
+                      <Table id="linked-accounts" className={classes.table} aria-label={getFormattedMessage('Linkable Accounts')}>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell align="center">
+                              connection
+                            </TableCell>
+                            <TableCell align="center">
+                              isSocial
+                            </TableCell>
+                            <TableCell align="center">
+                              provider
+                            </TableCell>
+                            <TableCell align="center">
+                              user_id
+                            </TableCell>
+                            <TableCell align="center">
+                              actions
+                            </TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          { linkedAccounts.map(account => (
+
+                            <TableRow key={account.user_id}>
+                              <TableCell className="connection" align="center">
+                                {account.connection}
+                              </TableCell>
+                              <TableCell className="is-social" align="center">
+                                {`${account.isSocial}`}
+                              </TableCell>
+                              <TableCell className="provider" align="center">
+                                {account.provider}
+                              </TableCell>
+                              <TableCell className="user-id" align="center">
+                                {account.user_id}
+                              </TableCell>
+                              <TableCell className="action" align="center">
+                                <Button
+                                  className="unlink-accounts"
+                                  variant="contained"
+                                  color="primary"
+                                  onClick={() => {
+                                    setIsLinkingAccounts(true);
+                                    const headers = new Headers();
+                                    headers.append('Content-Type', 'application/json; charset=utf-8');
+
+                                    fetch(`/agent/link/${account.provider}/${account.user_id}`,
+                                      {
+                                        method: 'DELETE',
+                                        headers,
+                                      }
+                                    )
+                                    .then(response => response.json())
+                                    .then(response => {
+                                      if (response.length) {
+
+                                        // Remove from linkedAccounts
+                                        let linked = [];
+                                        for (let r of response) {
+                                          linked.concat(linkableAccounts.filter(l => l.user_id !== r.user_id && l.provider !== r.provider));
+                                        }
+                                        setLinkedAccounts(linked);
+                                        setLinkableAccounts(response);
+
+                                        setFlashProps({ message: getFormattedMessage('Accounts unlinked'), variant: 'success' });
+                                      }
+                                      else {
+                                        setFlashProps({ message: getFormattedMessage('Could not verify accounts were unlinked'), variant: 'warning' });
+                                      }
+                                    })
+                                    .catch(error => {
+                                      setFlashProps({ message: error.message, variant: 'error' });
+                                    })
+                                    .finally(() => {
+                                      setIsLinkingAccounts(false);
+                                    });
+                                  }}
+                                >
+                                  <FormattedMessage id="Unlink" />
+                                  <React.Fragment>
+                                    {isLinkingAccounts ? <CircularProgress className="link-account-spinner" color="inherit" size={20} /> : null}
+                                  </React.Fragment>
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </>
+                : '' }
                 <Typography className={classes.header} variant="h5" component="h3">
                   <Button
                     id="find-linkable-accounts"
@@ -747,83 +852,61 @@ const Agent = (props) => {
                     </React.Fragment>
                   </Button>
                 </Typography>
-                {(profileData.identities && profileData.identities.length > 1) || linkableAccounts.length  ?
-                  <TableContainer>
-                    <Table id="linkable-accounts" className={classes.table} aria-label={getFormattedMessage('Linkable Accounts')}>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell align="center">
-                            connection
-                          </TableCell>
-                          <TableCell align="center">
-                            isSocial
-                          </TableCell>
-                          <TableCell align="center">
-                            provider
-                          </TableCell>
-                          <TableCell align="center">
-                            user_id
-                          </TableCell>
-                          <TableCell align="center">
-                            actions
-                          </TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        { linkableAccounts.map(account => (
 
-                          <TableRow key={account.user_id}>
-                            <TableCell className="connection" align="center">
-                              {account.connection}
+                {linkableAccounts.length  ?
+                  <>
+                    <Grid item>
+                      <Typography className={classes.header} variant="h5" component="h3">
+                        <FormattedMessage id='Linkable Accounts' />
+                      </Typography>
+                    </Grid>
+                    <TableContainer>
+                      <Table id="linkable-accounts" className={classes.table} aria-label={getFormattedMessage('Linkable Accounts')}>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell align="center">
+                              connection
                             </TableCell>
-                            <TableCell className="is-social" align="center">
-                              {`${account.isSocial}`}
+                            <TableCell align="center">
+                              isSocial
                             </TableCell>
-                            <TableCell className="provider" align="center">
-                              {account.provider}
+                            <TableCell align="center">
+                              provider
                             </TableCell>
-                            <TableCell className="user-id" align="center">
-                              {account.user_id}
+                            <TableCell align="center">
+                              user_id
                             </TableCell>
-                            <TableCell className="action" align="center">
-                              <Button
-                                className={accountsAreLinked(account.connection, account.provider, account.user_id) ? 'unlink-accounts' : 'link-accounts'}
-                                variant="contained"
-                                color="primary"
-                                onClick={() => {
-                                  setIsLinkingAccounts(true);
-                                  const headers = new Headers();
-                                  headers.append('Content-Type', 'application/json; charset=utf-8');
+                            <TableCell align="center">
+                              actions
+                            </TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          { linkableAccounts.map(account => (
 
-                                  if (accountsAreLinked(account.connection, account.provider, account.user_id)) {
-                                    fetch(`/agent/link/${account.provider}/${account.user_id}`,
-                                      {
-                                        method: 'DELETE',
-                                        headers,
-                                      }
-                                    )
-                                    .then(response => response.json())
-                                    .then(response => {
-                                      if (response.length) {
-                                        profileData.identities = profileData.identities.filter(r =>
-                                          response.connection === r.connection &&
-                                          response.provider === r.provider &&
-                                          response.user_id === r.user_id
-                                        );
-                                        setFlashProps({ message: getFormattedMessage('Accounts unlinked'), variant: 'success' });
-                                      }
-                                      else {
-                                        setFlashProps({ message: getFormattedMessage('Could not verify accounts were unlinked'), variant: 'warning' });
-                                      }
-                                    })
-                                    .catch(error => {
-                                      setFlashProps({ message: error.message, variant: 'error' });
-                                    })
-                                    .finally(() => {
-                                      setIsLinkingAccounts(false);
-                                    });
-                                  }
-                                  else {
+                            <TableRow key={account.user_id}>
+                              <TableCell className="connection" align="center">
+                                {account.connection}
+                              </TableCell>
+                              <TableCell className="is-social" align="center">
+                                {`${account.isSocial}`}
+                              </TableCell>
+                              <TableCell className="provider" align="center">
+                                {account.provider}
+                              </TableCell>
+                              <TableCell className="user-id" align="center">
+                                {account.user_id}
+                              </TableCell>
+                              <TableCell className="action" align="center">
+                                <Button
+                                  className={accountsAreLinked(account.connection, account.provider, account.user_id) ? 'unlink-accounts' : 'link-accounts'}
+                                  variant="contained"
+                                  color="primary"
+                                  onClick={() => {
+                                    setIsLinkingAccounts(true);
+                                    const headers = new Headers();
+                                    headers.append('Content-Type', 'application/json; charset=utf-8');
+
                                     fetch('/agent/link',
                                       {
                                         method: 'PUT',
@@ -838,8 +921,15 @@ const Agent = (props) => {
                                     )
                                     .then(response => response.json())
                                     .then(response => {
+                                      // Remove from linkableAccounts
+                                      let linkables = [];
+                                      for (let r of response) {
+                                        linkables.concat(linkableAccounts.filter(l => l.user_id !== r.user_id && l.provider !== r.provider));
+                                      }
+                                      setLinkableAccounts(linkables);
+
                                       if (response.length) {
-                                        profileData.identities = profileData.identities.concat(response);
+                                        setLinkedAccounts(response);
                                         setFlashProps({ message: getFormattedMessage('Accounts linked'), variant: 'success' });
                                       }
                                       else {
@@ -852,20 +942,20 @@ const Agent = (props) => {
                                     .finally(() => {
                                       setIsLinkingAccounts(false);
                                     });
-                                  }
-                                }}
-                              >
-                                <FormattedMessage id={accountsAreLinked(account.connection, account.provider, account.user_id) ? 'Unlink' : 'Link'} />
-                                <React.Fragment>
-                                  {isLinkingAccounts ? <CircularProgress className="link-account-spinner" color="inherit" size={20} /> : null}
-                                </React.Fragment>
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                </TableContainer>
+                                  }}
+                                >
+                                  <FormattedMessage id={accountsAreLinked(account.connection, account.provider, account.user_id) ? 'Unlink' : 'Link'} />
+                                  <React.Fragment>
+                                    {isLinkingAccounts ? <CircularProgress className="link-account-spinner" color="inherit" size={20} /> : null}
+                                  </React.Fragment>
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </>
                 : '' }
               </Grid>
             : ''}
