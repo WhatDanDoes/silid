@@ -709,8 +709,9 @@ const Agent = (props) => {
                       )
                       .then(response => response.json())
                       .then(response => {
+
                         // No need to link the current profile
-                        response = response.filter(r => r.email !== profileData.email);
+                        response = response.filter(r => r.user_id !== profileData.user_id);
 
                         if (!response.length) {
                           setFlashProps({ message: getFormattedMessage('No linkable accounts'), variant: 'success' });
@@ -721,7 +722,6 @@ const Agent = (props) => {
                           for (let r of response) {
                             let provider, id;
                             [provider, id] = r.user_id.split('|');
-
 
                             for (let i of r.identities) {
                               if (i.provider === provider && i.user_id === id) {
