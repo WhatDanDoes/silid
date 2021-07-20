@@ -664,7 +664,7 @@ require('../support/setupKeystore').then(keyStuff => {
           let results = await models.Agent.findOne({ where: {'socialProfile.user_id': `${request.payload.provider}|${request.payload.user_id}` } });
 
           let response = results.socialProfile.identities.find(r =>
-            r.connection === request.payload.connection &&
+            r.connection === request.payload.connection_id &&
             r.provider === request.payload.provider &&
             r.user_id === request.payload.user_id
           );
