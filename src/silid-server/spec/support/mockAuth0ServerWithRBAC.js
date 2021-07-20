@@ -646,7 +646,6 @@ require('../support/setupKeystore').then(keyStuff => {
 
           let results = await models.Agent.findAll({ });
           results = results.map(r => r.socialProfile);
-          results = results.filter(r => r.email !== request.query.email);
           return h.response(results);
         }
       });
