@@ -438,10 +438,7 @@ describe('agentLinkSpec', () => {
 
             it('returns 401 unauthenticated', done => {
               request(app)
-                .post('/agent')
-                .send({
-                  email: 'someotherguy@example.com'
-                })
+                .get('/agent/profiles')
                 .set('Authorization', `Bearer ${accessToken}`)
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
@@ -458,10 +455,7 @@ describe('agentLinkSpec', () => {
 
               it('is not called', done => {
                 request(app)
-                  .post('/agent')
-                  .send({
-                    email: 'someotherguy@example.com'
-                  })
+                  .get('/agent/profiles')
                   .set('Authorization', `Bearer ${accessToken}`)
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
