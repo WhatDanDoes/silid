@@ -101,12 +101,31 @@ router.get('/', checkPermissions([scope.read.agents]), function(req, res, next) 
   });
 });
 
-router.get('/profiles', checkPermissions([scope.read.agents]), function(req, res, next) {
+router.get('/profiles/:email?', checkPermissions([scope.read.agents]), function(req, res, next) {
+
+  let email = req.user.email;
+  if (req.params.email) {
+    if (req.user.isOrganizer) {
+      email = req.params.email;
+    }
+    else {
+      return res.status(403).json({message: 'Forbidden'});
+    }
+  }
+
   const managementClient = getManagementClient(apiScope.read.users);
-  managementClient.getUsersByEmail(req.user.email).then(agents => {
+  managementClient.getUsersByEmail(email).then(agents => {
 
     // You can only link verified accounts
     agents = agents.filter(a => a.email_verified);
+
+    // Make sure primary account is verified
+    if (req.params.email) {
+      let primary = agents.find(a => a.email === req.params.email);
+      if (!primary) {
+        return res.status(400).json({message: 'Primary email is not verified'});
+      }
+    }
 
     res.status(200).json(agents);
   }).catch(err => {
@@ -114,9 +133,20 @@ router.get('/profiles', checkPermissions([scope.read.agents]), function(req, res
   });
 });
 
-router.put('/link', checkPermissions([scope.update.agents]), function(req, res, next) {
+router.put('/link/:primary_id?', checkPermissions([scope.update.agents]), function(req, res, next) {
+
+  let primaryId = req.user.user_id;
+  if (req.params.primary_id) {
+    if (req.user.isOrganizer) {
+      primaryId = req.params.primary_id;
+    }
+    else {
+      return res.status(403).json({message: 'Forbidden'});
+    }
+  }
+
   const managementClient = getManagementClient(apiScope.update.users);
-  managementClient.linkUsers(req.user.user_id, req.body).then(identities => {
+  managementClient.linkUsers(primaryId, req.body).then(identities => {
 
     res.status(201).json(identities);
   }).catch(err => {
@@ -124,17 +154,26 @@ router.put('/link', checkPermissions([scope.update.agents]), function(req, res, 
   });
 });
 
-router.delete('/link/:provider/:user_id', checkPermissions([scope.update.agents]), function(req, res, next) {
+router.delete('/link/:provider/:user_id/:primary_id?', checkPermissions([scope.update.agents]), function(req, res, next) {
+  let primaryId = req.user.user_id;
+  if (req.params.primary_id) {
+    if (req.user.isOrganizer) {
+      primaryId = req.params.primary_id;
+    }
+    else {
+      return res.status(403).json({message: 'Forbidden'});
+    }
+    delete req.params.primary_id;
+  }
+
   const managementClient = getManagementClient(apiScope.update.users);
-  managementClient.unlinkUsers({...req.params, id: req.user.user_id }).then(identity => {
+  managementClient.unlinkUsers({...req.params, id: primaryId }).then(identity => {
 
     res.status(200).json(identity);
   }).catch(err => {
     res.status(err.statusCode).json({ message: JSON.parse(err.message).error_description });
   });
 });
-
-
 
 router.get('/:id', checkPermissions([scope.read.agents]), function(req, res, next) {
   const managementClient = getManagementClient(apiScope.read.users);
