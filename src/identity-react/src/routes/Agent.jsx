@@ -488,7 +488,6 @@ const Agent = (props) => {
                                 key={data.id}
                                 label={data.name}
                                 className={classes.chip}
-                                disabled={isLinkingAccounts || (agent.email !== profileData.email && !admin.isEnabled)}
                                 onDelete={admin.isEnabled && data.name !== 'viewer' ?
                                   () => {
                                     const headers = new Headers();
@@ -747,6 +746,7 @@ const Agent = (props) => {
                                   className="unlink-accounts"
                                   variant="contained"
                                   color="primary"
+                                  disabled={isLinkingAccounts || (agent.email !== profileData.email && !admin.isEnabled)}
                                   onClick={() => {
                                     setIsLinkingAccounts(true);
                                     const headers = new Headers();
