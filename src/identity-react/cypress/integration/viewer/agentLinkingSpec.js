@@ -32,11 +32,13 @@ context('viewer/Agent linking', function() {
 
       it('displays a progress spinner', () => {
         cy.get('#load-linkable-spinner').should('not.exist');
+        cy.get('#find-linkable-accounts').should('not.be.disabled');
         cy.get('#find-linkable-accounts').click();
         cy.wait(300);
         // Cypress goes too fast for the spinner. This ensures it disappears when done
         //cy.get('#load-linkable-spinner').should('exist');
         cy.get('#load-linkable-spinner').should('not.exist');
+        cy.get('#find-linkable-accounts').should('not.be.disabled');
       });
 
       it('displays a friendly message', () => {
@@ -119,11 +121,13 @@ context('viewer/Agent linking', function() {
 
       it('displays a progress spinner', () => {
         cy.get('#load-linkable-spinner').should('not.exist');
+        cy.get('#find-linkable-accounts').should('not.be.disabled');
         cy.get('#find-linkable-accounts').click();
         cy.wait(300);
         // Cypress goes too fast for the spinner. This ensures it disappears when done
         //cy.get('#load-linkable-spinner').should('exist');
         cy.get('#load-linkable-spinner').should('not.exist');
+        cy.get('#find-linkable-accounts').should('not.be.disabled');
       });
 
       it('displays linkable account info in a linkable-accounts table', () => {

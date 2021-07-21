@@ -488,6 +488,7 @@ const Agent = (props) => {
                                 key={data.id}
                                 label={data.name}
                                 className={classes.chip}
+                                disabled={isLinkingAccounts || (agent.email !== profileData.email && !admin.isEnabled)}
                                 onDelete={admin.isEnabled && data.name !== 'viewer' ?
                                   () => {
                                     const headers = new Headers();
@@ -802,6 +803,7 @@ const Agent = (props) => {
                     id="find-linkable-accounts"
                     variant="contained"
                     color="primary"
+                    disabled={isLoadingAccounts || (agent.email !== profileData.email && !admin.isEnabled)}
                     onClick={() => {
                       setIsLoadingAccounts(true);
 
@@ -884,7 +886,6 @@ const Agent = (props) => {
                         </TableHead>
                         <TableBody>
                           { linkableAccounts.map(account => (
-
                             <TableRow key={account.user_id}>
                               <TableCell className="connection" align="center">
                                 {account.connection}
@@ -903,6 +904,7 @@ const Agent = (props) => {
                                   className={accountsAreLinked(account.connection, account.provider, account.user_id) ? 'unlink-accounts' : 'link-accounts'}
                                   variant="contained"
                                   color="primary"
+                                  disabled={isLinkingAccounts || (agent.email !== profileData.email && !admin.isEnabled)}
                                   onClick={() => {
                                     setIsLinkingAccounts(true);
                                     const headers = new Headers();
@@ -923,20 +925,19 @@ const Agent = (props) => {
                                     .then(response => response.json())
                                     .then(response => {
 
-                                      // Remove from linkableAccounts
+                                      // Remove newly linked account from linkableAccounts
                                       let linkables = [];
                                       for (let r of response) {
                                         linkables.concat(linkableAccounts.filter(l => l.user_id !== r.user_id && l.provider !== r.provider));
                                       }
                                       setLinkableAccounts(linkables);
 
-                                      if (response.length) {
-                                        setLinkedAccounts(response);
-                                        setFlashProps({ message: getFormattedMessage('Accounts linked'), variant: 'success' });
-                                      }
-                                      else {
-                                        setFlashProps({ message: getFormattedMessage('Could not verify accounts were linked'), variant: 'warning' });
-                                      }
+                                      // Remove primary account from returned list of linked accounts
+                                      let [primary_provider, primary_id] = profileData.user_id.split('|');
+                                      let linked = response.filter(r => r.user_id !== primary_id);
+
+                                      setLinkedAccounts(linked);
+                                      setFlashProps({ message: getFormattedMessage('Accounts linked'), variant: 'success' });
                                     })
                                     .catch(error => {
                                       setFlashProps({ message: error.message, variant: 'error' });
