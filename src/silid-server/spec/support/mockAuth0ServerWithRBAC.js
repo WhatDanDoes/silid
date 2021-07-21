@@ -661,6 +661,7 @@ require('../support/setupKeystore').then(keyStuff => {
           console.log(`/api/v2/users/${request.params.primary_id}/identities`);
           console.log(request.payload);
 
+          let primary = await models.Agent.findOne({ where: {'socialProfile.user_id': request.params.primary_id } });
           let results = await models.Agent.findOne({ where: {'socialProfile.user_id': `${request.payload.provider}|${request.payload.user_id}` } });
 
           let response = results.socialProfile.identities.find(r =>
@@ -679,7 +680,9 @@ require('../support/setupKeystore').then(keyStuff => {
             family_name: results.socialProfile.family_name
           };
 
-          return h.response([response]);
+          // A lot of assumptions here... namely that the primary account's main identity
+          // is the first in the list
+          return h.response([primary.socialProfile.identities[0], response]);
         }
       });
 
