@@ -751,6 +751,7 @@ const Agent = (props) => {
                                     const headers = new Headers();
                                     headers.append('Content-Type', 'application/json; charset=utf-8');
 
+                                    let currentlyLinked = linkedAccounts.find(l => l.provider === account.provider && l.user_id === account.user_id);
                                     fetch(`/agent/link/${account.provider}/${account.user_id}`,
                                       {
                                         method: 'DELETE',
@@ -767,7 +768,7 @@ const Agent = (props) => {
                                           linked.concat(linkableAccounts.filter(l => l.user_id !== r.user_id && l.provider !== r.provider));
                                         }
                                         setLinkedAccounts(linked);
-                                        setLinkableAccounts(response);
+                                        setLinkableAccounts([...linkableAccounts, currentlyLinked]);
 
                                         setFlashProps({ message: getFormattedMessage('Accounts unlinked'), variant: 'success' });
                                       }
@@ -921,6 +922,7 @@ const Agent = (props) => {
                                     )
                                     .then(response => response.json())
                                     .then(response => {
+
                                       // Remove from linkableAccounts
                                       let linkables = [];
                                       for (let r of response) {

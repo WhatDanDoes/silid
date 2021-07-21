@@ -175,6 +175,12 @@ context('viewer/Agent linking', function() {
           cy.wait(300);
           cy.get('#linked-accounts tbody tr td.action').contains('Unlink');
           cy.get('#linked-accounts tbody').find('tr').should('have.length', 1);
+
+          cy.get('#linked-accounts tbody tr td.connection').contains(linkableAcct.socialProfile.identities[0].connection);
+          cy.get('#linked-accounts tbody tr td.is-social').contains(`${linkableAcct.socialProfile.identities[0].isSocial}`);
+          cy.get('#linked-accounts tbody tr td.provider').contains(linkableAcct.socialProfile.identities[0].provider);
+          cy.get('#linked-accounts tbody tr td.user-id').contains(linkableAcct.socialProfile.identities[0].user_id);
+          cy.get('#linked-accounts tbody tr td.action').contains('Unlink');
         });
 
         describe('unlinking', () => {
@@ -207,13 +213,18 @@ context('viewer/Agent linking', function() {
           });
 
           it('adds the account to the linkable-accounts table with a "Link" button', () => {
-            //cy.get('#linkable-accounts tbody').find('tr').should('have.length', 0);
             cy.get('#linkable-accounts').should('not.exist');
             cy.get('#linked-accounts tbody tr td.action').contains('Unlink');
             cy.get('.unlink-accounts').first().click();
             cy.wait(300);
             cy.get('#linkable-accounts tbody tr td.action').contains('Link');
             cy.get('#linkable-accounts tbody').find('tr').should('have.length', 1);
+
+            cy.get('#linkable-accounts tbody tr td.connection').contains(linkableAcct.socialProfile.identities[0].connection);
+            cy.get('#linkable-accounts tbody tr td.is-social').contains(`${linkableAcct.socialProfile.identities[0].isSocial}`);
+            cy.get('#linkable-accounts tbody tr td.provider').contains(linkableAcct.socialProfile.identities[0].provider);
+            cy.get('#linkable-accounts tbody tr td.user-id').contains(linkableAcct.socialProfile.identities[0].user_id);
+            cy.get('#linkable-accounts tbody tr td.action').contains('Link');
           });
         });
       });
