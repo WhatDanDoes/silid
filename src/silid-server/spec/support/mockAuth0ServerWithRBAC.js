@@ -10,6 +10,7 @@ require('dotenv-flow').config();
 const jwt = require('jsonwebtoken');
 const pem = require('pem');
 const crypto = require('crypto');
+const Op = require('sequelize').Op;
 
 /**
  * This must match the config at Auth0
@@ -119,7 +120,6 @@ require('../support/setupKeystore').then(keyStuff => {
           console.log('/register');
           console.log(request.payload);
 
-
           /**
            * Add agent to the _Auth0 database_
            */
@@ -127,25 +127,43 @@ require('../support/setupKeystore').then(keyStuff => {
           // Has this agent already been registered?
           let agent = await models.Agent.findOne({ where: {email: request.payload.token.email}});
 
+          let identities = _profile.identities.map(i => { return {...i}; });
           let socialProfile = { ..._profile, ...request.payload.token, _json: { ..._profile, ...request.payload.token } };
+
           if (agent) {
             console.log('Agent found. Updating...');
 
             socialProfile._json.sub = agent.socialProfile.user_id;
             socialProfile.user_id = agent.socialProfile.user_id;
-            if (agent.socialProfile) {
-              socialProfile = {...agent.socialProfile, ...socialProfile};
+
+            if (request.payload.token.identities) {
+              socialProfile = {...agent.socialProfile, ...socialProfile, identities: request.payload.token.identities};
+           }
+            else {
+              socialProfile = {...agent.socialProfile, ...socialProfile, identities: agent.socialProfile.identities};
             }
+
             agent.socialProfile = socialProfile;
             await agent.save();
           }
           else {
+            socialProfile.identities = identities;
             console.log('No agent found. Creating...');
             let userId = request.payload.token.sub + ++subIndex;
+
             socialProfile._json.sub = userId;
             delete socialProfile._json.user_id;
             socialProfile.user_id = userId;
             delete socialProfile.sub;
+
+            // Make identity user_id matches that of root object
+            if (request.payload.token.identities) {
+              socialProfile = {...socialProfile, identities: request.payload.token.identities};
+           }
+            else {
+              socialProfile.identities[0].user_id = userId.split('|')[1];
+              //socialProfile = {...agent.socialProfile, ...socialProfile, identities: agent.socialProfile.identities};
+            }
 
             agent = await models.Agent.create({
               email: request.payload.token.email,
@@ -618,15 +636,95 @@ require('../support/setupKeystore').then(keyStuff => {
         }
       });
 
+      /**************************/
+      /**       LINKING        **/
+      /**************************/
+
       /**
        * GET `/users-by-email`
+       *
+       * 2021-7-19
+       *
+       * I find myself in a weird position. Account merging is a given, but my
+       * local cache uses an agent's email as its primary key. Is this going to
+       * work in practice?
+       *
+       * This endpoint does not mimic _real_ functionality. Rather than change
+       * the database models, it's going to simply return all the agents
+       * whose name matches the part in the email before the @.
        */
       server.route({
         method: 'GET',
         path: '/api/v2/users-by-email',
-        handler: (request, h) => {
-          console.log('/api/v2/users-by-email');
-          return h.response({});
+        handler: async (request, h) => {
+          console.log('GET /api/v2/users-by-email');
+          console.log(request.query);
+
+          let name = request.query.email.split('@')[0];
+          console.log('Searching for:', name);
+
+          let results = await models.Agent.findAll({ where: { email: { [Op.like]: `%${name}%` } } });
+          results = results.map(r => r.socialProfile);
+          return h.response(results);
+        }
+      });
+
+      server.route({
+        method: 'POST',
+        path: '/api/v2/users/{primary_id}/identities',
+        handler: async (request, h) => {
+          console.log(`POST /api/v2/users/${request.params.primary_id}/identities`);
+          console.log(request.payload);
+
+          let primary = await models.Agent.findOne({ where: {'socialProfile.user_id': request.params.primary_id } });
+          let results = await models.Agent.findOne({ where: {'socialProfile.user_id': `${request.payload.provider}|${request.payload.user_id}` } });
+
+          let response = results.socialProfile.identities.find(r =>
+            r.provider === request.payload.provider &&
+            r.user_id === request.payload.user_id
+          );
+
+          response.profileData = {
+            email: results.email,
+            email_verified: results.socialProfile.email_verified,
+            name: results.socialProfile.name,
+            username: results.socialProfile.username,
+            given_name: results.socialProfile.given_name,
+            family_name: results.socialProfile.family_name
+          };
+
+          // A lot of assumptions here... namely that the primary account's main identity
+          // is the first in the list
+          return h.response([primary.socialProfile.identities[0], response]);
+        }
+      });
+
+      server.route({
+        method: 'DELETE',
+        path: '/api/v2/users/{primary_id}/identities/{provider}/{user_id}',
+        handler: async (request, h) => {
+          console.log(`/api/v2/users/${request.params.primary_id}/identities/${request.params.provider}/${request.params.user_id}`);
+
+          let allAgents = await models.Agent.findAll({});
+
+          // Auth0 returns the primary account identity
+          let results = await models.Agent.findOne({ where: {'socialProfile.user_id': request.params.primary_id } });
+
+
+          let provider, primary_id;
+          [provider, primary_id] = request.params.primary_id.split('|');
+          let response = results.socialProfile.identities.find(r => r.user_id === primary_id);
+
+          response.profileData = {
+            email: results.email,
+            email_verified: results.socialProfile.email_verified,
+            name: results.socialProfile.name,
+            username: results.socialProfile.username,
+            given_name: results.socialProfile.given_name,
+            family_name: results.socialProfile.family_name
+          };
+
+          return h.response([response]);
         }
       });
 
@@ -742,7 +840,6 @@ require('../support/setupKeystore').then(keyStuff => {
           });
         }
       });
-
 
       await server.start();
       console.log('Server running on %s', server.info.uri);

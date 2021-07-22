@@ -17,6 +17,7 @@ import Grid from '@material-ui/core/Grid';
  * For profile data display
  */
 import Table from '@material-ui/core/Table';
+import TableHead from '@material-ui/core/TableHead';
 import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';
 import TableContainer from '@material-ui/core/TableContainer';
@@ -105,6 +106,7 @@ const useStyles = makeStyles(theme =>
 const Agent = (props) => {
 
   const [profileData, setProfileData] = useState({});
+  const [linkedAccounts, setLinkedAccounts] = useState([]);
   const [flashProps, setFlashProps] = useState({});
   const [isWaiting, setIsWaiting] = useState(false);
   const [unassignedRoles, setUnassignedRoles] = useState([]);
@@ -125,6 +127,10 @@ const Agent = (props) => {
       }
       else {
         setProfileData(service.payload);
+        let provider, id;
+        [provider, id] = service.payload.user_id.split('|');
+        setLinkedAccounts(service.payload.identities.filter(i => i.provider !== provider && i.user_id !== id));
+
         setIsIdpAuthenticated(!/^auth0\|*/.test(service.payload.user_id));
       }
     }
@@ -141,6 +147,20 @@ const Agent = (props) => {
   const loadingLocale = localeIsOpen && localeOptions.length === 0;
   const { setLangCode, getFormattedMessage } = useLanguageProviderState();
 
+  /**
+   * For linkable accounts
+   */
+  const [isLoadingAccounts, setIsLoadingAccounts] = React.useState(false);
+  const [linkableAccounts, setLinkableAccounts] = React.useState([]);
+  const [isLinkingAccounts, setIsLinkingAccounts] = React.useState(false);
+
+  function accountsAreLinked(connection, provider, user_id) {
+    return !!profileData.identities.find(i => i.connection === connection && i.provider === provider && i.user_id === user_id);
+  };
+
+  /**
+   * SIL Locales
+   */
   React.useEffect(() => {
     let active = true;
 
@@ -673,6 +693,293 @@ const Agent = (props) => {
                 </Table>
               </TableContainer>
             </Grid>
+
+            {profileData.email_verified && (profileData.email === agent.email || agent.isOrganizer || agent.isSuper) ?
+              <Grid item className={classes.grid}>
+                {linkedAccounts.length ?
+                  <>
+                    <Grid item>
+                      <Typography className={classes.header} variant="h5" component="h3">
+                        <FormattedMessage id='Linked Accounts' />
+                      </Typography>
+                    </Grid>
+                    <TableContainer>
+                      <Table id="linked-accounts" className={classes.table} aria-label={getFormattedMessage('Linkable Accounts')}>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell align="center">
+                              connection
+                            </TableCell>
+                            <TableCell align="center">
+                              isSocial
+                            </TableCell>
+                            <TableCell align="center">
+                              provider
+                            </TableCell>
+                            <TableCell align="center">
+                              user_id
+                            </TableCell>
+                            <TableCell align="center">
+                              actions
+                            </TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          { linkedAccounts.map(account => (
+
+                            <TableRow key={account.user_id}>
+                              <TableCell className="connection" align="center">
+                                {account.connection}
+                              </TableCell>
+                              <TableCell className="is-social" align="center">
+                                {`${account.isSocial}`}
+                              </TableCell>
+                              <TableCell className="provider" align="center">
+                                {account.provider}
+                              </TableCell>
+                              <TableCell className="user-id" align="center">
+                                {account.user_id}
+                              </TableCell>
+                              <TableCell className="action" align="center">
+                                <Button
+                                  className="unlink-accounts"
+                                  variant="contained"
+                                  color="primary"
+                                  disabled={isLinkingAccounts || (agent.email !== profileData.email && !admin.isEnabled && !agent.isOrganizer && !agent.isSuper)}
+                                  onClick={() => {
+                                    setIsLinkingAccounts(true);
+                                    const headers = new Headers();
+                                    headers.append('Content-Type', 'application/json; charset=utf-8');
+
+                                    let currentlyLinked = linkedAccounts.find(l => l.provider === account.provider && l.user_id === account.user_id);
+
+
+                                    let unlinkUrl = `/agent/link/${account.provider}/${account.user_id}`;
+                                    if ((agent.isOrganizer || agent.isSuper) && agent.email !== profileData.email) {
+                                      unlinkUrl += `/${profileData.user_id}`;
+                                    }
+
+                                    fetch(unlinkUrl,
+                                      {
+                                        method: 'DELETE',
+                                        headers,
+                                      }
+                                    )
+                                    .then(response => response.json())
+                                    .then(response => {
+                                      if (response.length) {
+
+                                        // Remove from linkedAccounts
+                                        let linked = [];
+                                        for (let r of response) {
+                                          linked.concat(linkableAccounts.filter(l => l.user_id !== r.user_id && l.provider !== r.provider));
+                                        }
+                                        setLinkedAccounts(linked);
+                                        setLinkableAccounts([...linkableAccounts, currentlyLinked]);
+
+                                        setFlashProps({ message: getFormattedMessage('Accounts unlinked'), variant: 'success' });
+                                      }
+                                      else {
+                                        setFlashProps({ message: getFormattedMessage('Could not verify accounts were unlinked'), variant: 'warning' });
+                                      }
+                                    })
+                                    .catch(error => {
+                                      setFlashProps({ message: error.message, variant: 'error' });
+                                    })
+                                    .finally(() => {
+                                      setIsLinkingAccounts(false);
+                                    });
+                                  }}
+                                >
+                                  <FormattedMessage id="Unlink" />
+                                  <React.Fragment>
+                                    {isLinkingAccounts ? <CircularProgress className="link-account-spinner" color="inherit" size={20} /> : null}
+                                  </React.Fragment>
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </>
+                : '' }
+                <Typography className={classes.header} variant="h5" component="h3">
+                  <Button
+                    id="find-linkable-accounts"
+                    variant="contained"
+                    color="primary"
+                    disabled={isLoadingAccounts || (agent.email !== profileData.email && !admin.isEnabled && !agent.isOrganizer && !agent.isSuper)}
+                    onClick={() => {
+                      setIsLoadingAccounts(true);
+
+                      const headers = new Headers();
+                      headers.append('Content-Type', 'application/json; charset=utf-8');
+
+                      let profilesUrl = '/agent/profiles';
+                      if ((agent.isOrganizer || agent.isSuper) && agent.email !== profileData.email) {
+                        profilesUrl += `/${profileData.email}`;
+                      }
+
+                      fetch(profilesUrl,
+                        {
+                          method: 'GET',
+                          headers,
+                        }
+                      )
+                      .then(response => response.json())
+                      .then(response => {
+
+                        // No need to link the current profile
+                        response = response.filter(r => r.user_id !== profileData.user_id);
+
+                        if (!response.length) {
+                          setFlashProps({ message: getFormattedMessage('No linkable accounts'), variant: 'success' });
+                        }
+                        else {
+                          let identities = [];
+
+                          for (let r of response) {
+                            let provider, id;
+                            [provider, id] = r.user_id.split('|');
+
+                            for (let i of r.identities) {
+                              if (i.provider === provider && i.user_id === id) {
+                                identities.push(i);
+                              }
+                            }
+                          }
+
+                          setLinkableAccounts(identities);
+                        }
+                      })
+                      .catch(error => {
+                        setFlashProps({ message: error.message, variant: 'error' });
+                      })
+                      .finally(() => {
+                        setIsLoadingAccounts(false);
+                      });
+                    }}
+                  >
+                    <FormattedMessage id='Find Linkable Accounts' />
+                    <React.Fragment>
+                      {isLoadingAccounts ? <CircularProgress id="load-linkable-spinner" color="inherit" size={20} /> : null}
+                    </React.Fragment>
+                  </Button>
+                </Typography>
+
+                {linkableAccounts.length  ?
+                  <>
+                    <Grid item>
+                      <Typography className={classes.header} variant="h5" component="h3">
+                        <FormattedMessage id='Linkable Accounts' />
+                      </Typography>
+                    </Grid>
+                    <TableContainer>
+                      <Table id="linkable-accounts" className={classes.table} aria-label={getFormattedMessage('Linkable Accounts')}>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell align="center">
+                              connection
+                            </TableCell>
+                            <TableCell align="center">
+                              isSocial
+                            </TableCell>
+                            <TableCell align="center">
+                              provider
+                            </TableCell>
+                            <TableCell align="center">
+                              user_id
+                            </TableCell>
+                            <TableCell align="center">
+                              actions
+                            </TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          { linkableAccounts.map(account => (
+                            <TableRow key={account.user_id}>
+                              <TableCell className="connection" align="center">
+                                {account.connection}
+                              </TableCell>
+                              <TableCell className="is-social" align="center">
+                                {`${account.isSocial}`}
+                              </TableCell>
+                              <TableCell className="provider" align="center">
+                                {account.provider}
+                              </TableCell>
+                              <TableCell className="user-id" align="center">
+                                {account.user_id}
+                              </TableCell>
+                              <TableCell className="action" align="center">
+                                <Button
+                                  className="link-accounts"
+                                  variant="contained"
+                                  color="primary"
+                                  disabled={isLoadingAccounts || (agent.email !== profileData.email && !admin.isEnabled && !agent.isOrganizer && !agent.isSuper)}
+                                  onClick={() => {
+                                    setIsLinkingAccounts(true);
+                                    const headers = new Headers();
+                                    headers.append('Content-Type', 'application/json; charset=utf-8');
+
+                                    let linkUrl = '/agent/link';
+
+                                    if ((agent.isSuper || agent.isOrganizer) && agent.email !== profileData.email) {
+                                      linkUrl += `/${profileData.user_id}`;
+                                    }
+
+                                    fetch(linkUrl,
+                                      {
+                                        method: 'PUT',
+                                        body: JSON.stringify({
+                                          // From where do I get connection_id?
+                                          //connection_id: account.connection,
+                                          user_id: account.user_id,
+                                          provider: account.provider,
+                                        }),
+                                        headers,
+                                      }
+                                    )
+                                    .then(response => response.json())
+                                    .then(response => {
+                                      // Remove newly linked account from linkableAccounts
+                                      let linkables = [];
+                                      for (let r of response) {
+                                        linkables.concat(linkableAccounts.filter(l => l.user_id !== r.user_id && l.provider !== r.provider));
+                                      }
+                                      setLinkableAccounts(linkables);
+
+                                      // Remove primary account from returned list of linked accounts
+                                      let primary_id = profileData.user_id.split('|')[1];
+                                      let linked = response.filter(r => r.user_id !== primary_id);
+
+                                      setLinkedAccounts(linked);
+                                      setFlashProps({ message: getFormattedMessage('Accounts linked'), variant: 'success' });
+                                    })
+                                    .catch(error => {
+                                      setFlashProps({ message: error.message, variant: 'error' });
+                                    })
+                                    .finally(() => {
+                                      setIsLinkingAccounts(false);
+                                    });
+                                  }}
+                                >
+                                  <FormattedMessage id="Link" />
+                                  <React.Fragment>
+                                    {isLinkingAccounts ? <CircularProgress className="link-account-spinner" color="inherit" size={20} /> : null}
+                                  </React.Fragment>
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </>
+                : '' }
+              </Grid>
+            : ''}
+
             {!profileData.email_verified ?
               <Grid item className={classes.grid}>
                 <TableContainer>
@@ -754,4 +1061,3 @@ const Agent = (props) => {
 };
 
 export default Agent;
-
