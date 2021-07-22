@@ -135,7 +135,6 @@ const Agent = (props) => {
       }
     }
   }, [service]);
-  //});
 
   /**
    * For SIL Locale selection
@@ -695,7 +694,7 @@ const Agent = (props) => {
               </TableContainer>
             </Grid>
 
-            {profileData.email_verified && profileData.email === agent.email ?
+            {profileData.email_verified && (profileData.email === agent.email || agent.isOrganizer) ?
               <Grid item className={classes.grid}>
                 {linkedAccounts.length ?
                   <>
@@ -746,7 +745,7 @@ const Agent = (props) => {
                                   className="unlink-accounts"
                                   variant="contained"
                                   color="primary"
-                                  disabled={isLinkingAccounts || (agent.email !== profileData.email && !admin.isEnabled)}
+                                  disabled={isLinkingAccounts || (agent.email !== profileData.email && !admin.isEnabled && !agent.isOrganizer)}
                                   onClick={() => {
                                     setIsLinkingAccounts(true);
                                     const headers = new Headers();
@@ -803,13 +802,19 @@ const Agent = (props) => {
                     id="find-linkable-accounts"
                     variant="contained"
                     color="primary"
-                    disabled={isLoadingAccounts || (agent.email !== profileData.email && !admin.isEnabled)}
+                    disabled={isLoadingAccounts || (agent.email !== profileData.email && !admin.isEnabled && !agent.isOrganizer)}
                     onClick={() => {
                       setIsLoadingAccounts(true);
 
                       const headers = new Headers();
                       headers.append('Content-Type', 'application/json; charset=utf-8');
-                      fetch('/agent/profiles',
+                      let profilesUrl = '/agent/profiles';
+
+                      if (agent.isOrganizer && agent.email !== profileData.email) {
+                        profilesUrl += `/${profileData.email}`;
+                      }
+
+                      fetch(profilesUrl,
                         {
                           method: 'GET',
                           headers,
@@ -901,16 +906,22 @@ const Agent = (props) => {
                               </TableCell>
                               <TableCell className="action" align="center">
                                 <Button
-                                  className={accountsAreLinked(account.connection, account.provider, account.user_id) ? 'unlink-accounts' : 'link-accounts'}
+                                  className="link-accounts"
                                   variant="contained"
                                   color="primary"
-                                  disabled={isLinkingAccounts || (agent.email !== profileData.email && !admin.isEnabled)}
+                                  disabled={isLinkingAccounts || (agent.email !== profileData.email && !admin.isEnabled && !agent.isOrganizer)}
                                   onClick={() => {
                                     setIsLinkingAccounts(true);
                                     const headers = new Headers();
                                     headers.append('Content-Type', 'application/json; charset=utf-8');
 
-                                    fetch('/agent/link',
+                                    let linkUrl = '/agent/link';
+
+                                    if (agent.isOrganizer && agent.email !== profileData.email) {
+                                      linkUrl += `/${profileData.user_id}`;
+                                    }
+
+                                    fetch(linkUrl,
                                       {
                                         method: 'PUT',
                                         body: JSON.stringify({
@@ -924,7 +935,6 @@ const Agent = (props) => {
                                     )
                                     .then(response => response.json())
                                     .then(response => {
-
                                       // Remove newly linked account from linkableAccounts
                                       let linkables = [];
                                       for (let r of response) {
@@ -933,7 +943,7 @@ const Agent = (props) => {
                                       setLinkableAccounts(linkables);
 
                                       // Remove primary account from returned list of linked accounts
-                                      let [primary_provider, primary_id] = profileData.user_id.split('|');
+                                      let primary_id = profileData.user_id.split('|')[1];
                                       let linked = response.filter(r => r.user_id !== primary_id);
 
                                       setLinkedAccounts(linked);
