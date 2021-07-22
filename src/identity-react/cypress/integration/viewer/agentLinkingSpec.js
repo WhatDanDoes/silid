@@ -100,17 +100,12 @@ context('viewer/Agent linking', function() {
 
       let linkableAcct;
       beforeEach(() => {
-        cy.login('pretendthisisthesameemail@example.com', { ..._profile });
+        cy.login('someguy@pretendthisisthesameemail.com', { ..._profile });
         cy.wait(300);
         cy.login(_profile.email, {..._profile });
-//        cy.login(_profile.email, {..._profile, identities: [{
-//          connection: 'twitter',
-//          user_id: 'abc-123',
-//          provider: 'twitter',
-//        }] });
         cy.get('#flash-message #close-flash').click();
 
-        cy.task('query', `SELECT * FROM "Agents" WHERE "email"='pretendthisisthesameemail@example.com' LIMIT 1;`).then(([results, metadata]) => {
+        cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someguy@pretendthisisthesameemail.com' LIMIT 1;`).then(([results, metadata]) => {
           linkableAcct = results[0];
         });
 
