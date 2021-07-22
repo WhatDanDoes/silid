@@ -694,7 +694,7 @@ const Agent = (props) => {
               </TableContainer>
             </Grid>
 
-            {profileData.email_verified && (profileData.email === agent.email || agent.isOrganizer) ?
+            {profileData.email_verified && (profileData.email === agent.email || agent.isOrganizer || agent.isSuper) ?
               <Grid item className={classes.grid}>
                 {linkedAccounts.length ?
                   <>
@@ -745,14 +745,21 @@ const Agent = (props) => {
                                   className="unlink-accounts"
                                   variant="contained"
                                   color="primary"
-                                  disabled={isLinkingAccounts || (agent.email !== profileData.email && !admin.isEnabled && !agent.isOrganizer)}
+                                  disabled={isLinkingAccounts || (agent.email !== profileData.email && !admin.isEnabled && !agent.isOrganizer && !agent.isSuper)}
                                   onClick={() => {
                                     setIsLinkingAccounts(true);
                                     const headers = new Headers();
                                     headers.append('Content-Type', 'application/json; charset=utf-8');
 
                                     let currentlyLinked = linkedAccounts.find(l => l.provider === account.provider && l.user_id === account.user_id);
-                                    fetch(`/agent/link/${account.provider}/${account.user_id}`,
+
+
+                                    let unlinkUrl = `/agent/link/${account.provider}/${account.user_id}`;
+                                    if ((agent.isOrganizer || agent.isSuper) && agent.email !== profileData.email) {
+                                      unlinkUrl += `/${profileData.user_id}`;
+                                    }
+
+                                    fetch(unlinkUrl,
                                       {
                                         method: 'DELETE',
                                         headers,
@@ -802,15 +809,15 @@ const Agent = (props) => {
                     id="find-linkable-accounts"
                     variant="contained"
                     color="primary"
-                    disabled={isLoadingAccounts || (agent.email !== profileData.email && !admin.isEnabled && !agent.isOrganizer)}
+                    disabled={isLoadingAccounts || (agent.email !== profileData.email && !admin.isEnabled && !agent.isOrganizer && !agent.isSuper)}
                     onClick={() => {
                       setIsLoadingAccounts(true);
 
                       const headers = new Headers();
                       headers.append('Content-Type', 'application/json; charset=utf-8');
-                      let profilesUrl = '/agent/profiles';
 
-                      if (agent.isOrganizer && agent.email !== profileData.email) {
+                      let profilesUrl = '/agent/profiles';
+                      if ((agent.isOrganizer || agent.isSuper) && agent.email !== profileData.email) {
                         profilesUrl += `/${profileData.email}`;
                       }
 
@@ -909,7 +916,7 @@ const Agent = (props) => {
                                   className="link-accounts"
                                   variant="contained"
                                   color="primary"
-                                  disabled={isLinkingAccounts || (agent.email !== profileData.email && !admin.isEnabled && !agent.isOrganizer)}
+                                  disabled={isLoadingAccounts || (agent.email !== profileData.email && !admin.isEnabled && !agent.isOrganizer && !agent.isSuper)}
                                   onClick={() => {
                                     setIsLinkingAccounts(true);
                                     const headers = new Headers();
@@ -917,7 +924,7 @@ const Agent = (props) => {
 
                                     let linkUrl = '/agent/link';
 
-                                    if (agent.isOrganizer && agent.email !== profileData.email) {
+                                    if ((agent.isSuper || agent.isOrganizer) && agent.email !== profileData.email) {
                                       linkUrl += `/${profileData.user_id}`;
                                     }
 
