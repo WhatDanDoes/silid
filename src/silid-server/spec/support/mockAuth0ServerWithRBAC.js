@@ -673,15 +673,13 @@ require('../support/setupKeystore').then(keyStuff => {
         method: 'POST',
         path: '/api/v2/users/{primary_id}/identities',
         handler: async (request, h) => {
-          console.log(`/api/v2/users/${request.params.primary_id}/identities`);
+          console.log(`POST /api/v2/users/${request.params.primary_id}/identities`);
           console.log(request.payload);
 
           let primary = await models.Agent.findOne({ where: {'socialProfile.user_id': request.params.primary_id } });
           let results = await models.Agent.findOne({ where: {'socialProfile.user_id': `${request.payload.provider}|${request.payload.user_id}` } });
 
           let response = results.socialProfile.identities.find(r =>
-            // From where do I get connection_id?
-            //r.connection === request.payload.connection_id &&
             r.provider === request.payload.provider &&
             r.user_id === request.payload.user_id
           );
