@@ -89,6 +89,48 @@ context('viewer/Agent show', () => {
           cy.get('#profile-table table tbody tr ul li:last-of-type #assign-role').should('not.exist');
         });
 
+        describe('account linking', () => {
+          it("does not display a 'Find Linkable Accounts' button", () => {
+            cy.get('button#find-linkable-accounts').should('not.exist');
+          });
+
+          describe('no linked account', () => {
+            it('does not display a linked-accounts table', () => {
+              cy.get('#linked-accounts').should('not.exist');
+            });
+          });
+
+          describe('linked accounts', () => {
+            it('displays a linked-accounts table', () => {
+              cy.login(_profile.email, {..._profile,
+                identities: [
+                  {
+                    "provider": "google-oauth2",
+                    "access_token": "ya29.abc-12e",
+                    "expires_in": 3599,
+                    "user_id": "117550400000000000000",
+                    "connection": "google-oauth2",
+                    "isSocial": true
+                  },
+                  {
+                    "user_id": "60eda0000000000000000000",
+                    "provider": "auth0",
+                    "connection": "Username-Password-Authentication",
+                    "isSocial": false
+                  }
+                ]
+              });
+              cy.url().should('contain', '/#/agent');
+
+              cy.visit(`/#/agent/${memberAgent.socialProfile.user_id}`);
+              cy.wait(300);
+              cy.url().should('contain', `/#/agent/${memberAgent.socialProfile.user_id}`);
+
+              cy.get('#linked-accounts').should('not.exist');
+            });
+          });
+        });
+
         describe('social profile data', () => {
           it('toggles JSON display', () => {
             cy.get('.react-json-view').its('length').should('eq', 1);
@@ -154,6 +196,48 @@ context('viewer/Agent show', () => {
 
           cy.get('button#save-agent').should('not.exist');
           cy.get('button#cancel-agent-changes').should('not.exist');
+        });
+
+        describe('account linking', () => {
+          it("displays a 'Find Linkable Accounts' button", () => {
+            cy.get('button#find-linkable-accounts').should('exist');
+          });
+
+          describe('no linked account', () => {
+            it('does not display a linked-accounts table', () => {
+              cy.get('#linked-accounts').should('not.exist');
+            });
+          });
+
+          describe('linked accounts', () => {
+            it('displays a linked-accounts table', () => {
+              cy.login(_profile.email, {..._profile,
+                identities: [
+                  {
+                    "provider": "google-oauth2",
+                    "access_token": "ya29.abc-12e",
+                    "expires_in": 3599,
+                    "user_id": "117550400000000000000",
+                    "connection": "google-oauth2",
+                    "isSocial": true
+                  },
+                  {
+                    "user_id": "60eda0000000000000000000",
+                    "provider": "auth0",
+                    "connection": "Username-Password-Authentication",
+                    "isSocial": false
+                  }
+                ]
+              });
+              cy.url().should('contain', '/#/agent');
+
+              cy.visit(`/#/agent/${agent.socialProfile.user_id}`);
+              cy.wait(300);
+              cy.url().should('contain', `/#/agent/${agent.socialProfile.user_id}`);
+
+              cy.get('#linked-accounts').should('exist');
+            });
+          });
         });
 
         describe('social profile data', () => {
@@ -246,6 +330,48 @@ context('viewer/Agent show', () => {
 
           cy.get('button#save-agent').should('not.exist');
           cy.get('button#cancel-agent-changes').should('not.exist');
+        });
+
+        describe('account linking', () => {
+          it("it does not display a 'Find Linkable Accounts' button", () => {
+            cy.get('button#find-linkable-accounts').should('not.exist');
+          });
+
+          describe('no linked account', () => {
+            it('does not display a linked-accounts table', () => {
+              cy.get('#linked-accounts').should('not.exist');
+            });
+          });
+
+          describe('linked accounts', () => {
+            it('displays a linked-accounts table', () => {
+              cy.login(_profile.email, {..._profile, email_verified: false,
+                identities: [
+                  {
+                    "provider": "google-oauth2",
+                    "access_token": "ya29.abc-12e",
+                    "expires_in": 3599,
+                    "user_id": "117550400000000000000",
+                    "connection": "google-oauth2",
+                    "isSocial": true
+                  },
+                  {
+                    "user_id": "60eda0000000000000000000",
+                    "provider": "auth0",
+                    "connection": "Username-Password-Authentication",
+                    "isSocial": false
+                  }
+                ]
+              });
+              cy.url().should('contain', '/#/agent');
+
+              cy.visit(`/#/agent/${agent.socialProfile.user_id}`);
+              cy.wait(300);
+              cy.url().should('contain', `/#/agent/${agent.socialProfile.user_id}`);
+
+              cy.get('#linked-accounts').should('not.exist');
+            });
+          });
         });
 
         describe('social profile data', () => {

@@ -88,7 +88,7 @@ describe('agentLinkSpec', () => {
 
             describe('session access', () => {
 
-              it('returns the lone agent profile', done => {
+              it('returns the lone profile (in real life)', done => {
                 authenticatedSession
                   .get('/agent/profiles')
                   .set('Accept', 'application/json')
@@ -128,7 +128,7 @@ describe('agentLinkSpec', () => {
                   .reply(200, {..._identity, permissions: [scope.read.agents] });
               });
 
-              it('returns the lone agent profile', done => {
+              it('returns the lone profile (in real life)', done => {
                 request(app)
                   .get('/agent/profiles')
                   .set('Authorization', `Bearer ${accessToken}`)
@@ -163,10 +163,18 @@ describe('agentLinkSpec', () => {
             });
           });
 
-          describe('linkable accounts exist', () => {
+          describe('linkable account exists', () => {
 
             beforeEach(done => {
-              stubUserReadByEmail([_profile, {..._profile, email: 'someotherguy@example.com' }], (err, apiScopes) => {
+              stubUserReadByEmail([
+                {
+                  ..._profile,
+                },
+                {
+                  ..._profile,
+                  email: 'pretendthisisthesameemail@example.com'
+                }
+              ], (err, apiScopes) => {
                 if (err) return done.fail(err);
                 ({userReadByEmailScope, userReadByEmailOauthTokenScope} = apiScopes);
 
@@ -176,7 +184,7 @@ describe('agentLinkSpec', () => {
 
             describe('session access', () => {
 
-              it('returns the lone agent profile', done => {
+              it('returns all matching agent profiles (in real life)', done => {
                 authenticatedSession
                   .get('/agent/profiles')
                   .set('Accept', 'application/json')
@@ -188,7 +196,7 @@ describe('agentLinkSpec', () => {
                     expect(res.body.length).toEqual(2);
                     expect(res.body[0].email).toEqual(_profile.email);
                     expect(res.body[0].email_verified).toBe(true);
-                    expect(res.body[1].email).toEqual('someotherguy@example.com');
+                    expect(res.body[1].email).toEqual('pretendthisisthesameemail@example.com');
                     expect(res.body[1].email_verified).toBe(true);
 
                     done();
@@ -221,7 +229,7 @@ describe('agentLinkSpec', () => {
                   .reply(200, {..._identity, permissions: [scope.read.agents] });
               });
 
-              it('returns the lone agent profile', done => {
+              it('returns all matching agent profiles (in real life)', done => {
                 request(app)
                   .get('/agent/profiles')
                   .set('Authorization', `Bearer ${accessToken}`)
@@ -234,7 +242,7 @@ describe('agentLinkSpec', () => {
                     expect(res.body.length).toEqual(2);
                     expect(res.body[0].email).toEqual(_profile.email);
                     expect(res.body[0].email_verified).toBe(true);
-                    expect(res.body[1].email).toEqual('someotherguy@example.com');
+                    expect(res.body[1].email).toEqual('pretendthisisthesameemail@example.com');
                     expect(res.body[1].email_verified).toBe(true);
 
                     done();
@@ -278,7 +286,7 @@ describe('agentLinkSpec', () => {
 
             describe('session access', () => {
 
-              it('returns the lone agent profile', done => {
+              it('returns all matching agent profiles (in real life)', done => {
                 authenticatedSession
                   .get('/agent/profiles')
                   .set('Accept', 'application/json')
@@ -323,7 +331,7 @@ describe('agentLinkSpec', () => {
                   .reply(200, {..._identity, permissions: [scope.read.agents] });
               });
 
-              it('returns the lone agent profile', done => {
+              it('returns all matching agent profiles (in real life)', done => {
                 request(app)
                   .get('/agent/profiles')
                   .set('Authorization', `Bearer ${accessToken}`)
@@ -430,10 +438,7 @@ describe('agentLinkSpec', () => {
 
             it('returns 401 unauthenticated', done => {
               request(app)
-                .post('/agent')
-                .send({
-                  email: 'someotherguy@example.com'
-                })
+                .get('/agent/profiles')
                 .set('Authorization', `Bearer ${accessToken}`)
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)
@@ -450,10 +455,7 @@ describe('agentLinkSpec', () => {
 
               it('is not called', done => {
                 request(app)
-                  .post('/agent')
-                  .send({
-                    email: 'someotherguy@example.com'
-                  })
+                  .get('/agent/profiles')
                   .set('Authorization', `Bearer ${accessToken}`)
                   .set('Accept', 'application/json')
                   .expect('Content-Type', /json/)
@@ -515,7 +517,8 @@ describe('agentLinkSpec', () => {
                 authenticatedSession
                   .put('/agent/link')
                   .send({
-                    connection: 'twitter',
+                    // From where do I get connection_id?
+                    //connection_id: 'twitter',
                     user_id: 'abc-123',
                     provider: 'twitter',
                   })
@@ -536,7 +539,8 @@ describe('agentLinkSpec', () => {
                   authenticatedSession
                    .put('/agent/link')
                    .send({
-                     connection: 'twitter',
+                     // From where do I get connection_id?
+                     //connection_id: 'twitter',
                      user_id: 'abc-123',
                      provider: 'twitter',
                    })
@@ -565,7 +569,8 @@ describe('agentLinkSpec', () => {
                 request(app)
                   .put('/agent/link')
                   .send({
-                    connection: 'twitter',
+                    // From where do I get connection_id?
+                    //connection_id: 'twitter',
                     user_id: 'abc-123',
                     provider: 'twitter',
                   })
@@ -587,7 +592,8 @@ describe('agentLinkSpec', () => {
                   request(app)
                     .put('/agent/link')
                     .send({
-                      connection: 'twitter',
+                      // From where do I get connection_id?
+                      //connection_id: 'twitter',
                       user_id: 'abc-123',
                       provider: 'twitter',
                     })
@@ -631,7 +637,8 @@ describe('agentLinkSpec', () => {
                 authenticatedSession
                   .put('/agent/link')
                   .send({
-                    connection: 'twitter',
+                    // From where do I get connection_id?
+                    //connection_id: 'twitter',
                     user_id: 'abc-123',
                     provider: 'twitter',
                   })
@@ -655,7 +662,8 @@ describe('agentLinkSpec', () => {
                   authenticatedSession
                     .put('/agent/link')
                     .send({
-                      connection: 'twitter',
+                      // From where do I get connection_id?
+                      //connection_id: 'twitter',
                       user_id: 'abc-123',
                       provider: 'twitter',
                     })
@@ -684,7 +692,8 @@ describe('agentLinkSpec', () => {
                 request(app)
                   .put('/agent/link')
                   .send({
-                    connection: 'twitter',
+                    // From where do I get connection_id?
+                    //connection_id: 'twitter',
                     user_id: 'abc-123',
                     provider: 'twitter',
                   })
@@ -709,7 +718,8 @@ describe('agentLinkSpec', () => {
                   request(app)
                     .put('/agent/link')
                     .send({
-                      connection: 'twitter',
+                      // From where do I get connection_id?
+                      //connection_id: 'twitter',
                       user_id: 'abc-123',
                       provider: 'twitter',
                     })
@@ -744,7 +754,8 @@ describe('agentLinkSpec', () => {
                   ..._profile,
                   email: 'thesameguy@example.com',
                   identities: [{
-                    connection: 'twitter',
+                    // From where do I get connection_id?
+                    //connection_id: 'twitter',
                     user_id: 'abc-123',
                     provider: 'twitter',
                   }]
@@ -764,7 +775,8 @@ describe('agentLinkSpec', () => {
               authenticatedSession
                 .put('/agent/link')
                 .send({
-                  connection: 'twitter',
+                  // From where do I get connection_id?
+                  //connection_id: 'twitter',
                   user_id: 'abc-123',
                   provider: 'twitter',
                 })
@@ -785,7 +797,8 @@ describe('agentLinkSpec', () => {
                 authenticatedSession
                  .put('/agent/link')
                  .send({
-                   connection: 'twitter',
+                   // From where do I get connection_id?
+                   //connection_id: 'twitter',
                    user_id: 'abc-123',
                    provider: 'twitter',
                  })
@@ -814,7 +827,8 @@ describe('agentLinkSpec', () => {
               request(app)
                 .put('/agent/link')
                 .send({
-                  connection: 'twitter',
+                  // From where do I get connection_id?
+                  //connection_id: 'twitter',
                   user_id: 'abc-123',
                   provider: 'twitter',
                 })
@@ -836,7 +850,8 @@ describe('agentLinkSpec', () => {
                 request(app)
                   .put('/agent/link')
                   .send({
-                    connection: 'twitter',
+                    // From where do I get connection_id?
+                    //connection_id: 'twitter',
                     user_id: 'abc-123',
                     provider: 'twitter',
                   })
@@ -1008,8 +1023,8 @@ describe('agentLinkSpec', () => {
                   if (err) return done.fail(err);
 
                   expect(res.body.length).toEqual(1);
-                  expect(res.body[0].connection).toEqual(_identities[1].connection);
-                  expect(res.body[0].profileData.email).toEqual(_identities[1].profileData.email);
+                  expect(res.body[0].connection).toEqual(_identities[0].connection);
+                  expect(res.body[0].provider).toEqual('google-oauth2');
 
                   done();
                 });
@@ -1052,8 +1067,8 @@ describe('agentLinkSpec', () => {
                   if (err) return done.fail(err);
 
                   expect(res.body.length).toEqual(1);
-                  expect(res.body[0].connection).toEqual(_identities[1].connection);
-                  expect(res.body[0].profileData.email).toEqual(_identities[1].profileData.email);
+                  expect(res.body[0].connection).toEqual(_identities[0].connection);
+                  expect(res.body[0].provider).toEqual('google-oauth2');
 
                   done();
                 });
@@ -1105,7 +1120,8 @@ describe('agentLinkSpec', () => {
         request(app)
           .put('/agent/link')
           .send({
-            connection: 'twitter',
+            // From where do I get connection_id?
+            //connection_id: 'twitter',
             user_id: 'abc-123',
             provider: 'twitter',
           })
