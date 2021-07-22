@@ -657,7 +657,7 @@ require('../support/setupKeystore').then(keyStuff => {
         method: 'GET',
         path: '/api/v2/users-by-email',
         handler: async (request, h) => {
-          console.log('/api/v2/users-by-email');
+          console.log('GET /api/v2/users-by-email');
           console.log(request.query);
 
           let name = request.query.email.split('@')[0];
