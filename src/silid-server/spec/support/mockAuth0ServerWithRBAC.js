@@ -10,6 +10,7 @@ require('dotenv-flow').config();
 const jwt = require('jsonwebtoken');
 const pem = require('pem');
 const crypto = require('crypto');
+const Op = require('sequelize').Op;
 
 /**
  * This must match the config at Auth0
@@ -119,7 +120,6 @@ require('../support/setupKeystore').then(keyStuff => {
           console.log('/register');
           console.log(request.payload);
 
-
           /**
            * Add agent to the _Auth0 database_
            */
@@ -127,19 +127,27 @@ require('../support/setupKeystore').then(keyStuff => {
           // Has this agent already been registered?
           let agent = await models.Agent.findOne({ where: {email: request.payload.token.email}});
 
+          let identities = _profile.identities.map(i => { return {...i}; });
           let socialProfile = { ..._profile, ...request.payload.token, _json: { ..._profile, ...request.payload.token } };
+
           if (agent) {
             console.log('Agent found. Updating...');
 
             socialProfile._json.sub = agent.socialProfile.user_id;
             socialProfile.user_id = agent.socialProfile.user_id;
-            if (agent.socialProfile) {
-              socialProfile = {...agent.socialProfile, ...socialProfile};
+
+            if (request.payload.token.identities) {
+              socialProfile = {...agent.socialProfile, ...socialProfile, identities: request.payload.token.identities};
+           }
+            else {
+              socialProfile = {...agent.socialProfile, ...socialProfile, identities: agent.socialProfile.identities};
             }
+
             agent.socialProfile = socialProfile;
             await agent.save();
           }
           else {
+            socialProfile.identities = identities;
             console.log('No agent found. Creating...');
             let userId = request.payload.token.sub + ++subIndex;
 
@@ -149,7 +157,13 @@ require('../support/setupKeystore').then(keyStuff => {
             delete socialProfile.sub;
 
             // Make identity user_id matches that of root object
-            socialProfile.identities[0].user_id = userId.split('|')[1];
+            if (request.payload.token.identities) {
+              socialProfile = {...socialProfile, identities: request.payload.token.identities};
+           }
+            else {
+              socialProfile.identities[0].user_id = userId.split('|')[1];
+              //socialProfile = {...agent.socialProfile, ...socialProfile, identities: agent.socialProfile.identities};
+            }
 
             agent = await models.Agent.create({
               email: request.payload.token.email,
@@ -637,9 +651,7 @@ require('../support/setupKeystore').then(keyStuff => {
        *
        * This endpoint does not mimic _real_ functionality. Rather than change
        * the database models, it's going to simply return all the agents
-       * currently stored in the DB.
-       *
-       * In all likelihood, this will change soon...
+       * whose name matches the part in the email before the @.
        */
       server.route({
         method: 'GET',
@@ -648,7 +660,10 @@ require('../support/setupKeystore').then(keyStuff => {
           console.log('/api/v2/users-by-email');
           console.log(request.query);
 
-          let results = await models.Agent.findAll({ });
+          let name = request.query.email.split('@')[0];
+          console.log('Searching for:', name);
+
+          let results = await models.Agent.findAll({ where: { email: { [Op.like]: `%${name}%` } } });
           results = results.map(r => r.socialProfile);
           return h.response(results);
         }
