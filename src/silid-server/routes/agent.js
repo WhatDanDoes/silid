@@ -102,7 +102,6 @@ router.get('/', checkPermissions([scope.read.agents]), function(req, res, next) 
 });
 
 router.get('/profiles/:email?', checkPermissions([scope.read.agents]), function(req, res, next) {
-
   let email = req.user.email;
   if (req.params.email) {
     if (req.user.isOrganizer) {
@@ -134,7 +133,6 @@ router.get('/profiles/:email?', checkPermissions([scope.read.agents]), function(
 });
 
 router.put('/link/:primary_id?', checkPermissions([scope.update.agents]), function(req, res, next) {
-
   let primaryId = req.user.user_id;
   if (req.params.primary_id) {
     if (req.user.isOrganizer) {
