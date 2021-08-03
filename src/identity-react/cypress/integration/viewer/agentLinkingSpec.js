@@ -96,6 +96,47 @@ context('viewer/Agent linking', function() {
       });
     });
 
+    /**
+     * This test arose because the Paratext provider comes in this form:
+     *
+     *`oauth2|paratext-audiomanager|WfCxeyQQiZQfPbNAP`
+     *
+     * This meant that though the _linkable_ account was found, it did
+     * not show up in the UI list of linkable options
+     */
+    describe('linkable custom Oauth account exist', () => {
+
+      let linkableAcct;
+      beforeEach(() => {
+        cy.login('someguy@pretendthisisthesameemail.com', {
+          ..._profile,
+          sub: "oauth2|paratext-audiomanager|abc-123",
+         });
+        cy.wait(300);
+        cy.login(_profile.email, {..._profile });
+        cy.get('#flash-message #close-flash').click();
+
+        cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someguy@pretendthisisthesameemail.com' LIMIT 1;`).then(([results, metadata]) => {
+          linkableAcct = results[0];
+        });
+
+        cy.task('query', `SELECT * FROM "Agents" WHERE "email"='${_profile.email}' LIMIT 1;`).then(([results, metadata]) => {
+          agent = results[0];
+        });
+      });
+
+      it('displays custom provider data (like Paratext)', () => {
+        cy.get('#find-linkable-accounts').click();
+        cy.wait(300);
+
+        cy.get('#linkable-accounts tbody tr td.connection').contains(linkableAcct.socialProfile.identities[0].connection);
+        cy.get('#linkable-accounts tbody tr td.is-social').contains(`${linkableAcct.socialProfile.identities[0].isSocial}`);
+        cy.get('#linkable-accounts tbody tr td.provider').contains(linkableAcct.socialProfile.identities[0].provider);
+        cy.get('#linkable-accounts tbody tr td.user-id').contains(linkableAcct.socialProfile.identities[0].user_id);
+        cy.get('#linkable-accounts tbody tr td.action').contains('Link');
+      });
+    });
+
     describe('linkable accounts exist', () => {
 
       let linkableAcct;
