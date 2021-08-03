@@ -840,8 +840,9 @@ const Agent = (props) => {
                           let identities = [];
 
                           for (let r of response) {
-                            let provider, id;
-                            [provider, id] = r.user_id.split('|');
+                            let i = r.user_id.indexOf('|');
+                            let provider = r.user_id.slice(0, i);
+                            let id = r.user_id.slice(i + 1);
 
                             for (let i of r.identities) {
                               if (i.provider === provider && i.user_id === id) {
