@@ -1,5 +1,5 @@
 /**
- * Auth0 is a real pain to stub. 
+ * Auth0 is a real pain to stub.
  *
  * This preps an ID token and initiates the client-side login
  */
