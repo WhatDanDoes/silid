@@ -159,10 +159,11 @@ require('../support/setupKeystore').then(keyStuff => {
             // Make identity user_id matches that of root object
             if (request.payload.token.identities) {
               socialProfile = {...socialProfile, identities: request.payload.token.identities};
-           }
+            }
             else {
-              socialProfile.identities[0].user_id = userId.split('|')[1];
-              //socialProfile = {...agent.socialProfile, ...socialProfile, identities: agent.socialProfile.identities};
+              const i = userId.indexOf('|');
+              socialProfile.identities[0].user_id = userId.slice(i+1);
+              socialProfile.identities[0].provider = userId.slice(0, i);
             }
 
             agent = await models.Agent.create({
@@ -576,6 +577,7 @@ require('../support/setupKeystore').then(keyStuff => {
         path: '/api/v2/users/{id}',
         handler: async function(request, h) {
           console.log('GET /api/v2/users/{id}');
+          console.log(request.params);
 
           /**
            * Testing has revealed that names and fields aren't always consistent
