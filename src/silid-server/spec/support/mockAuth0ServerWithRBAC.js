@@ -137,8 +137,11 @@ require('../support/setupKeystore').then(keyStuff => {
             socialProfile.user_id = agent.socialProfile.user_id;
 
             if (request.payload.token.identities) {
+              socialProfile._json.sub = request.payload.token.sub;
+              socialProfile.user_id = request.payload.token.sub;
+
               socialProfile = {...agent.socialProfile, ...socialProfile, identities: request.payload.token.identities};
-           }
+            }
             else {
               socialProfile = {...agent.socialProfile, ...socialProfile, identities: agent.socialProfile.identities};
             }
@@ -160,10 +163,15 @@ require('../support/setupKeystore').then(keyStuff => {
             if (request.payload.token.identities) {
               socialProfile = {...socialProfile, identities: request.payload.token.identities};
             }
-            else {
-              const i = userId.indexOf('|');
-              socialProfile.identities[0].user_id = userId.slice(i+1);
-              socialProfile.identities[0].provider = userId.slice(0, i);
+
+            // Make sure first identity matches wider profile
+            const i = userId.indexOf('|');
+            socialProfile.identities[0].user_id = userId.slice(i+1);
+            socialProfile.identities[0].provider = userId.slice(0, i);
+            socialProfile.identities[0].connection = userId.slice(0, i);;
+            let connection = userId.slice(i+1).split('|');
+            if (connection.length > 1) {
+              socialProfile.identities[0].connection = connection[0];
             }
 
             agent = await models.Agent.create({
@@ -712,9 +720,9 @@ require('../support/setupKeystore').then(keyStuff => {
           // Auth0 returns the primary account identity
           let results = await models.Agent.findOne({ where: {'socialProfile.user_id': request.params.primary_id } });
 
+          const i = request.params.primary_id.indexOf('|');
+          const primary_id = request.params.primary_id.slice(i+1);
 
-          let provider, primary_id;
-          [provider, primary_id] = request.params.primary_id.split('|');
           let response = results.socialProfile.identities.find(r => r.user_id === primary_id);
 
           response.profileData = {
