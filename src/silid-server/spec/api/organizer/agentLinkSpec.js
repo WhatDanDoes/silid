@@ -9,6 +9,7 @@ const stubAuth0ManagementApi = require('../../support/stubAuth0ManagementApi');
 const stubUserReadByEmail = require('../../support/auth0Endpoints/stubUserReadByEmail');
 const stubUserLinkAccount = require('../../support/auth0Endpoints/stubUserLinkAccount');
 const stubUserUnlinkAccount = require('../../support/auth0Endpoints/stubUserUnlinkAccount');
+const stubUserAppMetadataUpdate = require('../../support/auth0Endpoints/stubUserAppMetadataUpdate');
 const scope = require('../../../config/permissions');
 const roles = require('../../../config/roles');
 const apiScope = require('../../../config/apiPermissions');
@@ -728,6 +729,17 @@ describe('organizer/agentLinkSpec', () => {
               }
             }
           ];
+
+          beforeEach(done => {
+            // For setting `manually_unlinked` flag.
+            // See viewer specs for robust tests.
+            stubUserAppMetadataUpdate({..._profile, identities: _identities}, (err, apiScopes) => {
+              if (err) return done.fail(err);
+              ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+
+              done();
+            });
+          });
 
           describe('general error handling (e.g., secondary account does not exist)', () => {
 
