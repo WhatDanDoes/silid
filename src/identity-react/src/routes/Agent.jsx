@@ -129,7 +129,6 @@ const Agent = (props) => {
         setProfileData(service.payload);
 
         let i = service.payload.user_id.indexOf('|');
-        let provider = service.payload.user_id.slice(0, i);
         let id = service.payload.user_id.slice(i + 1);
         setLinkedAccounts(service.payload.identities.filter(i => i.user_id !== id));
 
@@ -155,10 +154,6 @@ const Agent = (props) => {
   const [isLoadingAccounts, setIsLoadingAccounts] = React.useState(false);
   const [linkableAccounts, setLinkableAccounts] = React.useState([]);
   const [isLinkingAccounts, setIsLinkingAccounts] = React.useState(false);
-
-  function accountsAreLinked(connection, provider, user_id) {
-    return !!profileData.identities.find(i => i.connection === connection && i.provider === provider && i.user_id === user_id);
-  };
 
   /**
    * SIL Locales
