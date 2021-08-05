@@ -81,6 +81,7 @@ context('root/Agent linking', function() {
         beforeEach(() => {
           cy.login(_profile.email, {
             ..._profile,
+            sub: 'google-oauth2|111110000000',
             identities: [
               {
                 connection: 'google-oauth2',
@@ -302,6 +303,7 @@ context('root/Agent linking', function() {
         beforeEach(() => {
           cy.login('someotherguy@example.com', {
             ..._profile,
+            sub: 'google-oauth2|111110000000',
             email: 'someotherguy@example.com',
             name: 'Some Other Guy',
             identities: [

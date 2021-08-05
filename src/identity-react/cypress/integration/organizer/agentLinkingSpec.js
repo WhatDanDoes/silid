@@ -80,6 +80,7 @@ context('organizer/Agent linking', function() {
         beforeEach(() => {
           cy.login(_profile.email, {
             ..._profile,
+            sub: 'google-oauth2|111110000000',
             identities: [
               {
                 connection: 'google-oauth2',
@@ -103,7 +104,7 @@ context('organizer/Agent linking', function() {
           });
         });
 
-        it('displays linked account info in the linkable-accounts table', () => {
+        it('displays linked account info in the linked-accounts table', () => {
           cy.get('#linked-accounts').should('exist');
           cy.get('#linked-accounts tbody').find('tr').should('have.length', 1);
 
@@ -301,6 +302,7 @@ context('organizer/Agent linking', function() {
         beforeEach(() => {
           cy.login('someotherguy@example.com', {
             ..._profile,
+            sub: 'google-oauth2|111110000000',
             email: 'someotherguy@example.com',
             name: 'Some Other Guy',
             identities: [
