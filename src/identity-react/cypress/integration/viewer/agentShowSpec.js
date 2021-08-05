@@ -103,6 +103,7 @@ context('viewer/Agent show', () => {
           describe('linked accounts', () => {
             it('displays a linked-accounts table', () => {
               cy.login(_profile.email, {..._profile,
+                sub: 'google-oauth2|117550400000000000000',
                 identities: [
                   {
                     "provider": "google-oauth2",
@@ -212,6 +213,7 @@ context('viewer/Agent show', () => {
           describe('linked accounts', () => {
             it('displays a linked-accounts table', () => {
               cy.login(_profile.email, {..._profile,
+                sub: 'google-oauth2|117550400000000000000',
                 identities: [
                   {
                     "provider": "google-oauth2",
@@ -231,11 +233,11 @@ context('viewer/Agent show', () => {
               });
               cy.url().should('contain', '/#/agent');
 
-              cy.visit(`/#/agent/${agent.socialProfile.user_id}`);
-              cy.wait(300);
-              cy.url().should('contain', `/#/agent/${agent.socialProfile.user_id}`);
-
-              cy.get('#linked-accounts').should('exist');
+              cy.task('query', `SELECT * FROM "Agents" WHERE "email"='someguy@example.com' LIMIT 1;`).then(([results, metadata]) => {
+                agent = results[0];
+                cy.visit(`/#/agent/${agent.socialProfile.user_id}`);
+                cy.wait(500);
+              });
             });
           });
         });
@@ -345,7 +347,10 @@ context('viewer/Agent show', () => {
 
           describe('linked accounts', () => {
             it('displays a linked-accounts table', () => {
-              cy.login(_profile.email, {..._profile, email_verified: false,
+              cy.login(_profile.email, {
+                ..._profile,
+                email_verified: false,
+                sub: 'google-oauth2|117550400000000000000',
                 identities: [
                   {
                     "provider": "google-oauth2",

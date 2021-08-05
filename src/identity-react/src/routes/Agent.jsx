@@ -127,9 +127,10 @@ const Agent = (props) => {
       }
       else {
         setProfileData(service.payload);
-        let provider, id;
-        [provider, id] = service.payload.user_id.split('|');
-        setLinkedAccounts(service.payload.identities.filter(i => i.provider !== provider && i.user_id !== id));
+
+        let i = service.payload.user_id.indexOf('|');
+        let id = service.payload.user_id.slice(i + 1);
+        setLinkedAccounts(service.payload.identities.filter(i => i.user_id !== id));
 
         setIsIdpAuthenticated(!/^auth0\|*/.test(service.payload.user_id));
       }
@@ -153,10 +154,6 @@ const Agent = (props) => {
   const [isLoadingAccounts, setIsLoadingAccounts] = React.useState(false);
   const [linkableAccounts, setLinkableAccounts] = React.useState([]);
   const [isLinkingAccounts, setIsLinkingAccounts] = React.useState(false);
-
-  function accountsAreLinked(connection, provider, user_id) {
-    return !!profileData.identities.find(i => i.connection === connection && i.provider === provider && i.user_id === user_id);
-  };
 
   /**
    * SIL Locales
@@ -944,14 +941,19 @@ const Agent = (props) => {
                                     .then(response => response.json())
                                     .then(response => {
                                       // Remove newly linked account from linkableAccounts
-                                      let linkables = [];
+                                      let linkables = [...linkableAccounts];
                                       for (let r of response) {
-                                        linkables.concat(linkableAccounts.filter(l => l.user_id !== r.user_id && l.provider !== r.provider));
+                                        let index = linkables.findIndex(l => l.user_id === r.user_id);
+                                        if (index > -1) {
+                                          linkables.splice(index, 1);
+                                        }
                                       }
                                       setLinkableAccounts(linkables);
 
                                       // Remove primary account from returned list of linked accounts
-                                      let primary_id = profileData.user_id.split('|')[1];
+                                      let i = profileData.user_id.indexOf('|');
+                                      let primary_id = profileData.user_id.slice(i + 1);
+
                                       let linked = response.filter(r => r.user_id !== primary_id);
 
                                       setLinkedAccounts(linked);
