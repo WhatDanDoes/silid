@@ -503,13 +503,7 @@ describe('agentLinkSpec', () => {
                 accessToken = token;
                 authenticatedSession = session;
 
-                // For removing the `manually_unlinked` flag
-                stubUserAppMetadataUpdate(secondaryProfile, (err, apiScopes) => {
-                  if (err) return done.fail(err);
-                  ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-
-                  done();
-                });
+                done();
               });
             });
           });
@@ -569,26 +563,6 @@ describe('agentLinkSpec', () => {
                      done();
                    });
                 });
-
-                it('is not called to update user_metadata on the non-existant secondary account', done => {
-                  authenticatedSession
-                   .put('/agent/link')
-                   .send({
-                     // From where do I get connection_id?
-                     //connection_id: 'twitter',
-                     user_id: 'abc-123',
-                     provider: 'twitter',
-                   })
-                   .set('Accept', 'application/json')
-                   .expect('Content-Type', /json/)
-                   .expect(400)
-                   .end((err, res) => {
-                     if (err) return done.fail(err);
-                     expect(userAppMetadataUpdateScope.isDone()).toBe(false);
-                     expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
-                     done();
-                   });
-                });
               });
             });
 
@@ -642,27 +616,6 @@ describe('agentLinkSpec', () => {
                       expect(userLinkAccountOauthTokenScope.isDone()).toBe(true);
                       done();
                     });
-                });
-
-                it('is not called to update user_metadata on the non-existant secondary account', done => {
-                  request(app)
-                   .put('/agent/link')
-                   .send({
-                     // From where do I get connection_id?
-                     //connection_id: 'twitter',
-                     user_id: 'abc-123',
-                     provider: 'twitter',
-                   })
-                   .set('Authorization', `Bearer ${accessToken}`)
-                   .set('Accept', 'application/json')
-                   .expect('Content-Type', /json/)
-                   .expect(400)
-                   .end((err, res) => {
-                     if (err) return done.fail(err);
-                     expect(userAppMetadataUpdateScope.isDone()).toBe(false);
-                     expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
-                     done();
-                   });
                 });
               });
             });
@@ -726,25 +679,6 @@ describe('agentLinkSpec', () => {
                     });
                 });
 
-                it('is called to update user_metadata on the secondary account', done => {
-                  authenticatedSession
-                   .put('/agent/link')
-                   .send({
-                     // From where do I get connection_id?
-                     //connection_id: 'twitter',
-                     user_id: 'abc-123',
-                     provider: 'twitter',
-                   })
-                   .set('Accept', 'application/json')
-                   .expect('Content-Type', /json/)
-                   .expect(201)
-                   .end((err, res) => {
-                     if (err) return done.fail(err);
-                     expect(userAppMetadataUpdateScope.isDone()).toBe(true);
-                     expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
-                     done();
-                   });
-                });
               });
             });
 
@@ -802,99 +736,6 @@ describe('agentLinkSpec', () => {
                       done();
                     });
                 });
-
-                it('is called to remove manually_unlinked from the secondary user_metadata', done => {
-                  request(app)
-                    .put('/agent/link')
-                    .send({
-                      // From where do I get connection_id?
-                      //connection_id: 'twitter',
-                      user_id: 'abc-123',
-                      provider: 'twitter',
-                    })
-                    .set('Authorization', `Bearer ${accessToken}`)
-                    .set('Accept', 'application/json')
-                    .expect('Content-Type', /json/)
-                    .expect(201)
-                    .end((err, res) => {
-                      if (err) return done.fail(err);
-                      expect(userAppMetadataUpdateScope.isDone()).toBe(true);
-                      expect(userAppMetadataUpdateOauthTokenScope.isDone()).toBe(false);
-                      done();
-                    });
-                });
-              });
-            });
-          });
-
-          describe('secondary account was previously manually_unlinked', () => {
-
-            beforeEach(done => {
-              secondaryProfile.user_metadata = { manually_unlinked: true }
-              stubUserLinkAccount({..._profile}, secondaryProfile, (err, apiScopes) => {
-                if (err) return done.fail(err);
-                ({userLinkAccountScope, userLinkAccountOauthTokenScope} = apiScopes);
-
-                done();
-              });
-            });
-
-            describe('session access', () => {
-
-              it('returns the identities array', done => {
-                expect(secondaryProfile.user_metadata.manually_unlinked).toBe(true);
-                authenticatedSession
-                  .put('/agent/link')
-                  .send({
-                    // From where do I get connection_id?
-                    //connection_id: 'twitter',
-                    user_id: 'abc-123',
-                    provider: 'twitter',
-                  })
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(201)
-                  .end((err, res) => {
-                    if (err) return done.fail(err);
-
-                    // The null value erases the user_metdata property at Auth0
-                    expect(secondaryProfile.user_metadata.manually_unlinked).toEqual(null);
-
-                    done();
-                  });
-              });
-            });
-
-            describe('Bearer token access', () => {
-
-              beforeEach(() => {
-                const userInfoScope = nock(`https://${process.env.AUTH0_CUSTOM_DOMAIN}`)
-                  .get(/userinfo/)
-                  .reply(200, {..._identity, permissions: [scope.read.agents] });
-              });
-
-              it('is called to link the secondary account to the primary', done => {
-                expect(secondaryProfile.user_metadata.manually_unlinked).toBe(true);
-                request(app)
-                  .put('/agent/link')
-                  .send({
-                    // From where do I get connection_id?
-                    //connection_id: 'twitter',
-                    user_id: 'abc-123',
-                    provider: 'twitter',
-                  })
-                  .set('Authorization', `Bearer ${accessToken}`)
-                  .set('Accept', 'application/json')
-                  .expect('Content-Type', /json/)
-                  .expect(201)
-                  .end((err, res) => {
-                    if (err) return done.fail(err);
-
-                    // The null value erases the user_metdata property at Auth0
-                    expect(secondaryProfile.user_metadata.manually_unlinked).toEqual(null);
-
-                    done();
-                  });
               });
             });
           });

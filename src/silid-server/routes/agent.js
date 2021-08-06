@@ -148,17 +148,7 @@ router.put('/link/:primary_id?', checkPermissions([scope.update.agents]), functi
 
   const managementClient = getManagementClient(apiScope.update.users);
   managementClient.linkUsers(primaryId, req.body).then(identities => {
-
-    // So the secondary account doesn't get relinked because of the Auth0 account linking rule
-    managementClient.updateUserMetadata({id: req.params.user_id}, { manually_unlinked: null }).then(response => {
-
-      res.status(201).json(identities);
-    }).catch(err => {
-      // Maybe this should just return the new identity... if it fails at this point,
-      // the account has still been successfully unlinked (though it will probably be
-      // relinked on next login)
-      res.status(err.statusCode ? err.statusCode : 500).json(err.message.error_description);
-    });
+    res.status(201).json(identities);
   }).catch(err => {
     res.status(err.statusCode).json({ message: JSON.parse(err.message).error_description });
   });
@@ -183,7 +173,7 @@ router.delete('/link/:provider/:user_id/:primary_id?', checkPermissions([scope.u
   managementClient.unlinkUsers({...req.params, id: primaryId }).then(identity => {
 
     // So the account doesn't get relinked because of the Auth0 account linking rule
-    managementClient.updateUserMetadata({id: req.params.user_id}, { manually_unlinked: true }).then(response => {
+    managementClient.updateUserMetadata({id: `${req.params.provider}|${req.params.user_id}`}, { manually_unlinked: true }).then(response => {
 
       res.status(200).json(identity);
     }).catch(err => {

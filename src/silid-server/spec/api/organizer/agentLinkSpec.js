@@ -607,13 +607,7 @@ describe('organizer/agentLinkSpec', () => {
                   if (err) return done.fail(err);
                   ({userLinkAccountScope, userLinkAccountOauthTokenScope} = apiScopes);
 
-                  // For removing the `manually_unlinked` flag
-                  stubUserAppMetadataUpdate(secondaryProfile, (err, apiScopes) => {
-                    if (err) return done.fail(err);
-                    ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
-
-                    done();
-                  });
+                  done();
                 });
               });
 
