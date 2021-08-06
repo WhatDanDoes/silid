@@ -589,8 +589,11 @@ describe('organizer/agentLinkSpec', () => {
 
             describe('secondary account exists', () => {
 
+              let secondaryProfile;
+
               beforeEach(done => {
-                stubUserLinkAccount({..._profile, email: 'someotherguy@example.com', user_id: 'some-other-guys-user-id-abc-123'}, {
+
+                secondaryProfile = {
                   ..._profile,
                   email: 'thesameguy@example.com',
                   identities: [{
@@ -598,11 +601,19 @@ describe('organizer/agentLinkSpec', () => {
                     user_id: 'abc-123',
                     provider: 'twitter',
                   }]
-                }, (err, apiScopes) => {
+                };
+
+                stubUserLinkAccount({..._profile, email: 'someotherguy@example.com', user_id: 'some-other-guys-user-id-abc-123'}, secondaryProfile, (err, apiScopes) => {
                   if (err) return done.fail(err);
                   ({userLinkAccountScope, userLinkAccountOauthTokenScope} = apiScopes);
 
-                  done();
+                  // For removing the `manually_unlinked` flag
+                  stubUserAppMetadataUpdate(secondaryProfile, (err, apiScopes) => {
+                    if (err) return done.fail(err);
+                    ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+
+                    done();
+                  });
                 });
               });
 
