@@ -9,6 +9,7 @@ const stubAuth0ManagementApi = require('../../support/stubAuth0ManagementApi');
 const stubUserReadByEmail = require('../../support/auth0Endpoints/stubUserReadByEmail');
 const stubUserLinkAccount = require('../../support/auth0Endpoints/stubUserLinkAccount');
 const stubUserUnlinkAccount = require('../../support/auth0Endpoints/stubUserUnlinkAccount');
+const stubUserAppMetadataUpdate = require('../../support/auth0Endpoints/stubUserAppMetadataUpdate');
 const scope = require('../../../config/permissions');
 const roles = require('../../../config/roles');
 const apiScope = require('../../../config/apiPermissions');
@@ -588,8 +589,11 @@ describe('organizer/agentLinkSpec', () => {
 
             describe('secondary account exists', () => {
 
+              let secondaryProfile;
+
               beforeEach(done => {
-                stubUserLinkAccount({..._profile, email: 'someotherguy@example.com', user_id: 'some-other-guys-user-id-abc-123'}, {
+
+                secondaryProfile = {
                   ..._profile,
                   email: 'thesameguy@example.com',
                   identities: [{
@@ -597,7 +601,9 @@ describe('organizer/agentLinkSpec', () => {
                     user_id: 'abc-123',
                     provider: 'twitter',
                   }]
-                }, (err, apiScopes) => {
+                };
+
+                stubUserLinkAccount({..._profile, email: 'someotherguy@example.com', user_id: 'some-other-guys-user-id-abc-123'}, secondaryProfile, (err, apiScopes) => {
                   if (err) return done.fail(err);
                   ({userLinkAccountScope, userLinkAccountOauthTokenScope} = apiScopes);
 
@@ -728,6 +734,17 @@ describe('organizer/agentLinkSpec', () => {
               }
             }
           ];
+
+          beforeEach(done => {
+            // For setting `manually_unlinked` flag.
+            // See viewer specs for robust tests.
+            stubUserAppMetadataUpdate({..._profile, identities: _identities}, (err, apiScopes) => {
+              if (err) return done.fail(err);
+              ({userAppMetadataUpdateScope, userAppMetadataUpdateOauthTokenScope} = apiScopes);
+
+              done();
+            });
+          });
 
           describe('general error handling (e.g., secondary account does not exist)', () => {
 
