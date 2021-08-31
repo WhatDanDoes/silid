@@ -43,13 +43,25 @@ cp .env.example .env
 
 ### Test
 
-`silid-server` has tests of its own, apart from the client-driven end-to-end tests. These tests require a PostgreSQL development server. Start one with `docker`:
+`silid-server` has tests of its own, apart from the client-driven end-to-end tests. The easiest way to execute these tests is with the `make` task provided. From the project root folder:
+
+```
+make silid-unit-test
+```
+
+Alternatively, it may be convenient to execute select specs. Testing this way requires a PostgreSQL development server. Start one with `docker`:
 
 ```
 docker run --name dev-postgres -p 5432:5432 -e POSTGRES_PASSWORD=pass -e POSTGRES_USER=user -d postgres
 ```
 
 Once the image is running, execute the server-specific tests from the `src/silid-server` directory like this:
+
+```
+NODE_ENV=test npx jasmine spec/api/agentEditSpec.js
+```
+
+Or, to run all tests:
 
 ```
 npm test
@@ -91,9 +103,30 @@ As with any web application, this project is comprised of many moving parts. The
 
 The `silid-server` and Auth0 mock server are bundled together in a Docker composition for convenience. These containers are executed apart from the React build server and the Cypress test framework is executed apart from that. To set up the project for testing, it is convenient to execute each component in a seperate shell.
 
+As with the server tests, there are several `make` tasks which are intended to simplify test execution. For general development purposes, execute the following tasks in the project's root folder:
+
+```
+make silid-compose-up
+make silid-e2e-open
+```
+
+The commands above (best executed in seperate terminal sessions) execute the `silid-server`, the Auth0 mock server, and open the `cypress` interface for testing while developing. Tests executed for deployment use slightly different `make` tasks, which produce a production-optimized bundle:
+
+```
+make silid-compose-build-up
+make silid-e2e-headless
+```
+
+The commands above execute all tests in a _headless_ browser. If you prefer to see tests run in the browser, execute this instead:
+
+```
+make silid-compose-build-up
+make silid-e2e-run-build
+```
+
 ### Client build server
 
-If you've already installed the client's dependencies, you'll likely already be in the correct directory. If not, navigate to the `src/identity-react` directory and start the build server:
+The `make` tasks described in the previous section are intended to simplify the steps described below. If you've already installed the client's dependencies, you'll likely already be in the correct directory. If not, navigate to the `src/identity-react` directory and start the build server:
 
 ```
 npm start
