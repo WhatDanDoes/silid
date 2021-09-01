@@ -1,4 +1,5 @@
-# Auth0-Supported Agent-Profile Schema
+Auth0-Supported Agent-Profile Schema
+====================================
 
 One of Auth0's critical core offerings is the [normalization](https://auth0.com/docs/users/user-profiles#data-normalization) of the agent profile data offered by third-party _Identity Providers_ (e.g. Facebook, Google, et al). Another core offering is the ability to [customize an agent's profile](https://auth0.com/docs/users/user-profiles#custom-user-profile-data).
 
