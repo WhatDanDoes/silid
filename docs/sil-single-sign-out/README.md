@@ -7,11 +7,11 @@ Logging out of an Auth0-configured application involves multiple _session layers
 2. Auth0 Session Layer
 3. Identity Provider Session Layer
 
-Refer to a Auth0 documentation for a [synopsis](https://auth0.com/docs/login/logout) of each layer.
+Refer to Auth0 documentation for a [synopsis](https://auth0.com/docs/login/logout) of each layer.
 
 Typically, developers concern themselves with the _Application_ and _Auth0_ session layers. Depending on the type of app (e.g. _regular_ versus _SPA_), clearing these sessions effects a _logout_. I.e., if an agent wants to use the app again, authentication steps must be repeated from the beginning in order to create new sessions.
 
-The third _Identity Provider_ session is that which was created by the IdP itself (e.g., Google, Facebook). By [setting the _federated_ flag](https://auth0.com/docs/login/logout/log-users-out-of-idps) in the Auth0 `/logout` call, this session will be destroyed, thus _de_-authenticating all SIL and peripheral non-SIL apps as well. This is a powerful feature, [best suited for private, self-provided IdPs](https://auth0.com/docs/architecture-scenarios/b2b/logout#federated-logout).
+The third _Identity Provider_ session is that which was created by the IdP itself (e.g., Google, Facebook). By [setting the _federated_ flag](https://auth0.com/docs/login/logout/log-users-out-of-idps) in the Auth0 `/logout` call, this session will be destroyed, thus _de_-authenticating all SIL and peripheral non-SIL apps. This is a powerful feature, [best suited for private, self-provided IdPs](https://auth0.com/docs/architecture-scenarios/b2b/logout#federated-logout).
 
 The ability to deauthenticate all SIL apps at once is desirable, but the federated logout is _heavy handed_. An agent authenticated by Google, for example, will be logged out from applications like Gmail if a federated logout is performed.
 
@@ -23,7 +23,7 @@ Named as such for no other reason than it's a funny _British-y_ way to say _adio
 
 As such, one thing is required of applications wanting to `GET /cheerio`:
 
-_An application must be able to deauthenticate via its own_ `GET /logout` _route_.
+> An application must be able to deauthenticate via its own `GET /logout` route.
 
 What happens in this `/logout` route is up to application developers, but if you want to hit the `/cheerio` endpoint, you'll need to _redirect_ with a formatted query string. The following [Express](https://expressjs.com/) code is typical of that found deployed alongside Identity.
 
@@ -81,7 +81,7 @@ router.get('/logout', (req, res) => {
    * This is at the heart of how `/cheerio` works. Apps deployed on an Auth0
    * tenant will eventually make a call to Auth0's `/logout` endpoint. All that
    * is required to integrate with Identity in this capacity is a properly
-   * formatted `redirectTo` param.
+   * formatted `returnTo` param.
    */
   const searchString = querystring.stringify({
     returnTo: 'https://id.languagetechnology.org/cheerio?returnTo=https://your.app'
