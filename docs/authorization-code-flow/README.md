@@ -1,4 +1,5 @@
-# Identity's Implementation of the Authorization Code Flow
+Identity's Implementation of the Authorization Code Flow
+========================================================
 
 The subject of _mental models_ was raised during the SIL global staff meeting on January 26, 2021. SIL leadership invited input on how we explain real-world phenomenon collectively and as individuals. _Which mental models are good and worth preserving? Which mental models are bad and should be abandoned?_ May God allow each of us the discernment required.
 
