@@ -6,5 +6,5 @@ Some explanation of the Identity app and its inner workings...
 - [Auth0-Supported Agent-Profile Schema](identity-auth0-schema/)
 - [How to Call the Identity API from your App](api-call-howto/)
 - [Identity API Endpoints](api-endpoints/)
-- [Single Sign Out](sil-single-sign-out/)
+- [SIL Single Sign Out (AKA `GET /cheerio`)](sil-single-sign-out/)
 
