@@ -71,14 +71,14 @@ router.get('/logout', (req, res) => {
    *
    * By setting the `returnTo` param on the Auth0 call, this app
    *
-   * 1. Will be deauthenticated,
+   * 1. Will be deauthenticated at Auth0,
    * 2. Redirected to Identity's `/cheerio` (which deauthenticates all known apps), and then
    * 3. Redirected back to your app's homepage.
    *
    * Note: your app's `returnTo` URL must be configured as an _Allowed Logout_
    * on the Auth0 tenant.
    *
-   * This is at the heart of how `/cheerio` works. App's deployed on an Auth0
+   * This is at the heart of how `/cheerio` works. Apps deployed on an Auth0
    * tenant will eventually make a call to Auth0's `/logout` endpoint. All that
    * is required to integrate with Identity in this capacity is a properly
    * formatted `redirectTo` param.
