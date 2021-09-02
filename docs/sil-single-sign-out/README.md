@@ -1,7 +1,7 @@
 SIL Single Sign Out
 ===================
 
-Logging out of an Auth0-configured application involves multiple _session layers_:
+Logging out of an Auth0-configured application involves clearing multiple _session layers_:
 
 1. Application Session Layer
 2. Auth0 Session Layer
@@ -19,7 +19,7 @@ Integration with Identity means having another option.
 
 ## GET /cheerio
 
-Named as such for no other reason than it's a funny _British-y_ way to say _adios_. If an SIL app redirects to this endpoint on `/logout`, Identity will make a best effort to call the `/logout` endpoint on every application configured on the same Auth0 tenant.
+Named as such for no other reason than it's a funny _British-y_ way to say _adiós_. If an SIL app redirects to this endpoint on `/logout`, Identity will make a best effort to call the `/logout` endpoint on every application configured on the same Auth0 tenant.
 
 As such, one thing is required of applications wanting to `GET /cheerio`:
 
